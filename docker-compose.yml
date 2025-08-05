@@ -1,13 +1,13 @@
 services:
   bot:
-    image: "bot"
+    image: "stpsher-bot"
     stop_signal: SIGINT
     build:
       context: .
-    working_dir: "/usr/src/app/bot"
+    working_dir: "/usr/src/app/stpsher-bot"
     volumes:
-      - .:/usr/src/app/bot
-    command: python3 -m bot
+      - .:/usr/src/app/stpsher-bot
+    command: uv run bot.py
     restart: always
     env_file:
       - ".env"
@@ -18,6 +18,14 @@ services:
         max-size: "200k"
         max-file: "10"
 
+  redis_cache:
+    image: redis:7.4.5-alpine
+    restart: always
+    command: redis-server --port $REDIS_PORT --save 20 1 --loglevel warning --requirepass $REDIS_PASSWORD
+    env_file:
+      - ".env"
+    volumes:
+      - cache:/data
 
   ##   To enable postgres uncomment the following lines
   #  http://pgconfigurator.cybertec.at/ For Postgres Configuration
@@ -41,16 +49,6 @@ services:
   #    options:
   #      max-size: "200k"
   #      max-file: "10"
-
-  ##  To enable redis cache uncomment the following lines
-  # redis_cache:
-  #  image: redis:6.2-alpine
-  #  restart: always
-  #  command: redis-server --port $REDIS_PORT --save 20 1 --loglevel warning --requirepass $REDIS_PASSWORD
-  #  env_file:
-  #    - ".env"
-  #  volumes:
-  #    - cache:/data
 
   # api:
   #  image: "api"
@@ -83,6 +81,6 @@ services:
 
 
 ## Uncomment the following lines if you want to use a volume for the database
-# volumes:
+volumes:
+  cache: { }
 #  pgdata: { }
-#  cache: { }

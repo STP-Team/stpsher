@@ -1,0 +1,14 @@
+[project]
+name = "stpsherbot"
+version = "0.1.0"
+description = "Бот-помощник СТП"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram>=3.21.0",
+    "aioodbc>=0.5.0",
+    "betterlogging>=1.0.0",
+    "environs>=14.3.0",
+    "redis>=6.3.0",
+    "sqlalchemy>=2.0.42",
+]

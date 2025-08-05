@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from environs import Env
+from sqlalchemy import URL
 
 
 @dataclass
@@ -13,44 +14,55 @@ class DbConfig:
     Attributes
     ----------
     host : str
-        The host where the database server is located.
+        Хост, на котором находится база данных
     password : str
-        The password used to authenticate with the database.
+        Пароль для авторизации в базе данных.
     user : str
-        The username used to authenticate with the database.
-    database : str
-        The name of the database.
-    port : int
-        The port where the database server is listening.
+        Логин для авторизации в базе данных.
+    stp_db : str
+        Имя основной базы данных.
+    achievements_db : str
+        Имя базы данных достижений.
     """
 
     host: str
-    password: str
     user: str
-    database: str
-    port: int = 5432
+    password: str
 
-    # For SQLAlchemy
-    def construct_sqlalchemy_url(self, driver="asyncpg", host=None, port=None) -> str:
-        """
-        Constructs and returns a SQLAlchemy URL for this database configuration.
-        """
-        # TODO: If you're using SQLAlchemy, move the import to the top of the file!
-        from sqlalchemy.engine.url import URL
+    stp_db: str
+    achievements_db: str
 
-        if not host:
-            host = self.host
-        if not port:
-            port = self.port
-        uri = URL.create(
-            drivername=f"postgresql+{driver}",
-            username=self.user,
-            password=self.password,
-            host=host,
-            port=port,
-            database=self.database,
+    def construct_sqlalchemy_url(
+        self,
+        db_name=None,
+        driver="aioodbc",
+    ) -> URL:
+        """
+        Конструирует и возвращает SQLAlchemy-ссылку для подключения к базе данных
+        """
+        connection_string = (
+            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+            f"SERVER={self.host};"
+            f"DATABASE={db_name if db_name else self.achievements_db};"
+            f"UID={self.user};"
+            f"PWD={self.password};"
+            f"TrustServerCertificate=yes;"
+            f"MultipleActiveResultSets=yes;"
+            f"MARS_Connection=yes;"
+            f"Connection Timeout=30;"
+            f"Command Timeout=60;"
+            f"Pooling=yes;"
+            f"Max Pool Size=100;"
+            f"Min Pool Size=5;"
+            f"TCP KeepAlive=yes;"
+            f"ConnectRetryCount=3;"
+            f"ConnectRetryInterval=10;"
         )
-        return uri.render_as_string(hide_password=False)
+        connection_url = URL.create(
+            f"mssql+{driver}", query={"odbc_connect": connection_string}
+        )
+
+        return connection_url
 
     @staticmethod
     def from_env(env: Env):
@@ -58,12 +70,18 @@ class DbConfig:
         Creates the DbConfig object from environment variables.
         """
         host = env.str("DB_HOST")
-        password = env.str("POSTGRES_PASSWORD")
-        user = env.str("POSTGRES_USER")
-        database = env.str("POSTGRES_DB")
-        port = env.int("DB_PORT", 5432)
+        user = env.str("DB_USER")
+        password = env.str("DB_PASS")
+
+        stp_db = env.str("DB_STP_NAME")
+        achievements_db = env.str("DB_ACHIEVEMENTS_NAME")
+
         return DbConfig(
-            host=host, password=password, user=user, database=database, port=port
+            host=host,
+            user=user,
+            password=password,
+            stp_db=stp_db,
+            achievements_db=achievements_db,
         )
 
 
@@ -74,7 +92,6 @@ class TgBot:
     """
 
     token: str
-    admin_ids: list[int]
     use_redis: bool
 
     @staticmethod
@@ -83,9 +100,8 @@ class TgBot:
         Creates the TgBot object from environment variables.
         """
         token = env.str("BOT_TOKEN")
-        admin_ids = env.list("ADMINS", subcast=int)
         use_redis = env.bool("USE_REDIS")
-        return TgBot(token=token, admin_ids=admin_ids, use_redis=use_redis)
+        return TgBot(token=token, use_redis=use_redis)
 
 
 @dataclass
@@ -187,7 +203,7 @@ def load_config(path: str = None) -> Config:
 
     return Config(
         tg_bot=TgBot.from_env(env),
-        # db=DbConfig.from_env(env),
-        # redis=RedisConfig.from_env(env),
+        db=DbConfig.from_env(env),
+        redis=RedisConfig.from_env(env),
         misc=Miscellaneous(),
     )

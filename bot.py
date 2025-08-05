@@ -1,67 +1,80 @@
 import asyncio
 import logging
 
-import betterlogging as bl
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
+from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
+from aiogram.types import (
+    BotCommand,
+    BotCommandScopeAllPrivateChats,
+)
 
-from tgbot.config import load_config, Config
+from infrastructure.database.setup import create_engine, create_session_pool
+from tgbot.config import Config, load_config
 from tgbot.handlers import routers_list
-from tgbot.middlewares.config import ConfigMiddleware
-from tgbot.services import broadcaster
+from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
+from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
+from tgbot.services.logger import setup_logging
+
+bot_config = load_config(".env")
+
+logger = logging.getLogger(__name__)
 
 
-async def on_startup(bot: Bot, admin_ids: list[int]):
-    await broadcaster.broadcast(bot, admin_ids, "Bot started")
+# async def on_startup(bot: Bot):
+#     if bot_config.tg_bot.activity_status:
+#         timeout_msg = f"Да ({bot_config.tg_bot.activity_warn_minutes}/{bot_config.tg_bot.activity_close_minutes} минут)"
+#     else:
+#         timeout_msg = "Нет"
+#
+#     if bot_config.tg_bot.remove_old_questions:
+#         remove_topics_msg = (
+#             f"Да (старше {bot_config.tg_bot.remove_old_questions_days} дней)"
+#         )
+#     else:
+#         remove_topics_msg = "Нет"
+#
+#     await bot.send_message(
+#         chat_id=bot_config.tg_bot.ntp_forum_id,
+#         text=f"""<b>🚀 Запуск</b>
+#
+# Вопросник запущен со следующими параметрами:
+# <b>- Направление:</b> {bot_config.tg_bot.division}
+# <b>- Запрашивать регламент:</b> {"Да" if bot_config.tg_bot.ask_clever_link else "Нет"}
+# <b>- Закрывать по таймауту:</b> {timeout_msg}
+# <b>- Удалять старые вопросы:</b> {remove_topics_msg}
+#
+# <blockquote>База данных: {"Основная" if bot_config.db.main_db == "STPMain" else "Запасная"}</blockquote>""",
+#     )
 
 
-def register_global_middlewares(dp: Dispatcher, config: Config, session_pool=None):
+def register_middlewares(
+    dp: Dispatcher,
+    config: Config,
+    bot: Bot,
+    main_session_pool=None,
+    questioner_session_pool=None,
+):
     """
-    Register global middlewares for the given dispatcher.
-    Global middlewares here are the ones that are applied to all the handlers (you specify the type of update)
-
-    :param dp: The dispatcher instance.
-    :type dp: Dispatcher
-    :param config: The configuration object from the loaded configuration.
-    :param session_pool: Optional session pool object for the database using SQLAlchemy.
-    :return: None
+    Alternative setup with more selective middleware application.
+    Use this if you want different middleware chains for different event types.
     """
-    middleware_types = [
-        ConfigMiddleware(config),
-        # DatabaseMiddleware(session_pool),
-    ]
 
-    for middleware_type in middleware_types:
-        dp.message.outer_middleware(middleware_type)
-        dp.callback_query.outer_middleware(middleware_type)
-
-
-def setup_logging():
-    """
-    Set up logging configuration for the application.
-
-    This method initializes the logging configuration for the application.
-    It sets the log level to INFO and configures a basic colorized log for
-    output. The log format includes the filename, line number, log level,
-    timestamp, logger name, and log message.
-
-    Returns:
-        None
-
-    Example usage:
-        setup_logging()
-    """
-    log_level = logging.INFO
-    bl.basic_colorized_config(level=log_level)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s",
+    config_middleware = ConfigMiddleware(config)
+    database_middleware = DatabaseMiddleware(
+        config=config,
+        bot=bot,
+        stp_session_pool=main_session_pool,
+        achievements_session_pool=questioner_session_pool,
     )
-    logger = logging.getLogger(__name__)
-    logger.info("Starting bot")
+
+    for middleware in [
+        config_middleware,
+        database_middleware,
+    ]:
+        dp.message.outer_middleware(middleware)
+        dp.callback_query.outer_middleware(middleware)
 
 
 def get_storage(config):
@@ -87,18 +100,43 @@ def get_storage(config):
 async def main():
     setup_logging()
 
-    config = load_config(".env")
-    storage = get_storage(config)
+    storage = get_storage(bot_config)
 
-    bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode='HTML'))
+    bot = Bot(
+        token=bot_config.tg_bot.token, default=DefaultBotProperties(parse_mode="HTML")
+    )
+
+    # Определение команд для приватных чатов
+    await bot.set_my_commands(
+        commands=[BotCommand(command="start", description="Главное меню")],
+        scope=BotCommandScopeAllPrivateChats(),
+    )
+
     dp = Dispatcher(storage=storage)
+
+    # Create engines for different databases
+    stp_db_engine = create_engine(bot_config.db, db_name=bot_config.db.stp_db)
+    achievements_db_engine = create_engine(
+        bot_config.db, db_name=bot_config.db.achievements_db
+    )
+
+    stp_db = create_session_pool(stp_db_engine)
+    achievements_db = create_session_pool(achievements_db_engine)
+
+    # Store session pools in dispatcher
+    dp["stp_db"] = stp_db
+    dp["achievements_db"] = achievements_db
 
     dp.include_routers(*routers_list)
 
-    register_global_middlewares(dp, config)
+    register_middlewares(dp, bot_config, bot, stp_db, achievements_db)
 
-    await on_startup(bot, config.tg_bot.admin_ids)
-    await dp.start_polling(bot)
+    # await on_startup(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await stp_db_engine.dispose()
+        await achievements_db_engine.dispose()
 
 
 if __name__ == "__main__":
