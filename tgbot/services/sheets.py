@@ -1,9 +1,10 @@
 import logging
-from typing import Dict, List, Optional, Tuple
-from pathlib import Path
-import pandas as pd
-from datetime import datetime
 import re
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -410,11 +411,11 @@ def get_user_schedule_formatted(
 
         if compact:
             return _format_compact_schedule(
-                fullname, month, work_days, days_off, vacation_days, sick_days
+                month, work_days, days_off, vacation_days, sick_days
             )
         else:
             return _format_detailed_schedule(
-                fullname, month, work_days, days_off, vacation_days, sick_days
+                month, work_days, days_off, vacation_days, sick_days
             )
 
     except Exception as e:
@@ -423,7 +424,6 @@ def get_user_schedule_formatted(
 
 
 def _format_compact_schedule(
-    fullname: str,
     month: str,
     work_days: List[Tuple[str, str]],
     days_off: List[str],
@@ -464,7 +464,6 @@ def _format_compact_schedule(
 
 
 def _format_detailed_schedule(
-    fullname: str,
     month: str,
     work_days: List[Tuple[str, str]],
     days_off: List[str],
@@ -475,10 +474,7 @@ def _format_detailed_schedule(
 
     # Красивый заголовок
     lines = [
-        "╭─── 📅 <b>РАСПИСАНИЕ</b> ───╮",
-        f"│ <b>👤 {_get_short_name(fullname)}</b>",
-        f"│ 📆 {month.capitalize()} {datetime.now().year}",
-        "╰─────────────────────╯\n",
+        f"<b>👔 Мой график • {month.capitalize()}</b>\n",
     ]
 
     total_work_hours = 0
@@ -490,9 +486,9 @@ def _format_detailed_schedule(
             hours = _calculate_work_hours(schedule)
             if hours > 0:
                 total_work_hours += hours
-                lines.append(f"   📌 <b>{day}:</b> <code>{schedule}</code> ({hours}ч)")
+                lines.append(f"<b>{day}:</b> <code>{schedule}</code> ({hours}ч)")
             else:
-                lines.append(f"   📌 <b>{day}:</b> <code>{schedule}</code>")
+                lines.append(f"<b>{day}:</b> <code>{schedule}</code>")
         lines.append("")
 
     # Отпуск
@@ -512,25 +508,26 @@ def _format_detailed_schedule(
         lines.append("🏠 <b>ВЫХОДНЫЕ ДНИ:</b>")
         if len(days_off) <= 5:
             for day in days_off:
-                lines.append(f"   • {day}")
+                lines.append(f"• {day}")
         else:
             off_range = _format_day_range(days_off)
-            lines.append(f"   {off_range}")
+            lines.append(f"{off_range}")
         lines.append("")
 
     # Статистика
     work_days_count = len(work_days)
     total_days = len(work_days) + len(days_off) + len(vacation_days) + len(sick_days)
 
-    lines.append("📊 <b>СТАТИСТИКА:</b>")
-    lines.append(f"   • Рабочих дней: <b>{work_days_count}</b>")
+    lines.append("<blockquote expandable>📊 <b>СТАТИСТИКА:</b>")
+    lines.append(f"• Рабочих дней: <b>{work_days_count}</b>")
     if total_work_hours > 0:
-        lines.append(f"   • Рабочих часов: <b>{total_work_hours}ч</b>")
-    lines.append(f"   • Выходных: <b>{len(days_off)}</b>")
+        lines.append(f"• Рабочих часов: <b>{total_work_hours}ч</b>")
+    lines.append(f"• Выходных: <b>{len(days_off)}</b>")
     if vacation_days:
-        lines.append(f"   • Отпуск: <b>{len(vacation_days)} дн.</b>")
+        lines.append(f"• Отпуск: <b>{len(vacation_days)} дн.</b>")
     if sick_days:
-        lines.append(f"   • БЛ: <b>{len(sick_days)} дн.</b>")
+        lines.append(f"• БЛ: <b>{len(sick_days)} дн.</b>")
+    lines.append("</blockquote>")
 
     return "\n".join(lines)
 
@@ -622,7 +619,7 @@ def _format_day_range(days: List[str]) -> str:
 
 
 def _calculate_work_hours(schedule: str) -> float:
-    """Вычисляет количество рабочих часов из расписания"""
+    """Вычисляет количество рабочих часов из расписания с учетом обеденного перерыва"""
 
     # Ищем паттерн времени вида "09:00-21:00"
     time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
@@ -638,6 +635,12 @@ def _calculate_work_hours(schedule: str) -> float:
             end_minutes += 24 * 60
 
         work_minutes = end_minutes - start_minutes
-        return round(work_minutes / 60, 1)
+        work_hours = work_minutes / 60
+
+        # Вычитаем 1 час на обеденный перерыв для смен 8+ часов
+        if work_hours >= 8:
+            work_hours -= 1
+
+        return round(work_hours)
 
     return 0
