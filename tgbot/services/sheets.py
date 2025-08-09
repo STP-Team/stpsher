@@ -1,11 +1,13 @@
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,16 @@ class ScheduleStats:
     total_days: int
 
 
+@dataclass
+class DutyInfo:
+    """Информация о дежурстве"""
+
+    name: str
+    schedule: str
+    shift_type: str  # "П" или "С" или ""
+    work_hours: str
+
+
 class ScheduleFileManager:
     """Менеджер для работы с файлами расписаний"""
 
@@ -68,30 +80,12 @@ class ScheduleFileManager:
             Path к найденному файлу или None
         """
         try:
-            # Паттерны для поиска файлов в зависимости от типа расписания
-            if schedule_type == ScheduleType.REGULAR:
-                patterns = [
-                    f"ГРАФИК {division} I*",
-                    f"ГРАФИК {division} II*",
-                    f"ГРАФИК_{division}_*",
-                    f"*{division}*ГРАФИК*",
-                ]
-            elif schedule_type == ScheduleType.DUTIES:
-                patterns = [
-                    f"ДЕЖУРСТВА {division}*",
-                    f"СТАРШИЕ {division}*",
-                    f"*{division}*ДЕЖУРСТВ*",
-                    f"*{division}*СТАРШИЕ*",
-                ]
-            elif schedule_type == ScheduleType.HEADS:
-                patterns = [
-                    f"РГ {division}*",
-                    f"РУКОВОДИТЕЛИ {division}*",
-                    f"*{division}*РГ*",
-                    f"*{division}*РУКОВОДИТЕЛИ*",
-                ]
-            else:
-                patterns = [f"*{division}*"]
+            patterns = [
+                f"ГРАФИК {division} I*",
+                f"ГРАФИК {division} II*",
+                f"ГРАФИК_{division}_*",
+                f"*{division}*ГРАФИК*",
+            ]
 
             # Ищем файлы по паттернам
             for pattern in patterns:
@@ -804,6 +798,328 @@ class ScheduleParser:
             return f"❌ <b>Ошибка при получении расписания:</b>\n<code>{e}</code>"
 
 
+class DutyScheduleParser(ScheduleParser):
+    """Парсер для расписания дежурств"""
+
+    def __init__(self, uploads_folder: str = "uploads"):
+        super().__init__(uploads_folder)
+        self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+
+    def get_current_yekaterinburg_date(self) -> datetime:
+        """Получает текущую дату по Екатеринбургу"""
+        return datetime.now(self.yekaterinburg_tz)
+
+    def get_duty_sheet_name(self, date: datetime) -> str:
+        """Генерирует название листа дежурств для указанной даты"""
+        month_names = [
+            "Январь",
+            "Февраль",
+            "Март",
+            "Апрель",
+            "Май",
+            "Июнь",
+            "Июль",
+            "Август",
+            "Сентябрь",
+            "Октябрь",
+            "Ноябрь",
+            "Декабрь",
+        ]
+        month_name = month_names[date.month - 1]
+        return f"Дежурство {month_name}"
+
+    def find_date_column(
+        self, df: pd.DataFrame, target_date: datetime
+    ) -> Optional[int]:
+        """Находит колонку с указанной датой"""
+        target_day = target_date.day
+
+        # Ищем в первых нескольких строках заголовок с датами
+        for row_idx in range(min(3, len(df))):
+            for col_idx in range(len(df.columns)):
+                cell_value = (
+                    str(df.iloc[row_idx, col_idx])
+                    if pd.notna(df.iloc[row_idx, col_idx])
+                    else ""
+                )
+
+                # Ищем паттерн вида "1Пт", "15Сб" и т.д.
+                day_pattern = r"^(\d{1,2})[А-Яа-я]{1,2}$"
+                match = re.search(day_pattern, cell_value.strip())
+
+                if match and int(match.group(1)) == target_day:
+                    logger.debug(f"Найдена колонка даты {target_day}: {col_idx}")
+                    return col_idx
+
+        logger.warning(f"Колонка для даты {target_day} не найдена")
+        return None
+
+    def parse_duty_entry(self, cell_value: str) -> Tuple[str, str]:
+        """
+        Парсит запись дежурства и извлекает тип смены и время
+
+        Args:
+            cell_value: Значение ячейки (например, "П 15:00-21:00", "С 09:00-15:00", "21:00-09:00")
+
+        Returns:
+            Tuple: (shift_type, schedule)
+        """
+        if not cell_value or cell_value.strip() in ["", "nan", "None"]:
+            return "", ""
+
+        cell_value = cell_value.strip()
+
+        # Проверяем наличие префикса П или С
+        if cell_value.startswith("П "):
+            return "П", cell_value[2:].strip()
+        elif cell_value.startswith("С "):
+            return "С", cell_value[2:].strip()
+        else:
+            # Если префикса нет, но есть время - это обычное дежурство
+            if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", cell_value):
+                return "", cell_value
+            else:
+                return "", cell_value
+
+    def get_duties_for_date(self, date: datetime, division: str) -> List[DutyInfo]:
+        """
+        Получает список дежурных на указанную дату
+
+        Args:
+            date: Дата
+            division: Подразделение
+
+        Returns:
+            Список дежурных с их расписанием
+        """
+        try:
+            # Находим файл дежурств
+            schedule_file = self.file_manager.find_schedule_file(
+                division, ScheduleType.DUTIES
+            )
+            if not schedule_file:
+                raise FileNotFoundError(f"Файл дежурств {division} не найден")
+
+            # Получаем название листа
+            sheet_name = self.get_duty_sheet_name(date)
+
+            # Читаем файл
+            try:
+                df = pd.read_excel(schedule_file, sheet_name=sheet_name, header=None)
+            except Exception:
+                # Если лист не найден, пробуем с английским названием
+                english_months = {
+                    1: "January",
+                    2: "February",
+                    3: "March",
+                    4: "April",
+                    5: "May",
+                    6: "June",
+                    7: "July",
+                    8: "August",
+                    9: "September",
+                    10: "October",
+                    11: "November",
+                    12: "December",
+                }
+                alt_sheet_name = f"Дежурство {english_months[date.month]}"
+                df = pd.read_excel(
+                    schedule_file, sheet_name=alt_sheet_name, header=None
+                )
+
+            # Находим колонку с нужной датой
+            date_col = self.find_date_column(df, date)
+            if date_col is None:
+                logger.warning(f"Дата {date.day} не найдена в расписании дежурств")
+                return []
+
+            duties = []
+
+            # Проходим по всем строкам и ищем дежурных
+            for row_idx in range(len(df)):
+                # Проверяем первые несколько колонок на наличие ФИО
+                name = ""
+                for col_idx in range(min(3, len(df.columns))):
+                    cell_value = (
+                        str(df.iloc[row_idx, col_idx])
+                        if pd.notna(df.iloc[row_idx, col_idx])
+                        else ""
+                    )
+
+                    # Простая проверка на ФИО (содержит буквы и минимум 3 слова)
+                    if (
+                        len(cell_value.split()) >= 3
+                        and re.search(r"[А-Яа-я]", cell_value)
+                        and not re.search(r"\d", cell_value)
+                    ):
+                        name = cell_value.strip()
+                        break
+
+                if not name:
+                    continue
+
+                # Получаем расписание для этой даты
+                if date_col < len(df.columns):
+                    duty_cell = (
+                        str(df.iloc[row_idx, date_col])
+                        if pd.notna(df.iloc[row_idx, date_col])
+                        else ""
+                    )
+
+                    if duty_cell and duty_cell.strip() not in ["", "nan", "None"]:
+                        shift_type, schedule = self.parse_duty_entry(duty_cell)
+
+                        # Добавляем только если есть маркер смены (С или П) в оригинальной ячейке
+                        # Это означает, что человек действительно дежурит в этот день
+                        if shift_type in ["С", "П"] and re.search(
+                            r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule
+                        ):
+                            duties.append(
+                                DutyInfo(
+                                    name=name,
+                                    schedule=schedule,
+                                    shift_type=shift_type,
+                                    work_hours=schedule,
+                                )
+                            )
+
+            logger.info(
+                f"Найдено {len(duties)} дежурных на {date.strftime('%d.%m.%Y')}"
+            )
+            return duties
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении дежурств: {e}")
+            return []
+
+    def get_gender_emoji(self, name: str) -> str:
+        """
+        Определяет пол по имени (простая эвристика)
+
+        Args:
+            name: ФИО
+
+        Returns:
+            Эмодзи для пола
+        """
+        # Простая проверка по окончанию отчества
+        parts = name.split()
+        if len(parts) >= 3:
+            patronymic = parts[2]
+            if patronymic.endswith("на"):
+                return "👩‍🦰"
+            elif (
+                patronymic.endswith("ич")
+                or patronymic.endswith("ович")
+                or patronymic.endswith("евич")
+            ):
+                return "👨"
+
+        # По умолчанию мужской
+        return "👨"
+
+    def parse_time_range(self, time_str: str) -> Tuple[int, int]:
+        """
+        Парсит временной диапазон и возвращает начальное время в минутах
+
+        Args:
+            time_str: Строка времени вида "15:00-21:00"
+
+        Returns:
+            Tuple: (start_minutes, end_minutes)
+        """
+        try:
+            if "-" not in time_str:
+                return 0, 0
+
+            start_time, end_time = time_str.split("-")
+
+            start_parts = start_time.strip().split(":")
+            end_parts = end_time.strip().split(":")
+
+            start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
+            end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
+
+            # Обработка перехода через полночь
+            if end_minutes < start_minutes:
+                end_minutes += 24 * 60
+
+            return start_minutes, end_minutes
+
+        except (ValueError, IndexError):
+            return 0, 0
+
+    def format_duties_for_date(self, date: datetime, duties: List[DutyInfo]) -> str:
+        """
+        Форматирует список дежурных для отображения, группируя по времени
+
+        Args:
+            date: Дата
+            duties: Список дежурных
+
+        Returns:
+            Отформатированная строка
+        """
+        if not duties:
+            return f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Дежурных на эту дату не найдено"
+
+        lines = [f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n"]
+
+        # Группируем дежурных по времени
+        time_groups = {}
+
+        for duty in duties:
+            # Извлекаем время работы
+            time_schedule = duty.schedule
+            if not time_schedule or not re.search(
+                r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", time_schedule
+            ):
+                continue
+
+            if time_schedule not in time_groups:
+                time_groups[time_schedule] = {
+                    "duties": [],  # Старшие (С)
+                    "helpers": [],  # Помощники (П)
+                }
+
+            if duty.shift_type == "С":
+                time_groups[time_schedule]["duties"].append(duty)
+            elif duty.shift_type == "П":
+                time_groups[time_schedule]["helpers"].append(duty)
+            else:
+                # Если нет префикса, считаем обычным дежурным
+                time_groups[time_schedule]["duties"].append(duty)
+
+        # Сортируем время по началу смены
+        sorted_times = sorted(
+            time_groups.keys(), key=lambda t: self.parse_time_range(t)[0]
+        )
+
+        for time_schedule in sorted_times:
+            group = time_groups[time_schedule]
+
+            # Заголовок времени
+            lines.append(f"⏰ <b>{time_schedule}</b>")
+
+            # Старшие
+            for duty in group["duties"]:
+                gender_emoji = self.get_gender_emoji(duty.name)
+                lines.append(f"{gender_emoji}Старший - {duty.name}")
+
+            # Помощники
+            for duty in group["helpers"]:
+                gender_emoji = self.get_gender_emoji(duty.name)
+                lines.append(f"{gender_emoji}Помощник - {duty.name}")
+
+            lines.append("")  # Пустая строка между временными блоками
+
+        # Убираем последнюю пустую строку
+        if lines and lines[-1] == "":
+            lines.pop()
+
+        return "\n".join(lines)
+
+
 # Публичные функции для обратной совместимости
 def get_user_schedule(fullname: str, month: str, division: str) -> Dict[str, str]:
     """
@@ -986,3 +1302,36 @@ class InvalidDataError(ScheduleError):
     """Некорректные данные в файле"""
 
     pass
+
+
+# Публичные функции для работы с дежурствами
+def get_duties_for_current_date(division: str) -> str:
+    """
+    Получает дежурных на текущую дату
+
+    Args:
+        division: Подразделение
+
+    Returns:
+        Отформатированная строка с дежурными
+    """
+    parser = DutyScheduleParser()
+    current_date = parser.get_current_yekaterinburg_date()
+    duties = parser.get_duties_for_date(current_date, division)
+    return parser.format_duties_for_date(current_date, duties)
+
+
+def get_duties_for_date(date: datetime, division: str) -> str:
+    """
+    Получает дежурных на указанную дату
+
+    Args:
+        date: Дата
+        division: Подразделение
+
+    Returns:
+        Отформатированная строка с дежурными
+    """
+    parser = DutyScheduleParser()
+    duties = parser.get_duties_for_date(date, division)
+    return parser.format_duties_for_date(date, duties)

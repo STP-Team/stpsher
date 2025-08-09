@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta
 from typing import List
 
+import pytz
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -8,6 +10,105 @@ from tgbot.keyboards.user.main import MainMenu
 
 class ScheduleMenu(CallbackData, prefix="schedule_menu"):
     menu: str
+
+
+class DutyNavigation(CallbackData, prefix="duty_nav"):
+    """Callback data для навигации по дням дежурств"""
+
+    action: str  # "prev", "next", "-", "today"
+    date: str  # дата в формате YYYY-MM-DD
+
+
+def get_yekaterinburg_date() -> datetime:
+    """Получает текущую дату по Екатеринбургу"""
+    yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+    return datetime.now(yekaterinburg_tz)
+
+
+def duties_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для навигации по дежурствам
+
+    Args:
+        current_date: Текущая отображаемая дата
+
+    Returns:
+        Клавиатура с навигацией по дням
+    """
+    if current_date is None:
+        current_date = get_yekaterinburg_date()
+
+    # Получаем даты для навигации
+    prev_date = current_date - timedelta(days=1)
+    next_date = current_date + timedelta(days=1)
+    today = get_yekaterinburg_date().date()
+
+    # Форматируем дату для отображения
+    date_str = current_date.strftime("%d.%m")
+
+    # Определяем эмодзи для дня недели
+    weekday_emojis = {
+        0: "📅",  # Понедельник
+        1: "📅",  # Вторник
+        2: "📅",  # Среда
+        3: "📅",  # Четверг
+        4: "📅",  # Пятница
+        5: "🏠",  # Суббота
+        6: "🏠",  # Воскресенье
+    }
+    weekday_emoji = weekday_emojis.get(current_date.weekday(), "📅")
+
+    # Создаем ряд навигации по дням
+    nav_row = [
+        InlineKeyboardButton(
+            text="◀️",
+            callback_data=DutyNavigation(
+                action="prev", date=prev_date.strftime("%Y-%m-%d")
+            ).pack(),
+        ),
+        InlineKeyboardButton(
+            text=f"{weekday_emoji} {date_str}",
+            callback_data=DutyNavigation(
+                action="-", date=current_date.strftime("%Y-%m-%d")
+            ).pack(),
+        ),
+        InlineKeyboardButton(
+            text="▶️",
+            callback_data=DutyNavigation(
+                action="next", date=next_date.strftime("%Y-%m-%d")
+            ).pack(),
+        ),
+    ]
+
+    buttons = [nav_row]
+
+    # Добавляем кнопку "Сегодня" если смотрим не сегодняшний день
+    if current_date.date() != today:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="📍 Сегодня",
+                    callback_data=DutyNavigation(
+                        action="today", date=today.strftime("%Y-%m-%d")
+                    ).pack(),
+                ),
+            ]
+        )
+
+    # Кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Главная", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    )
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
 
 
 class MonthNavigation(CallbackData, prefix="month_nav"):
@@ -65,7 +166,7 @@ def schedule_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="👮‍♂️ Старшие", callback_data=ScheduleMenu(menu="duties").pack()
+                text="👮‍♂️ Дежурные", callback_data=ScheduleMenu(menu="duties").pack()
             ),
             InlineKeyboardButton(
                 text="👑 РГ", callback_data=ScheduleMenu(menu="heads").pack()
