@@ -116,7 +116,7 @@ class ScheduleHandlerService:
         if date is None:
             date = get_yekaterinburg_date()
 
-        duties = self.duty_parser.get_duties_for_date(date, division)
+        duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
         # Filter out duties who are not in the database (fired employees)
         if stp_repo:

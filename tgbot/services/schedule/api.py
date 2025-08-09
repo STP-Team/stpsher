@@ -52,18 +52,20 @@ def get_available_months() -> List[str]:
     return MonthManager.get_available_months()
 
 
-def get_duties_for_current_date(division: str) -> str:
+async def get_duties_for_current_date(division: str, stp_repo: RequestsRepo) -> str:
     """Get duties for current date"""
     parser = DutyScheduleParser()
     current_date = parser.get_current_yekaterinburg_date()
-    duties = parser.get_duties_for_date(current_date, division)
+    duties = await parser.get_duties_for_date(current_date, division, stp_repo)
     return parser.format_duties_for_date(current_date, duties)
 
 
-def get_duties_for_date(date: datetime, division: str) -> str:
+async def get_duties_for_date(
+    date: datetime, division: str, stp_repo: RequestsRepo
+) -> str:
     """Get duties for specified date"""
     parser = DutyScheduleParser()
-    duties = parser.get_duties_for_date(date, division)
+    duties = await parser.get_duties_for_date(date, division, stp_repo)
     return parser.format_duties_for_date(date, duties)
 
 

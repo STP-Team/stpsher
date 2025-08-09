@@ -10,6 +10,8 @@ from typing import List, Optional, Tuple
 import pandas as pd
 import pytz
 
+from infrastructure.database.models import User
+from infrastructure.database.repo.requests import RequestsRepo
 from .excel_parser import ExcelParser
 from .managers import ScheduleFileManager
 from .models import DutyInfo, ScheduleType
@@ -91,7 +93,9 @@ class DutyScheduleParser:
             else:
                 return "", cell_value
 
-    def get_duties_for_date(self, date: datetime, division: str) -> List[DutyInfo]:
+    async def get_duties_for_date(
+        self, date: datetime, division: str, stp_repo: RequestsRepo
+    ) -> List[DutyInfo]:
         """Get list of duties for specified date"""
         try:
             schedule_file = self.file_manager.find_schedule_file(
@@ -168,14 +172,17 @@ class DutyScheduleParser:
                         if shift_type in ["С", "П"] and re.search(
                             r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule
                         ):
-                            duties.append(
-                                DutyInfo(
-                                    name=name,
-                                    schedule=schedule,
-                                    shift_type=shift_type,
-                                    work_hours=schedule,
+                            user: User = await stp_repo.users.get_user(fullname=name)
+                            if user:
+                                duties.append(
+                                    DutyInfo(
+                                        name=name,
+                                        chat_id=user.chat_id,
+                                        schedule=schedule,
+                                        shift_type=shift_type,
+                                        work_hours=schedule,
+                                    )
                                 )
-                            )
 
             logger.info(
                 f"[График дежурных] Нашел {len(duties)} дежурных на дату {date.strftime('%d.%m.%Y')}"
@@ -254,11 +261,15 @@ class DutyScheduleParser:
 
             for duty in group["duties"]:
                 gender_emoji = self.get_gender_emoji(duty.name)
-                lines.append(f"{gender_emoji}Старший - {duty.name}")
+                lines.append(
+                    f"{gender_emoji}Старший - <a href='tg://user?id={duty.chat_id}'>{duty.name}</a>"
+                )
 
             for duty in group["helpers"]:
                 gender_emoji = self.get_gender_emoji(duty.name)
-                lines.append(f"{gender_emoji}Помощник - {duty.name}")
+                lines.append(
+                    f"{gender_emoji}Помощник - <a href='tg://user?id={duty.chat_id}'>{duty.name}</a>"
+                )
 
             lines.append("")
 

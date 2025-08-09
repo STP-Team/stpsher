@@ -50,6 +50,7 @@ class DutyInfo:
     """Duty information"""
 
     name: str
+    chat_id: int
     schedule: str
     shift_type: str  # "П" или "С" или ""
     work_hours: str

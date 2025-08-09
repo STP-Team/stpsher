@@ -139,8 +139,8 @@ class HeadScheduleParser:
             logger.error(f"[График РГ] Ошибка проверки руководителей: {e}")
             return []
 
-    def _check_duty_for_head(
-        self, head_name: str, date: datetime, division: str
+    async def _check_duty_for_head(
+        self, head_name: str, date: datetime, division: str, stp_repo: RequestsRepo
     ) -> Optional[str]:
         """
         Проверка является ли руководитель дежурным в определенный день
@@ -151,7 +151,7 @@ class HeadScheduleParser:
         """
         try:
             duty_parser = DutyScheduleParser()
-            duties = duty_parser.get_duties_for_date(date, division)
+            duties = await duty_parser.get_duties_for_date(date, division, stp_repo)
 
             for duty in duties:
                 if self._names_match(head_name, duty.name):
