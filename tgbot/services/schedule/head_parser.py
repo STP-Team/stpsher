@@ -48,10 +48,12 @@ class HeadScheduleParser:
                 match = re.search(day_pattern, cell_value.strip())
 
                 if match and int(match.group(1)) == target_day:
-                    logger.debug(f"Found date column {target_day}: {col_idx}")
+                    logger.debug(
+                        f"[График РГ] Нашли колонку с датой {target_day}: {col_idx}"
+                    )
                     return col_idx
 
-        logger.warning(f"Column for date {target_day} not found")
+        logger.warning(f"[График РГ] Колонка для даты {target_day} не найдена")
         return None
 
     def get_heads_for_date(self, date: datetime, division: str) -> List[HeadInfo]:
@@ -61,13 +63,15 @@ class HeadScheduleParser:
                 division, ScheduleType.REGULAR
             )
             if not schedule_file:
-                raise FileNotFoundError(f"Schedule file {division} not found")
+                raise FileNotFoundError(
+                    f"[График РГ] Файл графиков {division} не найден"
+                )
 
             df = pd.read_excel(schedule_file, sheet_name="ГРАФИК", header=None)
 
             date_col = self.find_date_column(df, date)
             if date_col is None:
-                logger.warning(f"Date {date.day} not found in schedule")
+                logger.warning(f"[График РГ] Дата {date.day} не найдена в графике")
                 return []
 
             heads = []
@@ -121,12 +125,12 @@ class HeadScheduleParser:
                             )
 
             logger.info(
-                f"Found {len(heads)} group heads on {date.strftime('%d.%m.%Y')}"
+                f"[График РГ] Нашли {len(heads)} руководителей на дату {date.strftime('%d.%m.%Y')}"
             )
             return heads
 
         except Exception as e:
-            logger.error(f"Error getting group heads: {e}")
+            logger.error(f"[График РГ] Ошибка проверки руководителей: {e}")
             return []
 
     def _check_duty_for_head(
@@ -144,7 +148,7 @@ class HeadScheduleParser:
             return None
 
         except Exception as e:
-            logger.debug(f"Error checking duty for {head_name}: {e}")
+            logger.debug(f"[График РГ] Ошибка проверки дежурности для {head_name}: {e}")
             return None
 
     def _names_match(self, name1: str, name2: str) -> bool:

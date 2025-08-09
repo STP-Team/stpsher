@@ -66,10 +66,12 @@ class DutyScheduleParser:
                 match = re.search(day_pattern, cell_value.strip())
 
                 if match and int(match.group(1)) == target_day:
-                    logger.debug(f"Found date column {target_day}: {col_idx}")
+                    logger.debug(
+                        f"[График дежурных] Нашли колонку с датой {target_day}: {col_idx}"
+                    )
                     return col_idx
 
-        logger.warning(f"Column for date {target_day} not found")
+        logger.warning(f"[График дежурных] Колонка для даты {target_day} не найдена")
         return None
 
     def parse_duty_entry(self, cell_value: str) -> Tuple[str, str]:
@@ -96,7 +98,9 @@ class DutyScheduleParser:
                 division, ScheduleType.DUTIES
             )
             if not schedule_file:
-                raise FileNotFoundError(f"Duties file {division} not found")
+                raise FileNotFoundError(
+                    f"[График дежурных] Файл дежурных {division} не найден"
+                )
 
             sheet_name = self.get_duty_sheet_name(date)
 
@@ -124,7 +128,9 @@ class DutyScheduleParser:
 
             date_col = self.find_date_column(df, date)
             if date_col is None:
-                logger.warning(f"Date {date.day} not found in duties schedule")
+                logger.warning(
+                    f"[График дежурных] Дата {date.day} не найдена в графике дежурных"
+                )
                 return []
 
             duties = []
@@ -171,11 +177,13 @@ class DutyScheduleParser:
                                 )
                             )
 
-            logger.info(f"Found {len(duties)} duties on {date.strftime('%d.%m.%Y')}")
+            logger.info(
+                f"[График дежурных] Нашел {len(duties)} дежурных на дату {date.strftime('%d.%m.%Y')}"
+            )
             return duties
 
         except Exception as e:
-            logger.error(f"Error getting duties: {e}")
+            logger.error(f"[График дежурных] Ошибка проверки дежурных: {e}")
             return []
 
     def get_gender_emoji(self, name: str) -> str:

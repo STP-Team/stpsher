@@ -38,7 +38,9 @@ class ScheduleParser:
                 division, schedule_type
             )
             if not schedule_file:
-                raise FileNotFoundError(f"Schedule file {division} not found")
+                raise FileNotFoundError(
+                    f"[График специалистов] Файл графиков {division} не найден"
+                )
 
             df = self.excel_parser.read_excel_file(schedule_file, schedule_type)
             start_col, end_col = self.excel_parser.find_month_columns(df, month)
@@ -46,7 +48,9 @@ class ScheduleParser:
 
             user_row_idx = self.excel_parser.find_user_row(df, fullname)
             if user_row_idx is None:
-                raise ValueError(f"User {fullname} not found in schedule")
+                raise ValueError(
+                    f"[График специалистов] Специалист {fullname} не найден в графике"
+                )
 
             schedule = {}
             for col_idx in range(start_col, end_col + 1):
@@ -65,7 +69,7 @@ class ScheduleParser:
                     schedule[day] = schedule_value
 
             logger.info(
-                f"Got schedule for '{fullname}' for {month}: {len(schedule)} days"
+                f"[График специалистов] Нашли график для {fullname} на {month}: {len(schedule)} дней"
             )
             return schedule
 
@@ -88,7 +92,7 @@ class ScheduleParser:
             )
 
             if not schedule_data:
-                return f"❌ Schedule for <b>{fullname}</b> for {month} not found"
+                return f"❌ График для <b>{fullname}</b> на {month} не найден"
 
             work_days, days_off, vacation_days, sick_days, missing_days = (
                 self.analyzer.analyze_schedule(schedule_data)
@@ -104,5 +108,5 @@ class ScheduleParser:
                 )
 
         except Exception as e:
-            logger.error(f"Error formatting schedule: {e}")
-            return f"❌ <b>Error getting schedule:</b>\n<code>{e}</code>"
+            logger.error(f"[График специалистов] Ошибка форматирования графика: {e}")
+            return f"❌ <b>Ошибка проверки графика:</b>\n<code>{e}</code>"
