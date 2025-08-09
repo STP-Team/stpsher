@@ -464,7 +464,7 @@ def _format_detailed_schedule(
 
     # Рабочие дни с подсчетом часов
     if work_days:
-        lines.append("⏰ <b>РАБОЧИЕ ДНИ:</b>")
+        lines.append("⏰ <b>Рабочие:</b>")
         for day, schedule in work_days:
             hours = _calculate_work_hours(schedule)
             if hours > 0:
@@ -477,18 +477,18 @@ def _format_detailed_schedule(
     # Отпуск
     if vacation_days:
         vacation_range = _format_day_range(vacation_days)
-        lines.append(f"🏖 <b>ОТПУСК:</b> {vacation_range}")
+        lines.append(f"🏖 <b>Отпуск:</b> {vacation_range}")
         lines.append("")
 
     # Больничные
     if sick_days:
         sick_range = _format_day_range(sick_days)
-        lines.append(f"🏥 <b>БОЛЬНИЧНЫЙ:</b> {sick_range}")
+        lines.append(f"🏥 <b>Больничный:</b> {sick_range}")
         lines.append("")
 
     # Выходные дни
     if days_off:
-        lines.append("🏠 <b>ВЫХОДНЫЕ ДНИ:</b>")
+        lines.append("🏠 <b>Выходные:</b>")
         if len(days_off) <= 5:
             for day in days_off:
                 lines.append(f"• {day}")
@@ -501,15 +501,15 @@ def _format_detailed_schedule(
     work_days_count = len(work_days)
     total_days = len(work_days) + len(days_off) + len(vacation_days) + len(sick_days)
 
-    lines.append("<blockquote expandable>📊 <b>СТАТИСТИКА:</b>")
-    lines.append(f"• Рабочих дней: <b>{work_days_count}</b>")
+    lines.append("<blockquote expandable>📊 <b>Статистика:</b>")
+    lines.append(f"Рабочих дней: <b>{work_days_count}</b>")
     if total_work_hours > 0:
-        lines.append(f"• Рабочих часов: <b>{total_work_hours}ч</b>")
-    lines.append(f"• Выходных: <b>{len(days_off)}</b>")
+        lines.append(f"Рабочих часов: <b>{total_work_hours}ч</b>")
+    lines.append(f"Выходных: <b>{len(days_off)}</b>")
     if vacation_days:
-        lines.append(f"• Отпуск: <b>{len(vacation_days)} дн.</b>")
+        lines.append(f"Отпуск: <b>{len(vacation_days)} дн.</b>")
     if sick_days:
-        lines.append(f"• БЛ: <b>{len(sick_days)} дн.</b>")
+        lines.append(f"БЛ: <b>{len(sick_days)} дн.</b>")
     lines.append("</blockquote>")
 
     return "\n".join(lines)
