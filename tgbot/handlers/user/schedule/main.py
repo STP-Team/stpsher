@@ -19,12 +19,12 @@ from tgbot.keyboards.user.schedule.main import (
     HeadNavigation,
 )
 from tgbot.misc.dicts import russian_months
-from tgbot.services.sheets import (
+from tgbot.services.schedule import (
     get_user_schedule_formatted,
     get_duties_for_current_date,
     get_duties_for_date,
-    get_heads_for_date,
     get_heads_for_current_date,
+    get_heads_for_date,
 )
 
 user_schedule_router = Router()

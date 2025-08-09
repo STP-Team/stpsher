@@ -53,18 +53,6 @@ def duties_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
     # Форматируем дату для отображения
     date_str = current_date.strftime("%d.%m")
 
-    # Определяем эмодзи для дня недели
-    weekday_emojis = {
-        0: "📅",  # Понедельник
-        1: "📅",  # Вторник
-        2: "📅",  # Среда
-        3: "📅",  # Четверг
-        4: "📅",  # Пятница
-        5: "🏠",  # Суббота
-        6: "🏠",  # Воскресенье
-    }
-    weekday_emoji = weekday_emojis.get(current_date.weekday(), "📅")
-
     # Создаем ряд навигации по дням
     nav_row = [
         InlineKeyboardButton(
@@ -74,7 +62,7 @@ def duties_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
             ).pack(),
         ),
         InlineKeyboardButton(
-            text=f"{weekday_emoji} {date_str}",
+            text=f"📅 {date_str}",
             callback_data=DutyNavigation(
                 action="-", date=current_date.strftime("%Y-%m-%d")
             ).pack(),
@@ -454,18 +442,6 @@ def heads_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
     # Форматируем дату для отображения
     date_str = current_date.strftime("%d.%m")
 
-    # Определяем эмодзи для дня недели
-    weekday_emojis = {
-        0: "📅",  # Понедельник
-        1: "📅",  # Вторник
-        2: "📅",  # Среда
-        3: "📅",  # Четверг
-        4: "📅",  # Пятница
-        5: "🏠",  # Суббота
-        6: "🏠",  # Воскресенье
-    }
-    weekday_emoji = weekday_emojis.get(current_date.weekday(), "📅")
-
     # Создаем ряд навигации по дням
     nav_row = [
         InlineKeyboardButton(
@@ -475,7 +451,7 @@ def heads_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
             ).pack(),
         ),
         InlineKeyboardButton(
-            text=f"{weekday_emoji} {date_str}",
+            text=f"📅 {date_str}",
             callback_data=HeadNavigation(
                 action="-", date=current_date.strftime("%Y-%m-%d")
             ).pack(),
