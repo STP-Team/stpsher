@@ -278,8 +278,8 @@ class ScheduleParser:
 
             for row_idx in range(len(df)):
                 for col_idx in range(
-                    min(10, len(df.columns))
-                ):  # Ищем имя в первых 10 колонках
+                    min(1, len(df.columns))
+                ):  # Ищем имя в первой колонке
                     cell_value = (
                         str(df.iloc[row_idx, col_idx])
                         if pd.notna(df.iloc[row_idx, col_idx])
