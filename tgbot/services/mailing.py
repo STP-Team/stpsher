@@ -48,12 +48,12 @@ async def send_email(
         logger.error(f"[Email] Ошибка отправки письма: {e}")
 
 
-async def send_auth_email(code: str, email: str):
+async def send_auth_email(code: str, email: str, bot_username: str):
     email_subject = "Авторизация в боте"
     email_content = f"""Добрый день<br><br>
     
 Код для авторизации: <b>{code}</b><br>
-Введите код в бота @stpsher_bot для завершения авторизации"""
+Введите код в бота @{bot_username} для завершения авторизации"""
 
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
     logger.info(

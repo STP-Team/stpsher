@@ -76,9 +76,12 @@ async def user_auth_email(message: Message, state: FSMContext):
         return
 
     auth_code = generate_auth_code()
+    bot_info = await message.bot.get_me()
     await state.update_data(email=message.text, auth_code=auth_code)
     await state.set_state(Authorization.auth_code)
-    await send_auth_email(code=auth_code, email=message.text)
+    await send_auth_email(
+        code=auth_code, email=message.text, bot_username=bot_info.username
+    )
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
