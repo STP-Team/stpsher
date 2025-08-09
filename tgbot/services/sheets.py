@@ -298,7 +298,7 @@ class ScheduleParser:
                     break
 
             if user_row_idx is None:
-                raise ValueError(f"Пользователь '{fullname}' не найден в расписании")
+                raise ValueError(f"Пользователь {fullname} не найден в расписании")
 
             # Извлекаем расписание пользователя
             schedule = {}
