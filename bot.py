@@ -16,6 +16,7 @@ from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.services.logger import setup_logging
+from tgbot.services.scheduler import process_fired_users, scheduler
 
 bot_config = load_config(".env")
 
@@ -130,6 +131,24 @@ async def main():
     dp.include_routers(*routers_list)
 
     register_middlewares(dp, bot_config, bot, stp_db, achievements_db)
+
+    # scheduler.add_job(
+    #     process_fired_users,
+    #     "cron",
+    #     hour=9,
+    #     minute=0,
+    #     args=[stp_db],
+    #     id="check_fired_users",
+    # )
+
+    scheduler.add_job(
+        process_fired_users,
+        "interval",
+        seconds=5,
+        args=[stp_db],
+        id="check_fired_users",
+    )
+    scheduler.start()
 
     # await on_startup(bot)
     try:

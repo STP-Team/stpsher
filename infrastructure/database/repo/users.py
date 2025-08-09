@@ -130,21 +130,34 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения администраторов: {e}")
             return []
 
-    async def update_user_role(self, user_id: str | int, role: int) -> Optional[User]:
+    async def delete_user(self, fullname: str) -> int:
         """
-        Обновление роли пользователя
-        :param user_id: Идентификатор пользователя Telegram (chat_id)
-        :param role: Новая роль
-        :return: Обновленный объект пользователя
+        Удаление ВСЕХ пользователей из БД по полному имени
+
+        Args:
+            fullname: Полное ФИО пользователя для удаления
+
+        Returns:
+            Количество удаленных пользователей
         """
-        from sqlalchemy import select
-
-        query = select(User).where(User.chat_id == int(user_id))
-        result = await self.session.execute(query)
-        user = result.scalar_one_or_none()
-
-        if user:
-            user.role = role
-            await self.session.commit()
-            await self.session.refresh(user)
-        return user
+        try:
+            # Находим всех пользователей с таким ФИО
+            query = select(User).where(User.fullname == fullname)
+            result = await self.session.execute(query)
+            users = result.scalars().all()
+            
+            deleted_count = 0
+            for user in users:
+                await self.session.delete(user)
+                deleted_count += 1
+                logger.info(f"[БД] Пользователь {fullname} (ID: {user.chat_id}) удален из базы данных")
+            
+            if deleted_count > 0:
+                await self.session.commit()
+                logger.info(f"[БД] Всего удалено {deleted_count} пользователей с ФИО {fullname}")
+            
+            return deleted_count
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка удаления пользователей {fullname}: {e}")
+            await self.session.rollback()
+            return 0
