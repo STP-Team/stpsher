@@ -36,11 +36,11 @@ class ScheduleParser:
         for pattern in patterns:
             files = list(self.uploads_folder.glob(pattern))
             if files:
-                logger.info(f"Найден файл расписания: {files[0]}")
+                logger.debug(f"[График] Найден файл графиков: {files[0]}")
                 return files[0]
 
         logger.error(
-            f"Файл расписания {division} не найден в папке {self.uploads_folder}"
+            f"[График] Файл графиков {division} не найден в папке {self.uploads_folder}"
         )
         return None
 
@@ -178,8 +178,8 @@ class ScheduleParser:
             if month_end_col != len(df.columns) - 1:
                 break
 
-        logger.info(
-            f"Найден месяц '{month}' в колонках {month_start_col}-{month_end_col}"
+        logger.debug(
+            f"[График] Найден месяц '{month}' в колонках {month_start_col}-{month_end_col}"
         )
         return month_start_col, month_end_col
 
@@ -223,7 +223,7 @@ class ScheduleParser:
                     # Простые числа дней
                     day_headers[col_idx] = cell_value.strip()
 
-        logger.info(f"Найдено {len(day_headers)} дней в заголовках")
+        logger.debug(f"[График] Найдено {len(day_headers)} дней в заголовках")
         return day_headers
 
     def get_user_schedule(
@@ -246,7 +246,7 @@ class ScheduleParser:
                 raise FileNotFoundError("Файл расписания не найден")
 
             # Читаем Excel файл
-            logger.info(f"Читаем файл: {schedule_file}")
+            logger.debug(f"[График] Читаем файл: {schedule_file}")
 
             # Пробуем разные листы
             sheet_names = ["ГРАФИК", "График", "график", "Sheet1", 0]
@@ -257,7 +257,7 @@ class ScheduleParser:
                     df = pd.read_excel(
                         schedule_file, sheet_name=sheet_name, header=None
                     )
-                    logger.info(f"Успешно прочитан лист: {sheet_name}")
+                    logger.debug(f"[График] Успешно прочитан лист: {sheet_name}")
                     break
                 except Exception as e:
                     logger.debug(f"Не удалось прочитать лист '{sheet_name}': {e}")
@@ -289,8 +289,8 @@ class ScheduleParser:
                     if fullname in cell_value:
                         user_row_idx = row_idx
                         name_col_idx = col_idx
-                        logger.info(
-                            f"Найден пользователь '{fullname}' в строке {row_idx}, колонке {col_idx}"
+                        logger.debug(
+                            f"[График] Найден пользователь '{fullname}' в строке {row_idx}, колонке {col_idx}"
                         )
                         break
 
@@ -319,8 +319,8 @@ class ScheduleParser:
 
                     schedule[day] = schedule_value
 
-            logger.info(
-                f"Получено расписание для '{fullname}' на {month}: {len(schedule)} дней"
+            logger.debug(
+                f"[График] Получено расписание для '{fullname}' на {month}: {len(schedule)} дней"
             )
             return schedule
 
