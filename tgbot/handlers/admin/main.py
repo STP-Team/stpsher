@@ -11,4 +11,4 @@ admin_router.message.filter(AdminFilter())
 
 @admin_router.message(CommandStart())
 async def admin_start(message: Message, user: User):
-    await message.reply(f"Привет, админ {user.FIO}!")
+    await message.reply(f"Привет, админ {user.fullname}!")

@@ -10,14 +10,14 @@ class User(Base, TableNameMixin):
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.
-        ChatId (Mapped[Optional[str]]): Идентификатор чата с пользователем в Telegram.
-        Username (Mapped[str]): Username пользователя в Telegram.
-        Division (MappedOptional[str]): Направление пользователя (НТП/НЦК).
-        Position (Mapped[str]): Позиция/должность пользователя.
-        FIO (Mapped[str]): ФИО пользователя.
-        Boss (Mapped[str]): ФИО руководителя пользователя.
-        Email (Mapped[str]): Email пользователя.
-        Role (Mapped[int]): Роль пользователя в БД.
+        chat_id (Mapped[Optional[str]]): Идентификатор чата с пользователем в Telegram.
+        username (Mapped[str]): username пользователя в Telegram.
+        division (MappedOptional[str]): Направление пользователя (НТП/НЦК).
+        position (Mapped[str]): Позиция/должность пользователя.
+        fullname (Mapped[str]): ФИО пользователя.
+        head (Mapped[str]): ФИО руководителя пользователя.
+        email (Mapped[str]): email пользователя.
+        role (Mapped[int]): Роль пользователя в БД.
 
     Methods:
         __repr__(): Returns a string representation of the User object.
@@ -30,17 +30,17 @@ class User(Base, TableNameMixin):
 
     """
 
-    __tablename__ = "RegisteredUsers"
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    ChatId: Mapped[int] = mapped_column(BIGINT)
-    Username: Mapped[str] = mapped_column(Unicode)
-    Division: Mapped[str] = mapped_column(Unicode)
-    Position: Mapped[str] = mapped_column(Unicode)
-    FIO: Mapped[str] = mapped_column(Unicode)
-    Boss: Mapped[str] = mapped_column(Unicode)
-    Email: Mapped[str] = mapped_column(Unicode)
-    Role: Mapped[int] = mapped_column(BIGINT)
+    chat_id: Mapped[int] = mapped_column(BIGINT)
+    username: Mapped[str] = mapped_column(Unicode, nullable=True)
+    division: Mapped[str] = mapped_column(Unicode)
+    position: Mapped[str] = mapped_column(Unicode)
+    fullname: Mapped[str] = mapped_column(Unicode)
+    head: Mapped[str] = mapped_column(Unicode)
+    email: Mapped[str] = mapped_column(Unicode)
+    role: Mapped[int] = mapped_column(BIGINT)
 
     def __repr__(self):
-        return f"<User {self.id} {self.ChatId} {self.Username} {self.Division} {self.Position} {self.FIO} {self.Boss} {self.Email} {self.Role}>"
+        return f"<User {self.id} {self.chat_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"

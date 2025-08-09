@@ -12,4 +12,4 @@ class AdminFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.Role == executed_codes["root"]
+        return user.role == executed_codes["root"]

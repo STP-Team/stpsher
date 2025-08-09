@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 class RegisteredUserParams(TypedDict, total=False):
     """Доступные параметры для обновления пользователя в таблице RegisteredUsers."""
 
-    ChatId: int
-    Username: str | None
+    chat_id: int
+    username: str | None
     Division: str | None
     Position: str | None
-    FIO: str
-    Boss: str | None
-    Email: str | None
-    Role: int
+    fullname: str
+    head: str | None
+    email: str | None
+    role: int
 
 
 class UserRepo(BaseRepo):
@@ -48,13 +48,13 @@ class UserRepo(BaseRepo):
         filters = []
 
         if user_id:
-            filters.append(User.ChatId == user_id)
+            filters.append(User.chat_id == user_id)
         if username:
-            filters.append(User.Username == username)
+            filters.append(User.username == username)
         if fullname:
-            filters.append(User.FIO == fullname)
+            filters.append(User.fullname == fullname)
         if email:
-            filters.append(User.Email == email)
+            filters.append(User.email == email)
 
         if not filters:
             raise ValueError("At least one parameter must be provided to get_user()")
@@ -74,7 +74,7 @@ class UserRepo(BaseRepo):
         user_id: int = None,
         **kwargs: Unpack[RegisteredUserParams],
     ) -> Optional[User]:
-        select_stmt = select(User).where(User.ChatId == user_id)
+        select_stmt = select(User).where(User.chat_id == user_id)
 
         result = await self.session.execute(select_stmt)
         user: User | None = result.scalar_one_or_none()
@@ -108,7 +108,7 @@ class UserRepo(BaseRepo):
         # Создаём условия для каждой части имени
         like_conditions = []
         for part in name_parts:
-            like_conditions.append(User.FIO.ilike(f"%{part}%"))
+            like_conditions.append(User.fullname.ilike(f"%{part}%"))
 
         # Все части должны присутствовать в ФИО (AND)
         query = select(User).where(and_(*like_conditions)).limit(limit)
@@ -121,7 +121,7 @@ class UserRepo(BaseRepo):
             return []
 
     async def get_admins(self) -> Sequence[User]:
-        query = select(User).where(User.Role == 10)
+        query = select(User).where(User.role == 10)
 
         try:
             result = await self.session.execute(query)
@@ -133,18 +133,18 @@ class UserRepo(BaseRepo):
     async def update_user_role(self, user_id: str | int, role: int) -> Optional[User]:
         """
         Обновление роли пользователя
-        :param user_id: Идентификатор пользователя Telegram (ChatId)
+        :param user_id: Идентификатор пользователя Telegram (chat_id)
         :param role: Новая роль
         :return: Обновленный объект пользователя
         """
         from sqlalchemy import select
 
-        query = select(User).where(User.ChatId == int(user_id))
+        query = select(User).where(User.chat_id == int(user_id))
         result = await self.session.execute(query)
         user = result.scalar_one_or_none()
 
         if user:
-            user.Role = role
+            user.role = role
             await self.session.commit()
             await self.session.refresh(user)
         return user
