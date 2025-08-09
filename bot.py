@@ -132,22 +132,15 @@ async def main():
 
     register_middlewares(dp, bot_config, bot, stp_db, achievements_db)
 
-    # scheduler.add_job(
-    #     process_fired_users,
-    #     "cron",
-    #     hour=9,
-    #     minute=0,
-    #     args=[stp_db],
-    #     id="check_fired_users",
-    # )
-
     scheduler.add_job(
         process_fired_users,
-        "interval",
-        seconds=5,
+        "cron",
+        hour=9,
+        minute=0,
         args=[stp_db],
         id="check_fired_users",
     )
+
     scheduler.start()
 
     # await on_startup(bot)
