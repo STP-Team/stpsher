@@ -1,6 +1,5 @@
 import logging
 import re
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -17,25 +16,21 @@ class ScheduleParser:
     def __init__(self, uploads_folder: str = "uploads"):
         self.uploads_folder = Path(uploads_folder)
 
-    def find_schedule_file(self, year: int = None) -> Optional[Path]:
+    def find_schedule_file(self, division: str) -> Optional[Path]:
         """
         Ищет файл расписания в папке uploads
 
         Args:
-            year: Год для поиска файла (по умолчанию текущий год)
+            division: Направление специалиста
 
         Returns:
             Path к найденному файлу или None
         """
-        if year is None:
-            year = datetime.now().year
 
         # Паттерны поиска файлов
         patterns = [
-            f"ГРАФИК НЦК II {year}*",
-            f"график нцк ii {year}*",
-            f"ГРАФИК*{year}*",
-            f"график*{year}*",
+            f"ГРАФИК {division} I*",
+            f"ГРАФИК {division} II*",
         ]
 
         for pattern in patterns:
@@ -44,13 +39,9 @@ class ScheduleParser:
                 logger.info(f"Найден файл расписания: {files[0]}")
                 return files[0]
 
-        # Если не найден файл с годом, ищем любой файл с "ГРАФИК"
-        files = list(self.uploads_folder.glob("ГРАФИК*"))
-        if files:
-            logger.info(f"Найден файл расписания без года: {files[0]}")
-            return files[0]
-
-        logger.error(f"Файл расписания не найден в папке {self.uploads_folder}")
+        logger.error(
+            f"Файл расписания {division} не найден в папке {self.uploads_folder}"
+        )
         return None
 
     def _normalize_month_name(self, month: str) -> str:
@@ -236,7 +227,7 @@ class ScheduleParser:
         return day_headers
 
     def get_user_schedule(
-        self, fullname: str, month: str, year: int = None
+        self, fullname: str, month: str, division: str
     ) -> Dict[str, str]:
         """
         Получает расписание пользователя на указанный месяц
@@ -244,14 +235,13 @@ class ScheduleParser:
         Args:
             fullname: Полное имя пользователя (ФИО)
             month: Название месяца
-            year: Год (по умолчанию текущий)
 
         Returns:
             Словарь {день: расписание}
         """
         try:
             # Находим файл расписания
-            schedule_file = self.find_schedule_file(year)
+            schedule_file = self.find_schedule_file(division=division)
             if not schedule_file:
                 raise FileNotFoundError("Файл расписания не найден")
 
@@ -341,29 +331,23 @@ class ScheduleParser:
             raise
 
 
-def get_user_schedule(fullname: str, month: str, year: int = None) -> Dict[str, str]:
+def get_user_schedule(fullname: str, month: str, division: str) -> Dict[str, str]:
     """
     Функция-обертка для получения расписания пользователя
 
     Args:
         fullname: Полное имя пользователя (ФИО)
         month: Название месяца (например, "август", "сентябрь")
-        year: Год (по умолчанию текущий)
 
     Returns:
         Словарь {день: расписание}
-
-    Example:
-        >>> schedule = get_user_schedule("Филонова Ксения Андреевна", "август")
-        >>> print(schedule)
-        {'1 (Пт)': '09:00-21:00', '2 (Сб)': '09:00-21:00', ...}
     """
     parser = ScheduleParser()
-    return parser.get_user_schedule(fullname, month, year)
+    return parser.get_user_schedule(fullname, month, division)
 
 
 def get_user_schedule_formatted(
-    fullname: str, month: str, year: int = None, compact: bool = False
+    fullname: str, month: str, division: str, compact: bool = False
 ) -> str:
     """
     Получает расписание пользователя в отформатированном виде
@@ -371,14 +355,13 @@ def get_user_schedule_formatted(
     Args:
         fullname: Полное имя пользователя (ФИО)
         month: Название месяца
-        year: Год (по умолчанию текущий)
         compact: Компактный формат (True) или полный (False)
 
     Returns:
         Отформатированная строка с расписанием
     """
     try:
-        schedule = get_user_schedule(fullname, month, year)
+        schedule = get_user_schedule(fullname, month, division)
 
         if not schedule:
             return f"❌ Расписание для <b>{fullname}</b> на {month} не найдено"

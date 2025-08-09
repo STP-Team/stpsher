@@ -60,7 +60,8 @@ async def user_schedule(callback: CallbackQuery, user: User):
         schedule = get_user_schedule_formatted(
             fullname=user.fullname,
             month=month,
-            compact=True,  # По умолчанию короткий режим
+            compact=True,
+            division="НТП" if "НТП" in user.division else "НЦК",
         )
 
         await callback.message.edit_text(
@@ -101,6 +102,7 @@ async def handle_compact_view(callback: CallbackQuery, user: User):
             fullname=user.fullname,
             month=current_month,
             compact=True,
+            division="НТП" if "НТП" in user.division else "НЦК",
         )
 
         await callback.message.edit_text(
@@ -144,6 +146,7 @@ async def handle_month_navigation(
                 fullname=user.fullname,
                 month=current_month,
                 compact=True,
+                division="НТП" if "НТП" in user.division else "НЦК",
             )
 
             await callback.message.edit_text(
@@ -158,7 +161,8 @@ async def handle_month_navigation(
             schedule = get_user_schedule_formatted(
                 fullname=user.fullname,
                 month=current_month,
-                compact=False,  # Детальный режим
+                compact=False,
+                division="НТП" if "НТП" in user.division else "НЦК",
             )
 
             # Создаем клавиатуру с кнопкой "Кратко"
