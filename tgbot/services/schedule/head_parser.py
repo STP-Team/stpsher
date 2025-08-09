@@ -80,7 +80,7 @@ class HeadScheduleParser:
                 position_found = False
                 name = ""
 
-                for col_idx in range(min(10, len(df.columns))):
+                for col_idx in range(min(5, len(df.columns))):
                     cell_value = (
                         str(df.iloc[row_idx, col_idx])
                         if pd.notna(df.iloc[row_idx, col_idx])
@@ -100,7 +100,6 @@ class HeadScheduleParser:
 
                 if not position_found or not name:
                     continue
-
                 if date_col < len(df.columns):
                     schedule_cell = (
                         str(df.iloc[row_idx, date_col])
@@ -136,7 +135,13 @@ class HeadScheduleParser:
     def _check_duty_for_head(
         self, head_name: str, date: datetime, division: str
     ) -> Optional[str]:
-        """Check if head has duty on specified date"""
+        """
+        Проверка является ли руководитель дежурным в определенный день
+        :param head_name: ФИО руководителя
+        :param date: Дата проверки
+        :param division: Направления для проверки
+        :return:
+        """
         try:
             duty_parser = DutyScheduleParser()
             duties = duty_parser.get_duties_for_date(date, division)
@@ -150,6 +155,7 @@ class HeadScheduleParser:
         except Exception as e:
             logger.debug(f"[График РГ] Ошибка проверки дежурности для {head_name}: {e}")
             return None
+
 
     def _names_match(self, name1: str, name2: str) -> bool:
         """Check if names match (considering writing differences)"""

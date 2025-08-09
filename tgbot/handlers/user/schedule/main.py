@@ -110,23 +110,57 @@ class ScheduleHandlerService:
         )
 
     async def get_duties_response(
-        self, division: str, date: Optional[datetime.datetime] = None
+        self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None
     ) -> str:
         """Получает расписание дежурных"""
         if date is None:
             date = get_yekaterinburg_date()
 
         duties = self.duty_parser.get_duties_for_date(date, division)
+        
+        # Filter out duties who are not in the database (fired employees)
+        if stp_repo:
+            active_duties = []
+            for duty in duties:
+                try:
+                    user = await stp_repo.users.get_user(fullname=duty.name)
+                    if user:
+                        active_duties.append(duty)
+                    else:
+                        logger.debug(f"[График дежурств] Сотрудник {duty.name} не найден в базе данных")
+                except Exception as e:
+                    logger.debug(f"[График дежурств] Ошибка проверки сотрудника {duty.name} в БД: {e}")
+                    # If we can't check, include the duty to avoid false negatives
+                    active_duties.append(duty)
+            duties = active_duties
+        
         return self.duty_parser.format_duties_for_date(date, duties)
 
     async def get_heads_response(
-        self, division: str, date: Optional[datetime.datetime] = None
+        self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None
     ) -> str:
         """Получает расписание руководителей групп"""
         if date is None:
             date = get_yekaterinburg_date()
 
         heads = self.head_parser.get_heads_for_date(date, division)
+        
+        # Filter out heads who are not in the database (fired employees)
+        if stp_repo:
+            active_heads = []
+            for head in heads:
+                try:
+                    user = await stp_repo.users.get_user(fullname=head.name)
+                    if user:
+                        active_heads.append(head)
+                    else:
+                        logger.debug(f"[График РГ] Сотрудник {head.name} не найден в базе данных")
+                except Exception as e:
+                    logger.debug(f"[График РГ] Ошибка проверки сотрудника {head.name} в БД: {e}")
+                    # If we can't check, include the head to avoid false negatives
+                    active_heads.append(head)
+            heads = active_heads
+        
         return self.head_parser.format_heads_for_date(date, heads)
 
 
@@ -243,7 +277,7 @@ async def handle_month_navigation(
 
 
 @user_schedule_router.callback_query(ScheduleMenu.filter(F.menu == "duties"))
-async def duties_schedule(callback: CallbackQuery, user: User):
+async def duties_schedule(callback: CallbackQuery, user: User, stp_repo):
     """Обработчик расписания дежурных"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -251,7 +285,7 @@ async def duties_schedule(callback: CallbackQuery, user: User):
     try:
         current_date = get_yekaterinburg_date()
         duties_text = await schedule_service.get_duties_response(
-            division=user.division, date=current_date
+            division=user.division, date=current_date, stp_repo=stp_repo
         )
 
         await callback.message.edit_text(
@@ -265,7 +299,7 @@ async def duties_schedule(callback: CallbackQuery, user: User):
 
 @user_schedule_router.callback_query(DutyNavigation.filter())
 async def handle_duty_navigation(
-    callback: CallbackQuery, callback_data: DutyNavigation, user: User
+    callback: CallbackQuery, callback_data: DutyNavigation, user: User, stp_repo
 ):
     """Обработчик навигации по дежурствам"""
     if not await schedule_service.check_user_auth(callback, user):
@@ -286,7 +320,7 @@ async def handle_duty_navigation(
 
         # Получаем данные дежурных
         duties_text = await schedule_service.get_duties_response(
-            division=user.division, date=target_date
+            division=user.division, date=target_date, stp_repo=stp_repo
         )
 
         await callback.message.edit_text(
@@ -300,7 +334,7 @@ async def handle_duty_navigation(
 
 
 @user_schedule_router.callback_query(ScheduleMenu.filter(F.menu == "heads"))
-async def heads_schedule(callback: CallbackQuery, user: User):
+async def heads_schedule(callback: CallbackQuery, user: User, stp_repo):
     """Обработчик расписания руководителей групп"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -308,7 +342,7 @@ async def heads_schedule(callback: CallbackQuery, user: User):
     try:
         current_date = get_yekaterinburg_date()
         heads_text = await schedule_service.get_heads_response(
-            division=user.division, date=current_date
+            division=user.division, date=current_date, stp_repo=stp_repo
         )
 
         await callback.message.edit_text(
@@ -322,7 +356,7 @@ async def heads_schedule(callback: CallbackQuery, user: User):
 
 @user_schedule_router.callback_query(HeadNavigation.filter())
 async def handle_head_navigation(
-    callback: CallbackQuery, callback_data: HeadNavigation, user: User
+    callback: CallbackQuery, callback_data: HeadNavigation, user: User, stp_repo
 ):
     """Обработчик навигации по руководителям групп"""
     if not await schedule_service.check_user_auth(callback, user):
@@ -343,7 +377,7 @@ async def handle_head_navigation(
 
         # Получаем данные руководителей групп
         heads_text = await schedule_service.get_heads_response(
-            division=user.division, date=target_date
+            division=user.division, date=target_date, stp_repo=stp_repo
         )
 
         await callback.message.edit_text(
