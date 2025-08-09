@@ -8,7 +8,7 @@ from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.handlers.user.main import user_start_cmd
 from tgbot.misc.helpers import generate_auth_code
-from tgbot.misc.states.auth import Authorization
+from tgbot.misc.states.user.auth import Authorization
 from tgbot.services.mailing import send_auth_email
 
 user_auth_router = Router()
