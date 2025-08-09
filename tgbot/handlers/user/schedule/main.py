@@ -15,12 +15,16 @@ from tgbot.keyboards.user.schedule.main import (
     DutyNavigation,
     get_yekaterinburg_date,
     duties_kb,
+    heads_kb,
+    HeadNavigation,
 )
 from tgbot.misc.dicts import russian_months
 from tgbot.services.sheets import (
     get_user_schedule_formatted,
     get_duties_for_current_date,
     get_duties_for_date,
+    get_heads_for_date,
+    get_heads_for_current_date,
 )
 
 user_schedule_router = Router()
@@ -259,6 +263,86 @@ async def handle_duty_navigation(
         await callback.message.edit_text(
             text=duties_text,
             reply_markup=duties_kb(target_date),
+        )
+
+        await callback.answer()
+
+    except Exception as e:
+        await callback.answer(f"Ошибка: {e}", show_alert=True)
+
+
+@user_schedule_router.callback_query(ScheduleMenu.filter(F.menu == "heads"))
+async def heads_schedule(callback: CallbackQuery, user: User):
+    """Обработчик кнопки 'РГ' (Руководители групп)"""
+    if not user:
+        await callback.message.answer(
+            """👋 Привет
+
+Я - бот-помощник СТП
+
+Используй кнопку ниже для авторизации""",
+            reply_markup=auth_kb(),
+        )
+        return
+
+    try:
+        # Получаем руководителей групп на сегодня
+        current_date = get_yekaterinburg_date()
+        heads_text = get_heads_for_current_date(user.division)
+
+        await callback.message.edit_text(
+            text=heads_text,
+            reply_markup=heads_kb(current_date),
+        )
+
+    except Exception as e:
+        await callback.message.edit_text(
+            text=f"❌ Ошибка при получении руководителей групп:\n<code>{e}</code>",
+            reply_markup=schedule_kb(),
+        )
+
+
+@user_schedule_router.callback_query(HeadNavigation.filter())
+async def handle_head_navigation(
+    callback: CallbackQuery, callback_data: HeadNavigation, user: User
+):
+    """Обработчик навигации по руководителям групп"""
+    if not user:
+        await callback.message.answer(
+            """👋 Привет
+
+Я - бот-помощник СТП
+
+Используй кнопку ниже для авторизации""",
+            reply_markup=auth_kb(),
+        )
+        return
+
+    try:
+        action = callback_data.action
+
+        if action == "-":
+            # Просто отвечаем на callback, не меняя сообщение
+            await callback.answer()
+            return
+
+        # Определяем дату для отображения
+        if action == "today":
+            target_date = get_yekaterinburg_date()
+        else:
+            # Парсим дату из callback_data
+            target_date = datetime.datetime.strptime(callback_data.date, "%Y-%m-%d")
+
+            # Устанавливаем правильный timezone
+            yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+            target_date = yekaterinburg_tz.localize(target_date)
+
+        # Получаем руководителей групп на выбранную дату
+        heads_text = get_heads_for_date(target_date, user.division)
+
+        await callback.message.edit_text(
+            text=heads_text,
+            reply_markup=heads_kb(target_date),
         )
 
         await callback.answer()

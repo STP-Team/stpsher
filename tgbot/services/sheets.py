@@ -21,6 +21,15 @@ class ScheduleType(Enum):
 
 
 @dataclass
+class HeadInfo:
+    """Информация о руководителе группы"""
+
+    name: str
+    schedule: str
+    duty_info: Optional[str] = None  # Информация о дежурстве, если есть
+
+
+@dataclass
 class DayInfo:
     """Информация о дне в расписании"""
 
@@ -406,7 +415,7 @@ class ScheduleAnalyzer:
             work_hours = (
                 ScheduleAnalyzer.calculate_work_hours(schedule_value)
                 if category == "work"
-                else 0.0
+                else 0
             )
 
             day_info = DayInfo(day=day, schedule=schedule_value, work_hours=work_hours)
@@ -1120,6 +1129,293 @@ class DutyScheduleParser(ScheduleParser):
         return "\n".join(lines)
 
 
+class HeadScheduleParser(ScheduleParser):
+    """Парсер для расписания руководителей групп"""
+
+    def __init__(self, uploads_folder: str = "uploads"):
+        super().__init__(uploads_folder)
+        self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+
+    def get_current_yekaterinburg_date(self) -> datetime:
+        """Получает текущую дату по Екатеринбургу"""
+        return datetime.now(self.yekaterinburg_tz)
+
+    def find_date_column(
+        self, df: pd.DataFrame, target_date: datetime
+    ) -> Optional[int]:
+        """Находит колонку с указанной датой"""
+        target_day = target_date.day
+
+        # Ищем в первых нескольких строках заголовок с датами
+        for row_idx in range(min(5, len(df))):
+            for col_idx in range(len(df.columns)):
+                cell_value = (
+                    str(df.iloc[row_idx, col_idx])
+                    if pd.notna(df.iloc[row_idx, col_idx])
+                    else ""
+                )
+
+                # Ищем паттерн вида "1Пт", "15Сб" и т.д.
+                day_pattern = r"^(\d{1,2})[А-Яа-я]{1,2}$"
+                match = re.search(day_pattern, cell_value.strip())
+
+                if match and int(match.group(1)) == target_day:
+                    logger.debug(f"Найдена колонка даты {target_day}: {col_idx}")
+                    return col_idx
+
+        logger.warning(f"Колонка для даты {target_day} не найдена")
+        return None
+
+    def get_heads_for_date(self, date: datetime, division: str) -> List[HeadInfo]:
+        """
+        Получает список руководителей групп на указанную дату
+
+        Args:
+            date: Дата
+            division: Подразделение
+
+        Returns:
+            Список руководителей с их расписанием
+        """
+        try:
+            # Находим файл расписания (обычный ГРАФИК)
+            schedule_file = self.file_manager.find_schedule_file(
+                division, ScheduleType.REGULAR
+            )
+            if not schedule_file:
+                raise FileNotFoundError(f"Файл расписания {division} не найден")
+
+            # Читаем файл
+            df = pd.read_excel(schedule_file, sheet_name="ГРАФИК", header=None)
+
+            # Находим колонку с нужной датой
+            date_col = self.find_date_column(df, date)
+            if date_col is None:
+                logger.warning(f"Дата {date.day} не найдена в расписании")
+                return []
+
+            heads = []
+
+            # Проходим по всем строкам и ищем руководителей групп
+            for row_idx in range(len(df)):
+                # Ищем метку "Руководитель группы" в строке
+                position_found = False
+                name = ""
+
+                for col_idx in range(min(10, len(df.columns))):
+                    cell_value = (
+                        str(df.iloc[row_idx, col_idx])
+                        if pd.notna(df.iloc[row_idx, col_idx])
+                        else ""
+                    )
+
+                    # Проверяем на должность
+                    if "Руководитель группы" in cell_value:
+                        position_found = True
+
+                    # Извлекаем ФИО (обычно в первых колонках)
+                    if (
+                        not name
+                        and len(cell_value.split()) >= 3
+                        and re.search(r"[А-Яа-я]", cell_value)
+                        and "Руководитель" not in cell_value
+                    ):
+                        name = cell_value.strip()
+
+                if not position_found or not name:
+                    continue
+
+                # Получаем расписание для этой даты
+                if date_col < len(df.columns):
+                    schedule_cell = (
+                        str(df.iloc[row_idx, date_col])
+                        if pd.notna(df.iloc[row_idx, date_col])
+                        else ""
+                    )
+
+                    if schedule_cell and schedule_cell.strip() not in [
+                        "",
+                        "nan",
+                        "None",
+                    ]:
+                        # Проверяем, есть ли рабочее время
+                        if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule_cell):
+                            # Проверяем, есть ли дежурство в тот же день
+                            duty_info = self._check_duty_for_head(name, date, division)
+
+                            heads.append(
+                                HeadInfo(
+                                    name=name,
+                                    schedule=schedule_cell.strip(),
+                                    duty_info=duty_info,
+                                )
+                            )
+
+            logger.info(
+                f"Найдено {len(heads)} руководителей групп на {date.strftime('%d.%m.%Y')}"
+            )
+            return heads
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении руководителей групп: {e}")
+            return []
+
+    def _check_duty_for_head(
+        self, head_name: str, date: datetime, division: str
+    ) -> Optional[str]:
+        """
+        Проверяет, дежурит ли руководитель в указанную дату
+
+        Args:
+            head_name: ФИО руководителя
+            date: Дата
+            division: Подразделение
+
+        Returns:
+            Информация о дежурстве или None
+        """
+        try:
+            # Используем DutyScheduleParser для проверки дежурств
+            duty_parser = DutyScheduleParser()
+            duties = duty_parser.get_duties_for_date(date, division)
+
+            for duty in duties:
+                # Проверяем по ФИО (может быть частичное совпадение)
+                if self._names_match(head_name, duty.name):
+                    return f"{duty.schedule} [{duty.shift_type}]"
+
+            return None
+
+        except Exception as e:
+            logger.debug(f"Ошибка при проверке дежурства для {head_name}: {e}")
+            return None
+
+    def _names_match(self, name1: str, name2: str) -> bool:
+        """
+        Проверяет совпадение имен (учитывает различия в написании)
+
+        Args:
+            name1: Первое имя
+            name2: Второе имя
+
+        Returns:
+            True если имена совпадают
+        """
+        # Простая проверка по фамилии и имени
+        parts1 = name1.split()
+        parts2 = name2.split()
+
+        if len(parts1) >= 2 and len(parts2) >= 2:
+            return parts1[0] == parts2[0] and parts1[1] == parts2[1]
+
+        return False
+
+    def get_gender_emoji(self, name: str) -> str:
+        """
+        Определяет пол по имени (простая эвристика)
+
+        Args:
+            name: ФИО
+
+        Returns:
+            Эмодзи для пола
+        """
+        # Простая проверка по окончанию отчества
+        parts = name.split()
+        if len(parts) >= 3:
+            patronymic = parts[2]
+            if patronymic.endswith("на"):
+                return "👩‍💼"
+            elif (
+                patronymic.endswith("ич")
+                or patronymic.endswith("ович")
+                or patronymic.endswith("евич")
+            ):
+                return "👨‍💼"
+
+        # По умолчанию мужской
+        return "👨‍💼"
+
+    def format_heads_for_date(self, date: datetime, heads: List[HeadInfo]) -> str:
+        """
+        Форматирует список руководителей групп для отображения
+
+        Args:
+            date: Дата
+            heads: Список руководителей
+
+        Returns:
+            Отформатированная строка
+        """
+        if not heads:
+            return f"<b>👑 Руководители групп • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Руководители групп на эту дату не найдены"
+
+        lines = [f"<b>👑 Руководители групп • {date.strftime('%d.%m.%Y')}</b>\n"]
+
+        # Группируем по времени работы
+        time_groups = {}
+
+        for head in heads:
+            # Извлекаем время работы
+            time_schedule = head.schedule
+            if not time_schedule or not re.search(
+                r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", time_schedule
+            ):
+                continue
+
+            # Извлекаем только время
+            time_match = re.search(r"(\d{1,2}:\d{2}-\d{1,2}:\d{2})", time_schedule)
+            if time_match:
+                time_key = time_match.group(1)
+            else:
+                time_key = time_schedule
+
+            if time_key not in time_groups:
+                time_groups[time_key] = []
+
+            time_groups[time_key].append(head)
+
+        # Сортируем время по началу смены
+        def parse_time_start(time_str: str) -> int:
+            try:
+                if "-" in time_str:
+                    start_time = time_str.split("-")[0].strip()
+                    hour, minute = start_time.split(":")
+                    return int(hour) * 60 + int(minute)
+                return 0
+            except (ValueError, IndexError):
+                return 0
+
+        sorted_times = sorted(time_groups.keys(), key=parse_time_start)
+
+        for time_schedule in sorted_times:
+            group_heads = time_groups[time_schedule]
+
+            # Заголовок времени
+            lines.append(f"⏰ <b>{time_schedule}</b>")
+
+            # Список руководителей
+            for head in group_heads:
+                gender_emoji = self.get_gender_emoji(head.name)
+
+                # Формируем строку с руководителем
+                head_line = f"{gender_emoji} {head.name}"
+
+                # Добавляем информацию о дежурстве если есть
+                if head.duty_info:
+                    head_line += f" ({head.duty_info})"
+
+                lines.append(head_line)
+
+            lines.append("")  # Пустая строка между временными блоками
+
+        # Убираем последнюю пустую строку
+        if lines and lines[-1] == "":
+            lines.pop()
+
+        return "\n".join(lines)
+
+
 # Публичные функции для обратной совместимости
 def get_user_schedule(fullname: str, month: str, division: str) -> Dict[str, str]:
     """
@@ -1335,3 +1631,35 @@ def get_duties_for_date(date: datetime, division: str) -> str:
     parser = DutyScheduleParser()
     duties = parser.get_duties_for_date(date, division)
     return parser.format_duties_for_date(date, duties)
+
+
+def get_heads_for_current_date(division: str) -> str:
+    """
+    Получает руководителей групп на текущую дату
+
+    Args:
+        division: Подразделение
+
+    Returns:
+        Отформатированная строка с руководителями групп
+    """
+    parser = HeadScheduleParser()
+    current_date = parser.get_current_yekaterinburg_date()
+    heads = parser.get_heads_for_date(current_date, division)
+    return parser.format_heads_for_date(current_date, heads)
+
+
+def get_heads_for_date(date: datetime, division: str) -> str:
+    """
+    Получает руководителей групп на указанную дату
+
+    Args:
+        date: Дата
+        division: Подразделение
+
+    Returns:
+        Отформатированная строка с руководителями групп
+    """
+    parser = HeadScheduleParser()
+    heads = parser.get_heads_for_date(date, division)
+    return parser.format_heads_for_date(date, heads)
