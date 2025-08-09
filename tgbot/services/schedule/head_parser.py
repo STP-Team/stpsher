@@ -10,6 +10,8 @@ from typing import List, Optional
 import pandas as pd
 import pytz
 
+from infrastructure.database.models import User
+from infrastructure.database.repo.requests import RequestsRepo
 from .excel_parser import ExcelParser
 from .managers import ScheduleFileManager
 from .models import HeadInfo, ScheduleType
@@ -56,7 +58,9 @@ class HeadScheduleParser:
         logger.warning(f"[График РГ] Колонка для даты {target_day} не найдена")
         return None
 
-    def get_heads_for_date(self, date: datetime, division: str) -> List[HeadInfo]:
+    async def get_heads_for_date(
+        self, date: datetime, division: str, stp_repo: RequestsRepo
+    ) -> List[HeadInfo]:
         """Get list of group heads for specified date"""
         try:
             schedule_file = self.file_manager.find_schedule_file(
@@ -114,15 +118,18 @@ class HeadScheduleParser:
                     ]:
                         if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule_cell):
                             duty_info = self._check_duty_for_head(name, date, division)
-
-                            heads.append(
-                                HeadInfo(
-                                    name=name,
-                                    schedule=schedule_cell.strip(),
-                                    duty_info=duty_info,
+                            user: User = await stp_repo.users.get_user(fullname=name)
+                            if user:
+                                heads.append(
+                                    HeadInfo(
+                                        name=name,
+                                        chat_id=user.chat_id,
+                                        schedule=schedule_cell.strip(),
+                                        duty_info=duty_info,
+                                    )
                                 )
-                            )
-
+                            else:
+                                pass
             logger.info(
                 f"[График РГ] Нашли {len(heads)} руководителей на дату {date.strftime('%d.%m.%Y')}"
             )
@@ -155,7 +162,6 @@ class HeadScheduleParser:
         except Exception as e:
             logger.debug(f"[График РГ] Ошибка проверки дежурности для {head_name}: {e}")
             return None
-
 
     def _names_match(self, name1: str, name2: str) -> bool:
         """Check if names match (considering writing differences)"""
@@ -213,18 +219,19 @@ class HeadScheduleParser:
         sorted_times = sorted(time_groups.keys(), key=parse_time_start)
 
         for time_schedule in sorted_times:
-            group_heads = time_groups[time_schedule]
+            group_heads: list[HeadInfo] = time_groups[time_schedule]
 
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
                 gender_emoji = self.get_gender_emoji(head.name)
-                head_line = f"{gender_emoji} {head.name}"
+                head_line = f"{gender_emoji} <a href='tg://user?id={head.chat_id}'>{head.name}</a>"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"
 
                 lines.append(head_line)
+                print(head_line)
 
             lines.append("")
 

@@ -60,6 +60,7 @@ class HeadInfo:
     """Head of group information"""
 
     name: str
+    chat_id: int
     schedule: str
     duty_info: Optional[str] = None
 

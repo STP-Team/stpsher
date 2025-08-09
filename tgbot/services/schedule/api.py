@@ -5,6 +5,7 @@ Public API functions for backward compatibility.
 from datetime import datetime
 from typing import Dict, List
 
+from infrastructure.database.repo.requests import RequestsRepo
 from .managers import MonthManager
 from .parsers import ScheduleParser
 from .duty_parser import DutyScheduleParser
@@ -66,16 +67,18 @@ def get_duties_for_date(date: datetime, division: str) -> str:
     return parser.format_duties_for_date(date, duties)
 
 
-def get_heads_for_current_date(division: str) -> str:
+async def get_heads_for_current_date(division: str, stp_repo: RequestsRepo) -> str:
     """Get heads for current date"""
     parser = HeadScheduleParser()
     current_date = parser.get_current_yekaterinburg_date()
-    heads = parser.get_heads_for_date(current_date, division)
+    heads = await parser.get_heads_for_date(current_date, division, stp_repo)
     return parser.format_heads_for_date(current_date, heads)
 
 
-def get_heads_for_date(date: datetime, division: str) -> str:
+async def get_heads_for_date(
+    date: datetime, division: str, stp_repo: RequestsRepo
+) -> str:
     """Get heads for specified date"""
     parser = HeadScheduleParser()
-    heads = parser.get_heads_for_date(date, division)
+    heads = await parser.get_heads_for_date(date, division, stp_repo)
     return parser.format_heads_for_date(date, heads)

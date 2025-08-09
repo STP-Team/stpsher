@@ -149,6 +149,26 @@ class ScheduleHandlerService:
 
         heads = await self.head_parser.get_heads_for_date(date, division, stp_repo)
 
+        # Filter out heads who are not in the database (fired employees)
+        if stp_repo:
+            active_heads = []
+            for head in heads:
+                try:
+                    user = await stp_repo.users.get_user(fullname=head.name)
+                    if user:
+                        active_heads.append(head)
+                    else:
+                        logger.debug(
+                            f"[График РГ] Сотрудник {head.name} не найден в базе данных"
+                        )
+                except Exception as e:
+                    logger.debug(
+                        f"[График РГ] Ошибка проверки сотрудника {head.name} в БД: {e}"
+                    )
+                    # If we can't check, include the head to avoid false negatives
+                    active_heads.append(head)
+            heads = active_heads
+
         return self.head_parser.format_heads_for_date(date, heads)
 
 

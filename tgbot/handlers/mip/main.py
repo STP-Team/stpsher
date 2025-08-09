@@ -3,12 +3,11 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import User
-from tgbot.filters.role import SpecialistFilter
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
 
 user_router = Router()
-user_router.message.filter(F.chat.type == "private", SpecialistFilter())
-user_router.callback_query.filter(F.message.chat.type == "private", SpecialistFilter())
+user_router.message.filter(F.chat.type == "private")
+user_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_router.message(CommandStart())
