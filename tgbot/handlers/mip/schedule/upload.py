@@ -50,7 +50,7 @@ async def upload_file(message: Message, state: FSMContext, stp_repo: RequestsRep
     file = await message.bot.get_file(file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
-    await stp_repo.upload.add_log(
+    await stp_repo.upload.add_file_history(
         file_id=file.file_id,
         file_name=file_name,
         file_size=file.file_size,

@@ -97,7 +97,7 @@ def duties_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
                 text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
-                text="🏠 Главная", callback_data=MainMenu(menu="main").pack()
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ]
     )
@@ -328,7 +328,7 @@ def schedule_with_month_kb(
                 text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
-                text="🏠 Главная", callback_data=MainMenu(menu="main").pack()
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]
@@ -413,7 +413,7 @@ def create_detailed_schedule_keyboard(current_month: str, schedule_type: str):
                 text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
-                text="🏠 Главная", callback_data=MainMenu(menu="main").pack()
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ]
     )
@@ -486,7 +486,7 @@ def heads_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
                 text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
-                text="🏠 Главная", callback_data=MainMenu(menu="main").pack()
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ]
     )

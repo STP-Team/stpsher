@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .base import Base, TableNameMixin
 
 
-class ScheduleLog(Base, TableNameMixin):
+class ScheduleFilesLog(Base, TableNameMixin):
     """
     Модель, представляющая сущность записи лога расписания в БД
 

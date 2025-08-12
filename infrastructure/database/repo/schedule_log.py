@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import select, and_
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.schedule_log import ScheduleLog
+from infrastructure.database.models.schedule_log import ScheduleFilesLog
 from infrastructure.database.repo.base import BaseRepo
 from tgbot.services.logger import setup_logging
 
@@ -23,13 +23,13 @@ class ScheduleLogParams(TypedDict, total=False):
 
 
 class ScheduleLogRepo(BaseRepo):
-    async def get_logs(
+    async def get_files_history(
         self,
         file_id: Optional[str] = None,
         uploaded_by_user_id: Optional[int] = None,
         uploaded_from: Optional[datetime] = None,
         uploaded_to: Optional[datetime] = None,
-    ) -> Sequence[ScheduleLog]:
+    ) -> Sequence[ScheduleFilesLog]:
         """
         Получить записи лога расписания по фильтрам.
 
@@ -45,15 +45,19 @@ class ScheduleLogRepo(BaseRepo):
         filters = []
 
         if file_id:
-            filters.append(ScheduleLog.file_id == file_id)
+            filters.append(ScheduleFilesLog.file_id == file_id)
         if uploaded_by_user_id:
-            filters.append(ScheduleLog.uploaded_by_user_id == uploaded_by_user_id)
+            filters.append(ScheduleFilesLog.uploaded_by_user_id == uploaded_by_user_id)
         if uploaded_from:
-            filters.append(ScheduleLog.uploaded_at >= uploaded_from)
+            filters.append(ScheduleFilesLog.uploaded_at >= uploaded_from)
         if uploaded_to:
-            filters.append(ScheduleLog.uploaded_at <= uploaded_to)
+            filters.append(ScheduleFilesLog.uploaded_at <= uploaded_to)
 
-        query = select(ScheduleLog)
+        query = (
+            select(ScheduleFilesLog)
+            .order_by(ScheduleFilesLog.uploaded_at.desc())
+            .limit(5)
+        )
         if filters:
             query = query.where(and_(*filters))
 
@@ -64,9 +68,9 @@ class ScheduleLogRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения записей ScheduleLog: {e}")
             return []
 
-    async def add_log(
+    async def add_file_history(
         self, **kwargs: Unpack[ScheduleLogParams]
-    ) -> Optional[ScheduleLog]:
+    ) -> Optional[ScheduleFilesLog]:
         """
         Добавить новую запись в логи расписания.
 
@@ -76,12 +80,12 @@ class ScheduleLogRepo(BaseRepo):
         Returns:
             Новый объект ScheduleLog или None при ошибке
         """
-        log_entry = ScheduleLog(**kwargs)
-        self.session.add(log_entry)
+        file_entry = ScheduleFilesLog(**kwargs)
+        self.session.add(file_entry)
         try:
             await self.session.commit()
-            await self.session.refresh(log_entry)
-            return log_entry
+            await self.session.refresh(file_entry)
+            return file_entry
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка добавления записи ScheduleLog: {e}")
             await self.session.rollback()
