@@ -25,8 +25,6 @@ class ScheduleFileManager:
             patterns = [
                 f"ГРАФИК {division} I*",
                 f"ГРАФИК {division} II*",
-                f"ГРАФИК_{division}_*",
-                f"*{division}*ГРАФИК*",
             ]
 
             for pattern in patterns:

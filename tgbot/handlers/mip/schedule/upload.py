@@ -1,15 +1,18 @@
 import asyncio
+import fnmatch
 import logging
 import os
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy.orm import Session
 
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
 from tgbot.misc.states.mip.upload import UploadFile
+from tgbot.services.scheduler import process_fired_users
 
 mip_upload_router = Router()
 mip_upload_router.message.filter(F.chat.type == "private", MipFilter())
@@ -32,7 +35,9 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
 
 
 @mip_upload_router.message(F.document, UploadFile.file)
-async def upload_file(message: Message, state: FSMContext, stp_repo: RequestsRepo):
+async def upload_file(
+    message: Message, state: FSMContext, stp_repo: RequestsRepo, stp_db: Session
+):
     document = message.document
     file_id = document.file_id
     file_name = document.file_name
@@ -82,15 +87,15 @@ async def upload_file(message: Message, state: FSMContext, stp_repo: RequestsRep
 
         # Launch background checker (it will return quickly if called multiple times)
         asyncio.create_task(
-            check_media_group_complete(message, state, media_group_id, stp_repo)
+            check_media_group_complete(message, state, media_group_id, stp_db)
         )
     else:
         # Single file upload: finalize immediately
-        await finalize_upload(message, state, stp_repo)
+        await finalize_upload(message, state, stp_db)
 
 
 async def check_media_group_complete(
-    message: Message, state: FSMContext, media_group_id: str, stp_repo
+    message: Message, state: FSMContext, media_group_id: str, stp_session: Session
 ):
     """
     Wait until no new files in the media group for 1 second, then finalize.
@@ -108,11 +113,11 @@ async def check_media_group_complete(
 
         # If no new uploads in last 1 second, finalize
         if asyncio.get_event_loop().time() - last_upload_time > 1:
-            await finalize_upload(message, state, stp_repo)
+            await finalize_upload(message, state, stp_session)
             return
 
 
-async def finalize_upload(message: Message, state: FSMContext, stp_repo: RequestsRepo):
+async def finalize_upload(message: Message, state: FSMContext, stp_db):
     state_data = await state.get_data()
     uploaded_files = state_data.get("uploaded_files", [])
     bot_message_id = state_data.get("bot_message_id")
@@ -137,6 +142,15 @@ async def finalize_upload(message: Message, state: FSMContext, stp_repo: Request
         if file_info["replaced"]:
             status_text += " <i>(заменён)</i>"
         status_text += "\n"
+
+        patterns = [
+            "ГРАФИК * I*",
+            "ГРАФИК * II*",
+        ]
+
+        for pattern in patterns:
+            if fnmatch.fnmatch(file_info["name"], pattern):
+                await process_fired_users(stp_db)
 
     try:
         await message.bot.edit_message_text(
