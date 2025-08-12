@@ -4,7 +4,9 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from infrastructure.database.models import User
 from tgbot.filters.role import MipFilter
+from tgbot.handlers.mip.main import mip_start_cmd
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu
 from tgbot.misc.states.mip.upload import UploadFile
 
@@ -24,8 +26,8 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
     await state.set_state(UploadFile.file)
 
 
-@mip_upload_router.message(F.document)
-async def upload_file(message: Message, state: FSMContext):
+@mip_upload_router.message(F.document, UploadFile.file)
+async def upload_file(message: Message, state: FSMContext, user: User):
     document = message.document
     file_id = document.file_id
     file_name = document.file_name
@@ -47,5 +49,6 @@ async def upload_file(message: Message, state: FSMContext):
 Загружен документ <b>{file_name}</b>
 Размер: {round(file_size / (1024 * 1024), 2)} МБ""",
     )
+    await mip_start_cmd(message=message, user=user)
 
     await state.clear()
