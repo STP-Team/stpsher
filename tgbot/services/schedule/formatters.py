@@ -205,3 +205,19 @@ class ScheduleFormatter:
             return ", ".join([str(d).split()[0] for d in days])
 
         return ScheduleFormatter._format_consecutive_days([str(d) for d in day_numbers])
+
+    @staticmethod
+    def get_gender_emoji(name: str) -> str:
+        """
+        Определение пола по имени
+        :param name: Полные ФИО или отчество
+        :return: Эмодзи с отображением пола
+        """
+        parts = name.split()
+        if len(parts) >= 3:
+            patronymic = parts[2]
+            if patronymic.endswith("на"):
+                return "👩‍💼"
+            elif patronymic.endswith(("ич", "ович", "евич")):
+                return "👨‍💼"
+        return "👨‍💼"

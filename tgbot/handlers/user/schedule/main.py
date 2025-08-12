@@ -19,7 +19,6 @@ from tgbot.services.schedule import (
     ScheduleError,
     ScheduleFileNotFoundError,
     ScheduleParser,
-    ScheduleType,
     UserNotFoundError,
 )
 
@@ -98,7 +97,6 @@ class ScheduleHandlerService:
             month=month,
             division=user.division,
             compact=compact,
-            schedule_type=ScheduleType.REGULAR,
         )
 
     async def get_duties_response(

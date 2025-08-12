@@ -8,14 +8,15 @@ from datetime import datetime
 from typing import List, Optional
 
 import pandas as pd
-import pytz
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
+
+from . import ScheduleFormatter
+from .duty_parser import DutyScheduleParser
 from .excel_parser import ExcelParser
 from .managers import ScheduleFileManager
-from .models import HeadInfo, ScheduleType
-from .duty_parser import DutyScheduleParser
+from .models import HeadInfo
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +29,10 @@ class HeadScheduleParser:
     def __init__(self, uploads_folder: str = "uploads"):
         self.file_manager = ScheduleFileManager(uploads_folder)
         self.excel_parser = ExcelParser(self.file_manager)
-        self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+        self.formatter = ScheduleFormatter()
 
-    def get_current_yekaterinburg_date(self) -> datetime:
-        """
-        Получает текущую дату по Екатеринбургу
-        :return: datetime
-        """
-        return datetime.now(self.yekaterinburg_tz)
-
-    def find_date_column(
-        self, df: pd.DataFrame, target_date: datetime
-    ) -> Optional[int]:
+    @staticmethod
+    def find_date_column(df: pd.DataFrame, target_date: datetime) -> Optional[int]:
         """
         Поиск колонки для проверяемой даты
         :param df:
@@ -79,9 +72,7 @@ class HeadScheduleParser:
         :return: Список руководителей, работающих в день проверки
         """
         try:
-            schedule_file = self.file_manager.find_schedule_file(
-                division, ScheduleType.REGULAR
-            )
+            schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
                 raise FileNotFoundError(
                     f"[График РГ] Файл графиков {division} не найден"
@@ -181,7 +172,8 @@ class HeadScheduleParser:
             logger.debug(f"[График РГ] Ошибка проверки дежурности для {head_name}: {e}")
             return None
 
-    def _names_match(self, name1: str, name2: str) -> bool:
+    @staticmethod
+    def _names_match(name1: str, name2: str) -> bool:
         """Check if names match (considering writing differences)"""
         parts1 = name1.split()
         parts2 = name2.split()
@@ -190,21 +182,6 @@ class HeadScheduleParser:
             return parts1[0] == parts2[0] and parts1[1] == parts2[1]
 
         return False
-
-    def get_gender_emoji(self, name: str) -> str:
-        """
-        Определение пола по имени
-        :param name: Полные ФИО или отчество
-        :return: Эмодзи с отображением пола
-        """
-        parts = name.split()
-        if len(parts) >= 3:
-            patronymic = parts[2]
-            if patronymic.endswith("на"):
-                return "👩‍💼"
-            elif patronymic.endswith(("ич", "ович", "евич")):
-                return "👨‍💼"
-        return "👨‍💼"
 
     def format_heads_for_date(self, date: datetime, heads: List[HeadInfo]) -> str:
         """
@@ -251,7 +228,7 @@ class HeadScheduleParser:
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
-                gender_emoji = self.get_gender_emoji(head.name)
+                gender_emoji = self.formatter.get_gender_emoji(head.name)
                 head_line = f"{gender_emoji} <a href='tg://user?id={head.user_id}'>{head.name}</a>"
 
                 if head.duty_info:

@@ -1,4 +1,5 @@
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from tgbot.filters.role import MipFilter
@@ -11,7 +12,8 @@ mip_schedule_router.callback_query.filter(F.message.chat.type == "private", MipF
 
 
 @mip_schedule_router.callback_query(MainMenu.filter(F.menu == "schedule"))
-async def schedule_cb(callback: CallbackQuery):
+async def schedule_cb(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
     await callback.message.edit_text(
         """📅 Меню графиков
 

@@ -11,7 +11,6 @@ from .analyzers import ScheduleAnalyzer
 from .excel_parser import ExcelParser
 from .formatters import ScheduleFormatter
 from .managers import ScheduleFileManager
-from .models import ScheduleType
 
 logger = logging.getLogger(__name__)
 
@@ -26,23 +25,17 @@ class ScheduleParser:
         self.formatter = ScheduleFormatter()
 
     def get_user_schedule(
-        self,
-        fullname: str,
-        month: str,
-        division: str,
-        schedule_type: ScheduleType = ScheduleType.REGULAR,
+        self, fullname: str, month: str, division: str
     ) -> Dict[str, str]:
         """Get user schedule"""
         try:
-            schedule_file = self.file_manager.find_schedule_file(
-                division, schedule_type
-            )
+            schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
                 raise FileNotFoundError(
                     f"[График специалистов] Файл графиков {division} не найден"
                 )
 
-            df = self.excel_parser.read_excel_file(schedule_file, schedule_type)
+            df = self.excel_parser.read_excel_file(schedule_file)
             start_col, end_col = self.excel_parser.find_month_columns(df, month)
             day_headers = self.excel_parser.find_day_headers(df, start_col, end_col)
 
@@ -78,18 +71,11 @@ class ScheduleParser:
             raise
 
     def get_user_schedule_formatted(
-        self,
-        fullname: str,
-        month: str,
-        division: str,
-        compact: bool = False,
-        schedule_type: ScheduleType = ScheduleType.REGULAR,
+        self, fullname: str, month: str, division: str, compact: bool = False
     ) -> str:
         """Get formatted user schedule"""
         try:
-            schedule_data = self.get_user_schedule(
-                fullname, month, division, schedule_type
-            )
+            schedule_data = self.get_user_schedule(fullname, month, division)
 
             if not schedule_data:
                 return f"❌ График для <b>{fullname}</b> на {month} не найден"

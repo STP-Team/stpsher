@@ -6,8 +6,6 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 
-from .models import ScheduleType
-
 logger = logging.getLogger(__name__)
 
 
@@ -17,9 +15,7 @@ class ScheduleFileManager:
     def __init__(self, uploads_folder: str = "uploads"):
         self.uploads_folder = Path(uploads_folder)
 
-    def find_schedule_file(
-        self, division: str, schedule_type: ScheduleType = ScheduleType.REGULAR
-    ) -> Optional[Path]:
+    def find_schedule_file(self, division: str) -> Optional[Path]:
         """Find schedule file by division"""
         try:
             patterns = [
@@ -34,7 +30,7 @@ class ScheduleFileManager:
                     logger.debug(f"Found schedule file: {latest_file}")
                     return latest_file
 
-            logger.error(f"Schedule file {division} ({schedule_type.value}) not found")
+            logger.error(f"Schedule file {division} not found")
             return None
 
         except Exception as e:

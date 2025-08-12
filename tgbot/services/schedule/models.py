@@ -3,21 +3,14 @@ Data models for schedule operations.
 """
 
 from dataclasses import dataclass
-from enum import Enum
 from typing import Optional
-
-
-class ScheduleType(Enum):
-    """Types of schedules"""
-
-    REGULAR = "regular"
-    DUTIES = "duties"
-    HEADS = "heads"
 
 
 @dataclass
 class DayInfo:
-    """Information about a day in schedule"""
+    """
+    Информация о дне в графике
+    """
 
     day: str
     schedule: str
@@ -34,7 +27,9 @@ class DayInfo:
 
 @dataclass
 class ScheduleStats:
-    """Schedule statistics"""
+    """
+    Статистика графика
+    """
 
     total_work_days: int
     total_work_hours: float
@@ -47,7 +42,9 @@ class ScheduleStats:
 
 @dataclass
 class DutyInfo:
-    """Duty information"""
+    """
+    Информация о дежурном
+    """
 
     name: str
     user_id: int
@@ -58,45 +55,11 @@ class DutyInfo:
 
 @dataclass
 class HeadInfo:
-    """Head of group information"""
+    """
+    Информация о руководителе группы
+    """
 
     name: str
     user_id: int
     schedule: str
     duty_info: Optional[str] = None
-
-
-# File: tgbot/services/schedule/exceptions.py
-"""
-Custom exceptions for schedule operations.
-"""
-
-
-class ScheduleError(Exception):
-    """Base exception for schedule errors"""
-
-    pass
-
-
-class ScheduleFileNotFoundError(ScheduleError):
-    """Schedule file not found"""
-
-    pass
-
-
-class UserNotFoundError(ScheduleError):
-    """User not found in schedule"""
-
-    pass
-
-
-class MonthNotFoundError(ScheduleError):
-    """Month not found in file"""
-
-    pass
-
-
-class InvalidDataError(ScheduleError):
-    """Invalid data in file"""
-
-    pass

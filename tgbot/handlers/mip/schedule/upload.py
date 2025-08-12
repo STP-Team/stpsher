@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
+from tgbot.keyboards.mip.schedule.upload import schedule_upload_back_kb
 from tgbot.misc.states.mip.upload import UploadFile
 from tgbot.services.schedule.user_processor import (
     process_user_changes_with_stats,
@@ -31,7 +32,8 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
 
 Загрузи в этот чат файл для загрузки на сервер
 
-<i>Если файл с таким же названием уже есть на сервере - он будет заменен твоим файлом</i>"""
+<i>Если файл с таким же названием уже есть на сервере - он будет заменен твоим файлом</i>""",
+        reply_markup=schedule_upload_back_kb(),
     )
     await state.update_data(bot_message_id=bot_message.message_id)
     await state.set_state(UploadFile.file)
@@ -42,25 +44,21 @@ async def upload_file(
     message: Message, state: FSMContext, stp_repo: RequestsRepo, stp_db: Session
 ):
     document = message.document
-    file_id = document.file_id
-    file_name = document.file_name
-    file_size = document.file_size
-    media_group_id = message.media_group_id
 
     await message.delete()
 
     # Save file to disk
-    file_path = f"uploads/{file_name}"
+    file_path = f"uploads/{document.file_name}"
     file_replaced = os.path.exists(file_path)
     if file_replaced:
         os.remove(file_path)
 
-    file = await message.bot.get_file(file_id)
+    file = await message.bot.get_file(document.file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
     await stp_repo.upload.add_file_history(
         file_id=file.file_id,
-        file_name=file_name,
+        file_name=document.file_name,
         file_size=file.file_size,
         uploaded_by_user_id=message.from_user.id,
     )
@@ -69,20 +67,24 @@ async def upload_file(
     state_data = await state.get_data()
     uploaded_files = state_data.get("uploaded_files", [])
 
-    file_info = {"name": file_name, "size": file_size, "replaced": file_replaced}
+    file_info = {
+        "name": document.file_name,
+        "size": document.file_size,
+        "replaced": file_replaced,
+    }
     uploaded_files.append(file_info)
 
     await state.update_data(
         uploaded_files=uploaded_files,
-        last_media_group_id=media_group_id,
+        last_media_group_id=message.media_group_id,
         last_upload_time=asyncio.get_event_loop().time(),
         finalize_done=False,
     )
 
     # Handle media group or single file
-    if media_group_id:
+    if message.media_group_id:
         asyncio.create_task(
-            check_media_group_complete(message, state, media_group_id, stp_db)
+            check_media_group_complete(message, state, message.media_group_id, stp_db)
         )
     else:
         await finalize_upload(message, state, stp_db)

@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import pandas as pd
+from pandas import DataFrame
 
 from .managers import ScheduleFileManager, MonthManager
-from .models import ScheduleType
 
 logger = logging.getLogger(__name__)
 
@@ -21,44 +21,16 @@ class ExcelParser:
     def __init__(self, file_manager: ScheduleFileManager):
         self.file_manager = file_manager
 
-    def read_excel_file(
-        self, file_path: Path, schedule_type: ScheduleType = ScheduleType.REGULAR
-    ) -> pd.DataFrame:
+    def read_excel_file(self, file_path: Path) -> DataFrame | None:
         """Read Excel file with various sheet handling"""
-        if schedule_type == ScheduleType.DUTIES:
-            sheet_names = [
-                "ДЕЖУРСТВА",
-                "Дежурства",
-                "СТАРШИЕ",
-                "Старшие",
-                "ГРАФИК",
-                "График",
-                "Sheet1",
-                0,
-            ]
-        elif schedule_type == ScheduleType.HEADS:
-            sheet_names = [
-                "РГ",
-                "РУКОВОДИТЕЛИ",
-                "Руководители",
-                "ГРАФИК",
-                "График",
-                "Sheet1",
-                0,
-            ]
-        else:
-            sheet_names = ["ГРАФИК", "График", "график", "Sheet1", 0]
+        sheet_name = "ГРАФИК"
 
-        for sheet_name in sheet_names:
-            try:
-                df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-                logger.debug(f"Successfully read sheet: {sheet_name}")
-                return df
-            except Exception as e:
-                logger.debug(f"Failed to read sheet '{sheet_name}': {e}")
-                continue
-
-        raise ValueError(f"Could not read any sheet from file {file_path}")
+        try:
+            df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
+            logger.debug(f"Successfully read sheet: {sheet_name}")
+            return df
+        except Exception as e:
+            logger.debug(f"Failed to read sheet '{sheet_name}': {e}")
 
     def find_month_columns(self, df: pd.DataFrame, month: str) -> Tuple[int, int]:
         """Find columns for specified month"""

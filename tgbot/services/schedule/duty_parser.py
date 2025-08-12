@@ -8,14 +8,13 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 
 import pandas as pd
-import pytz
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 
 from .excel_parser import ExcelParser
 from .managers import ScheduleFileManager
-from .models import DutyInfo, ScheduleType
+from .models import DutyInfo
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +27,9 @@ class DutyScheduleParser:
     def __init__(self, uploads_folder: str = "uploads"):
         self.file_manager = ScheduleFileManager(uploads_folder)
         self.excel_parser = ExcelParser(self.file_manager)
-        self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
-    def get_current_yekaterinburg_date(self) -> datetime:
-        """
-        Получает текущую дату по Екатеринбургу
-        :return: datetime
-        """
-        return datetime.now(self.yekaterinburg_tz)
-
-    def get_duty_sheet_name(self, date: datetime) -> str:
+    @staticmethod
+    def get_duty_sheet_name(date: datetime) -> str:
         """Генерирует название листа для получения актуального расписания"""
         month_names = [
             "Январь",
@@ -56,9 +48,8 @@ class DutyScheduleParser:
         month_name = month_names[date.month - 1]
         return f"Дежурство {month_name}"
 
-    def find_date_column(
-        self, df: pd.DataFrame, target_date: datetime
-    ) -> Optional[int]:
+    @staticmethod
+    def find_date_column(df: pd.DataFrame, target_date: datetime) -> Optional[int]:
         """
         Поиск колонки для проверяемой даты
         :param df:
@@ -87,7 +78,8 @@ class DutyScheduleParser:
         logger.warning(f"[График дежурных] Колонка для даты {target_day} не найдена")
         return None
 
-    def parse_duty_entry(self, cell_value: str) -> Tuple[str, str]:
+    @staticmethod
+    def parse_duty_entry(cell_value: str) -> Tuple[str, str]:
         """
         Парсинг записи о дежурстве, экстракт типа смены и ее времени
         :param cell_value: Значение клетки
@@ -119,9 +111,7 @@ class DutyScheduleParser:
         :return: Список дежурных на проверяемую дату
         """
         try:
-            schedule_file = self.file_manager.find_schedule_file(
-                division, ScheduleType.DUTIES
-            )
+            schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
                 raise FileNotFoundError(
                     f"[График дежурных] Файл дежурных {division} не найден"
@@ -214,7 +204,8 @@ class DutyScheduleParser:
             logger.error(f"[График дежурных] Ошибка проверки дежурных: {e}")
             return []
 
-    def get_gender_emoji(self, name: str) -> str:
+    @staticmethod
+    def get_gender_emoji(name: str) -> str:
         """
         Определение пола по имени
         :param name: Полные ФИО или отчество
@@ -229,7 +220,8 @@ class DutyScheduleParser:
                 return "👨"
         return "👨"
 
-    def parse_time_range(self, time_str: str) -> Tuple[int, int]:
+    @staticmethod
+    def parse_time_range(time_str: str) -> Tuple[int, int]:
         """
         Парсит время начала и конца дежурки
         :param time_str:
