@@ -117,7 +117,9 @@ class HeadScheduleParser:
                         "None",
                     ]:
                         if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule_cell):
-                            duty_info = self._check_duty_for_head(name, date, division)
+                            duty_info = await self._check_duty_for_head(
+                                name, date, division, stp_repo
+                            )
                             user: User = await stp_repo.users.get_user(fullname=name)
                             if user:
                                 heads.append(
@@ -231,7 +233,6 @@ class HeadScheduleParser:
                     head_line += f" ({head.duty_info})"
 
                 lines.append(head_line)
-                print(head_line)
 
             lines.append("")
 
