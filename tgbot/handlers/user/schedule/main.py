@@ -38,7 +38,8 @@ class ScheduleHandlerService:
         self.head_parser = HeadScheduleParser()
         self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
-    async def check_user_auth(self, callback: CallbackQuery, user: User) -> bool:
+    @staticmethod
+    async def check_user_auth(callback: CallbackQuery, user: User) -> bool:
         """Проверяет авторизацию пользователя"""
         if not user:
             await callback.message.answer(
@@ -52,8 +53,9 @@ class ScheduleHandlerService:
             return False
         return True
 
+    @staticmethod
     async def handle_schedule_error(
-        self, callback: CallbackQuery, error: Exception, fallback_markup=None
+        callback: CallbackQuery, error: Exception, fallback_markup=None
     ) -> None:
         """Обработка ошибок расписания"""
         if fallback_markup is None:
@@ -79,7 +81,8 @@ class ScheduleHandlerService:
             logger.error(f"Failed to edit message: {edit_error}")
             await callback.answer(error_msg, show_alert=True)
 
-    def get_current_month(self) -> str:
+    @staticmethod
+    def get_current_month() -> str:
         """Получает текущий месяц"""
         return russian_months[datetime.datetime.now().month]
 
@@ -108,7 +111,7 @@ class ScheduleHandlerService:
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
-        # Filter out duties who are not in the database (fired employees)
+        # Фильтруем дежурных, которых нет в базе данных (уволенных)
         if stp_repo:
             active_duties = []
             for duty in duties:
@@ -124,7 +127,7 @@ class ScheduleHandlerService:
                     logger.debug(
                         f"[График дежурств] Ошибка проверки сотрудника {duty.name} в БД: {e}"
                     )
-                    # If we can't check, include the duty to avoid false negatives
+                    # Если не можем проверить - включаем пользователя в список дежурных для избежания false negative
                     active_duties.append(duty)
             duties = active_duties
 
