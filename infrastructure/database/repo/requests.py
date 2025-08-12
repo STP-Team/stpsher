@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from infrastructure.database.repo.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.users import UserRepo
 
 
@@ -21,3 +22,10 @@ class RequestsRepo:
         The User repository sessions are required to manage user operations.
         """
         return UserRepo(self.session)
+
+    @property
+    def upload(self) -> ScheduleLogRepo:
+        """
+        The ScheduleLogRepo repository sessions are required to manage user operations.
+        """
+        return ScheduleLogRepo(self.session)

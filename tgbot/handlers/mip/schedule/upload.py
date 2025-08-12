@@ -6,6 +6,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
 from tgbot.misc.states.mip.upload import UploadFile
@@ -31,7 +32,7 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
 
 
 @mip_upload_router.message(F.document, UploadFile.file)
-async def upload_file(message: Message, state: FSMContext):
+async def upload_file(message: Message, state: FSMContext, stp_repo: RequestsRepo):
     document = message.document
     file_id = document.file_id
     file_name = document.file_name
@@ -49,6 +50,13 @@ async def upload_file(message: Message, state: FSMContext):
     file = await message.bot.get_file(file_id)
     await message.bot.download_file(file.file_path, destination=file_path)
 
+    await stp_repo.upload.add_log(
+        file_id=file.file_id,
+        file_name=file_name,
+        file_size=file.file_size,
+        uploaded_by_user_id=message.from_user.id,
+    )
+
     # Сохраняем отправленные файлы в FSM
     while True:
         state_data = await state.get_data()
@@ -63,6 +71,7 @@ async def upload_file(message: Message, state: FSMContext):
             uploaded_files=uploaded_files,
             last_media_group_id=media_group_id,
             last_upload_time=asyncio.get_event_loop().time(),
+            finalize_done=False,
         )
         break
 
@@ -72,14 +81,16 @@ async def upload_file(message: Message, state: FSMContext):
         # We'll keep track of the task in FSM or globally (simplified here)
 
         # Launch background checker (it will return quickly if called multiple times)
-        asyncio.create_task(check_media_group_complete(message, state, media_group_id))
+        asyncio.create_task(
+            check_media_group_complete(message, state, media_group_id, stp_repo)
+        )
     else:
         # Single file upload: finalize immediately
-        await finalize_upload(message, state)
+        await finalize_upload(message, state, stp_repo)
 
 
 async def check_media_group_complete(
-    message: Message, state: FSMContext, media_group_id: str
+    message: Message, state: FSMContext, media_group_id: str, stp_repo
 ):
     """
     Wait until no new files in the media group for 1 second, then finalize.
@@ -97,17 +108,19 @@ async def check_media_group_complete(
 
         # If no new uploads in last 1 second, finalize
         if asyncio.get_event_loop().time() - last_upload_time > 1:
-            await finalize_upload(message, state)
+            await finalize_upload(message, state, stp_repo)
             return
 
 
-async def finalize_upload(message: Message, state: FSMContext):
+async def finalize_upload(message: Message, state: FSMContext, stp_repo: RequestsRepo):
     state_data = await state.get_data()
     uploaded_files = state_data.get("uploaded_files", [])
     bot_message_id = state_data.get("bot_message_id")
 
     if not uploaded_files or bot_message_id is None:
         return
+
+    await state.update_data(finalize_done=True)
 
     files_count = len(uploaded_files)
     if files_count == 1:
@@ -120,6 +133,7 @@ async def finalize_upload(message: Message, state: FSMContext):
     for i, file_info in enumerate(uploaded_files, 1):
         size_mb = round(file_info["size"] / (1024 * 1024), 2)
         status_text += f"{i}. <b>{file_info['name']}</b> - {size_mb} МБ"
+
         if file_info["replaced"]:
             status_text += " <i>(заменён)</i>"
         status_text += "\n"
