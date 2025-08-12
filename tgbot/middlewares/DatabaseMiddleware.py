@@ -42,26 +42,20 @@ class DatabaseMiddleware(BaseMiddleware):
             try:
                 # Use separate sessions for different databases
                 async with self.stp_session_pool() as stp_session:
-                    async with self.achievements_session_pool() as achievements_session:
-                        # Create repositories for different databases
-                        stp_repo = RequestsRepo(stp_session)  # Для основной базы СТП
-                        achievements_repo = RequestsRepo(
-                            achievements_session
-                        )  # Для базы достижений
+                    # Create repositories for different databases
+                    stp_repo = RequestsRepo(stp_session)  # Для основной базы СТП
 
-                        # Получаем пользователя из БД
-                        user = await stp_repo.users.get_user(user_id=event.from_user.id)
+                    # Получаем пользователя из БД
+                    user = await stp_repo.users.get_user(user_id=event.from_user.id)
 
-                        # Add repositories and user to data for other middlewares
-                        data["stp_repo"] = stp_repo
-                        data["stp_session"] = stp_session
-                        data["achievements_session"] = achievements_session
-                        data["achievements_repo"] = achievements_repo
-                        data["user"] = user
+                    # Add repositories and user to data for other middlewares
+                    data["stp_repo"] = stp_repo
+                    data["stp_session"] = stp_session
+                    data["user"] = user
 
-                        # Continue to the next middleware/handler
-                        result = await handler(event, data)
-                        return result
+                    # Continue to the next middleware/handler
+                    result = await handler(event, data)
+                    return result
 
             except (OperationalError, DBAPIError, DisconnectionError) as e:
                 if "Connection is busy" in str(e) or "HY000" in str(e):

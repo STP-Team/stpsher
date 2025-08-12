@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class HeadScheduleParser:
-    """Parser for head schedules"""
+    """
+    Парсер расписания руководителей
+    """
 
     def __init__(self, uploads_folder: str = "uploads"):
         self.file_manager = ScheduleFileManager(uploads_folder)
@@ -29,13 +31,21 @@ class HeadScheduleParser:
         self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
     def get_current_yekaterinburg_date(self) -> datetime:
-        """Get current date in Yekaterinburg timezone"""
+        """
+        Получает текущую дату по Екатеринбургу
+        :return: datetime
+        """
         return datetime.now(self.yekaterinburg_tz)
 
     def find_date_column(
         self, df: pd.DataFrame, target_date: datetime
     ) -> Optional[int]:
-        """Find column with specified date"""
+        """
+        Поиск колонки для проверяемой даты
+        :param df:
+        :param target_date: Проверяемая дата
+        :return: Номер колонки
+        """
         target_day = target_date.day
 
         for row_idx in range(min(5, len(df))):
@@ -61,7 +71,13 @@ class HeadScheduleParser:
     async def get_heads_for_date(
         self, date: datetime, division: str, stp_repo: RequestsRepo
     ) -> List[HeadInfo]:
-        """Get list of group heads for specified date"""
+        """
+        Получение списка руководителей на смене на день проверки
+        :param date: Дата дня проверки
+        :param division: Направление проверки
+        :param stp_repo: Модель БД
+        :return: Список руководителей, работающих в день проверки
+        """
         try:
             schedule_file = self.file_manager.find_schedule_file(
                 division, ScheduleType.REGULAR
@@ -125,7 +141,7 @@ class HeadScheduleParser:
                                 heads.append(
                                     HeadInfo(
                                         name=name,
-                                        chat_id=user.chat_id,
+                                        user_id=user.user_id,
                                         schedule=schedule_cell.strip(),
                                         duty_info=duty_info,
                                     )
@@ -145,10 +161,10 @@ class HeadScheduleParser:
         self, head_name: str, date: datetime, division: str, stp_repo: RequestsRepo
     ) -> Optional[str]:
         """
-        Проверка является ли руководитель дежурным в определенный день
+        Проверка является ли руководитель дежурным в проверяемый день
         :param head_name: ФИО руководителя
         :param date: Дата проверки
-        :param division: Направления для проверки
+        :param division: Направление для проверки
         :return:
         """
         try:
@@ -176,7 +192,11 @@ class HeadScheduleParser:
         return False
 
     def get_gender_emoji(self, name: str) -> str:
-        """Determine gender by name (simple heuristic)"""
+        """
+        Определение пола по имени
+        :param name: Полные ФИО или отчество
+        :return: Эмодзи с отображением пола
+        """
         parts = name.split()
         if len(parts) >= 3:
             patronymic = parts[2]
@@ -187,7 +207,12 @@ class HeadScheduleParser:
         return "👨‍💼"
 
     def format_heads_for_date(self, date: datetime, heads: List[HeadInfo]) -> str:
-        """Format heads list for display"""
+        """
+        Форматирование списка руководителей для отображения в меню
+        :param date: Дата проверяемого дня
+        :param heads: Список руководителей на проверяемый день
+        :return: Форматированное сообщение для отправки пользователю
+        """
         if not heads:
             return f"<b>👑 Руководители групп • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Руководители групп на эту дату не найдены"
 
@@ -227,7 +252,7 @@ class HeadScheduleParser:
 
             for head in group_heads:
                 gender_emoji = self.get_gender_emoji(head.name)
-                head_line = f"{gender_emoji} <a href='tg://user?id={head.chat_id}'>{head.name}</a>"
+                head_line = f"{gender_emoji} <a href='tg://user?id={head.user_id}'>{head.name}</a>"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"

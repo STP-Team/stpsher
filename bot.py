@@ -117,20 +117,15 @@ async def main():
 
     # Create engines for different databases
     stp_db_engine = create_engine(bot_config.db, db_name=bot_config.db.stp_db)
-    achievements_db_engine = create_engine(
-        bot_config.db, db_name=bot_config.db.achievements_db
-    )
 
     stp_db = create_session_pool(stp_db_engine)
-    achievements_db = create_session_pool(achievements_db_engine)
 
     # Store session pools in dispatcher
     dp["stp_db"] = stp_db
-    dp["achievements_db"] = achievements_db
 
     dp.include_routers(*routers_list)
 
-    register_middlewares(dp, bot_config, bot, stp_db, achievements_db)
+    register_middlewares(dp, bot_config, bot, stp_db)
 
     scheduler.add_job(
         process_fired_users,
@@ -148,7 +143,6 @@ async def main():
         await dp.start_polling(bot)
     finally:
         await stp_db_engine.dispose()
-        await achievements_db_engine.dispose()
 
 
 if __name__ == "__main__":

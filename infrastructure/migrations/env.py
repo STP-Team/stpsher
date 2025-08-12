@@ -19,23 +19,15 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+# Use the full metadata but filter out tables from other databases
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
+# Load database config
 db_config = load_config(".env").db
 
-config.set_main_option(
-    "sqlalchemy.url",
-    db_config.construct_sqlalchemy_url(),
-)
+# Store the URL for later use - don't set it in config to avoid interpolation issues
+database_url = db_config.construct_sqlalchemy_url()
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -69,13 +61,8 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
-
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        {"sqlalchemy.url": str(database_url)},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

@@ -1,7 +1,3 @@
-"""
-Schedule analysis functionality.
-"""
-
 import re
 from typing import Any, Dict, List, Tuple
 
@@ -9,11 +5,17 @@ from .models import DayInfo
 
 
 class ScheduleAnalyzer:
-    """Analyzer for schedules"""
+    """
+    Анализатор для расписаний
+    """
 
     @staticmethod
     def categorize_schedule_entry(schedule_value: str) -> str:
-        """Categorize schedule entry"""
+        """
+        Категория смены
+        :param schedule_value: Значение клетки
+        :return:
+        """
         schedule_clean = schedule_value.strip().upper()
 
         if not schedule_clean or schedule_clean in ["НЕ УКАЗАНО", "NAN", "NONE", ""]:

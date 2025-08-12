@@ -50,7 +50,7 @@ class DutyInfo:
     """Duty information"""
 
     name: str
-    chat_id: int
+    user_id: int
     schedule: str
     shift_type: str  # "П" или "С" или ""
     work_hours: str
@@ -61,7 +61,7 @@ class HeadInfo:
     """Head of group information"""
 
     name: str
-    chat_id: int
+    user_id: int
     schedule: str
     duty_info: Optional[str] = None
 

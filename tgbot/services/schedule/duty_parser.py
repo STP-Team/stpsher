@@ -12,6 +12,7 @@ import pytz
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
+
 from .excel_parser import ExcelParser
 from .managers import ScheduleFileManager
 from .models import DutyInfo, ScheduleType
@@ -20,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class DutyScheduleParser:
-    """Parser for duty schedules"""
+    """
+    Парсер расписания дежурных
+    """
 
     def __init__(self, uploads_folder: str = "uploads"):
         self.file_manager = ScheduleFileManager(uploads_folder)
@@ -28,11 +31,14 @@ class DutyScheduleParser:
         self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
     def get_current_yekaterinburg_date(self) -> datetime:
-        """Get current date in Yekaterinburg timezone"""
+        """
+        Получает текущую дату по Екатеринбургу
+        :return: datetime
+        """
         return datetime.now(self.yekaterinburg_tz)
 
     def get_duty_sheet_name(self, date: datetime) -> str:
-        """Generate duty sheet name for specified date"""
+        """Генерирует название листа для получения актуального расписания"""
         month_names = [
             "Январь",
             "Февраль",
@@ -53,7 +59,12 @@ class DutyScheduleParser:
     def find_date_column(
         self, df: pd.DataFrame, target_date: datetime
     ) -> Optional[int]:
-        """Find column with specified date"""
+        """
+        Поиск колонки для проверяемой даты
+        :param df:
+        :param target_date: Проверяемая дата
+        :return: Номер колонки
+        """
         target_day = target_date.day
 
         for row_idx in range(min(3, len(df))):
@@ -77,7 +88,11 @@ class DutyScheduleParser:
         return None
 
     def parse_duty_entry(self, cell_value: str) -> Tuple[str, str]:
-        """Parse duty entry and extract shift type and time"""
+        """
+        Парсинг записи о дежурстве, экстракт типа смены и ее времени
+        :param cell_value: Значение клетки
+        :return:
+        """
         if not cell_value or cell_value.strip() in ["", "nan", "None"]:
             return "", ""
 
@@ -96,7 +111,13 @@ class DutyScheduleParser:
     async def get_duties_for_date(
         self, date: datetime, division: str, stp_repo: RequestsRepo
     ) -> List[DutyInfo]:
-        """Get list of duties for specified date"""
+        """
+        Получает список дежурных на проверяемую дату
+        :param date: Дата проверки
+        :param division: Направление проверки
+        :param stp_repo:
+        :return: Список дежурных на проверяемую дату
+        """
         try:
             schedule_file = self.file_manager.find_schedule_file(
                 division, ScheduleType.DUTIES
@@ -177,7 +198,7 @@ class DutyScheduleParser:
                                 duties.append(
                                     DutyInfo(
                                         name=name,
-                                        chat_id=user.chat_id,
+                                        user_id=user.user_id,
                                         schedule=schedule,
                                         shift_type=shift_type,
                                         work_hours=schedule,
@@ -194,7 +215,11 @@ class DutyScheduleParser:
             return []
 
     def get_gender_emoji(self, name: str) -> str:
-        """Determine gender by name (simple heuristic)"""
+        """
+        Определение пола по имени
+        :param name: Полные ФИО или отчество
+        :return: Эмодзи с отображением пола
+        """
         parts = name.split()
         if len(parts) >= 3:
             patronymic = parts[2]
@@ -205,7 +230,11 @@ class DutyScheduleParser:
         return "👨"
 
     def parse_time_range(self, time_str: str) -> Tuple[int, int]:
-        """Parse time range and return start time in minutes"""
+        """
+        Парсит время начала и конца дежурки
+        :param time_str:
+        :return:
+        """
         try:
             if "-" not in time_str:
                 return 0, 0
@@ -226,7 +255,12 @@ class DutyScheduleParser:
             return 0, 0
 
     def format_duties_for_date(self, date: datetime, duties: List[DutyInfo]) -> str:
-        """Format duties list for display, grouping by time"""
+        """
+        Форматирование списка руководителей для отображения в меню. Группировка по времени
+        :param date: Дата проверки
+        :param duties: Список дежурных на дату провреки
+        :return: Форматированное сообщение для отправки пользователю
+        """
         if not duties:
             return f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Дежурных на эту дату не найдено"
 
@@ -262,13 +296,13 @@ class DutyScheduleParser:
             for duty in group["duties"]:
                 gender_emoji = self.get_gender_emoji(duty.name)
                 lines.append(
-                    f"{gender_emoji}Старший - <a href='tg://user?id={duty.chat_id}'>{duty.name}</a>"
+                    f"{gender_emoji}Старший - <a href='tg://user?id={duty.user_id}'>{duty.name}</a>"
                 )
 
             for duty in group["helpers"]:
                 gender_emoji = self.get_gender_emoji(duty.name)
                 lines.append(
-                    f"{gender_emoji}Помощник - <a href='tg://user?id={duty.chat_id}'>{duty.name}</a>"
+                    f"{gender_emoji}Помощник - <a href='tg://user?id={duty.user_id}'>{duty.name}</a>"
                 )
 
             lines.append("")

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class RegisteredUserParams(TypedDict, total=False):
     """Доступные параметры для обновления пользователя в таблице RegisteredUsers."""
 
-    chat_id: int
+    user_id: int
     username: str | None
     Division: str | None
     Position: str | None
@@ -48,7 +48,7 @@ class UserRepo(BaseRepo):
         filters = []
 
         if user_id:
-            filters.append(User.chat_id == user_id)
+            filters.append(User.user_id == user_id)
         if username:
             filters.append(User.username == username)
         if fullname:
@@ -74,7 +74,7 @@ class UserRepo(BaseRepo):
         user_id: int = None,
         **kwargs: Unpack[RegisteredUserParams],
     ) -> Optional[User]:
-        select_stmt = select(User).where(User.chat_id == user_id)
+        select_stmt = select(User).where(User.user_id == user_id)
 
         result = await self.session.execute(select_stmt)
         user: User | None = result.scalar_one_or_none()
@@ -145,17 +145,21 @@ class UserRepo(BaseRepo):
             query = select(User).where(User.fullname == fullname)
             result = await self.session.execute(query)
             users = result.scalars().all()
-            
+
             deleted_count = 0
             for user in users:
                 await self.session.delete(user)
                 deleted_count += 1
-                logger.info(f"[БД] Пользователь {fullname} (ID: {user.chat_id}) удален из базы данных")
-            
+                logger.info(
+                    f"[БД] Пользователь {fullname} (ID: {user.user_id}) удален из базы данных"
+                )
+
             if deleted_count > 0:
                 await self.session.commit()
-                logger.info(f"[БД] Всего удалено {deleted_count} пользователей с ФИО {fullname}")
-            
+                logger.info(
+                    f"[БД] Всего удалено {deleted_count} пользователей с ФИО {fullname}"
+                )
+
             return deleted_count
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка удаления пользователей {fullname}: {e}")

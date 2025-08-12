@@ -10,7 +10,7 @@ class User(Base, TableNameMixin):
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.
-        chat_id (Mapped[Optional[str]]): Идентификатор чата с пользователем в Telegram.
+        user_id (Mapped[Optional[str]]): Идентификатор чата с пользователем в Telegram.
         username (Mapped[str]): username пользователя в Telegram.
         division (MappedOptional[str]): Направление пользователя (НТП/НЦК).
         position (Mapped[str]): Позиция/должность пользователя.
@@ -33,7 +33,7 @@ class User(Base, TableNameMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    chat_id: Mapped[int] = mapped_column(BIGINT)
+    user_id: Mapped[int] = mapped_column(BIGINT)
     username: Mapped[str] = mapped_column(Unicode, nullable=True)
     division: Mapped[str] = mapped_column(Unicode)
     position: Mapped[str] = mapped_column(Unicode)
@@ -43,4 +43,4 @@ class User(Base, TableNameMixin):
     role: Mapped[int] = mapped_column(BIGINT)
 
     def __repr__(self):
-        return f"<User {self.id} {self.chat_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"
+        return f"<User {self.id} {self.user_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"

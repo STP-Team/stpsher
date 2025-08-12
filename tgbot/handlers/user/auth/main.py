@@ -126,8 +126,8 @@ async def user_auth_fullname(
 
     db_user: User | None = await stp_repo.users.get_user(fullname=message.text)
     if db_user:
-        if not db_user.chat_id:
-            db_user.chat_id = message.chat.id
+        if not db_user.user_id:
+            db_user.user_id = message.chat.id
             if message.from_user.username:
                 db_user.username = message.from_user.username
             db_user.email = state_data.get("email")

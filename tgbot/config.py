@@ -40,8 +40,6 @@ class DbConfig:
         Логин для авторизации в базе данных.
     stp_db : str
         Имя основной базы данных.
-    achievements_db : str
-        Имя базы данных достижений.
     """
 
     host: str
@@ -49,7 +47,6 @@ class DbConfig:
     password: str
 
     stp_db: str
-    achievements_db: str
 
     def construct_sqlalchemy_url(
         self,
@@ -65,7 +62,7 @@ class DbConfig:
             password=self.password,
             host=self.host,
             port=self.port if hasattr(self, "port") and self.port else 3306,
-            database=db_name if db_name else self.achievements_db,
+            database=db_name,
             query={
                 "charset": "utf8mb4",
                 "use_unicode": "1",
@@ -86,15 +83,13 @@ class DbConfig:
         user = env.str("DB_USER")
         password = env.str("DB_PASS")
 
-        stp_db = env.str("DB_STP_NAME")
-        achievements_db = env.str("DB_ACHIEVEMENTS_NAME")
+        stp_db = env.str("DB_NAME")
 
         return DbConfig(
             host=host,
             user=user,
             password=password,
             stp_db=stp_db,
-            achievements_db=achievements_db,
         )
 
 
