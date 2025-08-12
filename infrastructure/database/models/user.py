@@ -33,14 +33,14 @@ class User(Base, TableNameMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    user_id: Mapped[int] = mapped_column(BIGINT)
+    user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
     username: Mapped[str] = mapped_column(Unicode, nullable=True)
-    division: Mapped[str] = mapped_column(Unicode)
-    position: Mapped[str] = mapped_column(Unicode)
-    fullname: Mapped[str] = mapped_column(Unicode)
-    head: Mapped[str] = mapped_column(Unicode)
-    email: Mapped[str] = mapped_column(Unicode)
-    role: Mapped[int] = mapped_column(BIGINT)
+    division: Mapped[str] = mapped_column(Unicode, nullable=False)
+    position: Mapped[str] = mapped_column(Unicode, nullable=False)
+    fullname: Mapped[str] = mapped_column(Unicode, nullable=False)
+    head: Mapped[str] = mapped_column(Unicode, nullable=False)
+    email: Mapped[str] = mapped_column(Unicode, nullable=True)
+    role: Mapped[int] = mapped_column(BIGINT, nullable=False)
 
     def __repr__(self):
         return f"<User {self.id} {self.user_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"

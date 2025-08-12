@@ -13,6 +13,7 @@ from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
 from tgbot.misc.states.mip.upload import UploadFile
 from tgbot.services.scheduler import process_fired_users
+from tgbot.services.schedule.user_processor import process_user_changes
 
 mip_upload_router = Router()
 mip_upload_router.message.filter(F.chat.type == "private", MipFilter())
@@ -46,7 +47,7 @@ async def upload_file(
 
     await message.delete()
 
-    # Сохранение файлов на диск
+    # Save file to disk
     file_path = f"uploads/{file_name}"
     file_replaced = os.path.exists(file_path)
     if file_replaced:
@@ -62,56 +63,42 @@ async def upload_file(
         uploaded_by_user_id=message.from_user.id,
     )
 
-    # Сохраняем отправленные файлы в FSM
-    while True:
-        state_data = await state.get_data()
-        uploaded_files = state_data.get("uploaded_files", [])
+    # Update FSM with file info
+    state_data = await state.get_data()
+    uploaded_files = state_data.get("uploaded_files", [])
 
-        # Дописываем инфо о загруженном файле
-        file_info = {"name": file_name, "size": file_size, "replaced": file_replaced}
-        uploaded_files.append(file_info)
+    file_info = {"name": file_name, "size": file_size, "replaced": file_replaced}
+    uploaded_files.append(file_info)
 
-        # Обновляем FSM с новым списком файлов и последним временем загрузки
-        await state.update_data(
-            uploaded_files=uploaded_files,
-            last_media_group_id=media_group_id,
-            last_upload_time=asyncio.get_event_loop().time(),
-            finalize_done=False,
-        )
-        break
+    await state.update_data(
+        uploaded_files=uploaded_files,
+        last_media_group_id=media_group_id,
+        last_upload_time=asyncio.get_event_loop().time(),
+        finalize_done=False,
+    )
 
-    # If media group, debounce finalize call
+    # Handle media group or single file
     if media_group_id:
-        # To avoid multiple simultaneous tasks, cancel previous if any and schedule a new one
-        # We'll keep track of the task in FSM or globally (simplified here)
-
-        # Launch background checker (it will return quickly if called multiple times)
         asyncio.create_task(
             check_media_group_complete(message, state, media_group_id, stp_db)
         )
     else:
-        # Single file upload: finalize immediately
         await finalize_upload(message, state, stp_db)
 
 
 async def check_media_group_complete(
     message: Message, state: FSMContext, media_group_id: str, stp_session: Session
 ):
-    """
-    Wait until no new files in the media group for 1 second, then finalize.
-    Runs in background; multiple calls for the same media_group_id won't cause issues.
-    """
+    """Wait until no new files in media group for 1 second, then finalize."""
     while True:
         await asyncio.sleep(0.5)
         state_data = await state.get_data()
         current_media_group_id = state_data.get("last_media_group_id")
         last_upload_time = state_data.get("last_upload_time", 0)
 
-        # If media group changed or no more files, stop checking
         if current_media_group_id != media_group_id:
             return
 
-        # If no new uploads in last 1 second, finalize
         if asyncio.get_event_loop().time() - last_upload_time > 1:
             await finalize_upload(message, state, stp_session)
             return
@@ -127,7 +114,37 @@ async def finalize_upload(message: Message, state: FSMContext, stp_db):
 
     await state.update_data(finalize_done=True)
 
+    # Generate status message
+    status_text = _generate_status_text(uploaded_files)
+
+    # Process files
+    await _process_uploaded_files(uploaded_files, stp_db)
+
+    # Update bot message
+    try:
+        await message.bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=bot_message_id,
+            text=status_text,
+        )
+    except Exception as e:
+        logger.warning(f"Не удалось отредактировать сообщение: {e}")
+
+    await state.clear()
+
+    # Send schedule menu
+    await message.answer(
+        """📅 Меню графиков
+
+Используй меню для выбора действия""",
+        reply_markup=schedule_kb(),
+    )
+
+
+def _generate_status_text(uploaded_files: list) -> str:
+    """Generate status text for uploaded files."""
     files_count = len(uploaded_files)
+
     if files_count == 1:
         status_text = "<b>💾 Загружен 1 файл</b>\n\n"
     elif files_count in [2, 3, 4]:
@@ -143,30 +160,16 @@ async def finalize_upload(message: Message, state: FSMContext, stp_db):
             status_text += " <i>(заменён)</i>"
         status_text += "\n"
 
-        patterns = [
-            "ГРАФИК * I*",
-            "ГРАФИК * II*",
-        ]
+    return status_text
 
+
+async def _process_uploaded_files(uploaded_files: list, stp_db):
+    """Process uploaded files for user changes and fired users."""
+    patterns = ["ГРАФИК * I*", "ГРАФИК * II*"]
+
+    for file_info in uploaded_files:
         for pattern in patterns:
             if fnmatch.fnmatch(file_info["name"], pattern):
                 await process_fired_users(stp_db)
-
-    try:
-        await message.bot.edit_message_text(
-            chat_id=message.chat.id,
-            message_id=bot_message_id,
-            text=status_text,
-        )
-    except Exception as e:
-        logger.warning(f"Не удалось отредактировать сообщение: {e}")
-
-    await state.clear()
-
-    # Отправляем в меню графиков после загрузки файлов
-    await message.answer(
-        """📅 Меню графиков
-
-Используй меню для выбора действия""",
-        reply_markup=schedule_kb(),
-    )
+                await process_user_changes(stp_db, file_info["name"])
+                break
