@@ -131,6 +131,7 @@ async def user_auth_fullname(
             if message.from_user.username:
                 db_user.username = message.from_user.username
             db_user.email = state_data.get("email")
+            db_user.role = 1
             await stp_repo.session.commit()
 
             await state.clear()

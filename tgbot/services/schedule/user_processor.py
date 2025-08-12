@@ -246,3 +246,127 @@ def _is_valid_fullname(fullname_cell: str) -> bool:
         and not re.search(r"\d", fullname_cell)
         and fullname_cell.strip() not in ["", "nan", "None"]
     )
+
+
+async def process_fired_users_with_stats(session_pool):
+    """
+    Обработка уволенных сотрудников - удаление из базы данных
+    Returns list of fired user names for statistics
+
+    Args:
+        session_pool: Пул сессий БД из bot.py
+
+    Returns:
+        list: Names of fired users processed
+    """
+    try:
+        fired_users = get_fired_users_from_excel()
+
+        if not fired_users:
+            logger.info("[Увольнения] Нет сотрудников для увольнения на сегодня")
+            return []
+
+        # Получение сессии из пула
+        async with session_pool() as session:
+            user_repo = UserRepo(session)
+
+            fired_names = []
+            total_deleted = 0
+
+            for fullname in fired_users:
+                try:
+                    deleted_count = await user_repo.delete_user(fullname)
+                    total_deleted += deleted_count
+                    if deleted_count > 0:
+                        fired_names.append(fullname)
+                        logger.info(
+                            f"[Увольнения] Сотрудник {fullname} - удалено {deleted_count} записей из БД"
+                        )
+                    else:
+                        logger.debug(
+                            f"[Увольнения] Сотрудник {fullname} не найден в БД"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"[Увольнения] Ошибка удаления сотрудника {fullname}: {e}"
+                    )
+
+            logger.info(
+                f"[Увольнения] Обработка завершена. Удалено {total_deleted} записей для {len(fired_users)} сотрудников"
+            )
+
+            return fired_names
+
+    except Exception as e:
+        logger.error(f"[Увольнения] Критическая ошибка при обработке увольнений: {e}")
+        return []
+
+
+async def process_user_changes_with_stats(session_pool, file_name: str):
+    """
+    Процессинг изменений должности и руководителя специалиста из файла.
+    Returns lists of updated and new user names
+
+    Args:
+        session_pool: Сессия с БД
+        file_name: Название файла с таблицей
+
+    Returns:
+        tuple: (updated_names, new_names)
+    """
+    try:
+        logger.info(f"[Изменения] Проверка изменений в файле: {file_name}")
+
+        division = extract_division_from_filename(file_name)
+        excel_users = get_users_from_excel(file_name)
+
+        if not excel_users:
+            logger.info("[Изменения] Пользователи не найдены в файле")
+            return [], []
+
+        fired_users = get_fired_users_from_excel()
+
+        async with session_pool() as session:
+            user_repo = UserRepo(session)
+            updated_names = []
+            new_names = []
+
+            for excel_user in excel_users:
+                fullname = excel_user["fullname"]
+
+                if fullname == "Стажеры общего ряда":
+                    break
+
+                if fullname in fired_users:
+                    logger.debug(f"[Изменения] Пропускаем уволенного: {fullname}")
+                    continue
+
+                try:
+                    db_user = await user_repo.get_user(fullname=fullname)
+
+                    if db_user:
+                        was_updated = await _update_existing_user(db_user, excel_user)
+                        if was_updated:
+                            updated_names.append(fullname)
+                    else:
+                        await _add_new_user(session, division, excel_user)
+                        new_names.append(fullname)
+
+                except Exception as e:
+                    logger.error(
+                        f"[Изменения] Ошибка обработки пользователя {fullname}: {e}"
+                    )
+
+            if updated_names or new_names:
+                await session.commit()
+                logger.info(
+                    f"[Изменения] Обновлено {len(updated_names)}, добавлено {len(new_names)} пользователей"
+                )
+            else:
+                logger.info("[Изменения] Нет изменений для применения")
+
+            return updated_names, new_names
+
+    except Exception as e:
+        logger.error(f"[Изменения] Критическая ошибка при обработке изменений: {e}")
+        return [], []

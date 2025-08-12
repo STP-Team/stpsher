@@ -12,8 +12,10 @@ from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
 from tgbot.misc.states.mip.upload import UploadFile
-from tgbot.services.scheduler import process_fired_users
-from tgbot.services.schedule.user_processor import process_user_changes
+from tgbot.services.schedule.user_processor import (
+    process_user_changes_with_stats,
+    process_fired_users_with_stats,
+)
 
 mip_upload_router = Router()
 mip_upload_router.message.filter(F.chat.type == "private", MipFilter())
@@ -114,11 +116,39 @@ async def finalize_upload(message: Message, state: FSMContext, stp_db):
 
     await state.update_data(finalize_done=True)
 
-    # Generate status message
+    # Generate initial status message
     status_text = _generate_status_text(uploaded_files)
 
-    # Process files
-    await _process_uploaded_files(uploaded_files, stp_db)
+    # Process files and get statistics
+    user_stats = await _process_uploaded_files(uploaded_files, stp_db)
+
+    # Add user statistics to status message if any processing occurred
+    if user_stats:
+        status_text += "\n\n<b>📊 Статистика обработки пользователей</b>\n\n"
+
+        if user_stats["fired_names"]:
+            status_text += f"🔥 <b>Уволено ({len(user_stats['fired_names'])}):</b>\n"
+            for name in user_stats["fired_names"]:
+                status_text += f"• {name}\n"
+
+        if user_stats["updated_names"]:
+            status_text += f"✏️ <b>Обновлено ({len(user_stats['updated_names'])}):</b>\n"
+            for name in user_stats["updated_names"]:
+                status_text += f"• {name}\n"
+
+        if user_stats["new_names"]:
+            status_text += f"➕ <b>Добавлено ({len(user_stats['new_names'])}):</b>\n"
+            for name in user_stats["new_names"]:
+                status_text += f"• {name}\n"
+
+        if not any(
+            [
+                user_stats["fired_names"],
+                user_stats["updated_names"],
+                user_stats["new_names"],
+            ]
+        ):
+            status_text += "ℹ️ Изменений в пользователях не обнаружено"
 
     # Update bot message
     try:
@@ -163,13 +193,29 @@ def _generate_status_text(uploaded_files: list) -> str:
     return status_text
 
 
-async def _process_uploaded_files(uploaded_files: list, stp_db):
-    """Process uploaded files for user changes and fired users."""
+async def _process_uploaded_files(uploaded_files: list, stp_db) -> dict:
+    """Process uploaded files for user changes and fired users. Returns statistics."""
     patterns = ["ГРАФИК * I*", "ГРАФИК * II*"]
+
+    total_stats = {"fired_names": [], "updated_names": [], "new_names": []}
+    processed_any = False
 
     for file_info in uploaded_files:
         for pattern in patterns:
             if fnmatch.fnmatch(file_info["name"], pattern):
-                await process_fired_users(stp_db)
-                await process_user_changes(stp_db, file_info["name"])
+                processed_any = True
+
+                # Process fired users and get names
+                fired_names = await process_fired_users_with_stats(stp_db)
+                total_stats["fired_names"].extend(fired_names)
+
+                # Process user changes and get names
+                updated_names, new_names = await process_user_changes_with_stats(
+                    stp_db, file_info["name"]
+                )
+                total_stats["updated_names"].extend(updated_names)
+                total_stats["new_names"].extend(new_names)
+
                 break
+
+    return total_stats if processed_any else None
