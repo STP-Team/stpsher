@@ -101,7 +101,7 @@ class ScheduleFormatter:
             if day_type == "work":
                 if day_info.work_hours > 0:
                     lines.append(
-                        f"<b>{day_info.day}:</b> <code>{day_info.schedule}</code> ({round(day_info.work_hours)}ч)"
+                        f"<b>{day_info.day}:</b> <code>{day_info.schedule}</code>"
                     )
                     total_work_hours += day_info.work_hours
                 else:
