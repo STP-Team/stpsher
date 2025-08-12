@@ -11,7 +11,7 @@ mip_schedule_router.callback_query.filter(F.message.chat.type == "private", MipF
 
 
 @mip_schedule_router.callback_query(MainMenu.filter(F.menu == "schedule"))
-async def schedule(callback: CallbackQuery):
+async def schedule_cb(callback: CallbackQuery):
     await callback.message.edit_text(
         """📅 Меню графиков
 
