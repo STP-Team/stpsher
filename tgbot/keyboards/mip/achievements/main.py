@@ -53,11 +53,25 @@ def achievements_kb() -> InlineKeyboardMarkup:
 def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
     buttons = []
 
-    # Pagination row
+    # Пагинация
     if total_pages > 1:
         pagination_row = []
 
-        # Previous page button
+        # Always maintain 5 button slots for consistent centering
+        # [⏪] [⬅️] [страница] [➡️] [⏭️]
+
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=AwardsMenu(menu="awards_all", page=1).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Вторая кнопка (⬅️ или пусто)
         if current_page > 1:
             pagination_row.append(
                 InlineKeyboardButton(
@@ -67,16 +81,18 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
                     ).pack(),
                 )
             )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
-        # Page indicator
+        # Центральная кнопка - Индикатор страницы (всегда видна)
         pagination_row.append(
             InlineKeyboardButton(
                 text=f"{current_page}/{total_pages}",
-                callback_data="noop",  # Non-functional button for display
+                callback_data="noop",
             )
         )
 
-        # Next page button
+        # Четвертая кнопка (➡️ или пусто)
         if current_page < total_pages:
             pagination_row.append(
                 InlineKeyboardButton(
@@ -86,10 +102,25 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
                     ).pack(),
                 )
             )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=AwardsMenu(
+                        menu="awards_all", page=total_pages
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
         buttons.append(pagination_row)
 
-    # Navigation row
+    # Навигация
     navigation_row = [
         InlineKeyboardButton(
             text="↩️ Назад", callback_data=MainMenu(menu="achievements").pack()

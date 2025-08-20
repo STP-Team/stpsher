@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from infrastructure.database.repo.achievement import AchievementsRepo
 from infrastructure.database.repo.award import AwardsRepo
 from infrastructure.database.repo.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.user import UserRepo
@@ -37,3 +38,10 @@ class RequestsRepo:
         The AwardsRepo repository sessions are required to manage user operations.
         """
         return AwardsRepo(self.session)
+
+    @property
+    def achievement(self) -> AchievementsRepo:
+        """
+        The AchievementsRepo repository sessions are required to manage user operations.
+        """
+        return AchievementsRepo(self.session)

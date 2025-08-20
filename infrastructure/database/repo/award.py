@@ -24,7 +24,7 @@ class AwardsRepo(BaseRepo):
         Получение информации о награде по ее идентификатору
 
         Args:
-            award_id: Уникальный идентификатор награды в таблице Awards
+            award_id: Уникальный идентификатор награды в таблице awards
         """
 
         select_stmt = select(Award).where(Award.id == award_id)

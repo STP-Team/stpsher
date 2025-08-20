@@ -42,6 +42,6 @@ class Award(Base, TableNameMixin):
 
     def __repr__(self):
         return (
-            f"<Awards {self.id} {self.name} {self.description}"
+            f"<Award {self.id} {self.name} {self.description}"
             f"{self.division} {self.cost} {self.count} {self.manager_role} {self.shift_dependent}>"
         )
