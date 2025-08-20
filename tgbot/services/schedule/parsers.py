@@ -53,9 +53,9 @@ class ExcelParser:
         """
         month = MonthManager.normalize_month(month)
 
-        def find_month_index(target_month: str, start_col: int = 0) -> Optional[int]:
+        def find_month_index(target_month: str, start_column: int = 0) -> Optional[int]:
             """Находит индекс колонки, где встречается указанный месяц."""
-            for col_idx in range(start_col, len(df.columns)):
+            for col_idx in range(start_column, len(df.columns)):
                 # Проверка в заголовках
                 col_name = (
                     str(df.columns[col_idx]).upper() if df.columns[col_idx] else ""
@@ -71,37 +71,37 @@ class ExcelParser:
             return None
 
         # Находим стартовую колонку месяца
-        start_col = find_month_index(month)
-        if start_col is None:
-            raise ValueError(f"Месяц '{month}' не найден в графике")
+        start_column = find_month_index(month)
+        if start_column is None:
+            raise ValueError(f"Месяц {month} не найден в графике")
 
         # Находим конец месяца (это колонка перед следующим месяцем)
-        end_col = len(df.columns) - 1
+        end_column = len(df.columns) - 1
         for m in MonthManager.MONTHS_ORDER:
             if m != month:
-                next_month_col = find_month_index(m, start_col + 1)
+                next_month_col = find_month_index(m, start_column + 1)
                 if next_month_col is not None:
-                    end_col = next_month_col - 1
+                    end_column = next_month_col - 1
                     break
 
-        logger.debug(f"Месяц '{month}' найден в колонках {start_col}-{end_col}")
-        return start_col, end_col
+        logger.debug(f"Месяц '{month}' найден в колонках {start_column}-{end_column}")
+        return start_column, end_column
 
     @staticmethod
     def find_day_headers(
-        df: pd.DataFrame, start_col: int, end_col: int
+        df: pd.DataFrame, start_column: int, end_column: int
     ) -> Dict[int, str]:
         """
         Находим заголовки дней
         :param df: Датафрейм графика
-        :param start_col: Начальная колонка месяца
-        :param end_col: Конечная колонка месяца
+        :param start_column: Начальная колонка месяца
+        :param end_column: Конечная колонка месяца
         :return: Список день:график
         """
         day_headers = {}
 
         for row_idx in range(min(5, len(df))):
-            for col_idx in range(start_col, end_col + 1):
+            for col_idx in range(start_column, end_column + 1):
                 cell_value = (
                     str(df.iloc[row_idx, col_idx])
                     if pd.notna(df.iloc[row_idx, col_idx])
@@ -173,8 +173,10 @@ class ScheduleParser:
                 )
 
             df = self.excel_parser.read_excel_file(schedule_file)
-            start_col, end_col = self.excel_parser.find_month_columns(df, month)
-            day_headers = self.excel_parser.find_day_headers(df, start_col, end_col)
+            start_column, end_column = self.excel_parser.find_month_columns(df, month)
+            day_headers = self.excel_parser.find_day_headers(
+                df, start_column, end_column
+            )
 
             user_row_idx = self.excel_parser.find_user_row(df, fullname)
             if user_row_idx is None:
@@ -183,7 +185,7 @@ class ScheduleParser:
                 )
 
             schedule = {}
-            for col_idx in range(start_col, end_col + 1):
+            for col_idx in range(start_column, end_column + 1):
                 if col_idx in day_headers:
                     day = day_headers[col_idx]
                     schedule_value = (
@@ -199,7 +201,7 @@ class ScheduleParser:
                     schedule[day] = schedule_value
 
             logger.info(
-                f"[График специалистов] Нашли график для {fullname} на {month}: {len(schedule)} дней"
+                f"[График специалистов] {fullname} запросил график на {month}: найдено {len(schedule)} дней"
             )
             return schedule
 
@@ -337,7 +339,10 @@ class DutyScheduleParser:
 
             try:
                 df = pd.read_excel(schedule_file, sheet_name=sheet_name, header=None)
-            except Exception:
+            except Exception as e:
+                logger.warning(
+                    f"[График дежурных] Не удалось прочитать график: {e}. Пробуем альтернативное название листа"
+                )
                 english_months = {
                     1: "January",
                     2: "February",

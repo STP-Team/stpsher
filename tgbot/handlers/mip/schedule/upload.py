@@ -126,7 +126,7 @@ async def finalize_upload(message: Message, state: FSMContext, stp_db):
 
     # Add user statistics to status message if any processing occurred
     if user_stats:
-        status_text += "\n\n<b>📊 Статистика обработки пользователей</b>\n\n"
+        status_text += "\n<b>📊 Статистика обработки пользователей</b>\n\n"
 
         if user_stats["fired_names"]:
             status_text += f"🔥 <b>Уволено ({len(user_stats['fired_names'])}):</b>\n"

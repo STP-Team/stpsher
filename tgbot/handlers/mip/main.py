@@ -4,7 +4,8 @@ from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import User
 from tgbot.filters.role import MipFilter
-from tgbot.keyboards.user.main import MainMenu, main_kb
+from tgbot.keyboards.mip.main import main_kb
+from tgbot.keyboards.user.main import MainMenu
 
 mip_router = Router()
 mip_router.message.filter(F.chat.type == "private", MipFilter())

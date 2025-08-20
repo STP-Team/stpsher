@@ -72,7 +72,10 @@ class DatabaseMiddleware(BaseMiddleware):
                                 await event.reply(
                                     "⚠️ Временные проблемы с базой данных. Попробуйте позже."
                                 )
-                            except:
+                            except Exception as e:
+                                logger.error(
+                                    f"[База данных] Произошла ошибка при доступе к базе данных: {e}"
+                                )
                                 pass
                         return None
                 else:

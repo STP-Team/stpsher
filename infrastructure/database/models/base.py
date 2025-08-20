@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
@@ -17,10 +16,9 @@ class Base(DeclarativeBase):
 
 class TableNameMixin:
     @declared_attr.directive
-    def __tablename__(cls) -> str:
-        return cls.__name__.lower() + "s"
+    def __tablename__(self) -> str:
+        return self.__name__.lower() + "s"
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
