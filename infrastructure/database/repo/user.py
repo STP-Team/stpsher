@@ -6,9 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from infrastructure.database.models.user import User
 from infrastructure.database.repo.base import BaseRepo
-from tgbot.services.logger import setup_logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

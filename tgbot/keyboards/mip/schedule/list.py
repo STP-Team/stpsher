@@ -33,6 +33,9 @@ def schedule_list_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
         ],
     ]
 

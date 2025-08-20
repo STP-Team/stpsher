@@ -2,6 +2,8 @@
 
 from tgbot.handlers.admin.main import admin_router
 from tgbot.handlers.head.main import head_router
+from tgbot.handlers.mip.achievements.main import mip_achievements_router
+from tgbot.handlers.mip.broadcast import mip_broadcast_router
 from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
@@ -17,6 +19,8 @@ routers_list = [
     admin_router,
     head_router,
     mip_router,
+    mip_achievements_router,
+    mip_broadcast_router,
     mip_schedule_router,
     mip_upload_router,
     mip_list_router,

@@ -7,9 +7,7 @@ from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
 
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.config import Config
-from tgbot.services.logger import setup_logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +44,7 @@ class DatabaseMiddleware(BaseMiddleware):
                     stp_repo = RequestsRepo(stp_session)  # Для основной базы СТП
 
                     # Получаем пользователя из БД
-                    user = await stp_repo.users.get_user(user_id=event.from_user.id)
+                    user = await stp_repo.user.get_user(user_id=event.from_user.id)
 
                     # Add repositories and user to data for other middlewares
                     data["stp_repo"] = stp_repo

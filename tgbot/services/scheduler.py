@@ -10,7 +10,7 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from infrastructure.database.repo.users import UserRepo
+from infrastructure.database.repo.user import UserRepo
 from tgbot.config import load_config
 
 config = load_config(".env")

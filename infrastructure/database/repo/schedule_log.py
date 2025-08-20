@@ -7,9 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from infrastructure.database.models.schedule_log import ScheduleFilesLog
 from infrastructure.database.repo.base import BaseRepo
-from tgbot.services.logger import setup_logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

@@ -64,7 +64,7 @@ async def show_history_files(callback: CallbackQuery, stp_repo: RequestsRepo):
 
     files_info = []
     for file in files_history:
-        user = await stp_repo.users.get_user(file.uploaded_by_user_id)
+        user = await stp_repo.user.get_user(file.uploaded_by_user_id)
 
         files_info.append(
             f"""• <b>{file.file_name or "Unknown"}</b>

@@ -6,11 +6,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from tgbot.config import load_config
-from tgbot.services.logger import setup_logging
 
 config = load_config(".env")
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

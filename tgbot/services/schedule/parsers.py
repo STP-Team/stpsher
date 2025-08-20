@@ -404,7 +404,7 @@ class DutyScheduleParser:
                         if shift_type in ["С", "П"] and re.search(
                             r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule
                         ):
-                            user: User = await stp_repo.users.get_user(fullname=name)
+                            user: User = await stp_repo.user.get_user(fullname=name)
                             if user:
                                 duties.append(
                                     DutyInfo(
@@ -632,7 +632,7 @@ class HeadScheduleParser:
                             duty_info = await self._check_duty_for_head(
                                 name, date, division, stp_repo
                             )
-                            user: User = await stp_repo.users.get_user(fullname=name)
+                            user: User = await stp_repo.user.get_user(fullname=name)
                             if user:
                                 heads.append(
                                     HeadInfo(
