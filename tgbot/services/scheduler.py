@@ -153,7 +153,7 @@ def get_fired_users_from_excel() -> List[str]:
                         continue
 
                     # Проверяем, если дата увольнения старше или равна сегодняшней дате
-                    if dismissal_date <= current_date:
+                    if dismissal_date < current_date:
                         fired_users.append(fullname.strip())
                         logger.debug(
                             f"[Увольнения] Найден увольняемый сотрудник: {fullname.strip()}"

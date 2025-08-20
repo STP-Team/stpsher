@@ -37,6 +37,14 @@ class GokFilter(BaseFilter):
         return user.role == executed_codes["ГОК"]
 
 
+class HeadFilter(BaseFilter):
+    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+        if user is None:
+            return False
+
+        return user.role == executed_codes["Руководитель"]
+
+
 class AdministratorFilter(BaseFilter):
     async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
         if user is None:

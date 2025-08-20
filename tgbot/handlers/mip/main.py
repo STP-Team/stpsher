@@ -11,8 +11,6 @@ mip_router = Router()
 mip_router.message.filter(F.chat.type == "private", MipFilter())
 mip_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
 
-""
-
 
 @mip_router.message(CommandStart())
 async def mip_start_cmd(message: Message, user: User):

@@ -1,6 +1,7 @@
 """Import all routers and add them to routers_list."""
 
 from tgbot.handlers.admin.main import admin_router
+from tgbot.handlers.head.main import head_router
 from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
@@ -14,6 +15,7 @@ from tgbot.handlers.user.schedule.my import user_schedule_my_router
 
 routers_list = [
     admin_router,
+    head_router,
     mip_router,
     mip_schedule_router,
     mip_upload_router,
