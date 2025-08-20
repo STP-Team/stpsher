@@ -20,7 +20,7 @@ def main_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="🏆 Достижения", callback_data=MainMenu(menu="achievements").pack()
+                text="🏆 Достижения", callback_data=MainMenu(menu="leveling").pack()
             ),
             InlineKeyboardButton(
                 text="📢 Рассылка", callback_data=MainMenu(menu="broadcast").pack()

@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from tgbot.keyboards.user.main import MainMenu
 
 
-class AchievementsMenu(CallbackData, prefix="achievements"):
+class LevelingMenu(CallbackData, prefix="leveling"):
     menu: str
 
 
@@ -24,13 +24,13 @@ def achievements_kb() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="✍️ Награды для активации",
-                callback_data=AchievementsMenu(menu="awards_activation").pack(),
+                callback_data=LevelingMenu(menu="awards_activation").pack(),
             ),
         ],
         [
             InlineKeyboardButton(
                 text="🎯 Все достижения",
-                callback_data=AchievementsMenu(menu="achievements_all").pack(),
+                callback_data=LevelingMenu(menu="achievements_all").pack(),
             ),
             InlineKeyboardButton(
                 text="👏 Все награды",
@@ -57,7 +57,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
     if total_pages > 1:
         pagination_row = []
 
-        # Always maintain 5 button slots for consistent centering
+        # Клавиатура
         # [⏪] [⬅️] [страница] [➡️] [⏭️]
 
         # Первая кнопка (⏪ или пусто)
@@ -123,7 +123,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=MainMenu(menu="achievements").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="leveling").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()

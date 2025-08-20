@@ -12,16 +12,14 @@ from tgbot.keyboards.mip.achievements.main import (
 )
 from tgbot.keyboards.user.main import MainMenu
 
-mip_achievements_router = Router()
-mip_achievements_router.message.filter(F.chat.type == "private", MipFilter())
-mip_achievements_router.callback_query.filter(
-    F.message.chat.type == "private", MipFilter()
-)
+mip_leveling_router = Router()
+mip_leveling_router.message.filter(F.chat.type == "private", MipFilter())
+mip_leveling_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
 
 logger = logging.getLogger(__name__)
 
 
-@mip_achievements_router.callback_query(MainMenu.filter(F.menu == "achievements"))
+@mip_leveling_router.callback_query(MainMenu.filter(F.menu == "leveling"))
 async def mip_achievements_cmd(callback: CallbackQuery):
     await callback.message.edit_text(
         """<b>🏆 Достижения</b>
@@ -33,12 +31,12 @@ async def mip_achievements_cmd(callback: CallbackQuery):
 - Просмотр списка достижений
 - Просмотр списка наград
 
-<i>Используй меню, чтобы выбрать действие</i>""",
+<i>Используй меню для выбора действия</i>""",
         reply_markup=achievements_kb(),
     )
 
 
-@mip_achievements_router.callback_query(AwardsMenu.filter(F.menu == "awards_all"))
+@mip_leveling_router.callback_query(AwardsMenu.filter(F.menu == "awards_all"))
 async def awards_all(
     callback: CallbackQuery, callback_data: AwardsMenu, stp_repo: RequestsRepo
 ):
