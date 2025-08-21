@@ -34,4 +34,4 @@ class UserAchievementsRepo(BaseRepo):
         result = await self.session.execute(select_stmt)
         total = result.scalar()
 
-        return total or 0  # Return 0 if no achievements found
+        return total or 0  # Если достижение не найдено - возвращаем 0

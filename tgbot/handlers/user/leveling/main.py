@@ -19,17 +19,28 @@ logger = logging.getLogger(__name__)
 
 @user_leveling_router.callback_query(MainMenu.filter(F.menu == "leveling"))
 async def user_leveling_cb(callback: CallbackQuery, user: User, stp_repo: RequestsRepo):
+    user_achievements = await stp_repo.user_achievement.get_user_achievements(
+        user.user_id
+    )
+    user_awards = await stp_repo.user_award.get_user_awards(user.user_id)
     achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
         user_id=user.user_id
     )
+    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
 
     # TODO Улучшить формулу расчета уровня
     await callback.message.edit_text(
         f"""<b>🏆 Ачивки</b>
 
-⚔️ Твой уровень: {round(achievements_sum / 100)}
+<b>⚔️ Твой уровень:</b> {round(achievements_sum / 100)}
+<b>✨ Кол-во баллов:</b> {achievements_sum - awards_sum} баллов
 
-<blockquote expandable>Всего баллов заработано: {achievements_sum}</blockquote>
+<blockquote><b>📊Статистика</b>
+Всего заработано: {achievements_sum} баллов
+Всего потрачено: {awards_sum} баллов
+
+Получено достижений: {len(user_achievements)}
+Активировано наград: {len(user_awards)}</blockquote>
 
 <i>Используй меню для выбора действия</i>""",
         reply_markup=leveling_kb(),

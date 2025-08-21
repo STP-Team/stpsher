@@ -7,6 +7,7 @@ from infrastructure.database.repo.award import AwardsRepo
 from infrastructure.database.repo.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.user import UserRepo
 from infrastructure.database.repo.user_achievement import UserAchievementsRepo
+from infrastructure.database.repo.user_award import UserAwardsRepo
 
 
 @dataclass
@@ -40,13 +41,12 @@ class RequestsRepo:
         """
         return AwardsRepo(self.session)
 
-    # TODO добавить репо наград
-    # @property
-    # def user_award(self) -> UserAwardsRepo:
-    #     """
-    #     The UserAwardsRepo repository sessions are required to manage user operations.
-    #     """
-    #     return UserAwardsRepo(self.session)
+    @property
+    def user_award(self) -> UserAwardsRepo:
+        """
+        The UserAwardsRepo repository sessions are required to manage user operations.
+        """
+        return UserAwardsRepo(self.session)
 
     @property
     def achievement(self) -> AchievementsRepo:

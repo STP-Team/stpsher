@@ -22,7 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 @user_leveling_awards_router.callback_query(LevelingMenu.filter(F.menu == "awards"))
-async def user_awards_cb(callback: CallbackQuery):
+async def user_awards_cb(callback: CallbackQuery, stp_repo: RequestsRepo):
+    user_awards_sum = await stp_repo.user_award.get_user_awards_sum(
+        user_id=callback.from_user.id
+    )
+    logger.info(user_awards_sum)
+
     await callback.message.edit_text(
         """<b>👏 Награды</b>
 
