@@ -5,8 +5,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
-from tgbot.keyboards.mip.achievements.main import LevelingMenu
-from tgbot.keyboards.user.leveling.main import leveling_kb, awards_kb, achievements_kb
+from tgbot.keyboards.user.leveling.main import leveling_kb
 from tgbot.keyboards.user.main import MainMenu
 
 user_leveling_router = Router()
@@ -34,30 +33,6 @@ async def user_leveling_cb(callback: CallbackQuery, user: User, stp_repo: Reques
 
 <i>Используй меню для выбора действия</i>""",
         reply_markup=leveling_kb(),
-    )
-
-
-@user_leveling_router.callback_query(LevelingMenu.filter(F.menu == "achievements"))
-async def user_achievements_cb(callback: CallbackQuery):
-    await callback.message.edit_text(
-        """<b>🎯 Достижения</b>
-
-Здесь ты можешь найти свои, а так же все возможные достижения
-
-<i>Используй меню для выбора действия</i>""",
-        reply_markup=achievements_kb(),
-    )
-
-
-@user_leveling_router.callback_query(LevelingMenu.filter(F.menu == "awards"))
-async def user_awards_cb(callback: CallbackQuery):
-    await callback.message.edit_text(
-        """<b>👏 Награды</b>
-
-Здесь ты можешь найти доступные для приобретения, а так же все возможные награды
-
-<i>Используй меню для выбора действия</i>""",
-        reply_markup=awards_kb(),
     )
 
 

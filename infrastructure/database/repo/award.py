@@ -7,12 +7,15 @@ from infrastructure.database.repo.base import BaseRepo
 
 
 class AwardsRepo(BaseRepo):
-    async def get_awards(self):
+    async def get_awards(self, division: str = None):
         """
         Получаем полный список наград
         """
 
-        select_stmt = select(Award)
+        if division:
+            select_stmt = select(Award).where(Award.division == division)
+        else:
+            select_stmt = select(Award)
 
         result = await self.session.execute(select_stmt)
         awards = result.scalars().all()

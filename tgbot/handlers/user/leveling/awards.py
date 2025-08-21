@@ -3,42 +3,42 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
+from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
-from tgbot.filters.role import MipFilter
-from tgbot.keyboards.mip.achievements.main import (
-    achievements_kb,
-    awards_paginated_kb,
+from tgbot.keyboards.mip.leveling.main import LevelingMenu
+from tgbot.keyboards.user.leveling.main import (
+    awards_kb,
     AwardsMenu,
+    awards_paginated_kb,
 )
-from tgbot.keyboards.user.main import MainMenu
 
-mip_leveling_router = Router()
-mip_leveling_router.message.filter(F.chat.type == "private", MipFilter())
-mip_leveling_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
+user_leveling_awards_router = Router()
+user_leveling_awards_router.message.filter(
+    F.chat.type == "private",
+)
+user_leveling_awards_router.callback_query.filter(F.message.chat.type == "private")
 
 logger = logging.getLogger(__name__)
 
 
-@mip_leveling_router.callback_query(MainMenu.filter(F.menu == "leveling"))
-async def mip_achievements_cmd(callback: CallbackQuery):
+@user_leveling_awards_router.callback_query(LevelingMenu.filter(F.menu == "awards"))
+async def user_awards_cb(callback: CallbackQuery):
     await callback.message.edit_text(
-        """<b>🏆 Достижения</b>
+        """<b>👏 Награды</b>
 
-Используй меню для просмотра управления достижениями
-
-<b>💪 Твои возможности</b>
-- Подтверждение/отмена наград
-- Просмотр списка достижений
-- Просмотр списка наград
+Здесь ты можешь найти доступные для приобретения, а так же все возможные награды
 
 <i>Используй меню для выбора действия</i>""",
-        reply_markup=achievements_kb(),
+        reply_markup=awards_kb(),
     )
 
 
-@mip_leveling_router.callback_query(AwardsMenu.filter(F.menu == "awards_all"))
+@user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "all"))
 async def awards_all(
-    callback: CallbackQuery, callback_data: AwardsMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery,
+    user: User,
+    callback_data: AwardsMenu,
+    stp_repo: RequestsRepo,
 ):
     """
     Обработчик клика на меню всех возможных наград
@@ -47,8 +47,9 @@ async def awards_all(
     # Достаём номер страницы из callback data, стандартно = 1
     page = getattr(callback_data, "page", 1)
 
-    all_awards = await stp_repo.award.get_awards()
-    logger.info(all_awards)
+    all_awards = await stp_repo.award.get_awards(
+        division="НТП" if "НТП" in user.division else "НЦК"
+    )
 
     # Логика пагинации
     awards_per_page = 5
@@ -65,18 +66,13 @@ async def awards_all(
     for counter, award in enumerate(page_awards, start=start_idx + 1):
         awards_list.append(f"""{counter}. <b>{award.name}</b>
 💵 Стоимость: {award.cost}
-📝 Описание: {award.description}
-🔰 Направление: {award.division}""")
+📝 Описание: {award.description}""")
         if award.count > 0:
             awards_list.append(f"""🧮 Активаций: {award.count}""")
         awards_list.append("")
 
     message_text = f"""<b>🏆 Все возможные награды</b>
 <i>Страница {page} из {total_pages}</i>
-
-<blockquote expandable>Всего наград:
-НТП: {sum(1 for award in all_awards if award.division == "НТП")}
-НЦК: {sum(1 for award in all_awards if award.division == "НЦК")}</blockquote>
 
 {"\n".join(awards_list)}"""
 
