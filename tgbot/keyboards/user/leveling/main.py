@@ -1,6 +1,9 @@
+from typing import List
+
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from infrastructure.database.repo.user_award import UserAwardWithDetails
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.main import MainMenu
 
@@ -13,6 +16,21 @@ class AwardsMenu(CallbackData, prefix="awards"):
     menu: str
     page: int = 1
     award_id: int = 0
+
+
+class AwardDetailMenu(CallbackData, prefix="award_detail"):
+    user_award_id: int
+
+
+def get_status_emoji(status: str) -> str:
+    """Возвращает эмодзи в зависимости от статуса"""
+    status_emojis = {
+        "waiting": "⏳",
+        "approved": "✅",
+        "canceled": "🔥",
+        "rejected": "⛔",
+    }
+    return status_emojis.get(status, "❓")
 
 
 def leveling_kb() -> InlineKeyboardMarkup:
@@ -189,5 +207,65 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
         ),
     ]
     buttons.append(navigation_row)
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def award_history_kb(user_awards: List[UserAwardWithDetails]) -> InlineKeyboardMarkup:
+    """
+    Клавиатура истории наград пользователя.
+    Каждая кнопка содержит название награды, дату и эмодзи статуса.
+    """
+    buttons = []
+
+    for award_detail in user_awards:
+        user_award = award_detail.user_award
+        award_info = award_detail.award_info
+
+        # Форматируем дату в формате DD.MM.YY
+        date_str = user_award.bought_at.strftime("%d.%m.%y")
+
+        # Получаем эмодзи статуса
+        status_emoji = get_status_emoji(user_award.status)
+
+        # Формируем текст кнопки
+        button_text = f"{status_emoji} {award_info.name} ({date_str})"
+
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=button_text,
+                    callback_data=AwardDetailMenu(user_award_id=user_award.id).pack(),
+                )
+            ]
+        )
+
+    # Добавляем кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def award_detail_back_kb() -> InlineKeyboardMarkup:
+    """Клавиатура для возврата из детального просмотра награды"""
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад", callback_data=AwardsMenu(menu="executed").pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

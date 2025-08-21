@@ -40,7 +40,7 @@ class UserAward(Base, TableNameMixin):
     comment: Mapped[str] = mapped_column(VARCHAR, nullable=True)
     usage_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bought_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     approved_by_user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
     status: Mapped[str] = mapped_column(VARCHAR(10), nullable=False, default="waiting")
 

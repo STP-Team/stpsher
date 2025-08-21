@@ -10,6 +10,10 @@ from tgbot.keyboards.user.leveling.main import (
     AwardsMenu,
     awards_kb,
     awards_paginated_kb,
+    award_detail_back_kb,
+    award_history_kb,
+    get_status_emoji,
+    AwardDetailMenu,
 )
 
 user_leveling_awards_router = Router()
@@ -23,11 +27,6 @@ logger = logging.getLogger(__name__)
 
 @user_leveling_awards_router.callback_query(LevelingMenu.filter(F.menu == "awards"))
 async def user_awards_cb(callback: CallbackQuery, stp_repo: RequestsRepo):
-    user_awards_sum = await stp_repo.user_award.get_user_awards_sum(
-        user_id=callback.from_user.id
-    )
-    logger.info(user_awards_sum)
-
     await callback.message.edit_text(
         """<b>👏 Награды</b>
 
@@ -87,3 +86,86 @@ async def awards_all(
     logger.info(
         f"[Пользователь] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню всех наград, страница {page}"
     )
+
+
+@user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "executed"))
+async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
+    """Показывает историю наград пользователя в виде клавиатуры"""
+    user_awards_with_details = await stp_repo.user_award.get_user_awards_with_details(
+        user_id=callback.from_user.id
+    )
+
+    if not user_awards_with_details:
+        await callback.message.edit_text(
+            """<b>✴️ Использованные награды</b>
+
+Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
+
+У тебя пока нет использованных наград 🙂
+
+<i>Используй меню для возврата</i>""",
+            reply_markup=award_detail_back_kb(),
+        )
+        return
+
+    message_text = """<b>✴️ Использованные награды</b>
+
+Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
+
+<i>Используй меню для просмотра награды</i>"""
+
+    await callback.message.edit_text(
+        message_text, reply_markup=award_history_kb(user_awards_with_details)
+    )
+
+
+@user_leveling_awards_router.callback_query(AwardDetailMenu.filter())
+async def award_detail_view(
+    callback: CallbackQuery, callback_data: AwardDetailMenu, stp_repo: RequestsRepo
+):
+    """Показывает детальную информацию о конкретной награде"""
+    user_award_id = callback_data.user_award_id
+
+    # Получаем информацию о конкретной награде
+    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+
+    if not user_award_detail:
+        await callback.message.edit_text(
+            "❌ Награда не найдена", reply_markup=award_detail_back_kb()
+        )
+        return
+
+    user_award = user_award_detail.user_award
+    award_info = user_award_detail.award_info
+
+    # Получаем эмодзи и название статуса
+    status_emoji = get_status_emoji(user_award.status)
+    status_names = {
+        "waiting": "Ожидает подтверждения",
+        "approved": "Одобрена",
+        "canceled": "Отменена",
+        "rejected": "Отклонена",
+    }
+    status_name = status_names.get(user_award.status, "Неизвестный статус")
+
+    # Форматируем информацию об активациях
+    usage_info = f"🧮 Использований: {user_award_detail.current_usages} из {user_award_detail.max_usages}"
+
+    # Формируем сообщение с подробной информацией
+    message_text = f"""<b>🏆 Просмотр награды - {award_info.name}</b>
+
+<b>📊 Статус:</b> {status_emoji} {status_name}
+<b>💵 Стоимость:</b> {award_info.cost} баллов
+<b>📝 Описание:</b> {award_info.description}
+{usage_info}
+
+<b>📅 Дата покупки:</b> {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}"""
+
+    if user_award.comment:
+        message_text += f"\n\n<b>💬 Комментарий:</b> {user_award.comment}"
+
+    if user_award.approved_by_user_id:
+        message_text += f"\n<b>👤 Одобрил:</b> ID {user_award.approved_by_user_id}"
+        message_text += f"\n<b>📅 Дата одобрения:</b> {user_award.approved_at.strftime('%d.%m.%Y в %H:%M')}"
+
+    await callback.message.edit_text(message_text, reply_markup=award_detail_back_kb())
