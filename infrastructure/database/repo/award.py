@@ -62,7 +62,6 @@ class AwardsRepo(BaseRepo):
         # Получаем список наград, подходящих под критерии
         select_stmt = select(Award).where(
             and_(
-                Award.name.isnot(None),
                 Award.cost <= user_balance,
                 # Awards.Name.notin_(executed_awards_subquery)
             )

@@ -25,7 +25,7 @@ async def user_leveling_cb(callback: CallbackQuery, user: User, stp_repo: Reques
 
     # TODO Улучшить формулу расчета уровня
     await callback.message.edit_text(
-        f"""<b>🏆 Достижения</b>
+        f"""<b>🏆 Ачивки</b>
 
 ⚔️ Твой уровень: {round(achievements_sum / 100)}
 

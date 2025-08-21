@@ -7,8 +7,8 @@ from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.leveling.main import (
-    awards_kb,
     AwardsMenu,
+    awards_kb,
     awards_paginated_kb,
 )
 
@@ -56,7 +56,7 @@ async def awards_all(
     total_awards = len(all_awards)
     total_pages = (total_awards + awards_per_page - 1) // awards_per_page
 
-    # Считаем начало и конец текущей страницы - ИСПРАВЛЕНО!
+    # Считаем начало и конец текущей страницы
     start_idx = (page - 1) * awards_per_page  # Используем переменную page
     end_idx = start_idx + awards_per_page
     page_awards = all_awards[start_idx:end_idx]

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @mip_leveling_router.callback_query(MainMenu.filter(F.menu == "leveling"))
 async def mip_achievements_cmd(callback: CallbackQuery):
     await callback.message.edit_text(
-        """<b>🏆 Достижения</b>
+        """<b>🏆 Ачивки</b>
 
 Используй меню для просмотра управления достижениями
 
