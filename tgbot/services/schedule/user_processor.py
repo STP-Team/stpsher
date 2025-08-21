@@ -34,7 +34,7 @@ async def process_user_changes(session_pool, file_name: str):
             logger.info("[Изменения] Пользователи не найдены в файле")
             return
 
-        fired_users = get_fired_users_from_excel()
+        fired_users = get_fired_users_from_excel([file_name])
 
         async with session_pool() as session:
             user_repo = UserRepo(session)
@@ -248,19 +248,16 @@ def _is_valid_fullname(fullname_cell: str) -> bool:
     )
 
 
-async def process_fired_users_with_stats(session_pool):
+async def process_fired_users_with_stats(files_list: list[str], session_pool):
     """
     Обработка уволенных сотрудников - удаление из базы данных
-    Returns list of fired user names for statistics
 
-    Args:
-        session_pool: Пул сессий БД из bot.py
-
-    Returns:
-        list: Names of fired users processed
+    :param files_list: Список файлов для проверки
+    :param session_pool: Пул сессий БД из bot.py
+    :return: ФИО уволенных специалистов
     """
     try:
-        fired_users = get_fired_users_from_excel()
+        fired_users = get_fired_users_from_excel(files_list)
 
         if not fired_users:
             logger.info("[Увольнения] Нет сотрудников для увольнения на сегодня")
@@ -324,10 +321,11 @@ async def process_user_changes_with_stats(session_pool, file_name: str):
             logger.info("[Изменения] Пользователи не найдены в файле")
             return [], []
 
-        fired_users = get_fired_users_from_excel()
+        fired_users = get_fired_users_from_excel([file_name])
 
         async with session_pool() as session:
             user_repo = UserRepo(session)
+            db_users = await user_repo.get_users()
             updated_names = []
             new_names = []
 
@@ -335,19 +333,27 @@ async def process_user_changes_with_stats(session_pool, file_name: str):
                 fullname = excel_user["fullname"]
 
                 if fullname == "Стажеры общего ряда":
-                    break
+                    continue
 
                 if fullname in fired_users:
                     logger.debug(f"[Изменения] Пропускаем уволенного: {fullname}")
                     continue
 
                 try:
-                    db_user = await user_repo.get_user(fullname=fullname)
-
-                    if db_user:
-                        was_updated = await _update_existing_user(db_user, excel_user)
-                        if was_updated:
-                            updated_names.append(fullname)
+                    # Get list of existing fullnames for comparison
+                    existing_fullnames = [user.fullname for user in db_users]
+                    if fullname in existing_fullnames:
+                        # Find the specific user object
+                        db_user = next(
+                            (user for user in db_users if user.fullname == fullname),
+                            None,
+                        )
+                        if db_user:
+                            was_updated = await _update_existing_user(
+                                db_user, excel_user
+                            )
+                            if was_updated:
+                                updated_names.append(fullname)
                     else:
                         await _add_new_user(session, division, excel_user)
                         new_names.append(fullname)

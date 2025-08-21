@@ -1,7 +1,6 @@
-import asyncio
 import fnmatch
 import logging
-import os
+from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -18,21 +17,27 @@ from tgbot.services.schedule.user_processor import (
     process_fired_users_with_stats,
 )
 
+# Router setup
 mip_upload_router = Router()
 mip_upload_router.message.filter(F.chat.type == "private", MipFilter())
 mip_upload_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
 
 logger = logging.getLogger(__name__)
 
+# Constants
+UPLOADS_DIR = Path("uploads")
+SCHEDULE_PATTERNS = ["ГРАФИК * I*", "ГРАФИК * II*"]
+
 
 @mip_upload_router.callback_query(ScheduleMenu.filter(F.menu == "upload"))
 async def upload_menu(callback: CallbackQuery, state: FSMContext):
+    """Display upload menu and wait for file."""
     bot_message = await callback.message.edit_text(
-        """<b>📤 Загрузка</b>
+        """<b>📤 Загрузка файла</b>
 
-Загрузи в этот чат файл для загрузки на сервер
+Отправь файл для загрузки на сервер
 
-<i>Если файл с таким же названием уже есть на сервере - он будет заменен твоим файлом</i>""",
+<i>Если файл с таким же названием уже существует - он будет заменён</i>""",
         reply_markup=schedule_upload_back_kb(),
     )
     await state.update_data(bot_message_id=bot_message.message_id)
@@ -43,181 +48,156 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
 async def upload_file(
     message: Message, state: FSMContext, stp_repo: RequestsRepo, stp_db: Session
 ):
+    """Handle single file upload and processing."""
     document = message.document
-
     await message.delete()
 
-    # Save file to disk
-    file_path = f"uploads/{document.file_name}"
-    file_replaced = os.path.exists(file_path)
-    if file_replaced:
-        os.remove(file_path)
-
-    file = await message.bot.get_file(document.file_id)
-    await message.bot.download_file(file.file_path, destination=file_path)
-
-    await stp_repo.upload.add_file_history(
-        file_id=file.file_id,
-        file_name=document.file_name,
-        file_size=file.file_size,
-        uploaded_by_user_id=message.from_user.id,
-    )
-
-    # Update FSM with file info
-    state_data = await state.get_data()
-    uploaded_files = state_data.get("uploaded_files", [])
-
-    file_info = {
-        "name": document.file_name,
-        "size": document.file_size,
-        "replaced": file_replaced,
-    }
-    uploaded_files.append(file_info)
-
-    await state.update_data(
-        uploaded_files=uploaded_files,
-        last_media_group_id=message.media_group_id,
-        last_upload_time=asyncio.get_event_loop().time(),
-        finalize_done=False,
-    )
-
-    # Handle media group or single file
-    if message.media_group_id:
-        asyncio.create_task(
-            check_media_group_complete(message, state, message.media_group_id, stp_db)
-        )
-    else:
-        await finalize_upload(message, state, stp_db)
-
-
-async def check_media_group_complete(
-    message: Message, state: FSMContext, media_group_id: str, stp_session: Session
-):
-    """Wait until no new files in media group for 1 second, then finalize."""
-    while True:
-        await asyncio.sleep(0.5)
-        state_data = await state.get_data()
-        current_media_group_id = state_data.get("last_media_group_id")
-        last_upload_time = state_data.get("last_upload_time", 0)
-
-        if current_media_group_id != media_group_id:
-            return
-
-        if asyncio.get_event_loop().time() - last_upload_time > 1:
-            await finalize_upload(message, state, stp_session)
-            return
-
-
-async def finalize_upload(message: Message, state: FSMContext, stp_db):
-    state_data = await state.get_data()
-    uploaded_files = state_data.get("uploaded_files", [])
-    bot_message_id = state_data.get("bot_message_id")
-
-    if not uploaded_files or bot_message_id is None:
-        return
-
-    await state.update_data(finalize_done=True)
-
-    # Generate initial status message
-    status_text = _generate_status_text(uploaded_files)
-
-    # Process files and get statistics
-    user_stats = await _process_uploaded_files(uploaded_files, stp_db)
-
-    # Add user statistics to status message if any processing occurred
-    if user_stats:
-        status_text += "\n<b>📊 Статистика обработки пользователей</b>\n\n"
-
-        if user_stats["fired_names"]:
-            status_text += f"🔥 <b>Уволено ({len(user_stats['fired_names'])}):</b>\n"
-            for name in user_stats["fired_names"]:
-                status_text += f"• {name}\n"
-
-        if user_stats["updated_names"]:
-            status_text += f"✏️ <b>Обновлено ({len(user_stats['updated_names'])}):</b>\n"
-            for name in user_stats["updated_names"]:
-                status_text += f"• {name}\n"
-
-        if user_stats["new_names"]:
-            status_text += f"➕ <b>Добавлено ({len(user_stats['new_names'])}):</b>\n"
-            for name in user_stats["new_names"]:
-                status_text += f"• {name}\n"
-
-        if not any(
-            [
-                user_stats["fired_names"],
-                user_stats["updated_names"],
-                user_stats["new_names"],
-            ]
-        ):
-            status_text += "ℹ️ Изменений в пользователях не обнаружено"
-
-    # Update bot message
     try:
-        await message.bot.edit_message_text(
-            chat_id=message.chat.id,
-            message_id=bot_message_id,
-            text=status_text,
+        # Download and save file
+        file_path = await _save_file(message, document)
+        file_replaced = file_path.exists()
+
+        # Log file to database
+        await stp_repo.upload.add_file_history(
+            file_id=document.file_id,
+            file_name=document.file_name,
+            file_size=document.file_size,
+            uploaded_by_user_id=message.from_user.id,
         )
+
+        # Process file and generate status
+        status_text = _generate_file_status(document, file_replaced)
+        user_stats = await _process_file(document.file_name, stp_db)
+
+        if user_stats:
+            status_text += _generate_stats_text(user_stats)
+
+        # Update bot message with results
+        await _update_status_message(message, state, status_text)
+
     except Exception as e:
-        logger.warning(f"Не удалось отредактировать сообщение: {e}")
+        logger.error(f"File upload failed: {e}")
+        await _show_error_message(message, state, "Ошибка при загрузке файла")
 
-    await state.clear()
-
-    # Send schedule menu
-    await message.answer(
-        """📅 Меню графиков
-
-Используй меню для выбора действия""",
-        reply_markup=schedule_kb(),
-    )
+    finally:
+        await state.clear()
+        await _show_schedule_menu(message)
 
 
-def _generate_status_text(uploaded_files: list) -> str:
-    """Generate status text for uploaded files."""
-    files_count = len(uploaded_files)
+async def _save_file(message: Message, document) -> Path:
+    """Download and save file to uploads directory."""
+    UPLOADS_DIR.mkdir(exist_ok=True)
+    file_path = UPLOADS_DIR / document.file_name
 
-    if files_count == 1:
-        status_text = "<b>💾 Загружен 1 файл</b>\n\n"
-    elif files_count in [2, 3, 4]:
-        status_text = f"<b>💾 Загружено {files_count} файла</b>\n\n"
-    else:
-        status_text = f"<b>💾 Загружено {files_count} файлов</b>\n\n"
+    # Remove existing file if present
+    if file_path.exists():
+        file_path.unlink()
 
-    for i, file_info in enumerate(uploaded_files, 1):
-        size_mb = round(file_info["size"] / (1024 * 1024), 2)
-        status_text += f"{i}. <b>{file_info['name']}</b> - {size_mb} МБ"
+    # Download file
+    file = await message.bot.get_file(document.file_id)
+    await message.bot.download_file(file.file_path, destination=str(file_path))
 
-        if file_info["replaced"]:
-            status_text += " <i>(заменён)</i>"
-        status_text += "\n"
+    return file_path
+
+
+def _generate_file_status(document, file_replaced: bool) -> str:
+    """Generate status message for uploaded file."""
+    size_mb = round(document.file_size / (1024 * 1024), 2)
+    status_text = "<b>💾 Файл загружен</b>\n\n"
+    status_text += f"📄 <b>{document.file_name}</b>\n"
+    status_text += f"Размер: {size_mb} МБ\n"
+
+    if file_replaced:
+        status_text += "<i>Заменён существующий файл</i>"
 
     return status_text
 
 
-async def _process_uploaded_files(uploaded_files: list, stp_db) -> dict:
-    """Process uploaded files for user changes and fired users. Returns statistics."""
-    patterns = ["ГРАФИК * I*", "ГРАФИК * II*"]
+async def _process_file(file_name: str, stp_db: Session) -> dict | None:
+    """Process file if it matches schedule patterns."""
+    # Check if file matches schedule patterns
+    if not any(fnmatch.fnmatch(file_name, pattern) for pattern in SCHEDULE_PATTERNS):
+        return None
 
-    total_stats = {"fired_names": [], "updated_names": [], "new_names": []}
-    processed_any = False
+    try:
+        file_path = UPLOADS_DIR / file_name
 
-    for file_info in uploaded_files:
-        for pattern in patterns:
-            if fnmatch.fnmatch(file_info["name"], pattern):
-                processed_any = True
+        # Process fired users
+        fired_names = await process_fired_users_with_stats([file_path], stp_db)
 
-                # Process fired users and get names
-                fired_names = await process_fired_users_with_stats(stp_db)
-                total_stats["fired_names"].extend(fired_names)
+        # Process user changes
+        updated_names, new_names = await process_user_changes_with_stats(
+            stp_db, file_name
+        )
 
-                # Process user changes and get names
-                updated_names, new_names = await process_user_changes_with_stats(
-                    stp_db, file_info["name"]
-                )
-                total_stats["updated_names"].extend(updated_names)
-                total_stats["new_names"].extend(new_names)
+        return {
+            "fired_names": fired_names,
+            "updated_names": updated_names,
+            "new_names": new_names,
+        }
+    except Exception as e:
+        logger.error(f"File processing failed: {e}")
+        return None
 
-                break
 
-    return total_stats if processed_any else None
+def _generate_stats_text(stats: dict) -> str:
+    """Generate statistics text from processing results."""
+    text = "\n\n<b>📊 Статистика обработки</b>\n"
+
+    sections = [
+        ("🔥 Уволено", stats["fired_names"]),
+        ("✏️ Обновлено", stats["updated_names"]),
+        ("➕ Добавлено", stats["new_names"]),
+    ]
+
+    has_changes = False
+    for title, names in sections:
+        if names:
+            has_changes = True
+            text += f"\n{title} ({len(names)}):\n"
+            text += "\n".join(f"• {name}" for name in names) + "\n"
+
+    if not has_changes:
+        text += "Изменений не обнаружено"
+
+    return text
+
+
+async def _update_status_message(message: Message, state: FSMContext, status_text: str):
+    """Update the bot message with upload status."""
+    state_data = await state.get_data()
+    bot_message_id = state_data.get("bot_message_id")
+
+    if bot_message_id:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=bot_message_id,
+                text=status_text,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to update message: {e}")
+
+
+async def _show_error_message(message: Message, state: FSMContext, error_text: str):
+    """Show error message to user."""
+    state_data = await state.get_data()
+    bot_message_id = state_data.get("bot_message_id")
+
+    if bot_message_id:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=bot_message_id,
+                text=f"❌ {error_text}",
+            )
+        except Exception as e:
+            logger.warning(f"Failed to show error: {e}")
+
+
+async def _show_schedule_menu(message: Message):
+    """Display the main schedule menu."""
+    await message.answer(
+        "📅 Меню графиков\n\nВыбери действие из меню ниже",
+        reply_markup=schedule_kb(),
+    )

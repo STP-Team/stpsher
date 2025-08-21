@@ -67,6 +67,16 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения пользователя: {e}")
             return None
 
+    async def get_users(self) -> Sequence[User] | None:
+        query = select(User)
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения списка пользователей: {e}")
+            return None
+
     async def update_user(
         self,
         user_id: int = None,

@@ -87,7 +87,7 @@ def parse_dismissal_date(date_str: str) -> datetime:
     return datetime(current_year, month, day)
 
 
-def get_fired_users_from_excel() -> List[str]:
+def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
     """
     Получение списка уволенных сотрудников из Excel файлов
 
@@ -102,12 +102,18 @@ def get_fired_users_from_excel() -> List[str]:
         logger.warning("[Увольнения] Папка uploads не найдена")
         return fired_users
 
-    # Поиск файлов с названием "ГРАФИК*"
-    schedule_files = list(uploads_path.glob("ГРАФИК*.xlsx"))
+    if not files_list:
+        # Поиск файлов с названием "ГРАФИК*"
+        schedule_files = list(uploads_path.glob("ГРАФИК*.xlsx"))
 
-    if not schedule_files:
-        logger.info("[Увольнения] Файлы графиков не найдены")
-        return fired_users
+        if not schedule_files:
+            logger.info("[Увольнения] Файлы графиков не найдены")
+            return fired_users
+
+    else:
+        schedule_files = []
+        for file_name in files_list:
+            schedule_files.extend(uploads_path.glob(file_name))
 
     for file_path in schedule_files:
         try:
