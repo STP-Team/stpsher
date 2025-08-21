@@ -12,6 +12,11 @@ class AchievementsMenu(CallbackData, prefix="achievements"):
     menu: str
 
 
+class AwardHistoryMenu(CallbackData, prefix="award_history"):
+    menu: str = "history"
+    page: int = 1
+
+
 class AwardsMenu(CallbackData, prefix="awards"):
     menu: str
     page: int = 1
@@ -211,34 +216,130 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def award_history_kb(user_awards: List[UserAwardWithDetails]) -> InlineKeyboardMarkup:
+def award_history_kb(
+    user_awards: List[UserAwardWithDetails],
+    current_page: int = 1,
+    awards_per_page: int = 8,
+) -> InlineKeyboardMarkup:
     """
-    Клавиатура истории наград пользователя.
-    Каждая кнопка содержит название награды, дату и эмодзи статуса.
+    Клавиатура истории наград пользователя с пагинацией.
+    Отображает 2 награды в ряд, по умолчанию 8 наград на страницу (4 ряда).
     """
     buttons = []
 
-    for award_detail in user_awards:
+    # Рассчитываем пагинацию
+    total_awards = len(user_awards)
+    total_pages = (total_awards + awards_per_page - 1) // awards_per_page
+
+    # Рассчитываем диапазон наград для текущей страницы
+    start_idx = (current_page - 1) * awards_per_page
+    end_idx = start_idx + awards_per_page
+    page_awards = user_awards[start_idx:end_idx]
+
+    # Создаем кнопки для наград (2 в ряд)
+    for i in range(0, len(page_awards), 2):
+        row = []
+
+        # Первая награда в ряду
+        award_detail = page_awards[i]
         user_award = award_detail.user_award
         award_info = award_detail.award_info
 
-        # Форматируем дату в формате DD.MM.YY
         date_str = user_award.bought_at.strftime("%d.%m.%y")
-
-        # Получаем эмодзи статуса
         status_emoji = get_status_emoji(user_award.status)
-
-        # Формируем текст кнопки
         button_text = f"{status_emoji} {award_info.name} ({date_str})"
 
-        buttons.append(
-            [
+        row.append(
+            InlineKeyboardButton(
+                text=button_text,
+                callback_data=AwardDetailMenu(user_award_id=user_award.id).pack(),
+            )
+        )
+
+        # Вторая награда в ряду (если есть)
+        if i + 1 < len(page_awards):
+            award_detail = page_awards[i + 1]
+            user_award = award_detail.user_award
+            award_info = award_detail.award_info
+
+            date_str = user_award.bought_at.strftime("%d.%m.%y")
+            status_emoji = get_status_emoji(user_award.status)
+            button_text = f"{status_emoji} {award_info.name} ({date_str})"
+
+            row.append(
                 InlineKeyboardButton(
                     text=button_text,
                     callback_data=AwardDetailMenu(user_award_id=user_award.id).pack(),
                 )
-            ]
+            )
+
+        buttons.append(row)
+
+    # Добавляем пагинацию (только если больше одной страницы)
+    if total_pages > 1:
+        pagination_row = []
+
+        # Клавиатура пагинации: [⏪] [⬅️] [страница] [➡️] [⏭️]
+
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=AwardHistoryMenu(menu="history", page=1).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Вторая кнопка (⬅️ или пусто)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=AwardHistoryMenu(
+                        menu="history", page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Центральная кнопка - Индикатор страницы (всегда видна)
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
         )
+
+        # Четвертая кнопка (➡️ или пусто)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=AwardHistoryMenu(
+                        menu="history", page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=AwardHistoryMenu(
+                        menu="history", page=total_pages
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
 
     # Добавляем кнопки навигации
     buttons.append(

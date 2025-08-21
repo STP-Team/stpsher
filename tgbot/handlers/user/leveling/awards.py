@@ -7,13 +7,14 @@ from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.leveling.main import (
+    AwardDetailMenu,
+    AwardHistoryMenu,
     AwardsMenu,
-    awards_kb,
-    awards_paginated_kb,
     award_detail_back_kb,
     award_history_kb,
+    awards_kb,
+    awards_paginated_kb,
     get_status_emoji,
-    AwardDetailMenu,
 )
 
 user_leveling_awards_router = Router()
@@ -90,7 +91,7 @@ async def awards_all(
 
 @user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "executed"))
 async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
-    """Показывает историю наград пользователя в виде клавиатуры"""
+    """Показывает историю наград пользователя в виде клавиатуры с пагинацией"""
     user_awards_with_details = await stp_repo.user_award.get_user_awards_with_details(
         user_id=callback.from_user.id
     )
@@ -108,14 +109,54 @@ async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
         )
         return
 
-    message_text = """<b>✴️ Использованные награды</b>
+    # Показываем первую страницу по умолчанию
+    total_awards = len(user_awards_with_details)
+    message_text = f"""<b>✴️ Использованные награды</b>
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
+<i>Всего наград: {total_awards}</i>
 <i>Используй меню для просмотра награды</i>"""
 
     await callback.message.edit_text(
-        message_text, reply_markup=award_history_kb(user_awards_with_details)
+        message_text,
+        reply_markup=award_history_kb(user_awards_with_details, current_page=1),
+    )
+
+
+@user_leveling_awards_router.callback_query(AwardHistoryMenu.filter())
+async def awards_history_pagination(
+    callback: CallbackQuery, callback_data: AwardHistoryMenu, stp_repo: RequestsRepo
+):
+    """Обработчик пагинации истории наград"""
+    page = callback_data.page
+
+    user_awards_with_details = await stp_repo.user_award.get_user_awards_with_details(
+        user_id=callback.from_user.id
+    )
+
+    if not user_awards_with_details:
+        await callback.message.edit_text(
+            """<b>✴️ Использованные награды</b>
+
+У тебя пока нет использованных наград 🙂
+
+<i>Используй меню для возврата</i>""",
+            reply_markup=award_detail_back_kb(),
+        )
+        return
+
+    total_awards = len(user_awards_with_details)
+    message_text = f"""<b>✴️ Использованные награды</b>
+
+Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
+
+<i>Всего наград: {total_awards}</i>
+<i>Используй меню для просмотра награды</i>"""
+
+    await callback.message.edit_text(
+        message_text,
+        reply_markup=award_history_kb(user_awards_with_details, current_page=page),
     )
 
 
@@ -131,7 +172,10 @@ async def award_detail_view(
 
     if not user_award_detail:
         await callback.message.edit_text(
-            "❌ Награда не найдена", reply_markup=award_detail_back_kb()
+            """<b>🏆 Просмотр награды</b>
+
+Не смог найти описание для награды ☹""",
+            reply_markup=award_detail_back_kb(),
         )
         return
 
