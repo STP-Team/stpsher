@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Set
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -9,12 +9,21 @@ from tgbot.keyboards.user.main import MainMenu
 class LevelingMenu(CallbackData, prefix="leveling"):
     menu: str
     page: int = 1
+    filters: str = "НЦК,НТП"  # comma-separated active filters
 
 
 class AwardsMenu(CallbackData, prefix="awards"):
     menu: str
     page: int = 1
     award_id: int = 0
+    filters: str = "НЦК,НТП"  # comma-separated active filters
+
+
+class FilterToggleMenu(CallbackData, prefix="filter_toggle"):
+    menu: str  # "achievements_all" or "awards_all"
+    filter_name: str  # "НЦК" or "НТП"
+    page: int = 1
+    current_filters: str = "НЦК,НТП"
 
 
 class AwardActivationMenu(CallbackData, prefix="award_activation"):
@@ -26,6 +35,63 @@ class AwardActionMenu(CallbackData, prefix="award_action"):
     user_award_id: int
     action: str  # "approve" or "reject"
     page: int = 1
+
+
+def parse_filters(filters_str: str) -> Set[str]:
+    """Parse comma-separated filters string into a set"""
+    if not filters_str:
+        return {"НЦК", "НТП"}
+    return set(filter_name.strip() for filter_name in filters_str.split(",") if filter_name.strip())
+
+
+def filters_to_string(filters_set: Set[str]) -> str:
+    """Convert filters set to comma-separated string"""
+    return ",".join(sorted(filters_set))
+
+
+def toggle_filter(current_filters: str, filter_to_toggle: str) -> str:
+    """Toggle a filter on/off and return new filters string"""
+    filters_set = parse_filters(current_filters)
+
+    if filter_to_toggle in filters_set:
+        filters_set.discard(filter_to_toggle)
+    else:
+        filters_set.add(filter_to_toggle)
+
+    # Ensure at least one filter is active
+    if not filters_set:
+        filters_set = {"НЦК", "НТП"}
+
+    return filters_to_string(filters_set)
+
+
+def create_filters_row(menu: str, current_filters: str, page: int = 1) -> List[InlineKeyboardButton]:
+    """Create filter checkboxes row"""
+    active_filters = parse_filters(current_filters)
+    buttons = []
+
+    filter_options = [
+        ("НЦК", "НЦК"),
+        ("НТП", "НТП")
+    ]
+
+    for display_name, filter_name in filter_options:
+        is_active = filter_name in active_filters
+        emoji = "✅" if is_active else "☑️"
+
+        buttons.append(
+            InlineKeyboardButton(
+                text=f"{emoji} {display_name}",
+                callback_data=FilterToggleMenu(
+                    menu=menu,
+                    filter_name=filter_name,
+                    page=page,
+                    current_filters=current_filters
+                ).pack()
+            )
+        )
+
+    return buttons
 
 
 def achievements_kb() -> InlineKeyboardMarkup:
@@ -64,7 +130,7 @@ def achievements_kb() -> InlineKeyboardMarkup:
 
 
 def award_activation_kb(
-    current_page: int, total_pages: int, page_awards: List[UserAwardWithDetails] = None
+        current_page: int, total_pages: int, page_awards: List[UserAwardWithDetails] = None
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для списка наград ожидающих активации
@@ -160,9 +226,7 @@ def award_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=LevelingMenu(
-                        menu="awards_activation", page=total_pages
-                    ).pack(),
+                    callback_data=LevelingMenu(menu="awards_activation", page=total_pages).pack(),
                 )
             )
         else:
@@ -184,36 +248,25 @@ def award_activation_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def award_detail_kb(
-    user_award_id: int, current_page: int, user_id: int
-) -> InlineKeyboardMarkup:
+def award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMarkup:
     """
-    Клавиатура для детального просмотра награды с кнопками одобрения/отклонения
+    Клавиатура детального просмотра награды для МИП с возможностью подтверждения/отклонения
     """
     buttons = [
-        # Первая строка - Одобрить, Отклонить
         [
             InlineKeyboardButton(
-                text="✅ Одобрить",
+                text="✅ Подтвердить",
                 callback_data=AwardActionMenu(
                     user_award_id=user_award_id, action="approve", page=current_page
                 ).pack(),
             ),
             InlineKeyboardButton(
-                text="⛔ Отклонить",
+                text="❌ Отклонить",
                 callback_data=AwardActionMenu(
                     user_award_id=user_award_id, action="reject", page=current_page
                 ).pack(),
             ),
         ],
-        # Вторая строка - ссылка на пользователя
-        [
-            InlineKeyboardButton(
-                text="👤 ЛС",
-                url=f"tg://user?id={user_id}",
-            ),
-        ],
-        # Третья строка - назад и домой
         [
             InlineKeyboardButton(
                 text="↩️ Назад",
@@ -230,9 +283,9 @@ def award_detail_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
+def awards_paginated_kb(current_page: int, total_pages: int, filters: str = "НЦК,НТП") -> InlineKeyboardMarkup:
     """
-    Клавиатура пагинации для всех возможных наград
+    Клавиатура пагинации для всех возможных наград с фильтрами
     """
     buttons = []
 
@@ -245,7 +298,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=AwardsMenu(menu="awards_all", page=1).pack(),
+                    callback_data=AwardsMenu(menu="awards_all", page=1, filters=filters).pack(),
                 )
             )
         else:
@@ -257,7 +310,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
                 InlineKeyboardButton(
                     text="⬅️",
                     callback_data=AwardsMenu(
-                        menu="awards_all", page=current_page - 1
+                        menu="awards_all", page=current_page - 1, filters=filters
                     ).pack(),
                 )
             )
@@ -278,7 +331,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
                 InlineKeyboardButton(
                     text="➡️",
                     callback_data=AwardsMenu(
-                        menu="awards_all", page=current_page + 1
+                        menu="awards_all", page=current_page + 1, filters=filters
                     ).pack(),
                 )
             )
@@ -291,7 +344,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
                 InlineKeyboardButton(
                     text="⏭️",
                     callback_data=AwardsMenu(
-                        menu="awards_all", page=total_pages
+                        menu="awards_all", page=total_pages, filters=filters
                     ).pack(),
                 )
             )
@@ -299,6 +352,10 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
             pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
         buttons.append(pagination_row)
+
+    # Добавляем ряд фильтров
+    filter_buttons = create_filters_row("awards_all", filters, current_page)
+    buttons.append(filter_buttons)  # Все фильтры в одной строке
 
     # Навигация
     navigation_row = [
@@ -315,10 +372,10 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
 
 
 def achievements_paginated_kb(
-    current_page: int, total_pages: int
+        current_page: int, total_pages: int, filters: str = "НЦК,НТП"
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура пагинации для всех возможных достижений
+    Клавиатура пагинации для всех возможных достижений с фильтрами
     """
     buttons = []
 
@@ -331,7 +388,7 @@ def achievements_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=LevelingMenu(menu="achievements_all", page=1).pack(),
+                    callback_data=LevelingMenu(menu="achievements_all", page=1, filters=filters).pack(),
                 )
             )
         else:
@@ -343,7 +400,7 @@ def achievements_paginated_kb(
                 InlineKeyboardButton(
                     text="⬅️",
                     callback_data=LevelingMenu(
-                        menu="achievements_all", page=current_page - 1
+                        menu="achievements_all", page=current_page - 1, filters=filters
                     ).pack(),
                 )
             )
@@ -364,7 +421,7 @@ def achievements_paginated_kb(
                 InlineKeyboardButton(
                     text="➡️",
                     callback_data=LevelingMenu(
-                        menu="achievements_all", page=current_page + 1
+                        menu="achievements_all", page=current_page + 1, filters=filters
                     ).pack(),
                 )
             )
@@ -377,7 +434,7 @@ def achievements_paginated_kb(
                 InlineKeyboardButton(
                     text="⏭️",
                     callback_data=LevelingMenu(
-                        menu="achievements_all", page=total_pages
+                        menu="achievements_all", page=total_pages, filters=filters
                     ).pack(),
                 )
             )
@@ -385,6 +442,10 @@ def achievements_paginated_kb(
             pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
         buttons.append(pagination_row)
+
+    # Добавляем ряд фильтров
+    filter_buttons = create_filters_row("achievements_all", filters, current_page)
+    buttons.append(filter_buttons)  # Все фильтры в одной строке
 
     # Навигация
     navigation_row = [
