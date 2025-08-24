@@ -89,6 +89,7 @@ class UserAwardsRepo(BaseRepo):
             select(UserAward, Award)
             .join(Award, UserAward.award_id == Award.id)
             .where(UserAward.user_id == user_id)
+            .order_by(UserAward.bought_at.desc())
         )
 
         result = await self.session.execute(select_stmt)
