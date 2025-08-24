@@ -21,6 +21,7 @@ from tgbot.keyboards.user.leveling.main import (
     get_status_emoji,
     to_awards_kb,
 )
+from tgbot.misc.dicts import executed_codes
 
 user_leveling_awards_router = Router()
 user_leveling_awards_router.message.filter(
@@ -417,18 +418,11 @@ async def award_purchase_final_handler(
 
         # Создаем награду пользователю
         try:
-            new_user_award = await stp_repo.user_award.create_user_award(
+            await stp_repo.user_award.create_user_award(
                 user_id=user.user_id, award_id=award_id, status="waiting"
             )
 
-            # Получаем информацию о подтверждающем
-            manager_roles = {
-                "1": "МИП",
-                "2": "Старший МИП",
-                "3": "Руководитель",
-                "4": "Администратор",
-            }
-            confirmer = manager_roles.get(str(award_info.manager_role), "МИП")
+            confirmer = executed_codes(award_info.manager_role)
 
             await callback.answer(
                 f"✅ Награда '{award_info.name}' успешно приобретена!\n\n"

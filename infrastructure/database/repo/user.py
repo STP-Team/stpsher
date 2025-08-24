@@ -15,8 +15,8 @@ class RegisteredUserParams(TypedDict, total=False):
 
     user_id: int
     username: str | None
-    Division: str | None
-    Position: str | None
+    division: str | None
+    position: str | None
     fullname: str
     head: str | None
     email: str | None

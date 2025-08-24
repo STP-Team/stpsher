@@ -11,13 +11,13 @@ from tgbot.keyboards.mip.leveling.main import (
     AwardsMenu,
     FilterToggleMenu,
     LevelingMenu,
+    achievements_kb,
     achievements_paginated_kb,
     award_activation_kb,
     award_detail_kb,
     awards_paginated_kb,
     parse_filters,
     toggle_filter,
-    achievements_kb,
 )
 from tgbot.keyboards.user.main import MainMenu
 
@@ -287,12 +287,11 @@ async def award_activation_detail(
 
     # Получаем информацию о пользователе
     user = await stp_repo.user.get_user(user_id=user_award.user_id)
-    user_name = user.fullname if user else f"ID: {user_award.user_id}"
 
     message_text = f"""<b>🎯 Активация награды</b>
 
 <b>🏆 О награде:</b>
-• Название: {award_info.name}
+• Название: <b>{award_info.name}</b>
 • Описание: {award_info.description}
 • Стоимость: {award_info.cost} баллов
 • Направление: {award_info.division}"""
@@ -340,8 +339,10 @@ async def award_action(
 
         if action == "approve":
             # Подтверждаем награду
-            await stp_repo.user_award.update_award_status(
-                user_award_id=user_award_id, status="approved"
+            await stp_repo.user_award.update_award(
+                award_id=user_award_id,
+                updated_by_user_id=callback.from_user.id,
+                status="approved",
             )
 
             await callback.answer(
@@ -355,8 +356,10 @@ async def award_action(
 
         elif action == "reject":
             # Отклоняем награду
-            await stp_repo.user_award.update_award_status(
-                user_award_id=user_award_id, status="rejected"
+            await stp_repo.user_award.update_award(
+                award_id=user_award_id,
+                updated_by_user_id=callback.from_user.id,
+                status="rejected",
             )
 
             await callback.answer(
@@ -387,7 +390,6 @@ async def toggle_filter_handler(
     """Обработчик переключения фильтров"""
     menu = callback_data.menu
     filter_name = callback_data.filter_name
-    page = callback_data.page
     current_filters = callback_data.current_filters
 
     # Переключаем фильтр

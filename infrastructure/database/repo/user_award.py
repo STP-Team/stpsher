@@ -1,10 +1,24 @@
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional, TypedDict, Unpack
 
 from sqlalchemy import func, select
 
 from infrastructure.database.models import Award
 from infrastructure.database.models.user_award import UserAward
 from infrastructure.database.repo.base import BaseRepo
+
+
+class UserAwardParams(TypedDict, total=False):
+    """Доступные параметры для обновления награды пользователя в таблице users_awards."""
+
+    award_id: int | None
+    comment: str | None
+    usage_count: str | None
+    bought_at: datetime | None
+    updated_at: datetime | None
+    updated_by_user_id: int | None
+    status: str
 
 
 @dataclass
@@ -149,34 +163,20 @@ class UserAwardsRepo(BaseRepo):
             for user_award, award, user in awards_with_details
         ]
 
-    async def update_award_status(
-        self, user_award_id: int, status: str, updated_by_user_id: int = None
-    ) -> bool:
-        """
-        Обновляем статус награды пользователя
+    async def update_award(
+        self,
+        award_id: int = None,
+        **kwargs: Unpack[UserAwardParams],
+    ) -> Optional[Award]:
+        select_stmt = select(UserAward).where(UserAward.id == award_id)
 
-        Args:
-            user_award_id: ID записи из таблицы users_awards
-            status: Новый статус ("approved", "rejected", "canceled")
-            updated_by_user_id: ID пользователя, который обновил статус
-
-        Returns:
-            bool: True если обновление прошло успешно, False если запись не найдена
-        """
-        from datetime import datetime
-
-        select_stmt = select(UserAward).where(UserAward.id == user_award_id)
         result = await self.session.execute(select_stmt)
-        user_award = result.scalar_one_or_none()
+        award: Award | None = result.scalar_one_or_none()
 
-        if not user_award:
-            return False
+        # Если пользователь существует - обновляем его
+        if award:
+            for key, value in kwargs.items():
+                setattr(award, key, value)
+            await self.session.commit()
 
-        # Обновляем статус и связанные поля
-        user_award.status = status
-        user_award.updated_at = datetime.now()
-        if updated_by_user_id:
-            user_award.updated_by_user_id = updated_by_user_id
-
-        await self.session.commit()
-        return True
+        return award
