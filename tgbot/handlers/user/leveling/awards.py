@@ -279,8 +279,9 @@ async def award_detail_view(
         message_text += f"\n\n<b>💬 Комментарий:</b> {user_award.comment}"
 
     if user_award.updated_by_user_id:
-        message_text += f"\n<b>👤 Одобрил:</b> ID {user_award.updated_by_user_id}"
-        message_text += f"\n<b>📅 Дата одобрения:</b> {user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}"
+        manager = await stp_repo.user.get_user(user_id=user_award.updated_by_user_id)
+        message_text += f"\n<b>👤 Ответственный:</b> <a href='{manager.user_id}'>{manager.fullname}</a>"
+        message_text += f"\n<b>📅 Дата изменения:</b> {user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}"
 
     await callback.message.edit_text(message_text, reply_markup=award_detail_back_kb())
 

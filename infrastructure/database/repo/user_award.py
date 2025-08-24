@@ -121,3 +121,62 @@ class UserAwardsRepo(BaseRepo):
         total = result.scalar()
 
         return total or 0  # Если награда не найдена - возвращаем 0
+
+    async def get_waiting_awards_for_activation(
+        self, manager_role: int
+    ) -> list[UserAwardWithDetails]:
+        """
+        Получаем список наград ожидающих активации
+        Фильтруем по статусу "waiting" и manager_role
+        """
+        from infrastructure.database.models import Award, User
+
+        select_stmt = (
+            select(UserAward, Award, User)
+            .join(Award, UserAward.award_id == Award.id)
+            .join(User, UserAward.user_id == User.user_id)
+            .where(UserAward.status == "waiting", Award.manager_role == manager_role)
+            .order_by(
+                UserAward.bought_at.desc()
+            )  # Сортируем по дате покупки (новые сначала)
+        )
+
+        result = await self.session.execute(select_stmt)
+        awards_with_details = result.all()
+
+        return [
+            UserAwardWithDetails(user_award=user_award, award_info=award)
+            for user_award, award, user in awards_with_details
+        ]
+
+    async def update_award_status(
+        self, user_award_id: int, status: str, updated_by_user_id: int = None
+    ) -> bool:
+        """
+        Обновляем статус награды пользователя
+
+        Args:
+            user_award_id: ID записи из таблицы users_awards
+            status: Новый статус ("approved", "rejected", "canceled")
+            updated_by_user_id: ID пользователя, который обновил статус
+
+        Returns:
+            bool: True если обновление прошло успешно, False если запись не найдена
+        """
+        from datetime import datetime
+
+        select_stmt = select(UserAward).where(UserAward.id == user_award_id)
+        result = await self.session.execute(select_stmt)
+        user_award = result.scalar_one_or_none()
+
+        if not user_award:
+            return False
+
+        # Обновляем статус и связанные поля
+        user_award.status = status
+        user_award.updated_at = datetime.now()
+        if updated_by_user_id:
+            user_award.updated_by_user_id = updated_by_user_id
+
+        await self.session.commit()
+        return True
