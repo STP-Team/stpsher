@@ -15,8 +15,6 @@ mip_schedule_router.callback_query.filter(F.message.chat.type == "private", MipF
 async def schedule_cb(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text(
-        """📅 Меню графиков
-
-Используй меню для выбора действия""",
+        """📅 Меню графиков""",
         reply_markup=schedule_kb(),
     )

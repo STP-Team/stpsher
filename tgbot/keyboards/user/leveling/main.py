@@ -138,6 +138,93 @@ def awards_kb() -> InlineKeyboardMarkup:
     return keyboard
 
 
+def available_awards_paginated_kb(
+    current_page: int, total_pages: int
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура пагинации для доступных наград
+    """
+    buttons = []
+
+    # Пагинация
+    if total_pages > 1:
+        pagination_row = []
+
+        # Клавиатура
+        # [⏪] [⬅️] [страница] [➡️] [⏭️]
+
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=AwardsMenu(menu="available", page=1).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Вторая кнопка (⬅️ или пусто)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=AwardsMenu(
+                        menu="available", page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Центральная кнопка - Индикатор страницы (всегда видна)
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Четвертая кнопка (➡️ или пусто)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=AwardsMenu(
+                        menu="available", page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=AwardsMenu(menu="available", page=total_pages).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Навигация
+    navigation_row = [
+        InlineKeyboardButton(
+            text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+        ),
+        InlineKeyboardButton(
+            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+        ),
+    ]
+    buttons.append(navigation_row)
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
     buttons = []
 
@@ -352,6 +439,22 @@ def award_history_kb(
             ),
         ]
     )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def to_awards_kb() -> InlineKeyboardMarkup:
+    """Клавиатура для возврата из детального просмотра награды"""
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

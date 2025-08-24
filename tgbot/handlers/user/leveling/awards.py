@@ -10,11 +10,13 @@ from tgbot.keyboards.user.leveling.main import (
     AwardDetailMenu,
     AwardHistoryMenu,
     AwardsMenu,
+    available_awards_paginated_kb,
     award_detail_back_kb,
     award_history_kb,
     awards_kb,
     awards_paginated_kb,
     get_status_emoji,
+    to_awards_kb,
 )
 
 user_leveling_awards_router = Router()
@@ -27,13 +29,11 @@ logger = logging.getLogger(__name__)
 
 
 @user_leveling_awards_router.callback_query(LevelingMenu.filter(F.menu == "awards"))
-async def user_awards_cb(callback: CallbackQuery, stp_repo: RequestsRepo):
+async def user_awards_cb(callback: CallbackQuery):
     await callback.message.edit_text(
         """<b>👏 Награды</b>
 
-Здесь ты можешь найти доступные для приобретения, а так же все возможные награды
-
-<i>Используй меню для выбора действия</i>""",
+Здесь ты можешь найти доступные для приобретения, а так же все возможные награды""",
         reply_markup=awards_kb(),
     )
 
@@ -73,7 +73,7 @@ async def awards_all(
 💵 Стоимость: {award.cost}
 📝 Описание: {award.description}""")
         if award.count > 0:
-            awards_list.append(f"""🧮 Активаций: {award.count}""")
+            awards_list.append(f"""📍 Активаций: {award.count}""")
         awards_list.append("")
 
     message_text = f"""<b>🏆 Все возможные награды</b>
@@ -86,6 +86,78 @@ async def awards_all(
     )
     logger.info(
         f"[Пользователь] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню всех наград, страница {page}"
+    )
+
+
+@user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "available"))
+async def awards_available(
+    callback: CallbackQuery,
+    user: User,
+    callback_data: AwardsMenu,
+    stp_repo: RequestsRepo,
+):
+    """
+    Обработчик клика на меню доступных для покупки наград
+    """
+
+    # Достаём номер страницы из callback data, стандартно = 1
+    page = getattr(callback_data, "page", 1)
+
+    # Получаем баланс пользователя (заработанные - потраченные баллы)
+    achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
+        user_id=user.user_id
+    )
+    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
+    user_balance = achievements_sum - awards_sum
+
+    # Получаем доступные награды на основе баланса пользователя
+    available_awards = await stp_repo.award.get_available_awards(user_balance)
+
+    if not available_awards:
+        await callback.message.edit_text(
+            f"""<b>❇️ Доступные награды</b>
+
+<b>💰 Твой баланс:</b> {user_balance} баллов
+
+У тебя недостаточно баллов для покупки доступных наград 😔
+
+<i>Заработать баллы можно получая достижения</i>""",
+            reply_markup=award_detail_back_kb(),
+        )
+        return
+
+    # Логика пагинации
+    awards_per_page = 5
+    total_awards = len(available_awards)
+    total_pages = (total_awards + awards_per_page - 1) // awards_per_page
+
+    # Считаем начало и конец текущей страницы
+    start_idx = (page - 1) * awards_per_page
+    end_idx = start_idx + awards_per_page
+    page_awards = available_awards[start_idx:end_idx]
+
+    # Построение списка наград для текущей страницы
+    awards_list = []
+    for counter, award in enumerate(page_awards, start=start_idx + 1):
+        awards_list.append(f"""{counter}. <b>{award.name}</b>
+💵 Стоимость: {award.cost} баллов
+📝 Описание: {award.description}""")
+        if award.count > 1:  # Changed from > 0 to > 1
+            awards_list.append(f"""📍 Активаций: {award.count}""")
+        awards_list.append("")
+
+    message_text = f"""<b>❇️ Доступные награды</b>
+
+<b>💰 Твой баланс:</b> {user_balance} баллов
+<i>Страница {page} из {total_pages}</i>
+
+{"\n".join(awards_list)}"""
+
+    await callback.message.edit_text(
+        message_text, reply_markup=available_awards_paginated_kb(page, total_pages)
+    )
+    logger.info(
+        f"[Пользователь] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню доступных наград, страница {page}, баланс: {user_balance}"
     )
 
 
@@ -102,10 +174,8 @@ async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
-У тебя пока нет использованных наград 🙂
-
-<i>Используй меню для возврата</i>""",
-            reply_markup=award_detail_back_kb(),
+У тебя пока нет использованных наград 🙂""",
+            reply_markup=to_awards_kb(),
         )
         return
 
@@ -115,8 +185,7 @@ async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
-<i>Всего наград: {total_awards}</i>
-<i>Используй меню для просмотра награды</i>"""
+<i>Всего наград использовано: {total_awards}</i>"""
 
     await callback.message.edit_text(
         message_text,
@@ -139,9 +208,7 @@ async def awards_history_pagination(
         await callback.message.edit_text(
             """<b>✴️ Использованные награды</b>
 
-У тебя пока нет использованных наград 🙂
-
-<i>Используй меню для возврата</i>""",
+У тебя пока нет использованных наград 🙂""",
             reply_markup=award_detail_back_kb(),
         )
         return
@@ -151,8 +218,7 @@ async def awards_history_pagination(
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
-<i>Всего наград: {total_awards}</i>
-<i>Используй меню для просмотра награды</i>"""
+<i>Всего наград использовано: {total_awards}</i>"""
 
     await callback.message.edit_text(
         message_text,

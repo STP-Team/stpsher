@@ -40,9 +40,7 @@ async def user_leveling_cb(callback: CallbackQuery, user: User, stp_repo: Reques
 Всего потрачено: {awards_sum} баллов
 
 Получено достижений: {len(user_achievements)}
-Активировано наград: {len(user_awards)}</blockquote>
-
-<i>Используй меню для выбора действия</i>""",
+Активировано наград: {len(user_awards)}</blockquote>""",
         reply_markup=leveling_kb(),
     )
 

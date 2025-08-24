@@ -27,8 +27,6 @@ async def schedule(callback: CallbackQuery, user: User):
         return
 
     await callback.message.edit_text(
-        """📅 Меню графиков
-
-Используй меню для выбора действия""",
+        """📅 Меню графиков""",
         reply_markup=schedule_kb(),
     )

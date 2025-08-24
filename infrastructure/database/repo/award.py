@@ -35,37 +35,14 @@ class AwardsRepo(BaseRepo):
 
         return result.scalar_one()
 
-    async def get_available_awards(
-        self, user_id: int, user_balance: int
-    ) -> List[Award]:
+    async def get_available_awards(self, user_balance: int) -> List[Award]:
         """
-        Получаем список наград, которые:
-        1. Имеют название
-        2. Стоимость награды меньше или равна кол-ву очков пользователя
+        Получаем список наград, у которых:
+        - стоимость награды меньше или равна кол-ву очков пользователя
         """
-
-        # Проверка использования награды в текущем месяце неактуальна
-        # Получаем список наград, активированных в этом месяце
-        # current_month = datetime.now().month
-        #
-        # executed_awards_subquery = (
-        #     select(Execute.Name)
-        #     .where(
-        #         and_(
-        #             Execute.ChatId == user_id,
-        #             Execute.TargetCount == Execute.Count,
-        #             extract('month', Execute.Date) == current_month
-        #         )
-        #     )
-        # )
 
         # Получаем список наград, подходящих под критерии
-        select_stmt = select(Award).where(
-            and_(
-                Award.cost <= user_balance,
-                # Awards.Name.notin_(executed_awards_subquery)
-            )
-        )
+        select_stmt = select(Award).where(and_(Award.cost <= user_balance))
 
         result = await self.session.execute(select_stmt)
         awards = result.scalars().all()
