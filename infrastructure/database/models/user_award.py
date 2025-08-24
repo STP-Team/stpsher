@@ -18,8 +18,8 @@ class UserAward(Base, TableNameMixin):
         comment (Mapped[str]): Комментарий пользователя к поданной награде.
         usage_count (Mapped[int]): Кол-во использований награды.
         bought_at (Mapped[datetime]): Время приобретения награды.
-        approved_at (Mapped[datetime]): Время подтверждения награды.
-        approved_by_user_id (Mapped[int]): Идентификатор пользователя Telegram, активировавшего награду
+        updated_at (Mapped[datetime]): Время подтверждения награды.
+        updated_by_user_id (Mapped[int]): Идентификатор пользователя Telegram, активировавшего награду
 
     Methods:
         __repr__(): Returns a string representation of the User object.
@@ -36,13 +36,15 @@ class UserAward(Base, TableNameMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
-    award_id: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
+    award_id: Mapped[int] = mapped_column(VARCHAR(255), nullable=False)
     comment: Mapped[str] = mapped_column(VARCHAR, nullable=True)
     usage_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     bought_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    approved_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    approved_by_user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=True, default=datetime.now
+    )
+    updated_by_user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
     status: Mapped[str] = mapped_column(VARCHAR(10), nullable=False, default="waiting")
 
     def __repr__(self):
-        return f"<UserAward {self.id} {self.user_id} {self.award_id} {self.comment} {self.usage_count} {self.bought_at} {self.approved_at} {self.approved_by_user_id} {self.status}>"
+        return f"<UserAward {self.id} {self.user_id} {self.award_id} {self.comment} {self.usage_count} {self.bought_at} {self.updated_at} {self.updated_by_user_id} {self.status}>"

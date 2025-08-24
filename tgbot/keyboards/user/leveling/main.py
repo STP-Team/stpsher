@@ -17,6 +17,22 @@ class AwardHistoryMenu(CallbackData, prefix="award_history"):
     page: int = 1
 
 
+class AwardPurchaseMenu(CallbackData, prefix="award_purchase"):
+    award_id: int
+    page: int = 1
+
+
+class AwardConfirmationMenu(CallbackData, prefix="award_confirm"):
+    award_id: int
+    page: int = 1
+
+
+class AwardPurchaseConfirmMenu(CallbackData, prefix="award_buy_confirm"):
+    award_id: int
+    page: int = 1
+    action: str  # "buy" or "back"
+
+
 class AwardsMenu(CallbackData, prefix="awards"):
     menu: str
     page: int = 1
@@ -139,19 +155,51 @@ def awards_kb() -> InlineKeyboardMarkup:
 
 
 def available_awards_paginated_kb(
-    current_page: int, total_pages: int
+    current_page: int, total_pages: int, page_awards: list = None
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура пагинации для доступных наград
+    Клавиатура пагинации для доступных наград с кнопками выбора наград
     """
     buttons = []
+
+    # Добавляем кнопки для выбора наград (максимум 2 в ряд)
+    if page_awards:
+        # Вычисляем стартовый индекс для нумерации на текущей странице
+        start_idx = (current_page - 1) * 5  # 5 наград на страницу
+
+        for i in range(0, len(page_awards), 2):
+            award_row = []
+
+            # Первая награда в ряду
+            first_award = page_awards[i]
+            first_award_number = start_idx + i + 1
+            award_row.append(
+                InlineKeyboardButton(
+                    text=f"{first_award_number}. {first_award.name}",
+                    callback_data=AwardPurchaseMenu(
+                        award_id=first_award.id, page=current_page
+                    ).pack(),
+                )
+            )
+
+            # Вторая награда в ряду (если есть)
+            if i + 1 < len(page_awards):
+                second_award = page_awards[i + 1]
+                second_award_number = start_idx + i + 2
+                award_row.append(
+                    InlineKeyboardButton(
+                        text=f"{second_award_number}. {second_award.name}",
+                        callback_data=AwardPurchaseMenu(
+                            award_id=second_award.id, page=current_page
+                        ).pack(),
+                    )
+                )
+
+            buttons.append(award_row)
 
     # Пагинация
     if total_pages > 1:
         pagination_row = []
-
-        # Клавиатура
-        # [⏪] [⬅️] [страница] [➡️] [⏭️]
 
         # Первая кнопка (⏪ или пусто)
         if current_page > 2:
@@ -221,6 +269,35 @@ def available_awards_paginated_kb(
         ),
     ]
     buttons.append(navigation_row)
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def award_confirmation_kb(award_id: int, page: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура подтверждения покупки награды
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="✅ Купить награду",
+                callback_data=AwardPurchaseConfirmMenu(
+                    award_id=award_id, page=page, action="buy"
+                ).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=AwardPurchaseConfirmMenu(
+                    award_id=award_id, page=page, action="back"
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
+    ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

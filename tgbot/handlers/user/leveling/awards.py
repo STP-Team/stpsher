@@ -9,8 +9,11 @@ from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.leveling.main import (
     AwardDetailMenu,
     AwardHistoryMenu,
+    AwardPurchaseConfirmMenu,
+    AwardPurchaseMenu,
     AwardsMenu,
     available_awards_paginated_kb,
+    award_confirmation_kb,
     award_detail_back_kb,
     award_history_kb,
     awards_kb,
@@ -122,7 +125,7 @@ async def awards_available(
 У тебя недостаточно баллов для покупки доступных наград 😔
 
 <i>Заработать баллы можно получая достижения</i>""",
-            reply_markup=award_detail_back_kb(),
+            reply_markup=to_awards_kb(),
         )
         return
 
@@ -154,7 +157,8 @@ async def awards_available(
 {"\n".join(awards_list)}"""
 
     await callback.message.edit_text(
-        message_text, reply_markup=available_awards_paginated_kb(page, total_pages)
+        message_text,
+        reply_markup=available_awards_paginated_kb(page, total_pages, page_awards),
     )
     logger.info(
         f"[Пользователь] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню доступных наград, страница {page}, баланс: {user_balance}"
@@ -185,7 +189,7 @@ async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
-<i>Всего наград использовано: {total_awards}</i>"""
+<i>Всего наград приобретено: {total_awards}</i>"""
 
     await callback.message.edit_text(
         message_text,
@@ -218,7 +222,7 @@ async def awards_history_pagination(
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
-<i>Всего наград использовано: {total_awards}</i>"""
+<i>Всего наград приобретено: {total_awards}</i>"""
 
     await callback.message.edit_text(
         message_text,
@@ -274,8 +278,176 @@ async def award_detail_view(
     if user_award.comment:
         message_text += f"\n\n<b>💬 Комментарий:</b> {user_award.comment}"
 
-    if user_award.approved_by_user_id:
-        message_text += f"\n<b>👤 Одобрил:</b> ID {user_award.approved_by_user_id}"
-        message_text += f"\n<b>📅 Дата одобрения:</b> {user_award.approved_at.strftime('%d.%m.%Y в %H:%M')}"
+    if user_award.updated_by_user_id:
+        message_text += f"\n<b>👤 Одобрил:</b> ID {user_award.updated_by_user_id}"
+        message_text += f"\n<b>📅 Дата одобрения:</b> {user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}"
 
     await callback.message.edit_text(message_text, reply_markup=award_detail_back_kb())
+
+
+@user_leveling_awards_router.callback_query(AwardPurchaseMenu.filter())
+async def award_confirmation_handler(
+    callback: CallbackQuery,
+    callback_data: AwardPurchaseMenu,
+    user: User,
+    stp_repo: RequestsRepo,
+):
+    """
+    Обработчик выбора награды - показывает окно подтверждения
+    """
+    award_id = callback_data.award_id
+    current_page = callback_data.page
+
+    # Получаем информацию о выбранной награде
+    try:
+        award_info = await stp_repo.award.get_award(award_id)
+    except Exception as e:
+        logger.error(f"Error getting award {award_id}: {e}")
+        await callback.answer(
+            "❌ Ошибка получения информации о награде", show_alert=True
+        )
+        return
+
+    # Получаем баланс пользователя
+    achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
+        user_id=user.user_id
+    )
+    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
+    user_balance = achievements_sum - awards_sum
+
+    # Проверяем, достаточно ли баллов
+    if user_balance < award_info.cost:
+        await callback.answer(
+            f"❌ Недостаточно баллов!\nУ вас: {user_balance} баллов\nНужно: {award_info.cost} баллов",
+            show_alert=True,
+        )
+        return
+
+    # Рассчитываем баланс после покупки
+    balance_after_purchase = user_balance - award_info.cost
+
+    # Получаем информацию о том, кто подтверждает награду
+    manager_roles = {
+        "1": "МИП",
+        "2": "Старший МИП",
+        "3": "Руководитель",
+        "4": "Администратор",
+    }
+    confirmer = manager_roles.get(str(award_info.manager_role), "МИП")
+
+    # Формируем сообщение с подробной информацией
+    message_text = f"""<b>🎯 Подтверждение покупки</b>
+
+<b>🏆 Награда:</b> {award_info.name}
+<b>📝 Описание:</b> {award_info.description}
+<b>💵 Стоимость:</b> {award_info.cost} баллов"""
+
+    if award_info.count > 1:
+        message_text += f"\n<b>📍 Количество использований:</b> {award_info.count}"
+
+    message_text += f"""
+
+<b>💰 Баланс:</b>
+• Текущий баланс: {user_balance} баллов
+• После покупки: {balance_after_purchase} баллов
+
+<b>👤 Должен подтвердить:</b> {confirmer}
+
+<i>После покупки награда будет отправлена на рассмотрение</i>"""
+
+    await callback.message.edit_text(
+        message_text, reply_markup=award_confirmation_kb(award_id, current_page)
+    )
+
+    logger.info(
+        f"[Подтверждение награды] {callback.from_user.username} ({user.user_id}) просматривает награду '{award_info.name}'"
+    )
+
+
+@user_leveling_awards_router.callback_query(AwardPurchaseConfirmMenu.filter())
+async def award_purchase_final_handler(
+    callback: CallbackQuery,
+    callback_data: AwardPurchaseConfirmMenu,
+    user: User,
+    stp_repo: RequestsRepo,
+):
+    """
+    Обработчик финального подтверждения покупки награды
+    """
+    award_id = callback_data.award_id
+    current_page = callback_data.page
+    action = callback_data.action
+
+    # Если пользователь выбрал вернуться к списку
+    if action == "back":
+        await awards_available(
+            callback=callback,
+            user=user,
+            callback_data=AwardsMenu(menu="available", page=current_page),
+            stp_repo=stp_repo,
+        )
+        return
+
+    # Если пользователь подтвердил покупку
+    if action == "buy":
+        # Получаем информацию о награде
+        try:
+            award_info = await stp_repo.award.get_award(award_id)
+        except Exception as e:
+            logger.error(f"Error getting award {award_id}: {e}")
+            await callback.answer(
+                "❌ Ошибка получения информации о награде", show_alert=True
+            )
+            return
+
+        # Проверяем баланс еще раз (на случай изменений)
+        achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
+            user_id=user.user_id
+        )
+        awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
+        user_balance = achievements_sum - awards_sum
+
+        if user_balance < award_info.cost:
+            await callback.answer(
+                f"❌ Недостаточно баллов! У тебя: {user_balance}, нужно: {award_info.cost}",
+                show_alert=True,
+            )
+            return
+
+        # Создаем награду пользователю
+        try:
+            new_user_award = await stp_repo.user_award.create_user_award(
+                user_id=user.user_id, award_id=award_id, status="waiting"
+            )
+
+            # Получаем информацию о подтверждающем
+            manager_roles = {
+                "1": "МИП",
+                "2": "Старший МИП",
+                "3": "Руководитель",
+                "4": "Администратор",
+            }
+            confirmer = manager_roles.get(str(award_info.manager_role), "МИП")
+
+            await callback.answer(
+                f"✅ Награда '{award_info.name}' успешно приобретена!\n\n"
+                f"🔔 Ожидает подтверждения: {confirmer}\n"
+                f"💰 Списано: {award_info.cost} баллов",
+                show_alert=True,
+            )
+
+            logger.info(
+                f"[Покупка награды] {callback.from_user.username} ({user.user_id}) купил награду '{award_info.name}' за {award_info.cost} баллов"
+            )
+
+            # Возвращаемся к списку доступных наград
+            await awards_available(
+                callback=callback,
+                user=user,
+                callback_data=AwardsMenu(menu="available", page=current_page),
+                stp_repo=stp_repo,
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating user award: {e}")
+            await callback.answer("❌ Ошибка при покупке награды", show_alert=True)

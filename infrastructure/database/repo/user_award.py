@@ -22,6 +22,38 @@ class UserAwardWithDetails:
 
 
 class UserAwardsRepo(BaseRepo):
+    async def create_user_award(
+        self, user_id: int, award_id: int, status: str = "waiting", comment: str = None
+    ) -> UserAward:
+        """
+        Создаем новую награду для пользователя
+
+        Args:
+            user_id: ID пользователя Telegram
+            award_id: ID награды из таблицы awards
+            status: Статус награды (по умолчанию "waiting")
+            comment: Комментарий к награде (опционально)
+
+        Returns:
+            UserAward: Созданная награда пользователя
+        """
+        from datetime import datetime
+
+        user_award = UserAward(
+            user_id=user_id,
+            award_id=award_id,
+            comment=comment,
+            usage_count=0,
+            bought_at=datetime.now(),
+            status=status,
+        )
+
+        self.session.add(user_award)
+        await self.session.commit()
+        await self.session.refresh(user_award)
+
+        return user_award
+
     async def get_user_awards(self, user_id: int) -> list[UserAward]:
         """
         Получаем полный список наград пользователя
