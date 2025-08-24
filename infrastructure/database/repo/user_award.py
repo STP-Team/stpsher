@@ -181,3 +181,58 @@ class UserAwardsRepo(BaseRepo):
             await self.session.commit()
 
         return award
+
+    async def use_award(self, user_award_id: int) -> bool:
+        """
+        User clicks 'Use Award' button - changes status from 'stored' to 'waiting'
+
+        Returns:
+            bool: True if successful, False if not available for use
+        """
+        select_stmt = select(UserAward).where(UserAward.id == user_award_id)
+        result = await self.session.execute(select_stmt)
+        user_award = result.scalar_one_or_none()
+
+        if not user_award or user_award.status != "stored":
+            return False
+
+        # Get award info to check usage limits
+        award_info = await self.session.get(Award, user_award.award_id)
+        if user_award.usage_count >= award_info.count:
+            return False
+
+        user_award.status = "waiting"
+        user_award.updated_at = datetime.now()
+
+        await self.session.commit()
+        return True
+
+    async def approve_award_usage(
+        self, user_award_id: int, updated_by_user_id: int
+    ) -> bool:
+        """
+        Manager approves award usage - increments usage_count and sets status back to 'stored' or 'used_up'
+        """
+        # Get the user award first
+        user_award = await self.session.get(UserAward, user_award_id)
+        if not user_award:
+            return False
+
+        # Get the award info
+        award_info = await self.session.get(Award, user_award.award_id)
+        if not award_info:
+            return False
+
+        # Increment usage count
+        user_award.usage_count += 1
+        user_award.updated_at = datetime.now()
+        user_award.updated_by_user_id = updated_by_user_id
+
+        # Set status based on remaining uses
+        if user_award.usage_count >= award_info.count:
+            user_award.status = "used_up"
+        else:
+            user_award.status = "stored"
+
+        await self.session.commit()
+        return True
