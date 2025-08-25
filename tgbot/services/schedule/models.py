@@ -48,6 +48,7 @@ class DutyInfo:
 
     name: str
     user_id: int
+    username: str | None
     schedule: str
     shift_type: str  # "П" или "С" или ""
     work_hours: str
@@ -61,5 +62,6 @@ class HeadInfo:
 
     name: str
     user_id: int
+    username: str | None
     schedule: str
     duty_info: Optional[str] = None

@@ -248,7 +248,15 @@ async def awards_activation(
         user = await stp_repo.user.get_user(user_id=user_award.user_id)
         user_name = user.fullname if user else f"ID: {user_award.user_id}"
 
-        awards_list.append(f"""{counter}. <b>{award_info.name}</b> - {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}
+        if user.username:
+            awards_list.append(f"""{counter}. <b>{award_info.name}</b> - {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}
+<blockquote><b>👤 Специалист</b>
+<a href='t.me/{user.username}'>{user_name}</a> из {award_info.division}
+
+<b>📝 Описание</b>
+{award_info.description}</blockquote>""")
+        else:
+            awards_list.append(f"""{counter}. <b>{award_info.name}</b> - {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}
 <blockquote><b>👤 Специалист</b>
 <a href='tg://user?id={user.user_id}'>{user_name}</a> из {award_info.division}
 
@@ -293,6 +301,17 @@ async def award_activation_detail(
     user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
     user_head: User = await stp_repo.user.get_user(fullname=user.head)
 
+    user_info = (
+        f"<a href='t.me/{user.username}'>{user.fullname}</a>"
+        if user and user.username
+        else "-"
+    )
+    head_info = (
+        f"<a href='t.me/{user_head.username}'>{user.head}</a>"
+        if user_head and user_head.username
+        else "-"
+    )
+
     message_text = f"""
 <b>🎯 Активация награды</b>
 
@@ -313,13 +332,13 @@ async def award_activation_detail(
 
 <b>👤 О специалисте</b>
 <blockquote><b>ФИО</b>
-<a href='tg://user?id={user.user_id}'>{user.fullname}</a>
+{user_info}
 
 <b>Должность</b>
 {user.position} {user.division}
 
 <b>Руководитель</b>
-<a href='tg://user?id={user_head.user_id}'>{user.head}</a></blockquote>
+{head_info}</blockquote>
 
 <b>📅 Дата покупки</b>  
 {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}

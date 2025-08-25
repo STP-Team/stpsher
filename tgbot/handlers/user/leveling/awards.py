@@ -320,10 +320,16 @@ async def award_detail_view(
 
     if user_award.updated_by_user_id:
         manager = await stp_repo.user.get_user(user_id=user_award.updated_by_user_id)
-        message_text += (
-            f"\n\n<blockquote expandable><b>👤 Ответственный</b>\n<a href='tg://user?id={manager.user_id}'>"
-            f"{manager.fullname}</a>"
-        )
+        if manager.username:
+            message_text += (
+                f"\n\n<blockquote expandable><b>👤 Ответственный</b>\n<a href='t.me/{manager.username}'>"
+                f"{manager.fullname}</a>"
+            )
+        else:
+            message_text += (
+                f"\n\n<blockquote expandable><b>👤 Ответственный</b>\n<a href='tg://user?id={manager.user_id}'>"
+                f"{manager.fullname}</a>"
+            )
         message_text += f"\n\n<b>📅 Дата проверки ответственным</b>\n{user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}</blockquote>"
 
     # Updated keyboard logic

@@ -410,6 +410,7 @@ class DutyScheduleParser:
                                     DutyInfo(
                                         name=name,
                                         user_id=user.user_id,
+                                        username=user.username,
                                         schedule=schedule,
                                         shift_type=shift_type,
                                         work_hours=schedule,
@@ -508,15 +509,25 @@ class DutyScheduleParser:
 
             for duty in group["duties"]:
                 gender_emoji = self.get_gender_emoji(duty.name)
-                lines.append(
-                    f"{gender_emoji}Старший - <a href='tg://user?id={duty.user_id}'>{duty.name}</a>"
-                )
+                if duty.username:
+                    lines.append(
+                        f"{gender_emoji}Старший - <a href='t.me/{duty.username}'>{duty.name}</a>"
+                    )
+                else:
+                    lines.append(
+                        f"{gender_emoji}Старший - <a href='tg://user?id={duty.user_id}'>{duty.name}</a>"
+                    )
 
             for duty in group["helpers"]:
                 gender_emoji = self.get_gender_emoji(duty.name)
-                lines.append(
-                    f"{gender_emoji}Помощник - <a href='tg://user?id={duty.user_id}'>{duty.name}</a>"
-                )
+                if duty.username:
+                    lines.append(
+                        f"{gender_emoji}Помощник - <a href='t.me/{duty.username}'>{duty.name}</a>"
+                    )
+                else:
+                    lines.append(
+                        f"{gender_emoji}Помощник - <a href='tg://user?id={duty.user_id}'>{duty.name}</a>"
+                    )
 
             lines.append("")
 
@@ -638,6 +649,7 @@ class HeadScheduleParser:
                                     HeadInfo(
                                         name=name,
                                         user_id=user.user_id,
+                                        username=user.username,
                                         schedule=schedule_cell.strip(),
                                         duty_info=duty_info,
                                     )
@@ -734,7 +746,12 @@ class HeadScheduleParser:
 
             for head in group_heads:
                 gender_emoji = self.formatter.get_gender_emoji(head.name)
-                head_line = f"{gender_emoji} <a href='tg://user?id={head.user_id}'>{head.name}</a>"
+                if head.username:
+                    head_line = (
+                        f"{gender_emoji} <a href='t.me/{head.username}'>{head.name}</a>"
+                    )
+                else:
+                    head_line = f"{gender_emoji} <a href='tg://user?id={head.user_id}'>{head.name}</a>"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"

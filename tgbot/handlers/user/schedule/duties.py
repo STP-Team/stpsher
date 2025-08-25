@@ -67,8 +67,7 @@ async def handle_duty_navigation(
         )
 
         await callback.message.edit_text(
-            text=duties_text,
-            reply_markup=duties_kb(target_date),
+            text=duties_text, reply_markup=duties_kb(target_date)
         )
         await callback.answer()
 

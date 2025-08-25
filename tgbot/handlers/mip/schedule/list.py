@@ -66,11 +66,18 @@ async def show_history_files(callback: CallbackQuery, stp_repo: RequestsRepo):
     for file in files_history:
         user = await stp_repo.user.get_user(file.uploaded_by_user_id)
 
-        files_info.append(
-            f"""• <b>{file.file_name or "Unknown"}</b>
-🤨 Загрузил: <a href='tg://user?id={user.user_id}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
-🏋 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
-        )
+        if user.username:
+            files_info.append(
+                f"""• <b>{file.file_name or "Unknown"}</b>
+    🤨 Загрузил: <a href='t.me/{user.username}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
+    🏋 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
+            )
+        else:
+            files_info.append(
+                f"""• <b>{file.file_name or "Unknown"}</b>
+                🤨 Загрузил: <a href='tg://user?id={user.user_id}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
+                🏋 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
+            )
 
     files_text = "\n\n".join(files_info)
     await callback.message.edit_text(
