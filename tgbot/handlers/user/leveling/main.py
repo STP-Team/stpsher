@@ -28,6 +28,30 @@ async def user_leveling_cb(callback: CallbackQuery, user: User, stp_repo: Reques
     )
     awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
 
+    # Новые методы для получения самых частых
+    most_frequent_achievement = (
+        await stp_repo.user_achievement.get_most_frequent_achievement(
+            user_id=user.user_id
+        )
+    )
+    most_used_award = await stp_repo.user_award.get_most_used_award(
+        user_id=user.user_id
+    )
+
+    # Формируем текст для самого частого достижения
+    if most_frequent_achievement:
+        achievement_text = (
+            f"{most_frequent_achievement[0]} ({most_frequent_achievement[1]}x)"
+        )
+    else:
+        achievement_text = "Нет достижений"
+
+    # Формируем текст для самой частой награды
+    if most_used_award:
+        award_text = f"{most_used_award[0]} ({most_used_award[1]}x)"
+    else:
+        award_text = "Нет наград"
+
     # TODO Улучшить формулу расчета уровня
     await callback.message.edit_text(
         f"""<b>🏆 Ачивки</b>
@@ -40,7 +64,10 @@ async def user_leveling_cb(callback: CallbackQuery, user: User, stp_repo: Reques
 Всего потрачено: {awards_sum} баллов
 
 Получено достижений: {len(user_achievements)}
-Активировано наград: {len(user_awards)}</blockquote>""",
+Активировано наград: {len(user_awards)}
+
+<b>🎯 Самое частое достижение:</b> {achievement_text}
+<b>🏅 Самая частая награда:</b> {award_text}</blockquote>""",
         reply_markup=leveling_kb(),
     )
 

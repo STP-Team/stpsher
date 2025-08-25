@@ -262,3 +262,28 @@ class UserAwardsRepo(BaseRepo):
         await self.session.commit()
 
         return True
+
+    async def get_most_used_award(self, user_id: int) -> tuple[str, int] | None:
+        """
+        Получаем самую используемую награду пользователя
+
+        Returns:
+            tuple[str, int]: (название награды, количество использований) или None если нет наград
+        """
+        select_stmt = (
+            select(Award.name, UserAward.usage_count)
+            .select_from(UserAward)
+            .join(Award, UserAward.award_id == Award.id)
+            .where(UserAward.user_id == user_id)
+            .where(UserAward.usage_count > 0)  # Только использованные награды
+            .order_by(UserAward.usage_count.desc())
+            .limit(1)
+        )
+
+        result = await self.session.execute(select_stmt)
+        most_used = result.first()
+
+        if not most_used:
+            return None
+
+        return (most_used.name, most_used.usage_count)

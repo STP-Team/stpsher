@@ -35,3 +35,35 @@ class UserAchievementsRepo(BaseRepo):
         total = result.scalar()
 
         return total or 0  # Если достижение не найдено - возвращаем 0
+
+    async def get_most_frequent_achievement(
+        self, user_id: int
+    ) -> tuple[str, int] | None:
+        """
+        Получаем самое частое достижение пользователя
+
+        Returns:
+            tuple[str, int]: (название достижения, количество получений) или None если нет достижений
+        """
+        from sqlalchemy import func
+
+        select_stmt = (
+            select(
+                Achievement.name,
+                func.count(UserAchievement.achievement_id).label("count"),
+            )
+            .select_from(UserAchievement)
+            .join(Achievement, UserAchievement.achievement_id == Achievement.id)
+            .where(UserAchievement.user_id == user_id)
+            .group_by(UserAchievement.achievement_id, Achievement.name)
+            .order_by(func.count(UserAchievement.achievement_id).desc())
+            .limit(1)
+        )
+
+        result = await self.session.execute(select_stmt)
+        most_frequent = result.first()
+
+        if not most_frequent:
+            return None
+
+        return (most_frequent.name, most_frequent.count)
