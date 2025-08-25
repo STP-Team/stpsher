@@ -516,7 +516,7 @@ def award_detail_kb(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="💸 Продать",
+                    text="💸 Вернуть",
                     callback_data=SellAwardMenu(user_award_id=user_award_id).pack(),
                 )
             ]
@@ -541,5 +541,42 @@ def award_detail_kb(
             )
         ]
     )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def award_purchase_success_kb(user_award_id: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для успешной покупки награды
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="🎯 Использовать награду",
+                callback_data=UseAwardMenu(user_award_id=user_award_id).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="💸 Вернуть",
+                callback_data=SellAwardMenu(user_award_id=user_award_id).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="❇️ К доступным",
+                callback_data=AwardsMenu(menu="available").pack(),
+            ),
+            InlineKeyboardButton(
+                text="✴️ К купленным",
+                callback_data=AwardsMenu(menu="executed").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
+    ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

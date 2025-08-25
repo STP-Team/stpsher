@@ -20,6 +20,7 @@ from tgbot.keyboards.user.leveling.awards import (
     award_detail_back_kb,
     award_detail_kb,
     award_history_kb,
+    award_purchase_success_kb,
     awards_kb,
     awards_paginated_kb,
     to_awards_kb,
@@ -445,35 +446,43 @@ async def award_purchase_final_handler(
 
         if user_balance < award_info.cost:
             await callback.answer(
-                f"❌ Недостаточно баллов! У тебя: {user_balance}, нужно: {award_info.cost}",
+                f"❌ Недостаточно баллов!\nУ тебя: {user_balance}, нужно: {award_info.cost}",
                 show_alert=True,
             )
             return
 
         # Создаем награду пользователю с новым статусом "stored"
         try:
-            await stp_repo.user_award.create_user_award(
+            new_user_award = await stp_repo.user_award.create_user_award(
                 user_id=user.user_id, award_id=award_id, status="stored"
             )
 
-            await callback.answer(
-                f"✅ Награда '{award_info.name}' успешно приобретена!\n\n"
-                f"📦 Статус: Готова к использованию\n"
-                f"💰 Списано: {award_info.cost} баллов\n\n"
-                f"🎯 Найди её в разделе 'Купленные награды' и нажми 'Использовать' когда будешь готов",
-                show_alert=True,
+            # Пересчитываем новый баланс
+            new_balance = user_balance - award_info.cost
+
+            # Формируем сообщение об успешной покупке с детальной информацией
+            success_message = f"""<b>✅ Приобретена награда:</b> {award_info.name}
+
+<b>📍 Количество активаций:</b> {award_info.count}
+
+<b>💰 Баланс</b>
+• Был: {user_balance} баллов  
+• Списано: {award_info.cost} баллов
+• Стало: {new_balance} баллов
+
+<b>📝 Описание</b>
+{award_info.description}
+
+<i>🎯 Ты можешь использовать награду сейчас или найти её позже в купленных наградах</i>"""
+
+            # Показываем сообщение с новой клавиатурой
+            await callback.message.edit_text(
+                success_message,
+                reply_markup=award_purchase_success_kb(new_user_award.id),
             )
 
             logger.info(
                 f"[Покупка награды] {callback.from_user.username} ({user.user_id}) купил награду '{award_info.name}' за {award_info.cost} баллов со статусом 'stored'"
-            )
-
-            # Возвращаемся к списку доступных наград
-            await awards_available(
-                callback=callback,
-                user=user,
-                callback_data=AwardsMenu(menu="available", page=current_page),
-                stp_repo=stp_repo,
             )
 
         except Exception as e:
@@ -565,7 +574,7 @@ async def sell_award_handler(
 
         if success:
             await callback.answer(
-                f"✅ Продано: {award_info.name}. Возвращено: {award_info.cost} баллов"
+                f"✅ Продано: {award_info.name}.\nВозвращено: {award_info.cost} баллов"
             )
 
             logger.info(
