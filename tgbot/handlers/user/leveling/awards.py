@@ -12,6 +12,8 @@ from tgbot.keyboards.user.leveling.awards import (
     AwardPurchaseConfirmMenu,
     AwardPurchaseMenu,
     AwardsMenu,
+    CancelActivationMenu,
+    SellAwardMenu,
     UseAwardMenu,
     available_awards_paginated_kb,
     award_confirmation_kb,
@@ -193,7 +195,9 @@ async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
 
 Здесь ты найдешь все приобретенные награды, а так же их статус и многое другое
 
-У тебя пока нет использованных наград 🙂""",
+У тебя пока нет купленных наград 🙂
+
+<i>Купить награды можно найти в меню <b>❇️ Доступные</b></i>""",
             reply_markup=to_awards_kb(),
         )
         return
@@ -249,15 +253,15 @@ async def awards_history_pagination(
 async def award_detail_view(
     callback: CallbackQuery, callback_data: AwardDetailMenu, stp_repo: RequestsRepo
 ):
-    """Показывает детальную информацию о конкретной награде"""
+    """Обработчик детального просмотра награды пользователя"""
     user_award_id = callback_data.user_award_id
 
-    # Получаем информацию о конкретной награде
+    # Получаем информацию о награде
     user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
 
     if not user_award_detail:
         await callback.message.edit_text(
-            """<b>🏆 Просмотр награды</b>
+            """<b>🏆 Награды</b>
 
 Не смог найти описание для награды ☹""",
             reply_markup=award_detail_back_kb(),
@@ -267,7 +271,6 @@ async def award_detail_view(
     user_award = user_award_detail.user_award
     award_info = user_award_detail.award_info
 
-    # Получаем эмодзи и название статуса
     status_names = {
         "stored": "Готова к использованию",
         "review": "На проверке",
@@ -277,11 +280,17 @@ async def award_detail_view(
     }
     status_name = status_names.get(user_award.status, "Неизвестный статус")
 
-    # Проверяем, можно ли использовать награду
+    # Проверяем различные возможности с наградой
     can_use = (
         user_award.status == "stored"
         and user_award_detail.current_usages < user_award_detail.max_usages
     )
+
+    # Можно продать только если статус "stored" И usage_count равен 0 (не использовалась)
+    can_sell = user_award.status == "stored" and user_award.usage_count == 0
+
+    # Можно отменить активацию если статус "review" (на проверке)
+    can_cancel = user_award.status == "review"
 
     # Формируем сообщение с подробной информацией
     message_text = f"""
@@ -313,12 +322,11 @@ async def award_detail_view(
         )
         message_text += f"\n\n<b>📅 Дата проверки ответственным</b>\n{user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}</blockquote>"
 
-    # Use the new keyboard with "Use Award" button if award can be used
-    keyboard = (
-        award_detail_kb(user_award.id, can_use=can_use)
-        if can_use
-        else award_detail_back_kb()
+    # Updated keyboard logic
+    keyboard = award_detail_kb(
+        user_award.id, can_use=can_use, can_sell=can_sell, can_cancel=can_cancel
     )
+
     await callback.message.edit_text(message_text, reply_markup=keyboard)
 
 
@@ -364,10 +372,7 @@ async def award_confirmation_handler(
     balance_after_purchase = user_balance - award_info.cost
 
     # Формируем сообщение с подробной информацией
-    message_text = f"""<b>🎯 Подтверждение покупки</b>
-
-<b>🏆 Награда</b>
-{award_info.name}
+    message_text = f"""<b>🎯 Покупка награды:</b> {award_info.name}
 
 <b>📝 Описание</b>
 {award_info.description}
@@ -384,7 +389,7 @@ async def award_confirmation_handler(
 • Текущий: {user_balance} баллов
 • После покупки: {balance_after_purchase} баллов
 
-<i>После приобретения награда будет доступна в меню купленных наград</i>"""
+<i>Купленные награды можно найти в меню <b>✴️ Купленные</b></i>"""
 
     await callback.message.edit_text(
         message_text, reply_markup=award_confirmation_kb(award_id, current_page)
@@ -524,3 +529,110 @@ async def use_award_handler(
     await award_detail_view(
         callback, AwardDetailMenu(user_award_id=user_award_id), stp_repo
     )
+
+
+@user_leveling_awards_router.callback_query(SellAwardMenu.filter())
+async def sell_award_handler(
+    callback: CallbackQuery,
+    callback_data: SellAwardMenu,
+    user: User,
+    stp_repo: RequestsRepo,
+):
+    """
+    Хендлер продажи награды - удаляет запись из БД и возвращает баллы
+    """
+    user_award_id = callback_data.user_award_id
+
+    # Получаем информацию о награде
+    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    if not user_award_detail:
+        await callback.answer("❌ Награда не найдена", show_alert=True)
+        return
+
+    user_award = user_award_detail.user_award
+    award_info = user_award_detail.award_info
+
+    # Проверяем, что награду можно продать (статус "stored" и usage_count = 0)
+    if user_award.status != "stored" or user_award.usage_count > 0:
+        await callback.answer(
+            "❌ Нельзя продать уже использованную награду", show_alert=True
+        )
+        return
+
+    try:
+        # Удаляем запись о награде из БД
+        success = await stp_repo.user_award.delete_user_award(user_award_id)
+
+        if success:
+            await callback.answer(
+                f"✅ Продано: {award_info.name}. Возвращено: {award_info.cost} баллов"
+            )
+
+            logger.info(
+                f"[Продажа награды] {user.username} ({user.user_id}) продал награду '{award_info.name}' за {award_info.cost} баллов"
+            )
+
+            # Возвращаемся к списку купленных наград
+            await awards_history(
+                callback=callback,
+                stp_repo=stp_repo,
+            )
+        else:
+            await callback.answer("❌ Ошибка при продаже награды", show_alert=True)
+
+    except Exception as e:
+        logger.error(f"Error selling award: {e}")
+        await callback.answer("❌ Ошибка при продаже награды", show_alert=True)
+
+
+@user_leveling_awards_router.callback_query(CancelActivationMenu.filter())
+async def cancel_activation_handler(
+    callback: CallbackQuery,
+    callback_data: CancelActivationMenu,
+    user: User,
+    stp_repo: RequestsRepo,
+):
+    """
+    Хендлер отмены активации награды - меняет статус с "review" обратно на "stored"
+    """
+    user_award_id = callback_data.user_award_id
+
+    # Получаем информацию о награде
+    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    if not user_award_detail:
+        await callback.answer("❌ Награда не найдена", show_alert=True)
+        return
+
+    user_award = user_award_detail.user_award
+    award_info = user_award_detail.award_info
+
+    # Проверяем, что награда на рассмотрении
+    if user_award.status != "review":
+        await callback.answer(
+            "❌ Нельзя отменить активацию этой награды", show_alert=True
+        )
+        return
+
+    try:
+        # Меняем статус обратно на "stored"
+        success = await stp_repo.user_award.update_award(
+            award_id=user_award_id, status="stored"
+        )
+
+        if success:
+            await callback.answer(f"✅ Активация награды '{award_info.name}' отменена!")
+
+            logger.info(
+                f"[Отмена активации] {user.username} ({user.user_id}) отменил активацию награды '{award_info.name}'"
+            )
+
+            # Refresh the award detail view
+            await award_detail_view(
+                callback, AwardDetailMenu(user_award_id=user_award_id), stp_repo
+            )
+        else:
+            await callback.answer("❌ Ошибка при отмене активации", show_alert=True)
+
+    except Exception as e:
+        logger.error(f"Error canceling activation: {e}")
+        await callback.answer("❌ Ошибка при отмене активации", show_alert=True)

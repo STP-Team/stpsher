@@ -236,3 +236,29 @@ class UserAwardsRepo(BaseRepo):
 
         await self.session.commit()
         return True
+
+    async def delete_user_award(self, user_award_id: int) -> bool:
+        """
+        Удаляет запись о награде пользователя из БД (для продажи)
+
+        Args:
+            user_award_id: ID записи в таблице user_awards
+
+        Returns:
+            bool: True if successful, False if award not found
+        """
+        select_stmt = select(UserAward).where(UserAward.id == user_award_id)
+        result = await self.session.execute(select_stmt)
+        user_award = result.scalar_one_or_none()
+
+        if not user_award:
+            return False
+
+        # Проверяем, что награду можно удалить (только со статусом "stored" и usage_count = 0)
+        if user_award.status != "stored" or user_award.usage_count > 0:
+            return False
+
+        await self.session.delete(user_award)
+        await self.session.commit()
+
+        return True

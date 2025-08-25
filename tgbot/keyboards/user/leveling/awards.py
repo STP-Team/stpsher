@@ -38,6 +38,14 @@ class AwardDetailMenu(CallbackData, prefix="award_detail"):
     user_award_id: int
 
 
+class SellAwardMenu(CallbackData, prefix="sell_award"):
+    user_award_id: int
+
+
+class CancelActivationMenu(CallbackData, prefix="cancel_activation"):
+    user_award_id: int
+
+
 def get_status_emoji(status: str) -> str:
     status_emojis = {
         "stored": "📦",
@@ -486,7 +494,12 @@ def award_detail_back_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def award_detail_kb(user_award_id: int, can_use: bool = False) -> InlineKeyboardMarkup:
+def award_detail_kb(
+    user_award_id: int,
+    can_use: bool = False,
+    can_sell: bool = False,
+    can_cancel: bool = False,
+) -> InlineKeyboardMarkup:
     buttons = []
 
     if can_use:
@@ -495,6 +508,28 @@ def award_detail_kb(user_award_id: int, can_use: bool = False) -> InlineKeyboard
                 InlineKeyboardButton(
                     text="🎯 Использовать награду",
                     callback_data=UseAwardMenu(user_award_id=user_award_id).pack(),
+                )
+            ]
+        )
+
+    if can_sell:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="💸 Продать",
+                    callback_data=SellAwardMenu(user_award_id=user_award_id).pack(),
+                )
+            ]
+        )
+
+    if can_cancel:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="✋🏻 Отменить активацию",
+                    callback_data=CancelActivationMenu(
+                        user_award_id=user_award_id
+                    ).pack(),
                 )
             ]
         )
