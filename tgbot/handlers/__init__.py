@@ -2,6 +2,8 @@
 
 from tgbot.handlers.admin.main import admin_router
 from tgbot.handlers.head.main import head_router
+from tgbot.handlers.mip.leveling.achievements import mip_leveling_achievements_router
+from tgbot.handlers.mip.leveling.awards import mip_leveling_awards_router
 from tgbot.handlers.mip.leveling.main import mip_leveling_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
 from tgbot.handlers.mip.main import mip_router
@@ -22,6 +24,8 @@ routers_list = [
     head_router,
     mip_router,
     mip_leveling_router,
+    mip_leveling_achievements_router,
+    mip_leveling_awards_router,
     mip_broadcast_router,
     mip_schedule_router,
     mip_upload_router,

@@ -314,4 +314,4 @@ class UserAwardsRepo(BaseRepo):
         if not most_used:
             return None
 
-        return (most_used.name, most_used.usage_count)
+        return most_used.name, most_used.usage_count

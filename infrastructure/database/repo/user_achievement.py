@@ -66,4 +66,4 @@ class UserAchievementsRepo(BaseRepo):
         if not most_frequent:
             return None
 
-        return (most_frequent.name, most_frequent.count)
+        return most_frequent.name, most_frequent.count
