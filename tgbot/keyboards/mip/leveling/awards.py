@@ -1,29 +1,16 @@
 from typing import List
 
-from aiogram.filters.callback_data import CallbackData
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.repo.user_award import UserAwardWithDetails
-from tgbot.keyboards.mip.leveling.main import LevelingMenu, create_filters_row
+from tgbot.keyboards.mip.leveling.main import (
+    AwardActionMenu,
+    AwardActivationMenu,
+    AwardsMenu,
+    LevelingMenu,
+    create_filters_row,
+)
 from tgbot.keyboards.user.main import MainMenu
-
-
-class AwardsMenu(CallbackData, prefix="awards"):
-    menu: str
-    page: int = 1
-    award_id: int = 0
-    filters: str = "НЦК,НТП"  # comma-separated active filters
-
-
-class AwardActivationMenu(CallbackData, prefix="award_activation"):
-    user_award_id: int
-    page: int = 1
-
-
-class AwardActionMenu(CallbackData, prefix="award_action"):
-    user_award_id: int
-    action: str  # "approve" or "reject"
-    page: int = 1
 
 
 def award_activation_kb(

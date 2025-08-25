@@ -3,7 +3,6 @@ from typing import List, Set
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from tgbot.keyboards.mip.leveling.awards import AwardsMenu
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -18,6 +17,24 @@ class FilterToggleMenu(CallbackData, prefix="filter_toggle"):
     filter_name: str  # "НЦК" или "НТП"
     page: int = 1
     current_filters: str = "НЦК,НТП"  # текущие активные фильтры
+
+
+class AwardsMenu(CallbackData, prefix="awards"):
+    menu: str
+    page: int = 1
+    award_id: int = 0
+    filters: str = "НЦК,НТП"  # comma-separated active filters
+
+
+class AwardActivationMenu(CallbackData, prefix="award_activation"):
+    user_award_id: int
+    page: int = 1
+
+
+class AwardActionMenu(CallbackData, prefix="award_action"):
+    user_award_id: int
+    action: str  # "approve" or "reject"
+    page: int = 1
 
 
 def parse_filters(filters_str: str) -> Set[str]:

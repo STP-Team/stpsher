@@ -7,14 +7,16 @@ from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.handlers.mip.leveling.main import filter_items_by_division
+from tgbot.keyboards.mip.leveling.awards import (
+    award_activation_kb,
+    award_detail_kb,
+    awards_paginated_kb,
+)
 from tgbot.keyboards.mip.leveling.main import (
     AwardActionMenu,
     AwardActivationMenu,
     AwardsMenu,
     LevelingMenu,
-    award_activation_kb,
-    award_detail_kb,
-    awards_paginated_kb,
     parse_filters,
 )
 

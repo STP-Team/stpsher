@@ -303,7 +303,6 @@ class UserAwardsRepo(BaseRepo):
             .select_from(UserAward)
             .join(Award, UserAward.award_id == Award.id)
             .where(UserAward.user_id == user_id)
-            .where(UserAward.usage_count > 0)  # Только использованные награды
             .order_by(UserAward.usage_count.desc())
             .limit(1)
         )

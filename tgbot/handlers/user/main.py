@@ -5,6 +5,8 @@ from aiogram.types import CallbackQuery, Message
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
+from tgbot.misc.helpers import calculate_level
+from tgbot.services.leveling import LevelingSystem
 
 user_router = Router()
 user_router.message.filter(F.chat.type == "private")
@@ -63,7 +65,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: RequestsRepo):
 
 Я - бот-помощник СТП
 
-<b>⚔️ Твой уровень:</b> {round(achievements_sum / 100)}
+<b>⚔️ Твой уровень:</b> {calculate_level(achievements_sum)}
 <b>✨ Кол-во баллов:</b> {achievements_sum - awards_sum} баллов
 
 <blockquote><b>📊 Баланс</b>
@@ -103,6 +105,10 @@ async def user_start_cb(callback: CallbackQuery, user: User, stp_repo: RequestsR
     )
     awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
 
+    current_level, current_points, next_requirement, points_needed = (
+        LevelingSystem.get_level_progress(achievements_sum)
+    )
+
     # Новые методы для получения самых частых
     most_frequent_achievement = (
         await stp_repo.user_achievement.get_most_frequent_achievement(
@@ -127,16 +133,18 @@ async def user_start_cb(callback: CallbackQuery, user: User, stp_repo: RequestsR
     else:
         award_text = "Нет наград"
 
-    # TODO Улучшить формулу расчета уровня
+    level_info_text = LevelingSystem.get_level_info_text(
+        achievements_sum, achievements_sum - awards_sum
+    )
+
     await callback.message.edit_text(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
-Я - бот-помощник СТП
+Я - бот-помощник специалистов СТП
 
-<b>⚔️ Твой уровень:</b> {round(achievements_sum / 100)}
-<b>✨ Кол-во баллов:</b> {achievements_sum - awards_sum} баллов
+<b>{level_info_text}</b>
 
-<blockquote><b>📊 Баланс</b>
+<blockquote expandable><b>📊 Баланс</b>
 Всего заработано: {achievements_sum} баллов
 Всего потрачено: {awards_sum} баллов
 
