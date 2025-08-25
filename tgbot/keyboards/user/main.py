@@ -36,10 +36,17 @@ def main_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="📅 Графики", callback_data=MainMenu(menu="schedule").pack()
             ),
+        ],
+        [
             InlineKeyboardButton(
-                text="🏆 Ачивки", callback_data=MainMenu(menu="leveling").pack()
+                text="🎯 Достижения",
+                callback_data=MainMenu(menu="achievements").pack(),
             ),
-        ]
+            InlineKeyboardButton(
+                text="👏 Награды",
+                callback_data=MainMenu(menu="awards").pack(),
+            ),
+        ],
     ]
 
     keyboard = InlineKeyboardMarkup(

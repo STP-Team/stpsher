@@ -5,7 +5,6 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
-from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.leveling.awards import (
     AwardDetailMenu,
     AwardHistoryMenu,
@@ -25,6 +24,7 @@ from tgbot.keyboards.user.leveling.awards import (
     awards_paginated_kb,
     to_awards_kb,
 )
+from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import executed_codes
 
 
@@ -49,12 +49,15 @@ user_leveling_awards_router.callback_query.filter(F.message.chat.type == "privat
 logger = logging.getLogger(__name__)
 
 
-@user_leveling_awards_router.callback_query(LevelingMenu.filter(F.menu == "awards"))
+@user_leveling_awards_router.callback_query(MainMenu.filter(F.menu == "awards"))
 async def user_awards_cb(callback: CallbackQuery):
     await callback.message.edit_text(
         """<b>👏 Награды</b>
 
-Здесь ты можешь найти доступные для приобретения, а так же все возможные награды""",
+Здесь ты можешь найти доступные для приобретения, а так же все возможные награды
+
+<i>Для покупки наград нужны баллы
+Баллы можно получать за <b>🎯 Достижения</b></i>""",
         reply_markup=awards_kb(),
     )
 

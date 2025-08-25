@@ -4,7 +4,6 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.repo.user_award import UserAwardWithDetails
-from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -80,10 +79,7 @@ def awards_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад", callback_data=MainMenu(menu="leveling").pack()
-            ),
-            InlineKeyboardButton(
-                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]
@@ -202,7 +198,7 @@ def available_awards_paginated_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="awards").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -309,7 +305,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="awards").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -451,7 +447,7 @@ def award_history_kb(
     buttons.append(
         [
             InlineKeyboardButton(
-                text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="awards").pack()
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -467,7 +463,7 @@ def to_awards_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="↩️ Назад", callback_data=LevelingMenu(menu="awards").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="awards").pack()
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()

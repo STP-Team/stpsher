@@ -116,7 +116,7 @@ def achievements_kb() -> InlineKeyboardMarkup:
                 callback_data=LevelingMenu(menu="achievements_all").pack(),
             ),
             InlineKeyboardButton(
-                text="🏆 Награды",
+                text="👏 Награды",
                 callback_data=AwardsMenu(menu="awards_all").pack(),
             ),
         ],
