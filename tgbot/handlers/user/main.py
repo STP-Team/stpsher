@@ -61,7 +61,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: RequestsRepo):
     await message.answer(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
-Я - бот-помощник специалистов СТП
+Я - бот-помощник СТП
 
 <b>⚔️ Твой уровень:</b> {round(achievements_sum / 100)}
 <b>✨ Кол-во баллов:</b> {achievements_sum - awards_sum} баллов
@@ -131,7 +131,7 @@ async def user_start_cb(callback: CallbackQuery, user: User, stp_repo: RequestsR
     await callback.message.edit_text(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
-Я - бот-помощник специалистов СТП
+Я - бот-помощник СТП
 
 <b>⚔️ Твой уровень:</b> {round(achievements_sum / 100)}
 <b>✨ Кол-во баллов:</b> {achievements_sum - awards_sum} баллов

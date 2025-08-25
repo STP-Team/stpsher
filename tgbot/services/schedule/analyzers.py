@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from .models import DayInfo
 
@@ -20,11 +20,15 @@ class ScheduleAnalyzer:
 
         if not schedule_clean or schedule_clean in ["НЕ УКАЗАНО", "NAN", "NONE", ""]:
             return "day_off"
-        elif "ОТПУСК" in schedule_clean:
+        elif schedule_clean.lower() == "отпуск":
             return "vacation"
+        elif schedule_clean.lower() == "отпуск бс":
+            return "vacation_bs"
+        elif schedule_clean.lower() == "в":
+            return "army"
         elif any(word in schedule_clean for word in ["ЛНТС"]):
             return "sick"
-        elif "Н" in schedule_clean:
+        elif schedule_clean.lower() == "Н":
             return "missing"
         elif any(char in schedule_clean for char in ["-", ":"]):
             return "work"
@@ -58,13 +62,17 @@ class ScheduleAnalyzer:
     @staticmethod
     def analyze_schedule(
         schedule_data: Dict[str, str],
-    ) -> Tuple[List[Any], List[Any], List[Any], List[Any], List[Any]]:
+    ) -> tuple[
+        list[Any], list[Any], list[Any], list[Any], list[Any], list[Any], list[Any]
+    ]:
         """Analyze schedule and categorize by type"""
         work_days = []
         days_off = []
         vacation_days = []
-        missing_days = []
+        vacation_bs_days = []
+        army_days = []
         sick_days = []
+        missing_days = []
 
         for day, schedule_value in schedule_data.items():
             category = ScheduleAnalyzer.categorize_schedule_entry(schedule_value)
@@ -80,11 +88,23 @@ class ScheduleAnalyzer:
                 work_days.append(day_info)
             elif category == "vacation":
                 vacation_days.append(day_info)
+            elif category == "vacation_bs":
+                vacation_bs_days.append(day_info)
+            elif category == "army":
+                army_days.append(day_info)
             elif category == "sick":
                 sick_days.append(day_info)
             elif category == "missing":
                 missing_days.append(day_info)
             else:
                 days_off.append(day_info)
-
-        return work_days, days_off, vacation_days, sick_days, missing_days
+            print(day, schedule_value, category)
+        return (
+            work_days,
+            days_off,
+            vacation_days,
+            vacation_bs_days,
+            army_days,
+            sick_days,
+            missing_days,
+        )

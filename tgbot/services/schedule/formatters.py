@@ -16,6 +16,8 @@ class ScheduleFormatter:
         work_days: List[DayInfo],
         days_off: List[DayInfo],
         vacation_days: List[DayInfo],
+        vacation_bs_days: List[DayInfo],
+        army_days: List[DayInfo],
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
@@ -32,6 +34,18 @@ class ScheduleFormatter:
                 [d.day for d in vacation_days]
             )
             lines.append(f"\n🏖 <b>Отпуск:</b> {vacation_range}")
+
+        if vacation_bs_days:
+            vacation_bs_range = ScheduleFormatter._format_day_range(
+                [d.day for d in vacation_bs_days]
+            )
+            lines.append(f"\n🏖 <b>БС:</b> {vacation_bs_range}")
+
+        if army_days:
+            army_days_range = ScheduleFormatter._format_day_range(
+                [d.day for d in army_days]
+            )
+            lines.append(f"\n🎖️ <b>Военкомат:</b> {army_days_range}")
 
         if sick_days:
             sick_range = ScheduleFormatter._format_day_range([d.day for d in sick_days])
@@ -62,6 +76,8 @@ class ScheduleFormatter:
         work_days: List[DayInfo],
         days_off: List[DayInfo],
         vacation_days: List[DayInfo],
+        vacation_bs_days: List[DayInfo],
+        army_days: List[DayInfo],
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
@@ -75,6 +91,10 @@ class ScheduleFormatter:
             all_days.append((day_info, "day_off"))
         for day_info in vacation_days:
             all_days.append((day_info, "vacation"))
+        for day_info in vacation_bs_days:
+            all_days.append((day_info, "vacation_bs"))
+        for day_info in army_days:
+            all_days.append((day_info, "army"))
         for day_info in sick_days:
             all_days.append((day_info, "sick"))
         for day_info in missing_days:
@@ -93,6 +113,8 @@ class ScheduleFormatter:
         total_work_hours = 0
         work_days_count = 0
         vacation_days_count = 0
+        vacation_bs_days_count = 0
+        army_days_count = 0
         sick_days_count = 0
         missing_days_count = 0
         days_off_count = 0
@@ -115,6 +137,12 @@ class ScheduleFormatter:
             elif day_type == "vacation":
                 lines.append(f"<b>{day_info.day}:</b> ⛱️ Отпуск")
                 vacation_days_count += 1
+            elif day_type == "vacation_bs":
+                lines.append(f"<b>{day_info.day}:</b> ⛱️ БС")
+                vacation_bs_days_count += 1
+            elif day_type == "army":
+                lines.append(f"<b>{day_info.day}:</b> 🎖️ Армия")
+                army_days_count += 1
             elif day_type == "sick":
                 lines.append(f"<b>{day_info.day}:</b> 🤒 Больничный")
                 sick_days_count += 1
@@ -130,6 +158,10 @@ class ScheduleFormatter:
         lines.append(f"Выходных: <b>{days_off_count}</b>")
         if vacation_days_count > 0:
             lines.append(f"Отпуск: <b>{vacation_days_count} дн.</b>")
+        if vacation_bs_days_count > 0:
+            lines.append(f"БС: <b>{vacation_days_count} дн.</b>")
+        if army_days_count > 0:
+            lines.append(f"Военкомат: <b>{vacation_days_count} дн.</b>")
         if sick_days_count > 0:
             lines.append(f"БЛ: <b>{sick_days_count} дн.</b>")
         if missing_days_count > 0:

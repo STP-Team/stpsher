@@ -219,17 +219,37 @@ class ScheduleParser:
             if not schedule_data:
                 return f"❌ График для <b>{fullname}</b> на {month} не найден"
 
-            work_days, days_off, vacation_days, sick_days, missing_days = (
-                self.analyzer.analyze_schedule(schedule_data)
-            )
+            (
+                work_days,
+                days_off,
+                vacation_days,
+                vacation_bs_days,
+                army_days,
+                sick_days,
+                missing_days,
+            ) = self.analyzer.analyze_schedule(schedule_data)
 
             if compact:
                 return self.formatter.format_compact(
-                    month, work_days, days_off, vacation_days, sick_days, missing_days
+                    month,
+                    work_days,
+                    days_off,
+                    vacation_days,
+                    vacation_bs_days,
+                    army_days,
+                    sick_days,
+                    missing_days,
                 )
             else:
                 return self.formatter.format_detailed(
-                    month, work_days, days_off, vacation_days, sick_days, missing_days
+                    month,
+                    work_days,
+                    days_off,
+                    vacation_days,
+                    vacation_bs_days,
+                    army_days,
+                    sick_days,
+                    missing_days,
                 )
 
         except Exception as e:
