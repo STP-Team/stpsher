@@ -22,10 +22,10 @@ class ScheduleAnalyzer:
             return "day_off"
         elif "ОТПУСК" in schedule_clean:
             return "vacation"
-        elif "Н" in schedule_clean:
-            return "missing"
         elif any(word in schedule_clean for word in ["ЛНТС"]):
             return "sick"
+        elif "Н" in schedule_clean:
+            return "missing"
         elif any(char in schedule_clean for char in ["-", ":"]):
             return "work"
         else:

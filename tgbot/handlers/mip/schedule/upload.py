@@ -198,6 +198,6 @@ async def _show_error_message(message: Message, state: FSMContext, error_text: s
 async def _show_schedule_menu(message: Message):
     """Display the main schedule menu."""
     await message.answer(
-        "📅 Меню графиков\n\nВыбери действие из меню ниже",
+        "<b>📅 Меню графиков</b>\n\nЗдесь ты найдешь все, что связано с графиками",
         reply_markup=schedule_kb(),
     )
