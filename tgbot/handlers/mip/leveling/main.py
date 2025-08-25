@@ -391,10 +391,8 @@ async def award_action(
         elif action == "reject":
             # Отклоняем награду
             # TODO изменить логику отмены. Информировать пользователя об отмене. Не прибавлять и не отменять использование награды
-            await stp_repo.user_award.update_award(
-                award_id=user_award_id,
-                updated_by_user_id=callback.from_user.id,
-                status="rejected",
+            await stp_repo.user_award.reject_award_usage(
+                user_award_id=user_award_id, updated_by_user_id=callback.from_user.id
             )
 
             await callback.answer(

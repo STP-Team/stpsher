@@ -237,6 +237,34 @@ class UserAwardsRepo(BaseRepo):
         await self.session.commit()
         return True
 
+    async def reject_award_usage(
+        self, user_award_id: int, updated_by_user_id: int
+    ) -> bool:
+        """
+        Отмена использования награды - возвращает статус награды на 'stored' или 'used_up'
+        """
+        # Get the user award first
+        user_award = await self.session.get(UserAward, user_award_id)
+        if not user_award:
+            return False
+
+        # Get the award info
+        award_info = await self.session.get(Award, user_award.award_id)
+        if not award_info:
+            return False
+
+        user_award.updated_at = datetime.now()
+        user_award.updated_by_user_id = updated_by_user_id
+
+        # Set status based on remaining uses
+        if user_award.usage_count >= award_info.count:
+            user_award.status = "used_up"
+        else:
+            user_award.status = "stored"
+
+        await self.session.commit()
+        return True
+
     async def delete_user_award(self, user_award_id: int) -> bool:
         """
         Удаляет запись о награде пользователя из БД (для продажи)

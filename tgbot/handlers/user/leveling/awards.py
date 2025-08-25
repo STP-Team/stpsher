@@ -171,9 +171,9 @@ async def awards_available(
         awards_list.append("")
 
     message_text = f"""<b>❇️ Доступные награды</b>
+<i>Страница {page} из {total_pages}</i>
 
 <b>💰 Твой баланс:</b> {user_balance} баллов
-<i>Страница {page} из {total_pages}</i>
 
 {"\n".join(awards_list)}"""
 
@@ -322,15 +322,15 @@ async def award_detail_view(
         manager = await stp_repo.user.get_user(user_id=user_award.updated_by_user_id)
         if manager.username:
             message_text += (
-                f"\n\n<blockquote expandable><b>👤 Ответственный</b>\n<a href='t.me/{manager.username}'>"
+                f"\n\n<blockquote expandable><b>👤 Последний проверяющий</b>\n<a href='t.me/{manager.username}'>"
                 f"{manager.fullname}</a>"
             )
         else:
             message_text += (
-                f"\n\n<blockquote expandable><b>👤 Ответственный</b>\n<a href='tg://user?id={manager.user_id}'>"
+                f"\n\n<blockquote expandable><b>👤 Последний проверяющий</b>\n<a href='tg://user?id={manager.user_id}'>"
                 f"{manager.fullname}</a>"
             )
-        message_text += f"\n\n<b>📅 Дата проверки ответственным</b>\n{user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}</blockquote>"
+        message_text += f"\n\n<b>📅 Дата проверки</b>\n{user_award.updated_at.strftime('%d.%m.%Y в %H:%M')}</blockquote>"
 
     # Updated keyboard logic
     keyboard = award_detail_kb(
@@ -387,17 +387,12 @@ async def award_confirmation_handler(
 <b>📝 Описание</b>
 {award_info.description}
 
-<b>💵 Стоимость</b>
-{award_info.cost} баллов"""
-
-    if award_info.count > 1:
-        message_text += f"\n<b>📍 Количество использований:</b> {award_info.count}"
-
-    message_text += f"""
+<b>📍 Количество использований:</b> {award_info.count}
 
 <b>💰 Баланс</b>
 • Текущий: {user_balance} баллов
-• После покупки: {balance_after_purchase} баллов
+• Спишется: {award_info.cost} баллов
+• Останется : {balance_after_purchase} баллов
 
 <i>Купленные награды можно найти в меню <b>✴️ Купленные</b></i>"""
 
@@ -482,7 +477,7 @@ async def award_purchase_final_handler(
 <b>📝 Описание</b>
 {award_info.description}
 
-<i>🎯 Ты можешь использовать награду сейчас или найти её позже в купленных наградах</i>"""
+<i>🎯 Ты можешь использовать награду сейчас или найти её позже в меню <b>✴️ Купленные</b></i>"""
 
             # Показываем сообщение с новой клавиатурой
             await callback.message.edit_text(
