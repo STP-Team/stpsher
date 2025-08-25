@@ -334,7 +334,11 @@ async def award_detail_view(
 
     # Updated keyboard logic
     keyboard = award_detail_kb(
-        user_award.id, can_use=can_use, can_sell=can_sell, can_cancel=can_cancel
+        user_award.id,
+        can_use=can_use,
+        can_sell=can_sell,
+        can_cancel=can_cancel,
+        source_menu="bought",
     )
 
     await callback.message.edit_text(message_text, reply_markup=keyboard)
@@ -555,6 +559,7 @@ async def sell_award_handler(
     Хендлер продажи награды - удаляет запись из БД и возвращает баллы
     """
     user_award_id = callback_data.user_award_id
+    source_menu = callback_data.source_menu
 
     # Получаем информацию о награде
     user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
@@ -573,7 +578,6 @@ async def sell_award_handler(
         return
 
     try:
-        # Удаляем запись о награде из БД
         success = await stp_repo.user_award.delete_user_award(user_award_id)
 
         if success:
@@ -585,11 +589,21 @@ async def sell_award_handler(
                 f"[Продажа награды] {user.username} ({user.user_id}) продал награду '{award_info.name}' за {award_info.cost} баллов"
             )
 
-            # Возвращаемся к списку купленных наград
-            await awards_history(
-                callback=callback,
-                stp_repo=stp_repo,
-            )
+            # Context-aware navigation
+            if source_menu == "available":
+                # Return to available awards if user came from purchase flow
+                await awards_available(
+                    callback=callback,
+                    user=user,
+                    callback_data=AwardsMenu(menu="available", page=1),
+                    stp_repo=stp_repo,
+                )
+            else:
+                # Return to bought awards if user came from bought awards menu
+                await awards_history(
+                    callback=callback,
+                    stp_repo=stp_repo,
+                )
         else:
             await callback.answer("❌ Ошибка при продаже награды", show_alert=True)
 

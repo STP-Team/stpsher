@@ -39,6 +39,7 @@ class AwardDetailMenu(CallbackData, prefix="award_detail"):
 
 class SellAwardMenu(CallbackData, prefix="sell_award"):
     user_award_id: int
+    source_menu: str = "bought"  # "bought" или "available"
 
 
 class CancelActivationMenu(CallbackData, prefix="cancel_activation"):
@@ -495,6 +496,7 @@ def award_detail_kb(
     can_use: bool = False,
     can_sell: bool = False,
     can_cancel: bool = False,
+    source_menu: str = "bought",
 ) -> InlineKeyboardMarkup:
     buttons = []
 
@@ -513,7 +515,9 @@ def award_detail_kb(
             [
                 InlineKeyboardButton(
                     text="💸 Вернуть",
-                    callback_data=SellAwardMenu(user_award_id=user_award_id).pack(),
+                    callback_data=SellAwardMenu(
+                        user_award_id=user_award_id, source_menu=source_menu
+                    ).pack(),
                 )
             ]
         )
@@ -555,7 +559,10 @@ def award_purchase_success_kb(user_award_id: int) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="💸 Вернуть",
-                callback_data=SellAwardMenu(user_award_id=user_award_id).pack(),
+                callback_data=SellAwardMenu(
+                    user_award_id=user_award_id,
+                    source_menu="available",
+                ).pack(),
             )
         ],
         [
