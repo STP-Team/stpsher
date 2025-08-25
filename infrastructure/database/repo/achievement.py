@@ -7,12 +7,18 @@ from infrastructure.database.repo.base import BaseRepo
 
 
 class AchievementsRepo(BaseRepo):
-    async def get_achievements(self):
+    async def get_achievements(self, division: str = None):
         """
         Получаем полный список достижений
+
+        Args:
+            division: Фильтр по направлению (НЦК, НТП и т.д.)
         """
 
-        select_stmt = select(Achievement)
+        if division:
+            select_stmt = select(Achievement).where(Achievement.division == division)
+        else:
+            select_stmt = select(Achievement)
 
         result = await self.session.execute(select_stmt)
         awards = result.scalars().all()

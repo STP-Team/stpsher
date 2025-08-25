@@ -38,9 +38,10 @@ class Achievement(Base, TableNameMixin):
     kpi: Mapped[str] = mapped_column(VARCHAR(3), nullable=False)
     reward: Mapped[int] = mapped_column(Integer, nullable=False)
     position: Mapped[str] = mapped_column(VARCHAR(31), nullable=False)
+    period: Mapped[str] = mapped_column(VARCHAR(1), nullable=False)
 
     def __repr__(self):
         return (
             f"<Achievement {self.id} {self.name} {self.description}"
-            f"{self.division} {self.kpi} {self.reward} {self.position}>"
+            f"{self.division} {self.kpi} {self.reward} {self.position} {self.period}>"
         )
