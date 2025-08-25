@@ -44,7 +44,7 @@ class UserAward(Base, TableNameMixin):
         DateTime, nullable=True, default=datetime.now
     )
     updated_by_user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
-    status: Mapped[str] = mapped_column(VARCHAR(10), nullable=False, default="waiting")
+    status: Mapped[str] = mapped_column(VARCHAR(10), nullable=False, default="stored")
 
     def __repr__(self):
         return f"<UserAward {self.id} {self.user_id} {self.award_id} {self.comment} {self.usage_count} {self.bought_at} {self.updated_at} {self.updated_by_user_id} {self.status}>"

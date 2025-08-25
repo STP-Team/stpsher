@@ -37,7 +37,7 @@ class UserAwardWithDetails:
 
 class UserAwardsRepo(BaseRepo):
     async def create_user_award(
-        self, user_id: int, award_id: int, status: str = "waiting", comment: str = None
+        self, user_id: int, award_id: int, status: str = "stored", comment: str = None
     ) -> UserAward:
         """
         Создаем новую награду для пользователя
@@ -45,7 +45,7 @@ class UserAwardsRepo(BaseRepo):
         Args:
             user_id: ID пользователя Telegram
             award_id: ID награды из таблицы awards
-            status: Статус награды (по умолчанию "waiting")
+            status: Статус награды (по умолчанию "stored")
             comment: Комментарий к награде (опционально)
 
         Returns:
@@ -137,12 +137,12 @@ class UserAwardsRepo(BaseRepo):
 
         return total or 0  # Если награда не найдена - возвращаем 0
 
-    async def get_waiting_awards_for_activation(
+    async def get_review_awards_for_activation(
         self, manager_role: int
     ) -> list[UserAwardWithDetails]:
         """
         Получаем список наград ожидающих активации
-        Фильтруем по статусу "waiting" и manager_role
+        Фильтруем по статусу "review" и manager_role
         """
         from infrastructure.database.models import Award, User
 
@@ -150,7 +150,7 @@ class UserAwardsRepo(BaseRepo):
             select(UserAward, Award, User)
             .join(Award, UserAward.award_id == Award.id)
             .join(User, UserAward.user_id == User.user_id)
-            .where(UserAward.status == "waiting", Award.manager_role == manager_role)
+            .where(UserAward.status == "review", Award.manager_role == manager_role)
             .order_by(
                 UserAward.bought_at.asc()
             )  # Сортируем по дате покупки (сначала старые)
@@ -184,7 +184,7 @@ class UserAwardsRepo(BaseRepo):
 
     async def use_award(self, user_award_id: int) -> bool:
         """
-        User clicks 'Use Award' button - changes status from 'stored' to 'waiting'
+        User clicks 'Use Award' button - changes status from 'stored' to 'review'
 
         Returns:
             bool: True if successful, False if not available for use
@@ -201,7 +201,7 @@ class UserAwardsRepo(BaseRepo):
         if user_award.usage_count >= award_info.count:
             return False
 
-        user_award.status = "waiting"
+        user_award.status = "review"
         user_award.updated_at = datetime.now()
 
         await self.session.commit()

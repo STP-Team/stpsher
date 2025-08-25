@@ -41,7 +41,7 @@ class AwardDetailMenu(CallbackData, prefix="award_detail"):
 def get_status_emoji(status: str) -> str:
     status_emojis = {
         "stored": "📦",
-        "waiting": "⏳",
+        "review": "⏳",
         "used_up": "🔒",
         "canceled": "❌",
         "rejected": "⛔",

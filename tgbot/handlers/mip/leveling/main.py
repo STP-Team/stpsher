@@ -208,18 +208,18 @@ async def awards_activation(
 ):
     """
     Обработчик меню наград для активации
-    Показывает награды со статусом "waiting" и manager_role == 6
+    Показывает награды со статусом "review" и manager_role == 6
     """
 
     # Достаём номер страницы из callback data, стандартно = 1
     page = getattr(callback_data, "page", 1)
 
     # Получаем награды ожидающие активации с manager_role == 6
-    waiting_awards = await stp_repo.user_award.get_waiting_awards_for_activation(
+    review_awards = await stp_repo.user_award.get_review_awards_for_activation(
         manager_role=6
     )
 
-    if not waiting_awards:
+    if not review_awards:
         await callback.message.edit_text(
             """<b>✍️ Награды для активации</b>
 
@@ -230,13 +230,13 @@ async def awards_activation(
 
     # Логика пагинации
     awards_per_page = 5
-    total_awards = len(waiting_awards)
+    total_awards = len(review_awards)
     total_pages = (total_awards + awards_per_page - 1) // awards_per_page
 
     # Считаем начало и конец текущей страницы
     start_idx = (page - 1) * awards_per_page
     end_idx = start_idx + awards_per_page
-    page_awards = waiting_awards[start_idx:end_idx]
+    page_awards = review_awards[start_idx:end_idx]
 
     # Построение списка наград для текущей страницы
     awards_list = []
