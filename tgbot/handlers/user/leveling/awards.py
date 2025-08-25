@@ -270,19 +270,12 @@ async def award_detail_view(
     # Получаем эмодзи и название статуса
     status_names = {
         "stored": "Готова к использованию",
-        "waiting": "Ожидает подтверждения",
+        "waiting": "На проверке",
         "used_up": "Полностью использована",
         "canceled": "Отменена",
         "rejected": "Отклонена",
     }
     status_name = status_names.get(user_award.status, "Неизвестный статус")
-
-    # Форматируем информацию об активациях
-    usage_info = (
-        f"(еще {user_award_detail.max_usages - user_award_detail.current_usages} раз)"
-        if user_award_detail.max_usages - user_award_detail.current_usages != 0
-        else ""
-    )
 
     # Проверяем, можно ли использовать награду
     can_use = (
@@ -295,7 +288,10 @@ async def award_detail_view(
 <b>🏆 Награда:</b> {award_info.name}
 
 <b>📊 Статус</b>  
-{status_name} {usage_info}
+{status_name}
+
+<b>📍 Активаций</b>
+{user_award.usage_count} из {award_info.count}
 
 <b>💵 Стоимость</b>  
 {award_info.cost} баллов
@@ -514,7 +510,7 @@ async def use_award_handler(
 
         await callback.answer(
             f"✅ Награда {award_name} отправлена на рассмотрение!\n\n"
-            f"🔔 Ожидает подтверждения от: {confirmer}",
+            f"🔔 На проверке у: {confirmer}",
             show_alert=True,
         )
 

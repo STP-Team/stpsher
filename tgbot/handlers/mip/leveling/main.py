@@ -3,6 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
+from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.leveling.main import (
@@ -100,8 +101,7 @@ async def achievements_all(
         achievements_list.append(f"""{counter}. <b>{name}</b>
 🏅 Награда: {achievement.reward} баллов
 📝 Описание: {description}
-🔰 Направление: {division}
-👤 Позиция: {position}""")
+🔰 Должность: {position} {division}""")
         achievements_list.append("")
 
     # Создаем статистику по всем достижениям (не только отфильтрованным)
@@ -167,29 +167,32 @@ async def awards_all(
     # Построение списка наград для текущей страницы
     awards_list = []
     for counter, award in enumerate(page_awards, start=start_idx + 1):
-        awards_list.append(f"""{counter}. <b>{award.name}</b>
+        award_text = f"""
+<b>{counter}. {award.name}</b>
+📍 Активаций: {award.count}
 💵 Стоимость: {award.cost} баллов
-📝 Описание: {award.description}
-🔰 Направление: {award.division}""")
-        if award.count > 0:
-            awards_list.append(f"""📍 Активаций: {award.count}""")
-        awards_list.append("")
+🔰 Направление: {award.division}
+📝 Описание: {award.description}"""
+        awards_list.append(award_text)
 
-    # Создаем статистику по всем наградам (не только отфильтрованным)
+    # Статистика
     stats_ntp = sum(1 for award in all_awards if award.division == "НТП")
     stats_nck = sum(1 for award in all_awards if award.division == "НЦК")
-
-    # Статистика по отфильтрованным
     filtered_stats = f"Показано: {total_awards}"
 
-    message_text = f"""<b>🏆 Все возможные награды</b>
+    message_text = f"""
+<b>🏆 Все возможные награды</b>
 <i>Страница {page} из {total_pages}</i>
 
-<blockquote expandable>Всего наград:
-НТП: {stats_ntp} | НЦК: {stats_nck}
-{filtered_stats}</blockquote>
+<blockquote expandable>
+Всего наград:  
+• НТП: {stats_ntp}  
+• НЦК: {stats_nck}  
+{filtered_stats}
+</blockquote>
 
-{chr(10).join(awards_list)}"""
+    {chr(10).join(awards_list)}
+    """
 
     await callback.message.edit_text(
         message_text, reply_markup=awards_paginated_kb(page, total_pages, filters)
@@ -245,11 +248,12 @@ async def awards_activation(
         user = await stp_repo.user.get_user(user_id=user_award.user_id)
         user_name = user.fullname if user else f"ID: {user_award.user_id}"
 
-        awards_list.append(f"""{counter}. <b>{award_info.name}</b>
-👤 Пользователь: {user_name}
-💵 Стоимость: {award_info.cost} баллов
-📝 Описание: {award_info.description}
-🔰 Направление: {award_info.division}""")
+        awards_list.append(f"""{counter}. <b>{award_info.name}</b> - {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}
+<blockquote><b>👤 Специалист</b>
+<a href='tg://user?id={user.user_id}'>{user_name}</a> из {award_info.division}
+
+<b>📝 Описание</b>
+{award_info.description}</blockquote>""")
         awards_list.append("")
 
     message_text = f"""<b>✍️ Награды для активации</b>
@@ -286,31 +290,43 @@ async def award_activation_detail(
     award_info = user_award_detail.award_info
 
     # Получаем информацию о пользователе
-    user = await stp_repo.user.get_user(user_id=user_award.user_id)
+    user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
+    user_head: User = await stp_repo.user.get_user(fullname=user.head)
 
-    message_text = f"""<b>🎯 Активация награды</b>
+    message_text = f"""
+<b>🎯 Активация награды</b>
 
-<b>🏆 О награде:</b>
-• Название: <b>{award_info.name}</b>
-• Описание: {award_info.description}
-• Стоимость: {award_info.cost} баллов
-• Направление: {award_info.division}"""
+<b>🏆 О награде</b>  
+<blockquote><b>Название</b>
+{award_info.name}
+  
+<b>📝 Описание</b>
+{award_info.description}
 
-    if award_info.count > 1:
-        message_text += f"\n• Использований: {award_info.count}"
+<b>💵 Стоимость</b>
+{award_info.cost} баллов
+
+<b>📍 Активаций</b>
+{user_award.usage_count} ➡️ {user_award.usage_count + 1} ({award_info.count} всего)</blockquote>"""
 
     message_text += f"""
 
-<b>👤 О специалисте:</b>
-• ФИО: <b>{user.fullname}</b>
-• Направление: {user.division}
-• Должность: {user.position}
-• Руководитель: {user.head}
+<b>👤 О специалисте</b>
+<blockquote><b>ФИО</b>
+<a href='tg://user?id={user.user_id}'>{user.fullname}</a>
 
-<b>📅 Дата покупки:</b> {user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}"""
+<b>Должность</b>
+{user.position} {user.division}
 
+<b>Руководитель</b>
+<a href='tg://user?id={user_head.user_id}'>{user.head}</a></blockquote>
+
+<b>📅 Дата покупки</b>  
+{user_award.bought_at.strftime("%d.%m.%Y в %H:%M")}
+"""
     await callback.message.edit_text(
-        message_text, reply_markup=award_detail_kb(user_award_id, current_page)
+        message_text,
+        reply_markup=award_detail_kb(user_award_id, current_page),
     )
 
 

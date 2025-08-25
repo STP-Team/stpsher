@@ -37,7 +37,7 @@ class Achievement(Base, TableNameMixin):
     division: Mapped[str] = mapped_column(VARCHAR(3), nullable=False)
     kpi: Mapped[str] = mapped_column(VARCHAR(3), nullable=False)
     reward: Mapped[int] = mapped_column(Integer, nullable=False)
-    position: Mapped[str] = mapped_column(VARCHAR(30), nullable=False)
+    position: Mapped[str] = mapped_column(VARCHAR(31), nullable=False)
 
     def __repr__(self):
         return (

@@ -1,4 +1,5 @@
 from typing import List, Set
+
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -41,7 +42,11 @@ def parse_filters(filters_str: str) -> Set[str]:
     """Parse comma-separated filters string into a set"""
     if not filters_str:
         return {"НЦК", "НТП"}
-    return set(filter_name.strip() for filter_name in filters_str.split(",") if filter_name.strip())
+    return set(
+        filter_name.strip()
+        for filter_name in filters_str.split(",")
+        if filter_name.strip()
+    )
 
 
 def filters_to_string(filters_set: Set[str]) -> str:
@@ -65,15 +70,14 @@ def toggle_filter(current_filters: str, filter_to_toggle: str) -> str:
     return filters_to_string(filters_set)
 
 
-def create_filters_row(menu: str, current_filters: str, page: int = 1) -> List[InlineKeyboardButton]:
+def create_filters_row(
+    menu: str, current_filters: str, page: int = 1
+) -> List[InlineKeyboardButton]:
     """Create filter checkboxes row"""
     active_filters = parse_filters(current_filters)
     buttons = []
 
-    filter_options = [
-        ("НЦК", "НЦК"),
-        ("НТП", "НТП")
-    ]
+    filter_options = [("НЦК", "НЦК"), ("НТП", "НТП")]
 
     for display_name, filter_name in filter_options:
         is_active = filter_name in active_filters
@@ -86,8 +90,8 @@ def create_filters_row(menu: str, current_filters: str, page: int = 1) -> List[I
                     menu=menu,
                     filter_name=filter_name,
                     page=page,
-                    current_filters=current_filters
-                ).pack()
+                    current_filters=current_filters,
+                ).pack(),
             )
         )
 
@@ -130,7 +134,7 @@ def achievements_kb() -> InlineKeyboardMarkup:
 
 
 def award_activation_kb(
-        current_page: int, total_pages: int, page_awards: List[UserAwardWithDetails] = None
+    current_page: int, total_pages: int, page_awards: List[UserAwardWithDetails] = None
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для списка наград ожидающих активации
@@ -226,7 +230,9 @@ def award_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=LevelingMenu(menu="awards_activation", page=total_pages).pack(),
+                    callback_data=LevelingMenu(
+                        menu="awards_activation", page=total_pages
+                    ).pack(),
                 )
             )
         else:
@@ -283,7 +289,9 @@ def award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMark
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def awards_paginated_kb(current_page: int, total_pages: int, filters: str = "НЦК,НТП") -> InlineKeyboardMarkup:
+def awards_paginated_kb(
+    current_page: int, total_pages: int, filters: str = "НЦК,НТП"
+) -> InlineKeyboardMarkup:
     """
     Клавиатура пагинации для всех возможных наград с фильтрами
     """
@@ -298,7 +306,9 @@ def awards_paginated_kb(current_page: int, total_pages: int, filters: str = "Н�
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=AwardsMenu(menu="awards_all", page=1, filters=filters).pack(),
+                    callback_data=AwardsMenu(
+                        menu="awards_all", page=1, filters=filters
+                    ).pack(),
                 )
             )
         else:
@@ -372,7 +382,7 @@ def awards_paginated_kb(current_page: int, total_pages: int, filters: str = "Н�
 
 
 def achievements_paginated_kb(
-        current_page: int, total_pages: int, filters: str = "НЦК,НТП"
+    current_page: int, total_pages: int, filters: str = "НЦК,НТП"
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура пагинации для всех возможных достижений с фильтрами
@@ -388,7 +398,9 @@ def achievements_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=LevelingMenu(menu="achievements_all", page=1, filters=filters).pack(),
+                    callback_data=LevelingMenu(
+                        menu="achievements_all", page=1, filters=filters
+                    ).pack(),
                 )
             )
         else:

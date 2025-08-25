@@ -152,8 +152,8 @@ class UserAwardsRepo(BaseRepo):
             .join(User, UserAward.user_id == User.user_id)
             .where(UserAward.status == "waiting", Award.manager_role == manager_role)
             .order_by(
-                UserAward.bought_at.desc()
-            )  # Сортируем по дате покупки (новые сначала)
+                UserAward.bought_at.asc()
+            )  # Сортируем по дате покупки (сначала старые)
         )
 
         result = await self.session.execute(select_stmt)
