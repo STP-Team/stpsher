@@ -10,6 +10,7 @@ from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
 from tgbot.handlers.mip.schedule.upload import mip_upload_router
+from tgbot.handlers.user.inline import user_inline_router
 from tgbot.handlers.user.leveling.achievements import user_leveling_achievements_router
 from tgbot.handlers.user.leveling.awards import user_leveling_awards_router
 from tgbot.handlers.user.auth.main import user_auth_router
@@ -38,6 +39,7 @@ routers_list = [
     user_schedule_head_router,
     user_leveling_achievements_router,
     user_leveling_awards_router,
+    user_inline_router,
 ]
 
 __all__ = [

@@ -76,6 +76,7 @@ def register_middlewares(
     ]:
         dp.message.outer_middleware(middleware)
         dp.callback_query.outer_middleware(middleware)
+        dp.inline_query.outer_middleware(middleware)
 
 
 def get_storage(config):
