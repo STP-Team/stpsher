@@ -18,9 +18,11 @@ from tgbot.services.schedule import (
     HeadScheduleParser,
     ScheduleError,
     ScheduleFileNotFoundError,
+    ScheduleFormatter,
     ScheduleParser,
     UserNotFoundError,
 )
+from tgbot.services.schedule.parsers import GroupScheduleParser
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,8 @@ class ScheduleHandlerService:
         self.schedule_parser = ScheduleParser()
         self.duty_parser = DutyScheduleParser()
         self.head_parser = HeadScheduleParser()
+        self.group_parser = GroupScheduleParser()
+        self.formatter = ScheduleFormatter()
         self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
     @staticmethod
@@ -143,6 +147,50 @@ class ScheduleHandlerService:
         heads = await self.head_parser.get_heads_for_date(date, division, stp_repo)
 
         return self.head_parser.format_heads_for_date(date, heads)
+
+    async def get_group_schedule_response(
+        self,
+        user: User,
+        date: Optional[datetime.datetime] = None,
+        page: int = 1,
+        stp_repo=None,
+        is_head: bool = False,
+    ) -> tuple[str, int, bool, bool]:
+        """
+        Получает групповое расписание для пользователя или руководителя
+
+        :param user: Пользователь
+        :param date: Дата (по умолчанию сегодня)
+        :param page: Страница для пагинации
+        :param stp_repo: Репозиторий БД
+        :param is_head: Является ли пользователь руководителем
+        :return: (текст, общее количество страниц, есть предыдущая, есть следующая)
+        """
+        if date is None:
+            date = get_yekaterinburg_date()
+
+        try:
+            if is_head:
+                # Для руководителя - показываем его группу
+                group_members = await self.group_parser.get_group_members_for_head(
+                    user.fullname, date, user.division, stp_repo
+                )
+                return self.group_parser.format_group_schedule_for_head(
+                    date, group_members, user.fullname, page
+                )
+            else:
+                # Для обычного пользователя - показываем коллег по группе
+                group_members = await self.group_parser.get_group_members_for_user(
+                    user.fullname, date, user.division, stp_repo
+                )
+                head_name = user.head or "Не указан"
+                return self.group_parser.format_group_schedule_for_user(
+                    date, group_members, user.fullname, head_name, page
+                )
+
+        except Exception as e:
+            logger.error(f"Ошибка получения группового расписания: {e}")
+            return "❌ Ошибка получения расписания группы", 1, False, False
 
 
 # Создаем единственный экземпляр сервиса

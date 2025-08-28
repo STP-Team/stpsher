@@ -65,3 +65,21 @@ class HeadInfo:
     username: str | None
     schedule: str
     duty_info: Optional[str] = None
+
+
+@dataclass
+class GroupMemberInfo:
+    """Информация о сотруднике группы"""
+
+    name: str
+    user_id: Optional[int] = None
+    username: Optional[str] = None
+    schedule: str = ""
+    position: str = ""
+    working_hours: str = ""
+
+    @property
+    def display_name(self) -> str:
+        if self.user_id:
+            return f"<a href='tg://user?id={self.user_id}'>{self.name}</a>"
+        return self.name

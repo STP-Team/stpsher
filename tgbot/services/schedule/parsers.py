@@ -18,6 +18,7 @@ from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
 from .managers import MonthManager, ScheduleFileManager
+from .models import GroupMemberInfo
 
 logger = logging.getLogger(__name__)
 
@@ -784,3 +785,511 @@ class HeadScheduleParser:
             lines.pop()
 
         return "\n".join(lines)
+
+
+class GroupScheduleParser:
+    """
+    Парсер группового расписания для руководителей и участников группы
+    """
+
+    def __init__(self, uploads_folder: str = "uploads"):
+        self.file_manager = ScheduleFileManager(uploads_folder)
+        self.excel_parser = ExcelParser(self.file_manager)
+        self.formatter = ScheduleFormatter()
+
+    @staticmethod
+    def find_date_column(df: pd.DataFrame, target_date: datetime) -> Optional[int]:
+        """
+        Поиск колонки для проверяемой даты
+        :param df: DataFrame с данными
+        :param target_date: Проверяемая дата
+        :return: Номер колонки или None
+        """
+        target_day = target_date.day
+
+        # Ищем в первых строках заголовков
+        for row_idx in range(min(5, len(df))):
+            for col_idx in range(len(df.columns)):
+                cell_value = (
+                    str(df.iloc[row_idx, col_idx])
+                    if pd.notna(df.iloc[row_idx, col_idx])
+                    else ""
+                )
+
+                if not cell_value:
+                    continue
+
+                # Паттерн для поиска дня: "13Ср", "14Чт", "15Пт" и т.д.
+                day_pattern = r"^(\d{1,2})[А-Яа-я]{1,3}$"
+                match = re.search(day_pattern, cell_value.strip())
+
+                if match and int(match.group(1)) == target_day:
+                    logger.debug(
+                        f"[Группа] Нашли колонку с датой {target_day}: {col_idx}"
+                    )
+                    return col_idx
+
+                # Альтернативный паттерн просто число
+                if (
+                    cell_value.strip().isdigit()
+                    and int(cell_value.strip()) == target_day
+                ):
+                    logger.debug(
+                        f"[Группа] Нашли колонку с датой {target_day}: {col_idx}"
+                    )
+                    return col_idx
+
+        logger.warning(f"[Группа] Колонка для даты {target_day} не найдена")
+        return None
+
+    def _get_cell_value(self, df: pd.DataFrame, row: int, col: int) -> str:
+        """Безопасное получение значения ячейки"""
+        if row >= len(df) or col >= len(df.columns):
+            return ""
+
+        cell_value = df.iloc[row, col] if pd.notna(df.iloc[row, col]) else ""
+        return str(cell_value).strip()
+
+    def _find_header_columns(self, df: pd.DataFrame) -> Optional[Dict[str, int]]:
+        """Поиск колонок заголовков в таблице"""
+        for row_idx in range(min(10, len(df))):
+            row_values = []
+            for col_idx in range(min(15, len(df.columns))):
+                cell_value = self._get_cell_value(df, row_idx, col_idx)
+                row_values.append(cell_value.upper() if cell_value else "")
+
+            schedule_col = position_col = head_col = None
+
+            for col_idx, value in enumerate(row_values):
+                if any(keyword in value for keyword in ["ГРАФИК", "РАСПИСАНИЕ"]):
+                    schedule_col = col_idx
+                if any(keyword in value for keyword in ["ДОЛЖНОСТЬ", "ПОЗИЦИЯ"]):
+                    position_col = col_idx
+                if any(
+                    keyword in value
+                    for keyword in ["РУКОВОДИТЕЛЬ", "НАЧАЛЬНИК", "ГЛАВА"]
+                ):
+                    head_col = col_idx
+
+            if position_col is not None and head_col is not None:
+                return {
+                    "header_row": row_idx,
+                    "schedule_col": schedule_col or 1,  # По умолчанию вторая колонка
+                    "position_col": position_col,
+                    "head_col": head_col,
+                }
+
+        return None
+
+    def _is_valid_name(self, name: str) -> bool:
+        """Проверка валидности имени"""
+        if not name or name.strip() in ["", "nan", "None"]:
+            return False
+
+        parts = name.strip().split()
+        return len(parts) >= 2  # Минимум фамилия и имя
+
+    def _names_match(self, name1: str, name2: str) -> bool:
+        """Проверка совпадения имен (с учетом возможных различий в написании)"""
+        if not name1 or not name2:
+            return False
+
+        name1_clean = name1.strip()
+        name2_clean = name2.strip()
+
+        # Простое совпадение
+        if name1_clean == name2_clean:
+            return True
+
+        parts1 = name1_clean.split()
+        parts2 = name2_clean.split()
+
+        # Проверяем совпадение по фамилии и имени
+        if len(parts1) >= 2 and len(parts2) >= 2:
+            return parts1[0] == parts2[0] and parts1[1] == parts2[1]
+
+        return False
+
+    def _parse_time_from_hours(self, working_hours: str) -> tuple[int, int]:
+        """
+        Извлекает время начала работы из строки рабочих часов для сортировки
+        :param working_hours: Строка типа "08:00-17:00" или "Не указано"
+        :return: (час_начала, минута_начала)
+        """
+        if not working_hours or working_hours == "Не указано":
+            return (99, 0)  # Ставим "Не указано" в конец
+
+        # Ищем паттерн времени
+        time_pattern = r"(\d{1,2}):(\d{2})"
+        match = re.search(time_pattern, working_hours)
+
+        if match:
+            hour = int(match.group(1))
+            minute = int(match.group(2))
+            return (hour, minute)
+
+        return (99, 0)  # Если не удалось распарсить, ставим в конец
+
+    def _is_time_format(self, text: str) -> bool:
+        """Проверяет, является ли текст временным форматом (например, 07:00-19:00)"""
+        if not text:
+            return False
+        time_pattern = r"\d{1,2}:\d{2}-\d{1,2}:\d{2}"
+        return bool(re.search(time_pattern, text.strip()))
+
+    def _parse_time_from_hours(self, working_hours: str) -> tuple[int, int]:
+        """
+        Извлекает время начала работы из строки рабочих часов для сортировки
+        :param working_hours: Строка типа "08:00-17:00" или "Не указано"
+        :return: (час_начала, минута_начала)
+        """
+        if not working_hours or working_hours == "Не указано":
+            return (99, 0)  # Ставим "Не указано" в конец
+
+        # Ищем паттерн времени
+        time_pattern = r"(\d{1,2}):(\d{2})"
+        match = re.search(time_pattern, working_hours)
+
+        if match:
+            hour = int(match.group(1))
+            minute = int(match.group(2))
+            return (hour, minute)
+
+        return (99, 0)  # Если не удалось распарсить, ставим в конец
+
+    def _sort_members_by_time(
+        self, members: List[GroupMemberInfo]
+    ) -> List[GroupMemberInfo]:
+        """
+        Сортирует участников группы по времени начала работы (00:00 -> 24:00)
+        :param members: Список участников группы
+        :return: Отсортированный список
+        """
+        return sorted(
+            members, key=lambda m: self._parse_time_from_hours(m.working_hours)
+        )
+
+    async def get_group_members_for_head(
+        self, head_fullname: str, date: datetime, division: str, stp_repo
+    ) -> List[GroupMemberInfo]:
+        """
+        Получение списка сотрудников группы для руководителя
+
+        :param head_fullname: ФИО руководителя
+        :param date: Дата проверки
+        :param division: Направление
+        :param stp_repo: Репозиторий БД
+        :return: Список сотрудников группы с их расписанием
+        """
+        try:
+            # Находим файл расписания
+            schedule_file = self.file_manager.find_schedule_file(division)
+            if not schedule_file:
+                raise FileNotFoundError(f"Файл расписания для {division} не найден")
+
+            # Читаем Excel файл
+            df = pd.read_excel(schedule_file, sheet_name=0, header=None)
+
+            # Находим колонки в заголовке
+            header_info = self._find_header_columns(df)
+            if not header_info:
+                logger.warning("Не найдены необходимые колонки в файле")
+                return []
+
+            # Находим колонку для текущей даты
+            date_column = self.find_date_column(df, date)
+
+            # Находим сотрудников под руководством данного руководителя
+            group_members = []
+
+            for row_idx in range(header_info["header_row"] + 1, len(df)):
+                # Получаем данные из строки
+                name_cell = self._get_cell_value(df, row_idx, 0)  # ФИО в первой колонке
+                schedule_cell = self._get_cell_value(
+                    df, row_idx, header_info.get("schedule_col", 1)
+                )
+                position_cell = self._get_cell_value(
+                    df, row_idx, header_info.get("position_col", 4)
+                )
+                head_cell = self._get_cell_value(
+                    df, row_idx, header_info.get("head_col", 5)
+                )
+
+                # Проверяем, что этот сотрудник работает под данным руководителем
+                if not self._names_match(head_fullname, head_cell):
+                    continue
+
+                if not self._is_valid_name(name_cell):
+                    continue
+
+                # Получаем рабочие часы для конкретной даты
+                working_hours = "Не указано"
+                if date_column is not None:
+                    hours_cell = self._get_cell_value(df, row_idx, date_column)
+                    if hours_cell and self._is_time_format(hours_cell):
+                        working_hours = hours_cell
+
+                # Если не нашли в колонке даты, ищем в других местах
+                if working_hours == "Не указано":
+                    # Ищем в последних колонках строки
+                    for col_idx in range(
+                        len(df.columns) - 1, max(header_info.get("head_col", 5), 0), -1
+                    ):
+                        cell_value = self._get_cell_value(df, row_idx, col_idx)
+                        if self._is_time_format(cell_value):
+                            working_hours = cell_value
+                            break
+
+                # Получаем информацию о пользователе из БД
+                user = None
+                try:
+                    user = await stp_repo.user.get_user(fullname=name_cell.strip())
+                except Exception as e:
+                    logger.debug(f"Ошибка получения пользователя {name_cell}: {e}")
+
+                # Пропускаем пользователей, которых нет в базе данных
+                if not user:
+                    logger.debug(
+                        f"Пользователь {name_cell.strip()} не найден в БД, пропускаем"
+                    )
+                    continue
+
+                member = GroupMemberInfo(
+                    name=name_cell.strip(),
+                    user_id=user.user_id,
+                    username=user.username,
+                    schedule=schedule_cell.strip() if schedule_cell else "Не указано",
+                    position=position_cell.strip() if position_cell else "Специалист",
+                    working_hours=working_hours,
+                )
+
+                group_members.append(member)
+
+            logger.info(
+                f"Найдено {len(group_members)} сотрудников в группе {head_fullname}"
+            )
+
+            # Сортируем участников по времени начала работы
+            group_members = self._sort_members_by_time(group_members)
+
+            return group_members
+
+        except Exception as e:
+            logger.error(f"Ошибка получения группы для {head_fullname}: {e}")
+            return []
+
+    async def get_group_members_for_user(
+        self, user_fullname: str, date: datetime, division: str, stp_repo
+    ) -> List[GroupMemberInfo]:
+        """
+        Получение списка коллег по группе для обычного пользователя
+
+        :param user_fullname: ФИО пользователя
+        :param date: Дата проверки
+        :param division: Направление
+        :param stp_repo: Репозиторий БД
+        :return: Список коллег по группе
+        """
+        try:
+            # Получаем информацию о пользователе из БД
+            user = await stp_repo.user.get_user(fullname=user_fullname)
+            if not user or not user.head:
+                logger.warning(
+                    f"Пользователь {user_fullname} не найден или не имеет руководителя"
+                )
+                return []
+
+            # Получаем список всех сотрудников под тем же руководителем
+            all_members = await self.get_group_members_for_head(
+                user.head, date, division, stp_repo
+            )
+
+            # Сортируем по времени начала работы
+            return self._sort_members_by_time(all_members)
+
+        except Exception as e:
+            logger.error(f"Ошибка получения коллег для {user_fullname}: {e}")
+            return []
+
+    def format_group_schedule_for_head(
+        self,
+        date: datetime,
+        group_members: List[GroupMemberInfo],
+        head_name: str,
+        page: int = 1,
+        members_per_page: int = 8,
+    ) -> tuple[str, int, bool, bool]:
+        """
+        Форматирование группового расписания для руководителя с пагинацией
+
+        :param date: Дата
+        :param group_members: Список сотрудников группы
+        :param head_name: Имя руководителя
+        :param page: Текущая страница
+        :param members_per_page: Количество сотрудников на страницу
+        :return: (текст, общее количество страниц, есть предыдущая, есть следующая)
+        """
+        if not group_members:
+            return (
+                f"👥 <b>Группа на {date.strftime('%d.%m.%Y')}</b>\n\n❌ Сотрудники не найдены",
+                1,
+                False,
+                False,
+            )
+
+        # Сортируем сотрудников по времени (уже отсортированы, но для надежности)
+        sorted_members = self._sort_members_by_time(group_members)
+
+        # Группируем сотрудников по рабочим часам в отсортированном порядке
+        grouped_by_hours = {}
+        hours_order = []  # Для сохранения порядка групп
+
+        for member in sorted_members:
+            hours = member.working_hours or "Не указано"
+            if hours not in grouped_by_hours:
+                grouped_by_hours[hours] = []
+                hours_order.append(hours)
+            grouped_by_hours[hours].append(member)
+
+        # Подсчитываем общее количество сотрудников для пагинации
+        total_members = len(sorted_members)
+        total_pages = max(1, (total_members + members_per_page - 1) // members_per_page)
+
+        # Применяем пагинацию к отсортированному списку сотрудников
+        start_idx = (page - 1) * members_per_page
+        end_idx = start_idx + members_per_page
+        page_members = sorted_members[start_idx:end_idx]
+
+        # Группируем сотрудников на текущей странице по рабочим часам
+        page_grouped_by_hours = {}
+        page_hours_order = []
+
+        for member in page_members:
+            hours = member.working_hours or "Не указано"
+            if hours not in page_grouped_by_hours:
+                page_grouped_by_hours[hours] = []
+                page_hours_order.append(hours)
+            page_grouped_by_hours[hours].append(member)
+
+        # Формируем текст
+        lines = [f"👥 <b>Ваша группа на {date.strftime('%d.%m.%Y')}</b>"]
+        lines.append("")
+
+        for hours in page_hours_order:
+            members = page_grouped_by_hours[hours]
+            # Определяем эмодзи для рабочего времени
+            time_emoji = "🕒" if ":" in hours else "📋"
+            lines.append(f"{time_emoji} <b>{hours}</b>")
+
+            for member in members:
+                lines.append(f"  {member.display_name}")
+
+            lines.append("")
+
+        # Убираем последнюю пустую строку
+        if lines and lines[-1] == "":
+            lines.pop()
+
+        # Добавляем информацию о пагинации
+        if total_pages > 1:
+            lines.append("")
+            lines.append(
+                f"📄 Страница {page}/{total_pages} (показано {len(page_members)} из {total_members} сотрудников)"
+            )
+
+        return ("\n".join(lines), total_pages, page > 1, page < total_pages)
+
+    def format_group_schedule_for_user(
+        self,
+        date: datetime,
+        group_members: List[GroupMemberInfo],
+        user_name: str,
+        head_name: str,
+        page: int = 1,
+        members_per_page: int = 8,
+    ) -> tuple[str, int, bool, bool]:
+        """
+        Форматирование группового расписания для пользователя с пагинацией
+
+        :param date: Дата
+        :param group_members: Список коллег по группе
+        :param user_name: Имя пользователя
+        :param head_name: Имя руководителя
+        :param page: Текущая страница
+        :param members_per_page: Количество коллег на страницу
+        :return: (текст, общее количество страниц, есть предыдущая, есть следующая)
+        """
+        if not group_members:
+            return (
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Коллеги не найдены",
+                1,
+                False,
+                False,
+            )
+
+        # Исключаем самого пользователя из списка
+        colleagues = [
+            member
+            for member in group_members
+            if not self._names_match(user_name, member.name)
+        ]
+
+        if not colleagues:
+            return (
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Коллеги не найдены",
+                1,
+                False,
+                False,
+            )
+
+        # Сортируем коллег по времени начала работы
+        sorted_colleagues = self._sort_members_by_time(colleagues)
+
+        # Подсчитываем общее количество коллег для пагинации
+        total_colleagues = len(sorted_colleagues)
+        total_pages = max(
+            1, (total_colleagues + members_per_page - 1) // members_per_page
+        )
+
+        # Применяем пагинацию к отсортированному списку коллег
+        start_idx = (page - 1) * members_per_page
+        end_idx = start_idx + members_per_page
+        page_colleagues = sorted_colleagues[start_idx:end_idx]
+
+        # Группируем коллег на текущей странице по рабочим часам
+        page_grouped_by_hours = {}
+        page_hours_order = []
+
+        for member in page_colleagues:
+            hours = member.working_hours or "Не указано"
+            if hours not in page_grouped_by_hours:
+                page_grouped_by_hours[hours] = []
+                page_hours_order.append(hours)
+            page_grouped_by_hours[hours].append(member)
+
+        # Формируем текст
+        lines = [f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>", ""]
+
+        for hours in page_hours_order:
+            members = page_grouped_by_hours[hours]
+            # Определяем эмодзи для рабочего времени
+            time_emoji = "🕒" if ":" in hours else "📋"
+            lines.append(f"{time_emoji} <b>{hours}</b>")
+
+            for member in members:
+                lines.append(f"  {member.display_name}")
+
+            lines.append("")
+
+        # Убираем последнюю пустую строку
+        if lines and lines[-1] == "":
+            lines.pop()
+
+        # Добавляем информацию о пагинации
+        if total_pages > 1:
+            lines.append("")
+            lines.append(
+                f"📄 Страница {page}/{total_pages} (показано {len(page_colleagues)} из {total_colleagues} коллег)"
+            )
+
+        return ("\n".join(lines), total_pages, page > 1, page < total_pages)

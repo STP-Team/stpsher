@@ -128,6 +128,27 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения пользователей по ФИО: {e}")
             return []
 
+    async def get_users_by_head(self, head_name: str) -> Sequence[User]:
+        """
+        Получить всех пользователей с указанным руководителем
+
+        Args:
+            head_name: Имя руководителя
+
+        Returns:
+            Список пользователей с указанным руководителем
+        """
+        try:
+            result = await self.session.execute(
+                select(User).where(User.head == head_name).order_by(User.fullname)
+            )
+            return list(result.scalars().all())
+        except Exception as e:
+            logger.error(
+                f"Ошибка получения пользователей по руководителю {head_name}: {e}"
+            )
+            return []
+
     async def get_admins(self) -> Sequence[User]:
         query = select(User).where(User.role == 10)
 

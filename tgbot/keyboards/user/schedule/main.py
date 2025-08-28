@@ -7,6 +7,38 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from tgbot.keyboards.user.main import MainMenu
 
+# Список месяцев на русском языке
+MONTHS_RU = [
+    "январь",
+    "февраль",
+    "март",
+    "апрель",
+    "май",
+    "июнь",
+    "июль",
+    "август",
+    "сентябрь",
+    "октябрь",
+    "ноябрь",
+    "декабрь",
+]
+
+# Эмодзи для месяцев
+MONTH_EMOJIS = {
+    "январь": "❄️",
+    "февраль": "💙",
+    "март": "🌸",
+    "апрель": "🌷",
+    "май": "🌻",
+    "июнь": "☀️",
+    "июль": "🏖️",
+    "август": "🌾",
+    "сентябрь": "🍂",
+    "октябрь": "🎃",
+    "ноябрь": "🍁",
+    "декабрь": "🎄",
+}
+
 
 class ScheduleMenu(CallbackData, prefix="schedule_menu"):
     menu: str
@@ -24,6 +56,15 @@ class DutyNavigation(CallbackData, prefix="duty_nav"):
 
     action: str  # "prev", "next", "-", "today"
     date: str  # дата в формате YYYY-MM-DD
+
+
+class GroupNavigation(CallbackData, prefix="group_nav"):
+    """Callback data для навигации по групповому расписанию"""
+
+    action: str  # "prev", "next", "prev_page", "next_page", "-", "today"
+    date: str  # дата в формате YYYY-MM-DD
+    page: int = 1  # номер страницы для пагинации
+    user_type: str = "user"  # "head" или "user"
 
 
 def get_yekaterinburg_date() -> datetime:
@@ -114,39 +155,6 @@ class MonthNavigation(CallbackData, prefix="month_nav"):
     schedule_type: str = "my"  # "my", "duties", "heads"
 
 
-# Список месяцев на русском языке
-MONTHS_RU = [
-    "январь",
-    "февраль",
-    "март",
-    "апрель",
-    "май",
-    "июнь",
-    "июль",
-    "август",
-    "сентябрь",
-    "октябрь",
-    "ноябрь",
-    "декабрь",
-]
-
-# Эмодзи для месяцев
-MONTH_EMOJIS = {
-    "январь": "❄️",
-    "февраль": "💙",
-    "март": "🌸",
-    "апрель": "🌷",
-    "май": "🌻",
-    "июнь": "☀️",
-    "июль": "🏖️",
-    "август": "🌾",
-    "сентябрь": "🍂",
-    "октябрь": "🎃",
-    "ноябрь": "🍁",
-    "декабрь": "🎄",
-}
-
-
 def schedule_kb() -> InlineKeyboardMarkup:
     """
     Клавиатура меню графиков.
@@ -157,6 +165,9 @@ def schedule_kb() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="👔 Мой график", callback_data=ScheduleMenu(menu="my").pack()
+            ),
+            InlineKeyboardButton(
+                text="👔 Моя группа", callback_data=ScheduleMenu(menu="group").pack()
             ),
         ],
         [
@@ -518,3 +529,179 @@ def changed_schedule_kb() -> InlineKeyboardMarkup:
         inline_keyboard=buttons,
     )
     return keyboard
+
+
+def group_schedule_kb(
+    current_date: datetime = None,
+    page: int = 1,
+    total_pages: int = 1,
+    has_prev: bool = False,
+    has_next: bool = False,
+    user_type: str = "user",
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для группового расписания с навигацией по дням и страницам
+
+    Args:
+        current_date: Текущая отображаемая дата
+        page: Текущая страница
+        total_pages: Общее количество страниц
+        has_prev: Есть ли предыдущая страница
+        has_next: Есть ли следующая страница
+        user_type: Тип пользователя ("head" или "user")
+
+    Returns:
+        Клавиатура с навигацией по дням и страницам
+    """
+    if current_date is None:
+        current_date = get_yekaterinburg_date()
+
+    # Получаем даты для навигации
+    prev_date = current_date - timedelta(days=1)
+    next_date = current_date + timedelta(days=1)
+    today = get_yekaterinburg_date().date()
+
+    # Форматируем дату для отображения
+    date_str = current_date.strftime("%d.%m")
+
+    buttons = []
+
+    # Ряд навигации по дням
+    nav_row = [
+        InlineKeyboardButton(
+            text="◀️",
+            callback_data=GroupNavigation(
+                action="prev",
+                date=prev_date.strftime("%Y-%m-%d"),
+                page=1,  # Сбрасываем на первую страницу при смене даты
+                user_type=user_type,
+            ).pack(),
+        ),
+        InlineKeyboardButton(
+            text=f"📅 {date_str}",
+            callback_data=GroupNavigation(
+                action="-",
+                date=current_date.strftime("%Y-%m-%d"),
+                page=page,
+                user_type=user_type,
+            ).pack(),
+        ),
+        InlineKeyboardButton(
+            text="▶️",
+            callback_data=GroupNavigation(
+                action="next",
+                date=next_date.strftime("%Y-%m-%d"),
+                page=1,  # Сбрасываем на первую страницу при смене даты
+                user_type=user_type,
+            ).pack(),
+        ),
+    ]
+    buttons.append(nav_row)
+
+    # Ряд пагинации (если больше одной страницы)
+    if total_pages > 1:
+        pagination_row = []
+
+        # Кнопка "⏪" (переход к первой странице)
+        if page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=GroupNavigation(
+                        action="prev_page",
+                        date=current_date.strftime("%Y-%m-%d"),
+                        page=1,
+                        user_type=user_type,
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Кнопка "⬅️" (предыдущая страница)
+        if has_prev:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=GroupNavigation(
+                        action="prev_page",
+                        date=current_date.strftime("%Y-%m-%d"),
+                        page=page - 1,
+                        user_type=user_type,
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Индикатор страницы
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Кнопка "➡️" (следующая страница)
+        if has_next:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=GroupNavigation(
+                        action="next_page",
+                        date=current_date.strftime("%Y-%m-%d"),
+                        page=page + 1,
+                        user_type=user_type,
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Кнопка "⏭️" (переход к последней странице)
+        if page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=GroupNavigation(
+                        action="next_page",
+                        date=current_date.strftime("%Y-%m-%d"),
+                        page=total_pages,
+                        user_type=user_type,
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Кнопка "Сегодня" если смотрим не сегодняшний день
+    if current_date.date() != today:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="📍 Сегодня",
+                    callback_data=GroupNavigation(
+                        action="today",
+                        date=today.strftime("%Y-%m-%d"),
+                        page=1,
+                        user_type=user_type,
+                    ).pack(),
+                ),
+            ]
+        )
+
+    # Кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
