@@ -135,7 +135,7 @@ class ScheduleHandlerService:
                     active_duties.append(duty)
             duties = active_duties
 
-        return self.duty_parser.format_duties_for_date(date, duties)
+        return self.duty_parser.format_schedule(duties, date)
 
     async def get_heads_response(
         self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None
@@ -146,7 +146,7 @@ class ScheduleHandlerService:
 
         heads = await self.head_parser.get_heads_for_date(date, division, stp_repo)
 
-        return self.head_parser.format_heads_for_date(date, heads)
+        return self.head_parser.format_schedule(heads, date)
 
     async def get_group_schedule_response(
         self,
@@ -176,7 +176,7 @@ class ScheduleHandlerService:
                     user.fullname, date, user.division, stp_repo
                 )
                 return self.group_parser.format_group_schedule_for_head(
-                    date, group_members, user.fullname, page
+                    date, group_members, page
                 )
             else:
                 # Для обычного пользователя - показываем коллег по группе

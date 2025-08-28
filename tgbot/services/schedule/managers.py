@@ -1,7 +1,3 @@
-"""
-Managers for file operations and month handling.
-"""
-
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -27,10 +23,10 @@ class ScheduleFileManager:
                 files = list(self.uploads_folder.glob(pattern))
                 if files:
                     latest_file = max(files, key=lambda f: f.stat().st_mtime)
-                    logger.debug(f"Found schedule file: {latest_file}")
+                    logger.debug(f"[График] Найден файл графиков: {latest_file}")
                     return latest_file
 
-            logger.error(f"Schedule file {division} not found")
+            logger.error(f"[График] Файл графика для {division} не найден")
             return None
 
         except Exception as e:
