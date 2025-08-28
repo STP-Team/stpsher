@@ -250,7 +250,10 @@ async def award_activation_detail(
 
 @mip_leveling_awards_router.callback_query(AwardActionMenu.filter())
 async def award_action(
-    callback: CallbackQuery, callback_data: AwardActionMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery,
+    callback_data: AwardActionMenu,
+    stp_repo: RequestsRepo,
+    user: User,
 ):
     """Обработка подтверждения/отклонения награды"""
     user_award_id = callback_data.user_award_id
@@ -269,7 +272,7 @@ async def award_action(
 
         user_award = user_award_detail.user_award
         award_info = user_award_detail.award_info
-        user = await stp_repo.user.get_user(user_id=user_award.user_id)
+        employee_user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
 
         if action == "approve":
             # Подтверждаем награду
@@ -279,8 +282,30 @@ async def award_action(
             )
 
             await callback.answer(
-                f"✅ Награда '{award_info.name}' подтверждена!",
+                f"""✅ Награда '{award_info.name}' активирована!
+                
+Специалист {employee_user.fullname} был уведомлен об изменении статуса""",
                 show_alert=True,
+            )
+
+            if user_award.usage_count >= award_info.count:
+                employee_notify_message = f"""<b>👌 Награда активирована:</b> {award_info.name}
+
+Менеджер <a href='t.me/{user.username}'>{user.fullname}</a> подтвердил активацию награды
+
+У награды {award_info.name} не осталось использований 
+
+<i>Купить награду повторно можно в меню <b>👏 Награды > ❇️ Доступные</b></i>"""
+            else:
+                employee_notify_message = f"""<b>👌 Награда активирована:</b> {award_info.name}
+
+Менеджер <a href='t.me/{user.username}'>{user.fullname}</a> подтвердил активацию награды
+
+📍 Осталось активаций: {award_info.count - user_award.usage_count} из {award_info.count}"""
+
+            await callback.bot.send_message(
+                chat_id=employee_user.user_id,
+                text=employee_notify_message,
             )
 
             logger.info(
@@ -289,18 +314,26 @@ async def award_action(
 
         elif action == "reject":
             # Отклоняем награду
-            # TODO изменить логику отмены. Информировать пользователя об отмене. Не прибавлять и не отменять использование награды
             await stp_repo.user_award.reject_award_usage(
                 user_award_id=user_award_id, updated_by_user_id=callback.from_user.id
             )
 
             await callback.answer(
-                f"❌ Награда '{award_info.name}' отклонена",
+                f"""❌ Награда '{award_info.name}' отклонена
+
+Специалист {employee_user.fullname} был уведомлен об изменении статуса""",
                 show_alert=True,
             )
 
+            await callback.bot.send_message(
+                chat_id=employee_user.user_id,
+                text=f"""<b>Активация отменена:</b> {award_info.name}
+
+Менеджер <a href='t.me/{user.username}'>{user.fullname}</a> отменил активацию награды""",
+            )
+
             logger.info(
-                f"[МИП] - [Отклонение] {callback.from_user.username} ({callback.from_user.id}) отклонил награду {award_info.name} для пользователя {user.username} ({user_award.user_id})"
+                f"[МИП] - [Отклонение] {callback.from_user.username} ({callback.from_user.id}) отклонил награду {award_info.name} для пользователя {employee_user.username} ({user_award.user_id})"
             )
 
         # Возвращаемся к списку наград для активации

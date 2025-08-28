@@ -13,8 +13,8 @@ from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
 from tgbot.keyboards.mip.schedule.upload import schedule_upload_back_kb
 from tgbot.misc.states.mip.upload import UploadFile
 from tgbot.services.schedule.user_processor import (
-    process_user_changes_with_stats,
     process_fired_users_with_stats,
+    process_user_changes_with_stats,
 )
 
 # Router setup
@@ -44,18 +44,29 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
     await state.set_state(UploadFile.file)
 
 
-@mip_upload_router.message(F.document, UploadFile.file)
+@mip_upload_router.message(F.document)
 async def upload_file(
     message: Message, state: FSMContext, stp_repo: RequestsRepo, stp_db: Session
 ):
-    """Handle single file upload and processing."""
+    """Handle single file upload and processing with change detection."""
     document = message.document
     await message.delete()
 
     try:
-        # Download and save file
+        # Check if file with same name exists (for change detection)
+        file_path = UPLOADS_DIR / document.file_name
+        old_file_exists = file_path.exists()
+        old_file_name = document.file_name if old_file_exists else None
+
+        # Save old file temporarily for comparison if it exists
+        temp_old_file = None
+        if old_file_exists:
+            temp_old_file = UPLOADS_DIR / f"temp_old_{document.file_name}"
+            file_path.rename(temp_old_file)
+
+        # Download and save new file
         file_path = await _save_file(message, document)
-        file_replaced = file_path.exists()
+        file_replaced = old_file_exists
 
         # Log file to database
         await stp_repo.upload.add_file_history(
@@ -72,16 +83,59 @@ async def upload_file(
         if user_stats:
             status_text += _generate_stats_text(user_stats)
 
+        # Check for schedule changes and send notifications
+        notified_users = []
+        if old_file_exists and temp_old_file and _is_schedule_file(document.file_name):
+            from tgbot.services.schedule.change_detector import ScheduleChangeDetector
+
+            change_detector = ScheduleChangeDetector()
+
+            # Temporarily restore old file for comparison
+            temp_old_file.rename(UPLOADS_DIR / f"old_{document.file_name}")
+
+            try:
+                notified_users = await change_detector.process_schedule_changes(
+                    new_file_name=document.file_name,
+                    old_file_name=f"old_{document.file_name}",
+                    bot=message.bot,
+                    stp_repo=stp_repo,
+                )
+            finally:
+                # Clean up temporary old file
+                old_file_path = UPLOADS_DIR / f"old_{document.file_name}"
+                if old_file_path.exists():
+                    old_file_path.unlink()
+
+        # Add notification info to status
+        if notified_users:
+            status_text += "\n\n📤 <b>Отправлены уведомления</b>\n"
+            status_text += f"Уведомлено специалистов: {len(notified_users)}\n"
+            status_text += "\n".join(
+                f"• {name}" for name in notified_users[:5]
+            )  # Show first 5
+            if len(notified_users) > 5:
+                status_text += f"\n... и еще {len(notified_users) - 5}"
+
         # Update bot message with results
         await _update_status_message(message, state, status_text)
 
     except Exception as e:
         logger.error(f"File upload failed: {e}")
         await _show_error_message(message, state, "Ошибка при загрузке файла")
-
     finally:
+        # Clean up any remaining temporary files
+        for temp_file in UPLOADS_DIR.glob("temp_old_*"):
+            temp_file.unlink()
+
         await state.clear()
         await _show_schedule_menu(message)
+
+
+def _is_schedule_file(file_name: str) -> bool:
+    """Check if file is a schedule file based on patterns."""
+    import fnmatch
+
+    return any(fnmatch.fnmatch(file_name, pattern) for pattern in SCHEDULE_PATTERNS)
 
 
 async def _save_file(message: Message, document) -> Path:

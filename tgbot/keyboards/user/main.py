@@ -53,3 +53,19 @@ def main_kb() -> InlineKeyboardMarkup:
         inline_keyboard=buttons,
     )
     return keyboard
+
+
+def ok_kb() -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="👌 Хорошо",
+                callback_data=MainMenu(menu="main").pack(),
+            )
+        ],
+    ]
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=buttons,
+    )
+    return keyboard
