@@ -42,7 +42,8 @@ async def inline_help(inline_query: InlineQuery, user: User, stp_repo):
                 InlineQueryResultArticle(
                     id="schedule_option",
                     title="📅 Мой график",
-                    description=f"График {user.fullname} на {current_month}",
+                    thumbnail_url="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f454.png",
+                    description=f"Твой график на {current_month}",
                     input_message_content=InputTextMessageContent(
                         message_text=schedule_text, parse_mode="HTML"
                     ),
@@ -54,6 +55,7 @@ async def inline_help(inline_query: InlineQuery, user: User, stp_repo):
                 InlineQueryResultArticle(
                     id="schedule_error",
                     title="📅 Мой график",
+                    thumbnail_url="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f454.png",
                     description="Ошибка при получении графика",
                     input_message_content=InputTextMessageContent(
                         message_text=f"❌ Ошибка при получении графика: {e}"
@@ -70,7 +72,8 @@ async def inline_help(inline_query: InlineQuery, user: User, stp_repo):
                 InlineQueryResultArticle(
                     id="duties_option",
                     title="👮‍♂️ Дежурные на сегодня",
-                    description=f"Дежурные по направлению {user.division}",
+                    thumbnail_url="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f46e-200d-2642-fe0f.png",
+                    description=f"График дежурных {user.division}",
                     input_message_content=InputTextMessageContent(
                         message_text=duties_text, parse_mode="HTML"
                     ),
@@ -82,6 +85,7 @@ async def inline_help(inline_query: InlineQuery, user: User, stp_repo):
                 InlineQueryResultArticle(
                     id="duties_error",
                     title="👮‍♂️ Дежурные на сегодня",
+                    thumbnail_url="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f46e-200d-2642-fe0f.png",
                     description="Ошибка при получении дежурных",
                     input_message_content=InputTextMessageContent(
                         message_text=f"❌ Ошибка при получении дежурных: {e}"
@@ -97,8 +101,9 @@ async def inline_help(inline_query: InlineQuery, user: User, stp_repo):
             results.append(
                 InlineQueryResultArticle(
                     id="heads_option",
-                    title="👔 Руководители на сегодня",
-                    description=f"Руководители по направлению {user.division}",
+                    title="👑 Руководители на сегодня",
+                    thumbnail_url="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f451.png",
+                    description=f"График руководителей {user.division}",
                     input_message_content=InputTextMessageContent(
                         message_text=heads_text, parse_mode="HTML"
                     ),
@@ -109,7 +114,8 @@ async def inline_help(inline_query: InlineQuery, user: User, stp_repo):
             results.append(
                 InlineQueryResultArticle(
                     id="heads_error",
-                    title="👔 Руководители на сегодня",
+                    title="👑 Руководители на сегодня",
+                    thumbnail_url="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f451.png",
                     description="Ошибка при получении руководителей",
                     input_message_content=InputTextMessageContent(
                         message_text=f"❌ Ошибка при получении руководителей: {e}"
