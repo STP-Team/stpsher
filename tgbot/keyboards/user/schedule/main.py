@@ -493,3 +493,28 @@ def heads_kb(current_date: datetime = None) -> InlineKeyboardMarkup:
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard
+
+
+def changed_schedule_kb() -> InlineKeyboardMarkup:
+    """
+    Клавиатура для отправки специалисту при изменении графика
+
+    :return: Объект встроенной клавиатуры для возврата главного меню
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="👔 Мой график", callback_data=ScheduleMenu(menu="my").pack()
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
+    ]
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=buttons,
+    )
+    return keyboard

@@ -141,7 +141,7 @@ class ScheduleFormatter:
                 lines.append(f"<b>{day_info.day}:</b> ⛱️ БС")
                 vacation_bs_days_count += 1
             elif day_type == "army":
-                lines.append(f"<b>{day_info.day}:</b> 🎖️ Армия")
+                lines.append(f"<b>{day_info.day}:</b> 🎖️ Военкомат")
                 army_days_count += 1
             elif day_type == "sick":
                 lines.append(f"<b>{day_info.day}:</b> 🤒 Больничный")

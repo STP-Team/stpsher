@@ -7,6 +7,7 @@ import pandas as pd
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
+from tgbot.keyboards.user.schedule.main import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
 
 logger = logging.getLogger(__name__)
@@ -300,7 +301,6 @@ class ScheduleChangeDetector:
                     else ""
                 )
 
-                # ОСНОВНОЕ ИСПРАВЛЕНИЕ: Ищем паттерны типа "28Чт", "29Пт", "30Сб", "31Вс"
                 # Паттерн: число (1-31) + 1-2 кириллические буквы
                 day_with_weekday_pattern = r"^(\d{1,2})([А-Яа-я]{1,2})$"
                 match = re.search(day_with_weekday_pattern, cell_value.strip())
@@ -400,8 +400,8 @@ class ScheduleChangeDetector:
                 changes.append(
                     {
                         "day": display_day,
-                        "old_value": old_value or "не назначено",
-                        "new_value": new_value or "не назначено",
+                        "old_value": old_value or "выходной",
+                        "new_value": new_value or "выходной",
                     }
                 )
 
@@ -429,42 +429,113 @@ class ScheduleChangeDetector:
     async def _send_change_notification(
         self, bot, user_id: int, user_changes: Dict
     ) -> bool:
-        """Отправляет уведомление пользователю об изменениях в расписании."""
+        """
+        Send a clean, simple notification to user about schedule changes.
+
+        Args:
+            bot: Bot instance
+            user_id: Telegram user ID
+            user_changes: Dictionary with user change information
+
+        Returns:
+            True if notification was sent successfully
+        """
         try:
             fullname = user_changes["fullname"]
             changes = user_changes["changes"]
 
-            # Создаем сообщение уведомления
-            message = "🔔 <b>Изменение в графике</b>\n\n"
-            message += "В твоем графике произошли изменения:\n\n"
+            # Get current date for notification
+            from datetime import datetime
 
-            for change in changes:
+            import pytz
+
+            yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+            current_time = datetime.now(yekaterinburg_tz)
+
+            # Create clean notification message
+            message = f"🔔 <b>Изменения в графике</b> • {current_time.strftime('%d.%m.%Y')}\n\n"
+
+            # Sort changes by date (oldest to newest)
+            def parse_date_from_day(day_str):
+                """Extract date from day string for sorting"""
+                import re
+
+                # Extract month name and day number from strings like "АВГУСТ 24 (Вс)"
+                month_map = {
+                    "ЯНВАРЬ": 1,
+                    "ФЕВРАЛЬ": 2,
+                    "МАРТ": 3,
+                    "АПРЕЛЬ": 4,
+                    "МАЙ": 5,
+                    "ИЮНЬ": 6,
+                    "ИЮЛЬ": 7,
+                    "АВГУСТ": 8,
+                    "СЕНТЯБРЬ": 9,
+                    "ОКТЯБРЬ": 10,
+                    "НОЯБРЬ": 11,
+                    "ДЕКАБРЬ": 12,
+                }
+
+                match = re.search(r"(\w+)\s+(\d+)", day_str)
+                if match:
+                    month_name, day_num = match.groups()
+                    month_num = month_map.get(month_name, 1)
+                    return month_num, int(day_num)
+                return 1, 1  # Дефолтный результат если не смогли спарсить
+
+            sorted_changes = sorted(
+                changes, key=lambda x: parse_date_from_day(x["day"])
+            )
+
+            for change in sorted_changes:
                 day = change["day"]
-                old_val = change["old_value"]
-                new_val = change["new_value"]
+                old_val = self.format_schedule_value(change["old_value"])
+                new_val = self.format_schedule_value(change["new_value"])
 
-                message += f"📅 <b>{day}</b>\n"
-                message += f"   Было: {old_val}\n"
-                message += f"   Стало: <b>{new_val}</b>\n\n"
+                message += (
+                    f"<b>{day}</b>\n<code>{old_val}</code> → <code>{new_val}</code>\n\n"
+                )
 
-            message += 'Пожалуйста, ознакомься с обновленным графиком в разделе "📅 Мой график".'
-
-            # Отправляем уведомление
+            # Send notification
             success = await send_message(
-                bot=bot, user_id=user_id, text=message, disable_notification=False
+                bot=bot,
+                user_id=user_id,
+                text=message,
+                disable_notification=False,
+                reply_markup=changed_schedule_kb(),
             )
 
             if success:
                 logger.info(
-                    f"Schedule change notification sent to {fullname} (ID: {user_id})"
+                    f"[График] Уведомление об изменении графика отправлено {fullname} (ID: {user_id})"
                 )
             else:
                 logger.warning(
-                    f"Failed to send schedule change notification to {fullname} (ID: {user_id})"
+                    f"[График] Ошибка отправки уведомления об изменении графика {fullname} (ID: {user_id})"
                 )
 
             return success
 
         except Exception as e:
-            logger.error(f"Error sending change notification: {e}")
+            logger.error(f"[График] Ошибка отправки уведомления: {e}")
             return False
+
+    @staticmethod
+    def format_schedule_value(value):
+        """Format schedule value with emojis and readable text"""
+        if not value.strip() or value == "не назначено":
+            return "Выходной"
+
+        match value:
+            case "ЛНТС":
+                return "🤒 Больничный"
+            case "ОТПУСК":
+                return "⛱️ Отпуск"
+            case "отпуск бс":
+                return "⛱️ БС"
+            case "Н":
+                return "🕵️‍♂️ Отсутствие"
+            case "В":
+                return "🎖️ Военкомат"
+            case _:
+                return value
