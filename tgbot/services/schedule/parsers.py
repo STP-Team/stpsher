@@ -159,7 +159,113 @@ class DateColumnFinder:
     def find_date_column(
         df: pd.DataFrame, target_date: datetime, search_rows: int = 5
     ) -> Optional[int]:
-        """Find column for target date."""
+        """Find column for target date by first locating the correct month section."""
+        target_day = target_date.day
+        target_month = target_date.month
+
+        # Russian month names
+        month_names = {
+            1: "ЯНВАРЬ",
+            2: "ФЕВРАЛЬ",
+            3: "МАРТ",
+            4: "АПРЕЛЬ",
+            5: "МАЙ",
+            6: "ИЮНЬ",
+            7: "ИЮЛЬ",
+            8: "АВГУСТ",
+            9: "СЕНТЯБРЬ",
+            10: "ОКТЯБРЬ",
+            11: "НОЯБРЬ",
+            12: "ДЕКАБРЬ",
+        }
+
+        target_month_name = month_names[target_month]
+        logger.debug(f"Searching for day {target_day} in month '{target_month_name}'")
+
+        # Step 1: Find the month section
+        month_start_col = None
+        month_end_col = None
+
+        # Look for the month header
+        for row_idx in range(min(3, len(df))):
+            for col_idx in range(len(df.columns)):
+                cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
+
+                if target_month_name in cell_value.upper():
+                    month_start_col = col_idx
+                    logger.debug(
+                        f"Found month '{target_month_name}' starting at column {col_idx}"
+                    )
+                    break
+            if month_start_col is not None:
+                break
+
+        if month_start_col is None:
+            logger.warning(f"Month '{target_month_name}' not found in headers")
+            # Fallback to old method
+            return DateColumnFinder._find_date_column_fallback(
+                df, target_date, search_rows
+            )
+
+        # Step 2: Determine the end of this month's section
+        # Look for the next month header or end of data
+        month_end_col = len(df.columns) - 1  # Default to end of sheet
+
+        for next_month in range(target_month + 1, 13):  # Check subsequent months
+            next_month_name = month_names[next_month]
+            for row_idx in range(min(3, len(df))):
+                for col_idx in range(month_start_col + 1, len(df.columns)):
+                    cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
+                    if next_month_name in cell_value.upper():
+                        month_end_col = col_idx - 1
+                        logger.debug(
+                            f"Month section ends at column {month_end_col} (before {next_month_name})"
+                        )
+                        break
+                if month_end_col < len(df.columns) - 1:
+                    break
+            if month_end_col < len(df.columns) - 1:
+                break
+
+        logger.debug(
+            f"Searching for day {target_day} in columns {month_start_col} to {month_end_col}"
+        )
+
+        # Step 3: Look for the target day within this month's section
+        for row_idx in range(min(search_rows, len(df))):
+            for col_idx in range(month_start_col, month_end_col + 1):
+                cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
+
+                if not cell_value:
+                    continue
+
+                cell_value = cell_value.strip()
+
+                # Look for exact day pattern like "28Чт"
+                day_pattern = r"^(\d{1,2})[А-Яа-я]{0,2}$"
+                match = re.search(day_pattern, cell_value)
+
+                if match and int(match.group(1)) == target_day:
+                    logger.debug(
+                        f"Found day {target_day} at row {row_idx}, col {col_idx} in {target_month_name}: '{cell_value}'"
+                    )
+                    return col_idx
+
+                # Also check for simple day number
+                if cell_value == str(target_day):
+                    logger.debug(
+                        f"Found simple day {target_day} at row {row_idx}, col {col_idx} in {target_month_name}"
+                    )
+                    return col_idx
+
+        logger.warning(f"Day {target_day} not found in {target_month_name} section")
+        return None
+
+    @staticmethod
+    def _find_date_column_fallback(
+        df: pd.DataFrame, target_date: datetime, search_rows: int = 5
+    ) -> Optional[int]:
+        """Fallback method - original logic for when month-based search fails."""
         target_day = target_date.day
 
         for row_idx in range(min(search_rows, len(df))):
@@ -169,19 +275,14 @@ class DateColumnFinder:
                 if not cell_value:
                     continue
 
-                # Pattern for day with letters (like "15Пт")
+                # Pattern for day with letters (like "28Чт")
                 day_pattern = r"^(\d{1,2})[А-Яа-я]{1,2}$"
                 match = re.search(day_pattern, cell_value.strip())
 
                 if match and int(match.group(1)) == target_day:
-                    logger.debug(f"Found date column {target_day}: {col_idx}")
+                    logger.debug(f"Fallback: Found date column {target_day}: {col_idx}")
                     return col_idx
 
-                # Simple day number pattern
-                if re.search(rf"\b{target_day}\b", cell_value):
-                    return col_idx
-
-        logger.warning(f"Date column for day {target_day} not found")
         return None
 
 
@@ -624,12 +725,7 @@ class HeadScheduleParser(BaseExcelParser):
                 # Check schedule for this date
                 if date_col < len(df.columns):
                     schedule_cell = self.utils.get_cell_value(df, row_idx, date_col)
-
-                    if schedule_cell and schedule_cell.strip() not in [
-                        "",
-                        "nan",
-                        "None",
-                    ]:
+                    if schedule_cell and schedule_cell.strip():
                         if self.utils.is_time_format(schedule_cell):
                             duty_info = await self._check_duty_for_head(name, duties)
                             user: User = await stp_repo.user.get_user(fullname=name)
@@ -975,7 +1071,7 @@ class GroupScheduleParser(BaseExcelParser):
         """Format group schedule for regular user with pagination."""
         if not group_members:
             return (
-                f"👥 <b>My Group • {date.strftime('%d.%m.%Y')}</b>\n\n❌ No colleagues found",
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Расписание для группы не найдено",
                 1,
                 False,
                 False,
@@ -990,7 +1086,7 @@ class GroupScheduleParser(BaseExcelParser):
 
         if not colleagues:
             return (
-                f"👥 <b>My Group • {date.strftime('%d.%m.%Y')}</b>\n\n❌ No colleagues found",
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Расписание для группы не найдено",
                 1,
                 False,
                 False,
@@ -1013,7 +1109,7 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
         # Build message
-        lines = [f"👥 <b>My Group • {date.strftime('%d.%m.%Y')}</b>", ""]
+        lines = [f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>", ""]
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
