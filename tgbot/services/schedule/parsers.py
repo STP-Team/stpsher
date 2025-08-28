@@ -13,10 +13,11 @@ from pandas import DataFrame
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.requests import RequestsRepo
+
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
-from .managers import ScheduleFileManager, MonthManager
+from .managers import MonthManager, ScheduleFileManager
 
 logger = logging.getLogger(__name__)
 
@@ -607,6 +608,9 @@ class HeadScheduleParser:
         :param stp_repo: Модель БД
         :return: Список руководителей, работающих в день проверки
         """
+        duty_parser = DutyScheduleParser()
+        duties = await duty_parser.get_duties_for_date(date, division, stp_repo)
+
         try:
             schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
@@ -660,9 +664,7 @@ class HeadScheduleParser:
                         "None",
                     ]:
                         if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", schedule_cell):
-                            duty_info = await self._check_duty_for_head(
-                                name, date, division, stp_repo
-                            )
+                            duty_info = await self._check_duty_for_head(name, duties)
                             user: User = await stp_repo.user.get_user(fullname=name)
                             if user:
                                 heads.append(
@@ -686,19 +688,17 @@ class HeadScheduleParser:
             return []
 
     async def _check_duty_for_head(
-        self, head_name: str, date: datetime, division: str, stp_repo: RequestsRepo
+        self,
+        head_name: str,
+        duties: List[DutyInfo],
     ) -> Optional[str]:
         """
         Проверка является ли руководитель дежурным в проверяемый день
+        :param duties:
         :param head_name: ФИО руководителя
-        :param date: Дата проверки
-        :param division: Направление для проверки
         :return:
         """
         try:
-            duty_parser = DutyScheduleParser()
-            duties = await duty_parser.get_duties_for_date(date, division, stp_repo)
-
             for duty in duties:
                 if self._names_match(head_name, duty.name):
                     return f"{duty.schedule} [{duty.shift_type}]"
