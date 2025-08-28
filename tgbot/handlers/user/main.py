@@ -67,7 +67,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: RequestsRepo):
 
 Я - бот-помощник СТП
 
-<b>{level_info_text}</b>
+{level_info_text}
 
 <blockquote expandable><b>📊 Баланс</b>
 Всего заработано: {achievements_sum} баллов
@@ -139,7 +139,7 @@ async def user_start_cb(callback: CallbackQuery, user: User, stp_repo: RequestsR
 
 Я - бот-помощник СТП
 
-<b>{level_info_text}</b>
+{level_info_text}
 
 <blockquote expandable><b>📊 Баланс</b>
 Всего заработано: {achievements_sum} баллов

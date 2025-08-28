@@ -53,6 +53,16 @@ async def upload_file(
     await message.delete()
 
     try:
+        # Step 1: Show initial processing status
+        await _update_progress_status(
+            message,
+            state,
+            "⏳ <b>Обработка файла...</b>\n\n"
+            f"📄 <b>{document.file_name}</b>\n"
+            f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+            "🔄 Загрузка файла на сервер...",
+        )
+
         # Check if file with same name exists (for change detection)
         file_path = UPLOADS_DIR / document.file_name
         old_file_exists = file_path.exists()
@@ -64,9 +74,29 @@ async def upload_file(
             temp_old_file = UPLOADS_DIR / f"temp_old_{document.file_name}"
             file_path.rename(temp_old_file)
 
+        # Step 2: Update progress - downloading
+        await _update_progress_status(
+            message,
+            state,
+            "⏳ <b>Обработка файла...</b>\n\n"
+            f"📄 <b>{document.file_name}</b>\n"
+            f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+            "💾 Сохранение файла...",
+        )
+
         # Download and save new file
         file_path = await _save_file(message, document)
         file_replaced = old_file_exists
+
+        # Step 3: Update progress - logging to database
+        await _update_progress_status(
+            message,
+            state,
+            "⏳ <b>Обработка файла...</b>\n\n"
+            f"📄 <b>{document.file_name}</b>\n"
+            f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+            "📝 Логируем загрузку файла в базу данных...",
+        )
 
         # Log file to database
         await stp_repo.upload.add_file_history(
@@ -76,6 +106,16 @@ async def upload_file(
             uploaded_by_user_id=message.from_user.id,
         )
 
+        # Step 4: Update progress - processing file content
+        await _update_progress_status(
+            message,
+            state,
+            "⏳ <b>Обработка файла...</b>\n\n"
+            f"📄 <b>{document.file_name}</b>\n"
+            f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+            "🔍 Анализируем содержимого файла...",
+        )
+
         # Process file and generate status
         status_text = _generate_file_status(document, file_replaced)
         user_stats = await _process_file(document.file_name, stp_db)
@@ -83,9 +123,18 @@ async def upload_file(
         if user_stats:
             status_text += _generate_stats_text(user_stats)
 
-        # Check for schedule changes and send notifications
+        # Step 5: Check for schedule changes
         notified_users = []
         if old_file_exists and temp_old_file and _is_schedule_file(document.file_name):
+            await _update_progress_status(
+                message,
+                state,
+                "⏳ <b>Обработка файла...</b>\n\n"
+                f"📄 <b>{document.file_name}</b>\n"
+                f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+                "📊 Ищем изменений в расписании...",
+            )
+
             from tgbot.services.schedule.change_detector import ScheduleChangeDetector
 
             change_detector = ScheduleChangeDetector()
@@ -94,6 +143,15 @@ async def upload_file(
             temp_old_file.rename(UPLOADS_DIR / f"old_{document.file_name}")
 
             try:
+                await _update_progress_status(
+                    message,
+                    state,
+                    "⏳ <b>Обработка файла...</b>\n\n"
+                    f"📄 <b>{document.file_name}</b>\n"
+                    f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+                    "📤 Проверяем изменения в графике и отправляем уведомления пользователям...",
+                )
+
                 notified_users = await change_detector.process_schedule_changes(
                     new_file_name=document.file_name,
                     old_file_name=f"old_{document.file_name}",
@@ -108,15 +166,22 @@ async def upload_file(
 
         # Add notification info to status
         if notified_users:
-            status_text += "\n\n📤 <b>Отправлены уведомления</b>\n"
-            status_text += f"Уведомлено специалистов: {len(notified_users)}\n"
+            status_text += "\n\n📤 <b>Изменения графика</b>\n"
+            status_text += (
+                f"Пользователей с измененным графиком: {len(notified_users)}\n"
+            )
             status_text += "\n".join(
                 f"• {name}" for name in notified_users[:5]
             )  # Show first 5
             if len(notified_users) > 5:
                 status_text += f"\n... и еще {len(notified_users) - 5}"
+        else:
+            status_text += "\n\n📤 <b>Изменения графика</b>\n"
+            status_text += (
+                "Нет изменений в графике. Уведомления об изменении отправлены не будут"
+            )
 
-        # Update bot message with results
+        # Step 6: Final status - completed
         await _update_status_message(message, state, status_text)
 
     except Exception as e:
@@ -128,7 +193,25 @@ async def upload_file(
             temp_file.unlink()
 
         await state.clear()
-        await _show_schedule_menu(message)
+
+
+async def _update_progress_status(
+    message: Message, state: FSMContext, status_text: str
+):
+    """Update the bot message with current progress status."""
+    state_data = await state.get_data()
+    bot_message_id = state_data.get("bot_message_id")
+
+    if bot_message_id:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=bot_message_id,
+                text=status_text,
+                reply_markup=None,  # Remove keyboard during processing
+            )
+        except Exception as e:
+            logger.warning(f"Failed to update progress message: {e}")
 
 
 def _is_schedule_file(file_name: str) -> bool:
@@ -157,7 +240,7 @@ async def _save_file(message: Message, document) -> Path:
 def _generate_file_status(document, file_replaced: bool) -> str:
     """Generate status message for uploaded file."""
     size_mb = round(document.file_size / (1024 * 1024), 2)
-    status_text = "<b>💾 Файл загружен</b>\n\n"
+    status_text = "<b>✅ Файл успешно загружен</b>\n\n"
     status_text += f"📄 <b>{document.file_name}</b>\n"
     status_text += f"Размер: {size_mb} МБ\n"
 
@@ -212,7 +295,7 @@ def _generate_stats_text(stats: dict) -> str:
             text += "\n".join(f"• {name}" for name in names) + "\n"
 
     if not has_changes:
-        text += "Изменений не обнаружено"
+        text += "Уволенных, обновленных или добавленных пользователей нет"
 
     return text
 
@@ -228,6 +311,7 @@ async def _update_status_message(message: Message, state: FSMContext, status_tex
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
                 text=status_text,
+                reply_markup=schedule_upload_back_kb(),  # Restore keyboard when done
             )
         except Exception as e:
             logger.warning(f"Failed to update message: {e}")
@@ -244,6 +328,7 @@ async def _show_error_message(message: Message, state: FSMContext, error_text: s
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
                 text=f"❌ {error_text}",
+                reply_markup=schedule_upload_back_kb(),
             )
         except Exception as e:
             logger.warning(f"Failed to show error: {e}")
