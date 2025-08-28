@@ -98,7 +98,6 @@ class ScheduleAnalyzer:
                 missing_days.append(day_info)
             else:
                 days_off.append(day_info)
-            print(day, schedule_value, category)
         return (
             work_days,
             days_off,
