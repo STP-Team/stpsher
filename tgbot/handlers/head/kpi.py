@@ -21,8 +21,9 @@ async def user_start_cb(callback: CallbackQuery, user: User, kpi_repo: KPIReques
     )
 
     contact_type = "чатов" if user.division == "НЦК" else "звонков"
-    await callback.message.edit_text(
-        f"""<b>🎯 Показатели группы • {russian_months.get(head_kpi.updated_at.month).capitalize()}</b>
+
+    # Текст для обоих направлений
+    message_text = f"""<b>🎯 Показатели группы • {russian_months.get(head_kpi.updated_at.month).capitalize()}</b>
 
 <b>📊 Всего {contact_type}:</b> {head_kpi.contacts_count}
 
@@ -30,10 +31,21 @@ async def user_start_cb(callback: CallbackQuery, user: User, kpi_repo: KPIReques
 🛠️ <b>FLR:</b> {head_kpi.flr if head_kpi.flr else "Неизвестно"}  
 ⚖️ <b>ГОК:</b> {head_kpi.gok if head_kpi.gok else "Неизвестно"}
 🥇 <b>Оценка:</b> {head_kpi.csi if head_kpi.csi else "Неизвестно"}
-🥱 <b>Отклик:</b> {head_kpi.pok if head_kpi.pok else "Неизвестно"}
-⏳ <b>Задержка:</b> {head_kpi.delay if head_kpi.delay and user.division != "НЦК" else ""}
+🥱 <b>Отклик:</b> {head_kpi.pok if head_kpi.pok else "Неизвестно"}"""
+
+    # Текст для НТП
+    if user.division != "НЦК":
+        message_text += f"\n⏳ <b>Задержка:</b> {head_kpi.delay if head_kpi.delay else 'Неизвестно'}"
+        message_text += (
+            f"\n<b>Продажи:</b> {head_kpi.sales_count if head_kpi.sales_count else '0'}"
+        )
+
+    message_text += f"""
 
 <i>Время обновления: {head_kpi.updated_at.strftime("%H:%M:%S %d.%m.%y")}</i>
-<i>Показатели обновляются каждый день в ~10:00 ПРМ</i>""",
+<i>Показатели обновляются каждый день в ~10:00 ПРМ</i>"""
+
+    await callback.message.edit_text(
+        message_text,
         reply_markup=kpi_kb(),
     )

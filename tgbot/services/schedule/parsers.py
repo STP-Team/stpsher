@@ -1035,7 +1035,7 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
         # Build message
-        lines = [f"👥 <b>Your Group for {date.strftime('%d.%m.%Y')}</b>", ""]
+        lines = [f"👥 <b>Твоя группа • {date.strftime('%d.%m.%Y')}</b>", ""]
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
