@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.leveling.awards import (
     AwardDetailMenu,
     AwardHistoryMenu,
@@ -67,7 +67,7 @@ async def awards_all(
     callback: CallbackQuery,
     user: User,
     callback_data: AwardsMenu,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Обработчик клика на меню всех возможных наград
@@ -118,7 +118,7 @@ async def awards_available(
     callback: CallbackQuery,
     user: User,
     callback_data: AwardsMenu,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Обработчик клика на меню доступных для покупки наград
@@ -187,7 +187,7 @@ async def awards_available(
 
 
 @user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "executed"))
-async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
+async def awards_history(callback: CallbackQuery, stp_repo: MainRequestsRepo):
     """Показывает историю наград пользователя в виде клавиатуры с пагинацией"""
     user_awards_with_details = await stp_repo.user_award.get_user_awards_with_details(
         user_id=callback.from_user.id
@@ -222,7 +222,7 @@ async def awards_history(callback: CallbackQuery, stp_repo: RequestsRepo):
 
 @user_leveling_awards_router.callback_query(AwardHistoryMenu.filter())
 async def awards_history_pagination(
-    callback: CallbackQuery, callback_data: AwardHistoryMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery, callback_data: AwardHistoryMenu, stp_repo: MainRequestsRepo
 ):
     """Обработчик пагинации истории наград"""
     page = callback_data.page
@@ -255,7 +255,7 @@ async def awards_history_pagination(
 
 @user_leveling_awards_router.callback_query(AwardDetailMenu.filter())
 async def award_detail_view(
-    callback: CallbackQuery, callback_data: AwardDetailMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery, callback_data: AwardDetailMenu, stp_repo: MainRequestsRepo
 ):
     """Обработчик детального просмотра награды пользователя"""
     user_award_id = callback_data.user_award_id
@@ -349,7 +349,7 @@ async def award_confirmation_handler(
     callback: CallbackQuery,
     callback_data: AwardPurchaseMenu,
     user: User,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Обработчик выбора награды - показывает окно подтверждения
@@ -414,7 +414,7 @@ async def award_purchase_final_handler(
     callback: CallbackQuery,
     callback_data: AwardPurchaseConfirmMenu,
     user: User,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Обработчик финального подтверждения покупки награды
@@ -503,7 +503,7 @@ async def use_award_handler(
     callback: CallbackQuery,
     callback_data: UseAwardMenu,
     user: User,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Хендлер нажатия на "Использовать награду" в открытой информации о приобретенной награде
@@ -553,7 +553,7 @@ async def sell_award_handler(
     callback: CallbackQuery,
     callback_data: SellAwardMenu,
     user: User,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Хендлер продажи награды - удаляет запись из БД и возвращает баллы
@@ -617,7 +617,7 @@ async def cancel_activation_handler(
     callback: CallbackQuery,
     callback_data: CancelActivationMenu,
     user: User,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Хендлер отмены активации награды - меняет статус с "review" обратно на "stored"

@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import BIGINT, Integer, String, Text, TIMESTAMP, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, TableNameMixin
+from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class ScheduleFilesLog(Base, TableNameMixin):

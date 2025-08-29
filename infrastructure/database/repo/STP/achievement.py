@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy import select
 
-from infrastructure.database.models.achievement import Achievement
+from infrastructure.database.models.STP.achievement import Achievement
 from infrastructure.database.repo.base import BaseRepo
 
 

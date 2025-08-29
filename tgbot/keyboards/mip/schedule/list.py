@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.models.schedule_log import ScheduleFilesLog
+from infrastructure.database.models.STP.schedule_log import ScheduleFilesLog
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu
 from tgbot.keyboards.user.main import MainMenu
 

@@ -2,7 +2,7 @@ from sqlalchemy import Integer
 from sqlalchemy.dialects.mysql import VARCHAR, TINYINT
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, TableNameMixin
+from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Award(Base, TableNameMixin):

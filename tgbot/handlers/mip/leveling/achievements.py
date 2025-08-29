@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.handlers.mip.leveling.main import filter_items_by_division
 from tgbot.keyboards.mip.leveling.achievements import achievements_paginated_kb
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
     LevelingMenu.filter(F.menu == "achievements_all")
 )
 async def achievements_all(
-    callback: CallbackQuery, callback_data: LevelingMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery, callback_data: LevelingMenu, stp_repo: MainRequestsRepo
 ):
     """
     Обработчик клика на меню всех возможных достижений для МИП

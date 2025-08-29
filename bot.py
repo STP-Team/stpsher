@@ -55,7 +55,7 @@ def register_middlewares(
     config: Config,
     bot: Bot,
     main_session_pool=None,
-    questioner_session_pool=None,
+    kpi_session_pool=None,
 ):
     """
     Alternative setup with more selective middleware application.
@@ -67,7 +67,7 @@ def register_middlewares(
         config=config,
         bot=bot,
         stp_session_pool=main_session_pool,
-        achievements_session_pool=questioner_session_pool,
+        kpi_session_pool=kpi_session_pool,
     )
 
     for middleware in [
@@ -118,23 +118,26 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Create engines for different databases
-    stp_db_engine = create_engine(bot_config.db, db_name=bot_config.db.stp_db)
+    main_db_engine = create_engine(bot_config.db, db_name=bot_config.db.main_db)
+    kpi_db_engine = create_engine(bot_config.db, db_name=bot_config.db.kpi_db)
 
-    stp_db = create_session_pool(stp_db_engine)
+    main_db = create_session_pool(main_db_engine)
+    kpi_db = create_session_pool(kpi_db_engine)
 
     # Store session pools in dispatcher
-    dp["stp_db"] = stp_db
+    dp["main_db"] = main_db
+    dp["kpi_db"] = kpi_db
 
     dp.include_routers(*routers_list)
 
-    register_middlewares(dp, bot_config, bot, stp_db)
+    register_middlewares(dp, bot_config, bot, main_db, kpi_db)
 
     scheduler.add_job(
         process_fired_users,
         "cron",
         hour=9,
         minute=0,
-        args=[stp_db],
+        args=[main_db],
         id="check_fired_users",
     )
 
@@ -144,7 +147,7 @@ async def main():
     try:
         await dp.start_polling(bot)
     finally:
-        await stp_db_engine.dispose()
+        await main_db_engine.dispose()
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import select, and_
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.schedule_log import ScheduleFilesLog
+from infrastructure.database.models.STP.schedule_log import ScheduleFilesLog
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)

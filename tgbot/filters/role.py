@@ -1,7 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from infrastructure.database.models.user import User
+from infrastructure.database.models.STP.user import User
 from tgbot.misc.dicts import executed_codes
 
 

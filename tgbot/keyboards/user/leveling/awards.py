@@ -3,7 +3,7 @@ from typing import List
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.repo.user_award import UserAwardWithDetails
+from infrastructure.database.repo.STP.user_award import UserAwardWithDetails
 from tgbot.keyboards.user.main import MainMenu
 
 

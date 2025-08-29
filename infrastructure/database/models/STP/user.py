@@ -1,7 +1,7 @@
 from sqlalchemy import BIGINT, Unicode
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base, TableNameMixin
+from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class User(Base, TableNameMixin):

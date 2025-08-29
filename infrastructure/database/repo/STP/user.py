@@ -4,7 +4,7 @@ from typing import Optional, Sequence, TypedDict, Unpack
 from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.user import User
+from infrastructure.database.models.STP.user import User
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)

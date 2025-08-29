@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.user import UserRepo
+from infrastructure.database.repo.STP.user import UserRepo
 from tgbot.services.scheduler import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)

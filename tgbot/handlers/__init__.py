@@ -1,6 +1,7 @@
 """Import all routers and add them to routers_list."""
 
 from tgbot.handlers.admin.main import admin_router
+from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.head.schedule.group import head_schedule_group_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
@@ -11,6 +12,7 @@ from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
 from tgbot.handlers.mip.schedule.upload import mip_upload_router
+from tgbot.handlers.mip.search import mip_search_router
 from tgbot.handlers.user.auth.main import user_auth_router
 from tgbot.handlers.user.inline import user_inline_router
 from tgbot.handlers.user.leveling.achievements import user_leveling_achievements_router
@@ -25,6 +27,7 @@ from tgbot.handlers.user.schedule.my import user_schedule_my_router
 routers_list = [
     admin_router,
     head_router,
+    head_kpi_router,
     head_schedule_group_router,
     mip_router,
     mip_leveling_router,
@@ -34,6 +37,7 @@ routers_list = [
     mip_schedule_router,
     mip_upload_router,
     mip_list_router,
+    mip_search_router,
     user_router,
     user_auth_router,
     user_schedule_router,

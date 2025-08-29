@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.handlers.user.leveling.achievements import achievements_all
 from tgbot.handlers.user.leveling.awards import awards_all
@@ -49,7 +49,7 @@ async def mip_achievements_cmd(callback: CallbackQuery):
 
 @mip_leveling_router.callback_query(FilterToggleMenu.filter())
 async def toggle_filter_handler(
-    callback: CallbackQuery, callback_data: FilterToggleMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery, callback_data: FilterToggleMenu, stp_repo: MainRequestsRepo
 ):
     """Обработчик переключения фильтров"""
     menu = callback_data.menu

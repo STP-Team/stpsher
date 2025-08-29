@@ -1,12 +1,16 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, TypedDict, Unpack
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models import Award
-from infrastructure.database.models.user_award import UserAward
+from infrastructure.database.models import Award, User
+from infrastructure.database.models.STP.user_award import UserAward
 from infrastructure.database.repo.base import BaseRepo
+
+logger = logging.getLogger(__name__)
 
 
 class UserAwardParams(TypedDict, total=False):
@@ -314,3 +318,59 @@ class UserAwardsRepo(BaseRepo):
             return None
 
         return most_used.name, most_used.usage_count
+
+    async def get_group_awards_statistics(self, head_name: str) -> dict:
+        """
+        Получить статистику наград для группы руководителя
+
+        Args:
+            head_name: Имя руководителя
+
+        Returns:
+            Словарь со статистикой наград группы
+        """
+        from sqlalchemy import func
+
+        from infrastructure.database.models import Award
+        from infrastructure.database.models.STP.user_award import UserAward
+
+        try:
+            # Получаем все награды сотрудников группы
+            query = (
+                select(
+                    Award.name,
+                    func.sum(UserAward.usage_count).label("total_usage"),
+                    func.count(UserAward.award_id).label("purchase_count"),
+                )
+                .select_from(User)
+                .join(UserAward, User.user_id == UserAward.user_id)
+                .join(Award, UserAward.award_id == Award.id)
+                .where(User.head == head_name)
+                .group_by(Award.name)
+                .order_by(func.sum(UserAward.usage_count).desc())
+            )
+
+            result = await self.session.execute(query)
+            awards_stats = result.all()
+
+            total_usage = sum(stat.total_usage for stat in awards_stats)
+            total_purchases = sum(stat.purchase_count for stat in awards_stats)
+            most_popular = awards_stats[0] if awards_stats else None
+
+            return {
+                "total_usage": total_usage,
+                "total_purchases": total_purchases,
+                "most_popular": most_popular,
+                "details": awards_stats,
+            }
+
+        except SQLAlchemyError as e:
+            logger.error(
+                f"[БД] Ошибка получения статистики наград для группы {head_name}: {e}"
+            )
+            return {
+                "total_usage": 0,
+                "total_purchases": 0,
+                "most_popular": None,
+                "details": [],
+            }

@@ -5,7 +5,8 @@ from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
 
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.config import Config
 
 logger = logging.getLogger(__name__)
@@ -18,10 +19,10 @@ class DatabaseMiddleware(BaseMiddleware):
     """
 
     def __init__(
-        self, config: Config, bot: Bot, stp_session_pool, achievements_session_pool
+        self, config: Config, bot: Bot, stp_session_pool, kpi_session_pool
     ) -> None:
         self.stp_session_pool = stp_session_pool
-        self.achievements_session_pool = achievements_session_pool
+        self.kpi_session_pool = kpi_session_pool
         self.bot = bot
         self.config = config
 
@@ -40,20 +41,26 @@ class DatabaseMiddleware(BaseMiddleware):
             try:
                 # Use separate sessions for different databases
                 async with self.stp_session_pool() as stp_session:
-                    # Create repositories for different databases
-                    stp_repo = RequestsRepo(stp_session)  # Для основной базы СТП
+                    async with self.kpi_session_pool() as kpi_session:
+                        # Create repositories for different databases
+                        stp_repo = MainRequestsRepo(
+                            stp_session
+                        )  # Для основной базы СТП
+                        kpi_repo = KPIRequestsRepo(kpi_session)  # Для основной базы СТП
 
-                    # Получаем пользователя из БД
-                    user = await stp_repo.user.get_user(user_id=event.from_user.id)
+                        # Получаем пользователя из БД
+                        user = await stp_repo.user.get_user(user_id=event.from_user.id)
 
-                    # Add repositories and user to data for other middlewares
-                    data["stp_repo"] = stp_repo
-                    data["stp_session"] = stp_session
-                    data["user"] = user
+                        # Add repositories and user to data for other middlewares
+                        data["stp_repo"] = stp_repo
+                        data["stp_session"] = stp_session
+                        data["kpi_repo"] = kpi_repo
+                        data["kpi_session"] = kpi_session
+                        data["user"] = user
 
-                    # Continue to the next middleware/handler
-                    result = await handler(event, data)
-                    return result
+                        # Continue to the next middleware/handler
+                        result = await handler(event, data)
+                        return result
 
             except (OperationalError, DBAPIError, DisconnectionError) as e:
                 if "Connection is busy" in str(e) or "HY000" in str(e):

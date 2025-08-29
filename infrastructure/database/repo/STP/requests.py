@@ -2,16 +2,16 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.database.repo.achievement import AchievementsRepo
-from infrastructure.database.repo.award import AwardsRepo
-from infrastructure.database.repo.schedule_log import ScheduleLogRepo
-from infrastructure.database.repo.user import UserRepo
-from infrastructure.database.repo.user_achievement import UserAchievementsRepo
-from infrastructure.database.repo.user_award import UserAwardsRepo
+from infrastructure.database.repo.STP.achievement import AchievementsRepo
+from infrastructure.database.repo.STP.award import AwardsRepo
+from infrastructure.database.repo.STP.schedule_log import ScheduleLogRepo
+from infrastructure.database.repo.STP.user import UserRepo
+from infrastructure.database.repo.STP.user_achievement import UserAchievementsRepo
+from infrastructure.database.repo.STP.user_award import UserAwardsRepo
 
 
 @dataclass
-class RequestsRepo:
+class MainRequestsRepo:
     """
     Repository for handling database operations. This class holds all the repositories for the database models.
 

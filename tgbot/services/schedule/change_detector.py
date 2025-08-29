@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.schedule.main import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
 
@@ -20,7 +20,7 @@ class ScheduleChangeDetector:
         self.uploads_folder = Path(uploads_folder)
 
     async def process_schedule_changes(
-        self, new_file_name: str, old_file_name: str, bot, stp_repo: RequestsRepo
+        self, new_file_name: str, old_file_name: str, bot, stp_repo: MainRequestsRepo
     ) -> List[str]:
         """
         Процессинг изменений в графике между старым и новым графиками и отправка уведомлений.
@@ -66,7 +66,7 @@ class ScheduleChangeDetector:
             return []
 
     async def _detect_schedule_changes(
-        self, new_file_name: str, old_file_name: str, stp_repo: RequestsRepo
+        self, new_file_name: str, old_file_name: str, stp_repo: MainRequestsRepo
     ) -> List[Dict]:
         """
         Обнаружение изменений в графике между старым и новым файлами.

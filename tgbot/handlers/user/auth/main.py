@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.user.main import user_start_cmd
 from tgbot.misc.helpers import generate_auth_code
 from tgbot.misc.states.user.auth import Authorization
@@ -105,7 +105,7 @@ async def user_auth_code(message: Message, state: FSMContext):
 
 @user_auth_router.message(Authorization.fullname)
 async def user_auth_fullname(
-    message: Message, state: FSMContext, stp_repo: RequestsRepo
+    message: Message, state: FSMContext, stp_repo: MainRequestsRepo
 ):
     fullname_pattern = r"^[А-Яа-яЁё]+ [А-Яа-яЁё]+ [А-Яа-яЁё]+$"
     state_data = await state.get_data()

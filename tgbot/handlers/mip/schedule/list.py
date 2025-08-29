@@ -3,7 +3,7 @@ import os
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, FSInputFile
 
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.list import (
     schedule_list_kb,
@@ -50,7 +50,7 @@ async def show_local_files(callback: CallbackQuery):
 
 
 @mip_list_router.callback_query(ScheduleListMenu.filter(F.menu == "history"))
-async def show_history_files(callback: CallbackQuery, stp_repo: RequestsRepo):
+async def show_history_files(callback: CallbackQuery, stp_repo: MainRequestsRepo):
     files_history = await stp_repo.upload.get_files_history()
 
     if not files_history:
@@ -104,7 +104,7 @@ async def send_local_file(callback: CallbackQuery):
 
 
 @mip_list_router.callback_query(F.data.startswith("download_db:"))
-async def download_db_file(callback: CallbackQuery, stp_repo: RequestsRepo):
+async def download_db_file(callback: CallbackQuery, stp_repo: MainRequestsRepo):
     log_id = int(callback.data.split(":")[1])
 
     try:

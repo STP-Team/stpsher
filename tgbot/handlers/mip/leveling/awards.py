@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.handlers.mip.leveling.main import filter_items_by_division
 from tgbot.keyboards.mip.leveling.awards import (
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 @mip_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "awards_all"))
 async def awards_all(
-    callback: CallbackQuery, callback_data: AwardsMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery, callback_data: AwardsMenu, stp_repo: MainRequestsRepo
 ):
     """
     Обработчик клика на меню всех возможных наград для МИП
@@ -103,7 +103,7 @@ async def awards_all(
     LevelingMenu.filter(F.menu == "awards_activation")
 )
 async def awards_activation(
-    callback: CallbackQuery, callback_data: LevelingMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery, callback_data: LevelingMenu, stp_repo: MainRequestsRepo
 ):
     """
     Обработчик меню наград для активации
@@ -175,7 +175,9 @@ async def awards_activation(
 
 @mip_leveling_awards_router.callback_query(AwardActivationMenu.filter())
 async def award_activation_detail(
-    callback: CallbackQuery, callback_data: AwardActivationMenu, stp_repo: RequestsRepo
+    callback: CallbackQuery,
+    callback_data: AwardActivationMenu,
+    stp_repo: MainRequestsRepo,
 ):
     """Показывает детальную информацию о награде для активации"""
     user_award_id = callback_data.user_award_id
@@ -252,7 +254,7 @@ async def award_activation_detail(
 async def award_action(
     callback: CallbackQuery,
     callback_data: AwardActionMenu,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
     user: User,
 ):
     """Обработка подтверждения/отклонения награды"""

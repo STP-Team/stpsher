@@ -38,7 +38,9 @@ class DbConfig:
         Пароль для авторизации в базе данных.
     user : str
         Логин для авторизации в базе данных.
-    stp_db : str
+    main_db : str
+        Имя основной базы данных.
+    kpi_db : str
         Имя основной базы данных.
     """
 
@@ -46,7 +48,8 @@ class DbConfig:
     user: str
     password: str
 
-    stp_db: str
+    main_db: str
+    kpi_db: str
 
     def construct_sqlalchemy_url(
         self,
@@ -83,13 +86,11 @@ class DbConfig:
         user = env.str("DB_USER")
         password = env.str("DB_PASS")
 
-        stp_db = env.str("DB_NAME")
+        main_db = env.str("MAIN_DB_NAME")
+        kpi_db = env.str("KPI_DB_NAME")
 
         return DbConfig(
-            host=host,
-            user=user,
-            password=password,
-            stp_db=stp_db,
+            host=host, user=user, password=password, main_db=main_db, kpi_db=kpi_db
         )
 
 

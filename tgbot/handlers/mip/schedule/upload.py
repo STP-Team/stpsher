@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.orm import Session
 
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu, schedule_kb
 from tgbot.keyboards.mip.schedule.upload import schedule_upload_back_kb
@@ -46,7 +46,7 @@ async def upload_menu(callback: CallbackQuery, state: FSMContext):
 
 @mip_upload_router.message(F.document)
 async def upload_file(
-    message: Message, state: FSMContext, stp_repo: RequestsRepo, stp_db: Session
+    message: Message, state: FSMContext, stp_repo: MainRequestsRepo, main_db: Session
 ):
     """Handle single file upload and processing with change detection."""
     document = message.document
@@ -118,7 +118,7 @@ async def upload_file(
 
         # Process file and generate status
         status_text = _generate_file_status(document, file_replaced)
-        user_stats = await _process_file(document.file_name, stp_db)
+        user_stats = await _process_file(document.file_name, main_db)
 
         if user_stats:
             status_text += _generate_stats_text(user_stats)
@@ -250,7 +250,7 @@ def _generate_file_status(document, file_replaced: bool) -> str:
     return status_text
 
 
-async def _process_file(file_name: str, stp_db: Session) -> dict | None:
+async def _process_file(file_name: str, main_db: Session) -> dict | None:
     """Process file if it matches schedule patterns."""
     # Check if file matches schedule patterns
     if not any(fnmatch.fnmatch(file_name, pattern) for pattern in SCHEDULE_PATTERNS):
@@ -260,11 +260,11 @@ async def _process_file(file_name: str, stp_db: Session) -> dict | None:
         file_path = UPLOADS_DIR / file_name
 
         # Process fired users
-        fired_names = await process_fired_users_with_stats([file_path], stp_db)
+        fired_names = await process_fired_users_with_stats([file_path], main_db)
 
         # Process user changes
         updated_names, new_names = await process_user_changes_with_stats(
-            stp_db, file_name
+            main_db, file_name
         )
 
         return {

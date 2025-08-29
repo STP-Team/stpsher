@@ -1,3 +1,3 @@
 from .base import Base
-from .user import User
-from .award import Award
+from infrastructure.database.models.STP.user import User
+from infrastructure.database.models.STP.award import Award

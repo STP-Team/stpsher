@@ -14,7 +14,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
@@ -515,7 +515,7 @@ class DutyScheduleParser(BaseDutyParser):
     """Parser for duty schedules."""
 
     async def get_duties_for_date(
-        self, date: datetime, division: str, stp_repo: RequestsRepo
+        self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> List[DutyInfo]:
         """Get list of duty officers for specified date."""
         try:
@@ -678,7 +678,7 @@ class HeadScheduleParser(BaseExcelParser):
     """Parser for head schedules."""
 
     async def get_heads_for_date(
-        self, date: datetime, division: str, stp_repo: RequestsRepo
+        self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> List[HeadInfo]:
         """Get list of heads for specified date."""
         duty_parser = DutyScheduleParser()

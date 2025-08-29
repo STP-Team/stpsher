@@ -6,7 +6,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.leveling.achievements import (
     AchievementsMenu,
     achievements_kb,
@@ -48,7 +48,7 @@ async def achievements_all(
     callback: CallbackQuery,
     callback_data: AchievementsMenu,
     user: User,
-    stp_repo: RequestsRepo,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Обработчик клика на меню всех возможных достижений для пользователя

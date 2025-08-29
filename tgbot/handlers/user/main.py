@@ -3,7 +3,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.requests import RequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
 from tgbot.services.leveling import LevelingSystem
 
@@ -13,7 +13,7 @@ user_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_router.message(CommandStart())
-async def user_start_cmd(message: Message, user: User, stp_repo: RequestsRepo):
+async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRepo):
     if not user:
         await message.answer(
             """👋 Привет
@@ -85,7 +85,9 @@ async def user_start_cmd(message: Message, user: User, stp_repo: RequestsRepo):
 
 
 @user_router.callback_query(MainMenu.filter(F.menu == "main"))
-async def user_start_cb(callback: CallbackQuery, user: User, stp_repo: RequestsRepo):
+async def user_start_cb(
+    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+):
     if not user:
         await callback.message.edit_text(
             """👋 Привет
