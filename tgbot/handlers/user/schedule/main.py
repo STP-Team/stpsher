@@ -183,9 +183,8 @@ class ScheduleHandlerService:
                 group_members = await self.group_parser.get_group_members_for_user(
                     user.fullname, date, user.division, stp_repo
                 )
-                head_name = user.head or "Не указан"
                 return self.group_parser.format_group_schedule_for_user(
-                    date, group_members, user.fullname, head_name, page
+                    date, group_members, user.fullname, page
                 )
 
         except Exception as e:

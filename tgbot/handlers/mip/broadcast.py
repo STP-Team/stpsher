@@ -130,7 +130,7 @@ async def broadcast_everyone(
 {message_preview}{photo_text}
 
 <b>⚠️ Рассылка будет отправлена всем пользователям!</b>""",
-        reply_markup=confirmation_kb("everyone"),
+        reply_markup=confirmation_kb(),
     )
 
     await state.update_data(
@@ -143,7 +143,7 @@ async def broadcast_everyone(
 @mip_broadcast_router.callback_query(
     BroadcastState.selecting_type, BroadcastMenu.filter(F.action == "division")
 )
-async def select_division(callback: CallbackQuery, state: FSMContext):
+async def select_division(callback: CallbackQuery):
     """Выбор подразделения"""
     await callback.message.edit_text(
         """<b>📢 Выбор подразделения</b>
@@ -205,7 +205,7 @@ async def broadcast_division(
 {message_preview}{photo_text}
 
 <b>⚠️ Рассылка будет отправлена всем сотрудникам {division_name}!</b>""",
-        reply_markup=confirmation_kb(division_code.lower()),
+        reply_markup=confirmation_kb(),
     )
 
     await state.update_data(
@@ -260,7 +260,6 @@ async def toggle_head_selection(
     callback: CallbackQuery,
     callback_data: BroadcastMenu,
     state: FSMContext,
-    stp_repo: MainRequestsRepo,
 ):
     """Переключить выбор руководителя"""
     head_id = int(callback_data.action.replace("toggle_head_", ""))
@@ -352,7 +351,7 @@ async def confirm_heads_selection(
 {message_preview}{photo_text}
 
 <b>⚠️ Рассылка будет отправлена всем сотрудникам выбранных групп!</b>""",
-        reply_markup=confirmation_kb("groups"),
+        reply_markup=confirmation_kb(),
     )
 
     await state.update_data(

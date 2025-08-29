@@ -39,12 +39,9 @@ class GroupScheduleService:
                 user.fullname, date, user.division, stp_repo
             )
 
-            # Получаем информацию о руководителе из БД
-            head_name = user.head or "Не указан"
-
             # Форматируем расписание с пагинацией
             return self.group_parser.format_group_schedule_for_user(
-                date, group_members, user.fullname, head_name, page
+                date, group_members, user.fullname, page
             )
 
         except Exception as e:

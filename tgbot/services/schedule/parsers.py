@@ -184,7 +184,6 @@ class DateColumnFinder:
 
         # Step 1: Find the month section
         month_start_col = None
-        month_end_col = None
 
         # Look for the month header
         for row_idx in range(min(3, len(df))):
@@ -331,7 +330,8 @@ class BaseExcelParser(ABC):
 class MonthlyScheduleParser(BaseExcelParser, ABC):
     """Parser for monthly schedules."""
 
-    def find_month_columns(self, df: pd.DataFrame, month: str) -> Tuple[int, int]:
+    @staticmethod
+    def find_month_columns(df: pd.DataFrame, month: str) -> Tuple[int, int]:
         """Find start and end columns for specified month."""
         month = MonthManager.normalize_month(month)
 
@@ -896,11 +896,7 @@ class GroupScheduleParser(BaseExcelParser):
             if df is None:
                 raise ValueError("Failed to read schedule file")
 
-            header_info = self._find_header_columns(df)
-            if not header_info:
-                logger.warning("Required columns not found in file")
-                return []
-
+            header_info = self._get_header_columns()
             date_column = self.date_finder.find_date_column(df, date)
             group_members = []
 
@@ -994,7 +990,8 @@ class GroupScheduleParser(BaseExcelParser):
             logger.error(f"Error getting colleagues for {user_fullname}: {e}")
             return []
 
-    def _find_header_columns(self, df: pd.DataFrame) -> dict:
+    @staticmethod
+    def _get_header_columns() -> dict:
         """Find header columns in the DataFrame."""
         # This is a simplified implementation - adjust based on actual Excel structure
         return {
@@ -1064,7 +1061,6 @@ class GroupScheduleParser(BaseExcelParser):
         date: datetime,
         group_members: List[GroupMemberInfo],
         user_name: str,
-        head_name: str,
         page: int = 1,
         members_per_page: int = 20,
     ) -> tuple[str, int, bool, bool]:

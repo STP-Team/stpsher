@@ -316,10 +316,7 @@ def create_no_results_item(
 
 def create_filter_hints(query_text: str) -> List[InlineQueryResultArticle]:
     """Создание подсказок по фильтрам поиска"""
-    hints = []
-
-    # Подсказка по поиску руководителей
-    hints.append(
+    hints = [
         InlineQueryResultArticle(
             id="hint_heads",
             title="💡 Найти руководителей",
@@ -327,11 +324,7 @@ def create_filter_hints(query_text: str) -> List[InlineQueryResultArticle]:
             input_message_content=InputTextMessageContent(
                 message_text=f"<b>💡 Подсказка по поиску</b>\n\nДобавь <code>role:head</code> к запросу для поиска только руководителей:\n\n<code>{query_text} role:head</code>"
             ),
-        )
-    )
-
-    # Подсказка по поиску в направлении
-    hints.append(
+        ),
         InlineQueryResultArticle(
             id="hint_division",
             title="💡 Поиск по направлению",
@@ -339,8 +332,8 @@ def create_filter_hints(query_text: str) -> List[InlineQueryResultArticle]:
             input_message_content=InputTextMessageContent(
                 message_text=f"<b>💡 Подсказка по поиску</b>\n\nДля поиска в определенном направлении используй:\n\n<code>{query_text} div:НТП</code>\n<code>{query_text} div:НЦК</code>"
             ),
-        )
-    )
+        ),
+    ]
 
     return hints
 

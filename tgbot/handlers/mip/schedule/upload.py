@@ -66,7 +66,6 @@ async def upload_file(
         # Check if file with same name exists (for change detection)
         file_path = UPLOADS_DIR / document.file_name
         old_file_exists = file_path.exists()
-        old_file_name = document.file_name if old_file_exists else None
 
         # Save old file temporarily for comparison if it exists
         temp_old_file = None
@@ -85,7 +84,6 @@ async def upload_file(
         )
 
         # Download and save new file
-        file_path = await _save_file(message, document)
         file_replaced = old_file_exists
 
         # Step 3: Update progress - logging to database

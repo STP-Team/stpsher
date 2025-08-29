@@ -139,7 +139,7 @@ class ScheduleChangeDetector:
             )
 
             # Находим все месяцы и их диапазоны колонок
-            months_ranges = self._find_all_months_ranges(df)
+            months_ranges = self._find_all_months_ranges()
             if not months_ranges:
                 logger.warning(f"[График] Месяцы не найдены в файле {file_path}")
                 return schedules
@@ -161,9 +161,7 @@ class ScheduleChangeDetector:
                 # Проходим по всем месяцам
                 for month, (start_col, end_col) in months_ranges.items():
                     # Находим заголовки дней для этого месяца
-                    day_headers = self._find_day_headers_in_range(
-                        df, start_col, end_col
-                    )
+                    day_headers = self._find_day_headers_in_range(start_col, end_col)
 
                     logger.debug(
                         f"[График] {fullname} - {month}: найдено {len(day_headers)} дней"
@@ -209,7 +207,8 @@ class ScheduleChangeDetector:
             logger.error(f"[График] Ошибка извлечения расписаний из {file_path}: {e}")
             return {}
 
-    def _find_all_months_ranges(self, df: pd.DataFrame) -> Dict[str, tuple]:
+    @staticmethod
+    def _find_all_months_ranges(df: pd.DataFrame) -> Dict[str, tuple]:
         """Находит диапазоны колонок для всех месяцев в файле."""
         months_ranges = {}
         months_order = [
@@ -280,15 +279,16 @@ class ScheduleChangeDetector:
                     else ""
                 )
 
-                if self._is_valid_fullname(cell_value):
+                if self._is_valid_fullname():
                     fullname = cell_value.strip()
                     users_rows[fullname] = row_idx
                     break
 
         return users_rows
 
+    @staticmethod
     def _find_day_headers_in_range(
-        self, df: pd.DataFrame, start_col: int, end_col: int
+        df: pd.DataFrame, start_col: int, end_col: int
     ) -> Dict[int, str]:
         """Находит заголовки дней в указанном диапазоне колонок."""
         day_headers = {}
@@ -354,7 +354,8 @@ class ScheduleChangeDetector:
         )
         return day_headers
 
-    def _is_valid_fullname(self, text: str) -> bool:
+    @staticmethod
+    def _is_valid_fullname(text: str) -> bool:
         """Проверяет, является ли текст корректным ФИО."""
         if not text or text.strip() in ["", "nan", "None", "ДАТА →"]:
             return False
@@ -390,8 +391,8 @@ class ScheduleChangeDetector:
         all_days = set(old_schedule.keys()) | set(new_schedule.keys())
 
         for day in all_days:
-            old_value = self._normalize_value(old_schedule.get(day, ""))
-            new_value = self._normalize_value(new_schedule.get(day, ""))
+            old_value = self._normalize_value()
+            new_value = self._normalize_value()
 
             if old_value != new_value:
                 # Очищаем название дня для отображения
@@ -419,7 +420,8 @@ class ScheduleChangeDetector:
 
         return None
 
-    def _normalize_value(self, value: str) -> str:
+    @staticmethod
+    def _normalize_value(value: str) -> str:
         """Нормализует значение расписания для сравнения."""
         if not value or value.strip().lower() in ["", "nan", "none", "не указано"]:
             return ""

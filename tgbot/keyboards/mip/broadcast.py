@@ -176,11 +176,10 @@ def heads_selection_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def confirmation_kb(broadcast_type: str) -> InlineKeyboardMarkup:
+def confirmation_kb() -> InlineKeyboardMarkup:
     """
     Клавиатура подтверждения рассылки
 
-    :param broadcast_type: Тип рассылки (everyone, ntp, nck, groups)
     :return: Объект встроенной клавиатуры
     """
     buttons = [
