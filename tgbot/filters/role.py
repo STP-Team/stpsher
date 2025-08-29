@@ -26,7 +26,7 @@ class DutyFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["Старший"]
+        return user.role == executed_codes["Дежурный"]
 
 
 class GokFilter(BaseFilter):
@@ -59,3 +59,14 @@ class SpecialistFilter(BaseFilter):
             return False
 
         return user.role == executed_codes["Специалист"]
+
+
+class MultiRoleFilter(BaseFilter):
+    def __init__(self, *role_filters):
+        self.role_filters = role_filters
+
+    async def __call__(self, obj, **kwargs) -> bool:
+        for role_filter in self.role_filters:
+            if await role_filter(obj, **kwargs):
+                return True
+        return False

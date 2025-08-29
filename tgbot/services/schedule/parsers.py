@@ -645,11 +645,11 @@ class DutyScheduleParser(BaseDutyParser):
                 short_name = self.utils.short_name(duty.name)
                 if duty.username:
                     lines.append(
-                        f"{gender_emoji}Старший - <a href='t.me/{duty.username}'>{short_name}</a>"
+                        f"{gender_emoji}Дежурный - <a href='t.me/{duty.username}'>{short_name}</a>"
                     )
                 else:
                     lines.append(
-                        f"{gender_emoji}Старший - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
+                        f"{gender_emoji}Дежурный - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
                     )
 
             # Add helpers
