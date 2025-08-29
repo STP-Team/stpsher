@@ -274,9 +274,12 @@ async def process_user_changes(session_pool, file_name: str):
                 if fullname == "Стажеры общего ряда":
                     continue
 
-                if fullname in fired_users and fullname in existing_fullnames:
+                if fullname in existing_fullnames:
                     await user_repo.delete_user(fullname=fullname)
-                    logger.info(f"[Изменения] Удаляем уволенного: {fullname}")
+                    logger.info(f"[Изменения] Удален уволенный: {fullname}")
+
+                if fullname in fired_users:
+                    logger.info(f"[Изменения] Пропущен уволенный: {fullname}")
                     continue
 
                 try:
