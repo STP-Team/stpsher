@@ -36,6 +36,9 @@ def main_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="📅 Графики", callback_data=MainMenu(menu="schedule").pack()
             ),
+            InlineKeyboardButton(
+                text="🎯 Показатели", callback_data=MainMenu(menu="kpi").pack()
+            ),
         ],
         [
             InlineKeyboardButton(

@@ -15,7 +15,7 @@ head_kpi_router.callback_query.filter(F.message.chat.type == "private", HeadFilt
 
 
 @head_kpi_router.callback_query(MainMenu.filter(F.menu == "kpi"))
-async def user_start_cb(callback: CallbackQuery, user: User, kpi_repo: KPIRequestsRepo):
+async def head_start_cb(callback: CallbackQuery, user: User, kpi_repo: KPIRequestsRepo):
     head_kpi: HeadMonthKPI = await kpi_repo.head_month_kpi.get_kpi(
         fullname=user.fullname
     )
