@@ -6,10 +6,8 @@ from aiogram.types import CallbackQuery, FSInputFile
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.list import (
-    schedule_list_kb,
     list_db_files_kb,
     schedule_list_back_kb,
-    ScheduleListMenu,
     list_local_files_kb,
 )
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu
@@ -19,17 +17,7 @@ mip_list_router.message.filter(F.chat.type == "private", MipFilter())
 mip_list_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
 
 
-@mip_list_router.callback_query(ScheduleMenu.filter(F.menu == "list"))
-async def upload_menu(callback: CallbackQuery):
-    await callback.message.edit_text(
-        """<b>📂 Просмотр файлов</b>
-        
-Здесь ты можешь посмотреть какие файлы сейчас находятся на сервере, а так же посмотреть историю изменений и выгрузить старые файлы""",
-        reply_markup=schedule_list_kb(),
-    )
-
-
-@mip_list_router.callback_query(ScheduleListMenu.filter(F.menu == "local"))
+@mip_list_router.callback_query(ScheduleMenu.filter(F.menu == "local"))
 async def show_local_files(callback: CallbackQuery):
     local_files = next(os.walk("uploads"), (None, None, []))[2]
 
@@ -49,7 +37,7 @@ async def show_local_files(callback: CallbackQuery):
     )
 
 
-@mip_list_router.callback_query(ScheduleListMenu.filter(F.menu == "history"))
+@mip_list_router.callback_query(ScheduleMenu.filter(F.menu == "history"))
 async def show_history_files(callback: CallbackQuery, stp_repo: MainRequestsRepo):
     files_history = await stp_repo.upload.get_files_history()
 
@@ -64,13 +52,13 @@ async def show_history_files(callback: CallbackQuery, stp_repo: MainRequestsRepo
 
     files_info = []
     for file in files_history:
-        user = await stp_repo.user.get_user(file.uploaded_by_user_id)
+        user = await stp_repo.user.get_user(user_id=file.uploaded_by_user_id)
 
         if user.username:
             files_info.append(
                 f"""• <b>{file.file_name or "Unknown"}</b>
-    🤨 Загрузил: <a href='t.me/{user.username}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
-    🏋 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
+🤨 Загрузил: <a href='t.me/{user.username}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
+🏋 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
             )
         else:
             files_info.append(

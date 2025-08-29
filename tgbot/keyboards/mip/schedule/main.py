@@ -20,9 +20,15 @@ def schedule_kb() -> InlineKeyboardMarkup:
                 text="📤 Загрузка",
                 callback_data=ScheduleMenu(menu="upload").pack(),
             ),
+        ],
+        [
             InlineKeyboardButton(
-                text="📂 Просмотр файлов",
-                callback_data=ScheduleMenu(menu="list").pack(),
+                text="📁 Локальные файлы",
+                callback_data=ScheduleMenu(menu="local").pack(),
+            ),
+            InlineKeyboardButton(
+                text="📜 История загрузок",
+                callback_data=ScheduleMenu(menu="history").pack(),
             ),
         ],
         [

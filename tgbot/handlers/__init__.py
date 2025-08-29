@@ -18,6 +18,7 @@ from tgbot.handlers.user.inline import user_inline_router
 from tgbot.handlers.user.kpi import user_kpi_router
 from tgbot.handlers.user.leveling.achievements import user_leveling_achievements_router
 from tgbot.handlers.user.leveling.awards import user_leveling_awards_router
+from tgbot.handlers.user.links import user_links_router
 from tgbot.handlers.user.main import user_router
 from tgbot.handlers.user.schedule.duties import user_schedule_duty_router
 from tgbot.handlers.user.schedule.group import user_schedule_group_router
@@ -50,6 +51,7 @@ routers_list = [
     user_kpi_router,
     user_leveling_achievements_router,
     user_leveling_awards_router,
+    user_links_router,
     user_inline_router,
     whois_router,
 ]
