@@ -14,7 +14,7 @@ from tgbot.keyboards.mip.schedule.upload import schedule_upload_back_kb
 from tgbot.misc.states.mip.upload import UploadFile
 from tgbot.services.schedule.user_processor import (
     process_fired_users_with_stats,
-    process_user_changes_with_stats,
+    process_user_changes,
 )
 
 # Router setup
@@ -263,9 +263,7 @@ async def _process_file(file_name: str, main_db: Session) -> dict | None:
         fired_names = await process_fired_users_with_stats([file_path], main_db)
 
         # Process user changes
-        updated_names, new_names = await process_user_changes_with_stats(
-            main_db, file_name
-        )
+        updated_names, new_names = await process_user_changes(main_db, file_name)
 
         return {
             "fired_names": fired_names,

@@ -16,68 +16,6 @@ from tgbot.services.scheduler import get_fired_users_from_excel
 logger = logging.getLogger(__name__)
 
 
-async def process_user_changes(session_pool, file_name: str):
-    """
-    Процессинг изменений должности и руководителя специалиста из файла.
-
-    Args:
-        session_pool: Сессия с БД
-        file_name: Название файла с таблицей
-    """
-    try:
-        logger.info(f"[Изменения] Проверка изменений в файле: {file_name}")
-
-        division = extract_division_from_filename(file_name)
-        excel_users = get_users_from_excel(file_name)
-
-        if not excel_users:
-            logger.info("[Изменения] Пользователи не найдены в файле")
-            return
-
-        fired_users = get_fired_users_from_excel([file_name])
-
-        async with session_pool() as session:
-            user_repo = UserRepo(session)
-            total_updated, total_added = 0, 0
-
-            for excel_user in excel_users:
-                fullname = excel_user["fullname"]
-
-                if fullname == "Стажеры общего ряда":
-                    break
-
-                if fullname in fired_users:
-                    logger.debug(f"[Изменения] Пропускаем уволенного: {fullname}")
-                    continue
-
-                try:
-                    db_user = await user_repo.get_user(fullname=fullname)
-
-                    if db_user:
-                        total_updated += await _update_existing_user(
-                            db_user, excel_user
-                        )
-                    else:
-                        await _add_new_user(session, division, excel_user)
-                        total_added += 1
-
-                except Exception as e:
-                    logger.error(
-                        f"[Изменения] Ошибка обработки пользователя {fullname}: {e}"
-                    )
-
-            if total_updated > 0 or total_added > 0:
-                await session.commit()
-                logger.info(
-                    f"[Изменения] Обновлено {total_updated}, добавлено {total_added} пользователей"
-                )
-            else:
-                logger.info("[Изменения] Нет изменений для применения")
-
-    except Exception as e:
-        logger.error(f"[Изменения] Критическая ошибка при обработке изменений: {e}")
-
-
 async def _update_existing_user(db_user: User, excel_user: Dict[str, str]) -> int:
     """Update existing user with new data. Returns 1 if updated, 0 if no changes."""
     updated = False
@@ -299,7 +237,7 @@ async def process_fired_users_with_stats(files_list: list[str], session_pool):
         return []
 
 
-async def process_user_changes_with_stats(session_pool, file_name: str):
+async def process_user_changes(session_pool, file_name: str):
     """
     Процессинг изменений должности и руководителя специалиста из файла.
     Returns lists of updated and new user names
@@ -326,6 +264,7 @@ async def process_user_changes_with_stats(session_pool, file_name: str):
         async with session_pool() as session:
             user_repo = UserRepo(session)
             db_users = await user_repo.get_users()
+            existing_fullnames = [user.fullname for user in db_users]
             updated_names = []
             new_names = []
 
@@ -335,13 +274,13 @@ async def process_user_changes_with_stats(session_pool, file_name: str):
                 if fullname == "Стажеры общего ряда":
                     continue
 
-                if fullname in fired_users:
-                    logger.debug(f"[Изменения] Пропускаем уволенного: {fullname}")
+                if fullname in fired_users and fullname in existing_fullnames:
+                    await user_repo.delete_user(fullname=fullname)
+                    logger.info(f"[Изменения] Удаляем уволенного: {fullname}")
                     continue
 
                 try:
                     # Get list of existing fullnames for comparison
-                    existing_fullnames = [user.fullname for user in db_users]
                     if fullname in existing_fullnames:
                         # Find the specific user object
                         db_user = next(
