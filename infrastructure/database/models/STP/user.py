@@ -35,10 +35,10 @@ class User(Base, TableNameMixin):
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
     user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
     username: Mapped[str] = mapped_column(Unicode, nullable=True)
-    division: Mapped[str] = mapped_column(Unicode, nullable=False)
-    position: Mapped[str] = mapped_column(Unicode, nullable=False)
+    division: Mapped[str] = mapped_column(Unicode, nullable=True)
+    position: Mapped[str] = mapped_column(Unicode, nullable=True)
     fullname: Mapped[str] = mapped_column(Unicode, nullable=False)
-    head: Mapped[str] = mapped_column(Unicode, nullable=False)
+    head: Mapped[str] = mapped_column(Unicode, nullable=True)
     email: Mapped[str] = mapped_column(Unicode, nullable=True)
     role: Mapped[int] = mapped_column(BIGINT, nullable=False)
 
