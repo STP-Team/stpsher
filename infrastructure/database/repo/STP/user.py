@@ -77,6 +77,35 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения списка пользователей: {e}")
             return None
 
+    async def get_unauthorized_users(self, head_name: str = None) -> Sequence[User]:
+        """
+        Получить список неавторизованных пользователей
+        Неавторизованные пользователи - те, у которых отсутствует user_id (не связан с Telegram)
+
+        Args:
+            head_name: Фильтр по имени руководителя (опционально)
+
+        Returns:
+            Список неавторизованных пользователей
+        """
+        # Основное условие - отсутствие user_id означает что пользователь не авторизован в Telegram
+        base_conditions = [User.user_id.is_(None)]
+
+        # Добавляем фильтр по руководителю если указан
+        if head_name:
+            base_conditions.append(User.head == head_name)
+
+        query = select(User).where(*base_conditions).order_by(User.fullname)
+
+        try:
+            result = await self.session.execute(query)
+            return list(result.scalars().all())
+        except SQLAlchemyError as e:
+            logger.error(
+                f"[БД] Ошибка получения списка неавторизованных пользователей: {e}"
+            )
+            return []
+
     async def update_user(
         self,
         user_id: int = None,

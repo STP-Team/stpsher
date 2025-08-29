@@ -1,17 +1,21 @@
 import logging
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
 import pytz
+from aiogram import Bot
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from infrastructure.database.repo.STP.user import UserRepo
 from tgbot.config import load_config
+from tgbot.services.broadcaster import send_message
 
 config = load_config(".env")
 
@@ -221,3 +225,204 @@ async def process_fired_users(session_pool):
 
     except Exception as e:
         logger.error(f"[Увольнения] Критическая ошибка при обработке увольнений: {e}")
+
+
+async def notify_to_unauthorized_users(session_pool, bot: Bot):
+    """
+    Уведомление руководителей о неавторизованных пользователях в их группах
+    """
+    try:
+        async with session_pool() as session:
+            stp_repo = MainRequestsRepo(session)
+            unauthorized_users = await stp_repo.user.get_unauthorized_users()
+
+            if not unauthorized_users:
+                logger.info("[Авторизация] Неавторизованных пользователей не найдено")
+                return
+
+            logger.info(
+                f"[Авторизация] Найдено {len(unauthorized_users)} неавторизованных пользователей"
+            )
+
+            # Группируем неавторизованных пользователей по руководителям
+            unauthorized_by_head = await group_users_by_supervisor(unauthorized_users)
+
+            # Отправляем уведомления руководителям
+            notification_results = await send_notifications_to_supervisors(
+                unauthorized_by_head, bot, stp_repo
+            )
+
+            # Логируем результаты
+            total_notifications = sum(notification_results.values())
+            logger.info(
+                f"[Авторизация] Отправлено уведомлений: {total_notifications} из {len(notification_results)} руководителям"
+            )
+
+            return notification_results
+
+    except Exception as e:
+        logger.error(
+            f"[Авторизация] Критическая ошибка при уведомлении об авторизации: {e}"
+        )
+        return {}
+
+
+async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]:
+    """
+    Группирует неавторизованных пользователей по их руководителям
+
+    Args:
+        unauthorized_users: Список неавторизованных пользователей
+        stp_repo: Репозиторий для работы с БД
+
+    Returns:
+        Словарь {имя_руководителя: [список_неавторизованных_подчиненных]}
+    """
+    unauthorized_by_head = defaultdict(list)
+    users_without_head = []
+
+    for user in unauthorized_users:
+        if user.head and user.head.strip():
+            # Фильтруем служебные email-адреса
+            if "@ertelecom.ru" not in user.head:
+                unauthorized_by_head[user.head].append(user)
+            else:
+                users_without_head.append(user)
+        else:
+            users_without_head.append(user)
+
+    if users_without_head:
+        logger.warning(
+            f"[Авторизация] {len(users_without_head)} пользователей без руководителя: "
+            f"{[user.fullname for user in users_without_head]}"
+        )
+
+    logger.info(
+        f"[Авторизация] Группировка по руководителям: {len(unauthorized_by_head)} групп"
+    )
+    return dict(unauthorized_by_head)
+
+
+async def send_notifications_to_supervisors(
+    unauthorized_by_head: Dict[str, List], bot: Bot, stp_repo: MainRequestsRepo
+) -> Dict[str, bool]:
+    """
+    Отправляет уведомления руководителям об их неавторизованных подчиненных
+
+    Args:
+        unauthorized_by_head: Словарь с группировкой пользователей по руководителям
+        bot: Экземпляр бота для отправки сообщений
+        stp_repo: Репозиторий для работы с БД
+
+    Returns:
+        Словарь с результатами отправки уведомлений {имя_руководителя: успех}
+    """
+    notification_results = {}
+
+    for head_name, subordinates in unauthorized_by_head.items():
+        try:
+            # Ищем руководителя в БД
+            supervisor = await stp_repo.user.get_user(fullname=head_name)
+
+            if not supervisor or not supervisor.user_id:
+                logger.warning(
+                    f"[Авторизация] Руководитель {head_name} не найден в БД или не имеет user_id"
+                )
+                notification_results[head_name] = False
+                continue
+
+            # Формируем сообщение
+            message = create_notification_message(head_name, subordinates)
+
+            # Отправляем уведомление
+            success = await send_message(bot, supervisor.user_id, message)
+            notification_results[head_name] = success
+
+            if success:
+                logger.info(
+                    f"[Авторизация] Отправлено уведомление руководителю {head_name} "
+                    f"о {len(subordinates)} неавторизованных подчиненных"
+                )
+            else:
+                logger.error(
+                    f"[Авторизация] Не удалось отправить уведомление руководителю {head_name}"
+                )
+
+        except Exception as e:
+            logger.error(f"[Авторизация] Ошибка отправки уведомления {head_name}: {e}")
+            notification_results[head_name] = False
+
+    return notification_results
+
+
+def create_notification_message(head_name: str, unauthorized_subordinates: List) -> str:
+    """
+    Создает текст уведомления для руководителя
+
+    Args:
+        head_name: Имя руководителя
+        unauthorized_subordinates: Список неавторизованных подчиненных
+
+    Returns:
+        Готовый текст сообщения
+    """
+    subordinates_count = len(unauthorized_subordinates)
+
+    # Формируем заголовок
+    message_parts = [
+        "🔔 <b>Неавторизованные сотрудники</b>\n",
+        f"Привет, <b>{head_name}</b>!\n",
+        f"В твоей группе обнаружено <b>{subordinates_count}</b> неавторизованных сотрудника(ов):\n",
+    ]
+
+    # Добавляем список неавторизованных сотрудников
+    for i, subordinate in enumerate(unauthorized_subordinates, 1):
+        # Формируем строку с информацией о сотруднике
+        user_info = f"{i}. <b>{subordinate.fullname}</b>"
+
+        if subordinate.position and subordinate.division:
+            user_info += f"\n💼 {subordinate.position} {subordinate.division}"
+
+        message_parts.append(user_info)
+
+    # Добавляем призыв к действию
+    message_parts.extend(
+        [
+            "\n💡 <b>Что нужно сделать:</b>",
+            "• Попроси сотрудников авторизоваться в @stpsher_bot",
+            "\n📋 <b>Для авторизации сотруднику необходимо:</b>",
+            "1️⃣ Перейти в @stpsher_bot",
+            "2️⃣ Нажать /start",
+            "3️⃣ Следовать инструкциям бота",
+            "\n❗ <b>Важно:</b> Авторизация необходима для корректной работы бота",
+        ]
+    )
+
+    return "\n".join(message_parts)
+
+
+def format_unauthorized_users_summary(unauthorized_users: List) -> str:
+    """
+    Форматирует краткую сводку о неавторизованных пользователях для логов
+
+    Args:
+        unauthorized_users: Список неавторизованных пользователей
+
+    Returns:
+        Строка с краткой информацией
+    """
+    if not unauthorized_users:
+        return "Неавторизованных пользователей не найдено"
+
+    # Группируем по подразделениям
+    divisions = defaultdict(int)
+    for user in unauthorized_users:
+        division = user.division if user.division else "Не указано"
+        divisions[division] += 1
+
+    # Формируем сводку
+    summary_parts = [f"Всего неавторизованных: {len(unauthorized_users)}"]
+    for division, count in divisions.items():
+        summary_parts.append(f"• {division}: {count}")
+
+    return ", ".join(summary_parts)

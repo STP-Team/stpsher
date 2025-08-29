@@ -17,7 +17,11 @@ from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.services.logger import setup_logging
-from tgbot.services.scheduler import process_fired_users, scheduler
+from tgbot.services.scheduler import (
+    process_fired_users,
+    scheduler,
+    notify_to_unauthorized_users,
+)
 
 bot_config = load_config(".env")
 
@@ -146,6 +150,14 @@ async def main():
         minute=0,
         args=[main_db],
         id="check_fired_users",
+    )
+    scheduler.add_job(
+        notify_to_unauthorized_users,
+        "cron",
+        hour=10,
+        minute=30,
+        args=[main_db, bot],
+        id="notify_to_unauthorized_users",
     )
 
     scheduler.start()
