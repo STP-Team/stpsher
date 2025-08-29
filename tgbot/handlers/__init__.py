@@ -24,6 +24,7 @@ from tgbot.handlers.user.schedule.group import user_schedule_group_router
 from tgbot.handlers.user.schedule.heads import user_schedule_head_router
 from tgbot.handlers.user.schedule.main import user_schedule_router
 from tgbot.handlers.user.schedule.my import user_schedule_my_router
+from tgbot.handlers.whois import whois_router
 
 routers_list = [
     admin_router,
@@ -50,6 +51,7 @@ routers_list = [
     user_leveling_achievements_router,
     user_leveling_awards_router,
     user_inline_router,
+    whois_router,
 ]
 
 __all__ = [

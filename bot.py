@@ -8,6 +8,7 @@ from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiogram.types import (
     BotCommand,
     BotCommandScopeAllPrivateChats,
+    BotCommandScopeAllGroupChats,
 )
 
 from infrastructure.database.setup import create_engine, create_session_pool
@@ -113,6 +114,12 @@ async def main():
     await bot.set_my_commands(
         commands=[BotCommand(command="start", description="Главное меню")],
         scope=BotCommandScopeAllPrivateChats(),
+    )
+    await bot.set_my_commands(
+        commands=[
+            BotCommand(command="whois", description="Проверить информацию о сотруднике")
+        ],
+        scope=BotCommandScopeAllGroupChats(),
     )
 
     dp = Dispatcher(storage=storage)
