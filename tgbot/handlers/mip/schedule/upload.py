@@ -176,7 +176,7 @@ async def upload_file(
             if len(notified_users) > 5:
                 status_text += f"\n... и еще {len(notified_users) - 5}"
         else:
-            status_text += "\n\n📤 <b>Изменения графика</b>\n"
+            status_text += "\n📤 <b>Изменения графика</b>\n"
             status_text += (
                 "Нет изменений в графике. Уведомления об изменении отправлены не будут"
             )
