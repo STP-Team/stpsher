@@ -12,18 +12,23 @@ from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
     HeadGroupMenu,
+    MipScheduleNavigation,
     SearchMenu,
     SearchUserResult,
+    ViewUserSchedule,
     edit_user_back_kb,
+    get_month_name_by_index,
     head_group_kb,
     search_back_kb,
     search_main_kb,
     search_results_kb,
     user_detail_kb,
+    user_schedule_with_month_kb,
 )
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
+from tgbot.handlers.user.schedule.main import schedule_service
 
 mip_search_router = Router()
 mip_search_router.message.filter(F.chat.type == "private", MipFilter())
@@ -205,11 +210,7 @@ async def search_main_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         """<b>🕵🏻 Поиск сотрудника</b>
 
-Выбери категорию поиска или воспользуйся общим поиском:
-
-• <b>👤 Специалисты</b> - обычные сотрудники
-• <b>👔 Руководители</b> - руководители подразделений  
-• <b>🔍 Поиск</b> - поиск по части имени среди всех""",
+<i>Выбери должность искомого человека или воспользуйся общим поиском</i>""",
         reply_markup=search_main_kb(),
     )
 
@@ -661,3 +662,156 @@ async def process_edit_fullname(
 <b>Текущее ФИО:</b> {current_fullname}""",
             reply_markup=edit_user_back_kb(user_id),
         )
+
+
+@mip_search_router.callback_query(ViewUserSchedule.filter())
+async def view_user_schedule(
+    callback: CallbackQuery,
+    callback_data: ViewUserSchedule,
+    stp_repo: MainRequestsRepo,
+):
+    """Просмотр расписания пользователя"""
+    user_id = callback_data.user_id
+    return_to = callback_data.return_to
+    head_id = callback_data.head_id
+    requested_month_idx = callback_data.month_idx
+
+    try:
+        # Получаем пользователя
+        user = await stp_repo.user.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Определяем месяц для отображения
+        if requested_month_idx > 0:
+            current_month = get_month_name_by_index(requested_month_idx)
+        else:
+            current_month = schedule_service.get_current_month()
+
+        try:
+            # Получаем расписание пользователя (компактный формат)
+            schedule_response = await schedule_service.get_user_schedule_response(
+                user=user, month=current_month, compact=True
+            )
+
+            await callback.message.edit_text(
+                f"""<b>📅 График сотрудника</b>
+
+<b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>Подразделение:</b> {user.division}
+
+<blockquote>{schedule_response}</blockquote>""",
+                reply_markup=user_schedule_with_month_kb(
+                    user_id=user_id,
+                    current_month=current_month,
+                    return_to=return_to,
+                    head_id=head_id,
+                ),
+            )
+
+        except Exception as schedule_error:
+            # Если не удалось получить расписание, показываем ошибку
+            error_message = "❌ Расписание для данного сотрудника не найдено"
+            if "не найден" in str(schedule_error).lower():
+                error_message = f"❌ Сотрудник {user.fullname} не найден в расписании"
+            elif "файл" in str(schedule_error).lower():
+                error_message = "❌ Файл расписания недоступен"
+
+            await callback.message.edit_text(
+                f"""<b>📅 График сотрудника</b>
+
+<b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>Подразделение:</b> {user.division}
+
+{error_message}
+
+<i>Возможно, сотрудник не включен в текущее расписание или файл недоступен.</i>""",
+                reply_markup=user_schedule_with_month_kb(
+                    user_id=user_id,
+                    current_month=current_month,
+                    return_to=return_to,
+                    head_id=head_id,
+                ),
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка при получении расписания пользователя {user_id}: {e}")
+        await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
+
+
+@mip_search_router.callback_query(MipScheduleNavigation.filter())
+async def navigate_user_schedule(
+    callback: CallbackQuery,
+    callback_data: MipScheduleNavigation,
+    stp_repo: MainRequestsRepo,
+):
+    """Навигация по месяцам в расписании пользователя"""
+    user_id = callback_data.user_id
+    action = callback_data.action
+    month_idx = callback_data.month_idx
+    return_to = callback_data.return_to
+    head_id = callback_data.head_id
+
+    try:
+        # Получаем пользователя
+        user = await stp_repo.user.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Определяем компактность вывода
+        compact = action != "detailed"
+
+        # Преобразуем индекс месяца в название
+        month_to_display = get_month_name_by_index(month_idx)
+
+        try:
+            # Получаем расписание пользователя
+            schedule_response = await schedule_service.get_user_schedule_response(
+                user=user, month=month_to_display, compact=compact
+            )
+
+            await callback.message.edit_text(
+                f"""<b>📅 График сотрудника</b>
+
+<b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>Подразделение:</b> {user.division}
+
+<blockquote>{schedule_response}</blockquote>""",
+                reply_markup=user_schedule_with_month_kb(
+                    user_id=user_id,
+                    current_month=month_to_display,
+                    return_to=return_to,
+                    head_id=head_id,
+                ),
+            )
+
+        except Exception as schedule_error:
+            # Если не удалось получить расписание, показываем ошибку
+            error_message = "❌ Расписание для данного сотрудника не найдено"
+            if "не найден" in str(schedule_error).lower():
+                error_message = f"❌ Сотрудник {user.fullname} не найден в расписании"
+            elif "файл" in str(schedule_error).lower():
+                error_message = "❌ Файл расписания недоступен"
+
+            await callback.message.edit_text(
+                f"""<b>📅 График сотрудника</b>
+
+<b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>Подразделение:</b> {user.division}
+
+{error_message}
+
+<i>Возможно, сотрудник не включен в текущее расписание или файл недоступен.</i>""",
+                reply_markup=user_schedule_with_month_kb(
+                    user_id=user_id,
+                    current_month=month_to_display,
+                    return_to=return_to,
+                    head_id=head_id,
+                ),
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка при навигации по расписанию пользователя {user_id}: {e}")
+        await callback.answer("❌ Ошибка при получении расписания", show_alert=True)

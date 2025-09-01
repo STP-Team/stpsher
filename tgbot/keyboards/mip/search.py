@@ -26,6 +26,22 @@ class EditUserMenu(CallbackData, prefix="edit_user"):
     action: str  # "edit_fullname"
 
 
+class ViewUserSchedule(CallbackData, prefix="view_schedule"):
+    user_id: int
+    return_to: str = "search"  # Откуда пришли (search, head_group)
+    head_id: int = 0  # ID руководителя
+    month_idx: int = 0  # Индекс месяца для просмотра (0 = текущий)
+
+
+class MipScheduleNavigation(CallbackData, prefix="mip_sched"):
+    """Callback data для навигации по месяцам в расписании пользователя для МИП"""
+    action: str  # "prev", "next", "-", "detailed", "compact"
+    user_id: int
+    month_idx: int  # индекс месяца (1-12)
+    return_to: str = "search"  # Откуда пришли (search, head_group)
+    head_id: int = 0  # ID руководителя
+
+
 def search_main_kb() -> InlineKeyboardMarkup:
     """
     Главная клавиатура поиска сотрудников
@@ -79,6 +95,18 @@ def user_detail_kb(
     :return: Объект встроенной клавиатуры
     """
     buttons = []
+
+    # Кнопка просмотра расписания (для всех пользователей)
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="📅 Посмотреть график",
+                callback_data=ViewUserSchedule(
+                    user_id=user_id, return_to=return_to, head_id=head_id
+                ).pack(),
+            )
+        ]
+    )
 
     # Кнопка просмотра группы (для руководителей)
     if is_head and head_user_id:
@@ -378,3 +406,147 @@ def search_back_kb() -> InlineKeyboardMarkup:
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard
+
+
+def schedule_back_to_user_kb(
+    user_id: int, return_to: str = "search", head_id: int = 0
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для возврата к деталям пользователя из расписания
+
+    :param user_id: ID пользователя
+    :param return_to: Откуда пришли (search, head_group)
+    :param head_id: ID руководителя (если пришли из группы)
+    :return: Объект встроенной клавиатуры
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="↩️ К сотруднику",
+                callback_data=SearchUserResult(
+                    user_id=user_id, return_to=return_to, head_id=head_id
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+# Список месяцев на русском языке
+MONTHS_RU = [
+    "январь", "февраль", "март", "апрель", "май", "июнь",
+    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
+]
+
+# Эмодзи для месяцев
+MONTH_EMOJIS = {
+    1: "❄️", 2: "💙", 3: "🌸", 4: "🌷", 5: "🌻", 6: "☀️",
+    7: "🏖️", 8: "🌾", 9: "🍂", 10: "🎃", 11: "🍁", 12: "🎄"
+}
+
+
+def get_month_name_by_index(month_idx: int) -> str:
+    """Получает название месяца по индексу (1-12)"""
+    if 1 <= month_idx <= 12:
+        return MONTHS_RU[month_idx - 1]
+    return "январь"
+
+
+def get_month_index_by_name(month_name: str) -> int:
+    """Получает индекс месяца по названию"""
+    try:
+        return MONTHS_RU.index(month_name.lower()) + 1
+    except (ValueError, AttributeError):
+        return 1
+
+
+def user_schedule_with_month_kb(
+    user_id: int,
+    current_month: str,
+    return_to: str = "search",
+    head_id: int = 0,
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура расписания пользователя с навигацией по месяцам
+
+    :param user_id: ID пользователя
+    :param current_month: Текущий выбранный месяц (название)
+    :param return_to: Откуда пришли (search, head_group)
+    :param head_id: ID руководителя (если пришли из группы)
+    :return: Объект встроенной клавиатуры
+    """
+    current_month_idx = get_month_index_by_name(current_month)
+    
+    # Получаем предыдущий и следующий месяцы
+    prev_month_idx = current_month_idx - 1 if current_month_idx > 1 else 12
+    next_month_idx = current_month_idx + 1 if current_month_idx < 12 else 1
+    
+    # Эмодзи для текущего месяца
+    month_emoji = MONTH_EMOJIS.get(current_month_idx, "📅")
+    
+    # Создаем ряд навигации по месяцам
+    nav_row = [
+        InlineKeyboardButton(
+            text="◀️",
+            callback_data=MipScheduleNavigation(
+                action="prev",
+                user_id=user_id,
+                month_idx=prev_month_idx,
+                return_to=return_to,
+                head_id=head_id
+            ).pack(),
+        ),
+        InlineKeyboardButton(
+            text=f"{month_emoji} {current_month.capitalize()}",
+            callback_data=MipScheduleNavigation(
+                action="-",
+                user_id=user_id,
+                month_idx=current_month_idx,
+                return_to=return_to,
+                head_id=head_id
+            ).pack(),
+        ),
+        InlineKeyboardButton(
+            text="▶️",
+            callback_data=MipScheduleNavigation(
+                action="next",
+                user_id=user_id,
+                month_idx=next_month_idx,
+                return_to=return_to,
+                head_id=head_id
+            ).pack(),
+        ),
+    ]
+    
+    buttons = [
+        nav_row,  # Ряд навигации по месяцам
+        [
+            InlineKeyboardButton(
+                text="📋 Подробнее",
+                callback_data=MipScheduleNavigation(
+                    action="detailed",
+                    user_id=user_id,
+                    month_idx=current_month_idx,
+                    return_to=return_to,
+                    head_id=head_id
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ К сотруднику",
+                callback_data=SearchUserResult(
+                    user_id=user_id, return_to=return_to, head_id=head_id
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
