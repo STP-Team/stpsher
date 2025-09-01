@@ -8,10 +8,14 @@ from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.list import (
     list_db_files_paginated_kb,
     schedule_list_back_kb,
-    list_local_files_kb,
+    list_local_files_paginated_kb,
+    local_file_detail_kb,
     ScheduleHistoryMenu,
     ScheduleFileDetailMenu,
     ScheduleFileActionMenu,
+    LocalFilesMenu,
+    LocalFileDetailMenu,
+    LocalFileActionMenu,
     schedule_file_detail_kb,
 )
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu
@@ -23,7 +27,24 @@ mip_list_router.callback_query.filter(F.message.chat.type == "private", MipFilte
 
 @mip_list_router.callback_query(ScheduleMenu.filter(F.menu == "local"))
 async def show_local_files(callback: CallbackQuery):
+    """Handler for initial local files view"""
+    await show_local_files_paginated(
+        callback=callback,
+        callback_data=LocalFilesMenu(menu="local", page=1),
+    )
+
+
+@mip_list_router.callback_query(LocalFilesMenu.filter())
+async def show_local_files_paginated(
+    callback: CallbackQuery,
+    callback_data: LocalFilesMenu,
+):
+    """Paginated handler for local files view"""
+    page = callback_data.page
+
+    # Get all local files
     local_files = next(os.walk("uploads"), (None, None, []))[2]
+    local_files = sorted(local_files)  # Sort alphabetically
 
     if not local_files:
         await callback.message.edit_text(
@@ -34,10 +55,39 @@ async def show_local_files(callback: CallbackQuery):
         )
         return
 
-    files_text = "\n".join(f"• {file}" for file in local_files)
+    # Pagination logic
+    files_per_page = 5
+    total_files = len(local_files)
+    total_pages = (total_files + files_per_page - 1) // files_per_page
+
+    # Calculate start and end for current page
+    start_idx = (page - 1) * files_per_page
+    end_idx = start_idx + files_per_page
+    page_files = local_files[start_idx:end_idx]
+
+    # Build file list for current page
+    files_info = []
+    for counter, filename in enumerate(page_files, start=start_idx + 1):
+        file_path = os.path.join("uploads", filename)
+        file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+        size_mb = round(file_size / (1024 * 1024), 2)
+
+        files_info.append(f"{counter}. <b>{filename}</b>")
+        files_info.append(f"📊 Размер: {size_mb} MB")
+        files_info.append("")
+
+    files_text = "\n".join(files_info)
+    message_text = f"""<b>📁 Локальные файлы</b>
+<i>Страница {page} из {total_pages}</i>
+
+{files_text}
+<i>Нажми на файл для подробной информации</i>"""
+
     await callback.message.edit_text(
-        f"<b>📁 Локальные файлы</b>\n\n{files_text}",
-        reply_markup=list_local_files_kb(schedule_files=local_files),
+        message_text,
+        reply_markup=list_local_files_paginated_kb(
+            page, total_pages, page_files, local_files
+        ),
     )
 
 
@@ -266,3 +316,180 @@ async def download_db_file(callback: CallbackQuery, stp_repo: MainRequestsRepo):
         await callback.answer("Файл отправлен!")
     except Exception as e:
         await callback.answer(f"Ошибка: {str(e)}", show_alert=True)
+
+
+@mip_list_router.callback_query(LocalFileDetailMenu.filter())
+async def show_local_file_detail(
+    callback: CallbackQuery,
+    callback_data: LocalFileDetailMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Handler for detailed local file information view"""
+    file_index = callback_data.file_index
+    page = callback_data.page
+
+    try:
+        # Get all local files to map index back to filename
+        local_files = next(os.walk("uploads"), (None, None, []))[2]
+        local_files = sorted(local_files)
+
+        if file_index >= len(local_files):
+            await callback.message.edit_text(
+                """<b>📝 Подробно о файле</b>
+        
+Файл не найден ☹""",
+                reply_markup=schedule_list_back_kb(),
+            )
+            return
+
+        filename = local_files[file_index]
+        file_path = os.path.join("uploads", filename)
+
+        if not os.path.exists(file_path):
+            await callback.message.edit_text(
+                """<b>📝 Подробно о файле</b>
+        
+Файл не найден ☹""",
+                reply_markup=schedule_list_back_kb(),
+            )
+            return
+
+        # Get file size
+        file_size = os.path.getsize(file_path)
+        size_mb = round(file_size / (1024 * 1024), 2)
+
+        # Get file modification time
+        import datetime
+
+        mod_time = os.path.getmtime(file_path)
+        mod_datetime = datetime.datetime.fromtimestamp(mod_time)
+
+        # Try to get info from schedule_log for this filename
+        logs = await stp_repo.upload.get_files_history()
+        file_log = None
+        uploader_info = "Неизвестно"
+        upload_date = "Неизвестно"
+
+        # Clean filename for matching (remove temp_current_ prefix if present)
+        clean_filename = filename
+        if filename.startswith("temp_current_"):
+            clean_filename = filename[13:]  # Remove "temp_current_" prefix
+
+        # Find the most recent log entry for this filename (try both original and clean names)
+        for log in sorted(logs, key=lambda x: x.uploaded_at, reverse=True):
+            if log.file_name == filename or log.file_name == clean_filename:
+                file_log = log
+                break
+
+        if file_log:
+            uploader = await stp_repo.user.get_user(
+                user_id=file_log.uploaded_by_user_id
+            )
+            if uploader:
+                if uploader.username:
+                    uploader_info = (
+                        f"<a href='t.me/{uploader.username}'>{uploader.fullname}</a>"
+                    )
+                else:
+                    uploader_info = f"<a href='tg://user?id={uploader.user_id}'>{uploader.fullname}</a>"
+            upload_date = file_log.uploaded_at.strftime("%d.%m.%Y в %H:%M:%S")
+
+        message_text = f"""<b>📝 Подробно о файле</b>
+
+<b>📄 Название</b>
+{filename}
+
+<b>🏋 Размер файла</b>
+{size_mb} MB
+
+<b>📅 Дата изменения на сервере</b>
+{mod_datetime.strftime("%d.%m.%Y в %H:%M:%S")}
+
+<b>🤨 Последний загрузивший</b>
+{uploader_info}
+
+<b>📅 Дата загрузки</b>
+{upload_date}"""
+
+        # Add warning for temp_current_ files
+        if filename.startswith("temp_current_"):
+            message_text += f"""
+
+⚠️ <b>Устаревший файл</b>
+Этот файл имеет префикс 'temp_current_' и может быть устаревшим.
+Рекомендуется удалить его, если есть более новая версия без префикса:
+<code>{clean_filename}</code>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=local_file_detail_kb(file_index, filename, page),
+        )
+
+    except Exception as e:
+        await callback.answer(f"Ошибка: {str(e)}", show_alert=True)
+
+
+@mip_list_router.callback_query(LocalFileActionMenu.filter())
+async def handle_local_file_action(
+    callback: CallbackQuery,
+    callback_data: LocalFileActionMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Handler for local file actions (delete/rename/back)"""
+    file_index = callback_data.file_index
+    action = callback_data.action
+    page = callback_data.page
+
+    try:
+        # Get all local files to map index back to filename
+        local_files = next(os.walk("uploads"), (None, None, []))[2]
+        local_files = sorted(local_files)
+
+        if file_index >= len(local_files):
+            await callback.answer("Файл не найден", show_alert=True)
+            return
+
+        filename = local_files[file_index]
+
+    except Exception as e:
+        await callback.answer(f"Ошибка: {str(e)}", show_alert=True)
+        return
+
+    if action == "delete":
+        try:
+            file_path = os.path.join("uploads", filename)
+
+            if not os.path.exists(file_path):
+                await callback.answer("Файл не найден", show_alert=True)
+                return
+
+            # Delete the file
+            os.remove(file_path)
+
+            await callback.answer(
+                f"✅ Файл '{filename}' успешно удален!", show_alert=True
+            )
+
+            # Return to files list
+            await show_local_files_paginated(
+                callback=callback,
+                callback_data=LocalFilesMenu(menu="local", page=page),
+            )
+
+        except Exception as e:
+            await callback.answer(f"Ошибка при удалении: {str(e)}", show_alert=True)
+
+    elif action == "rename":
+        # For rename functionality, we'll need to implement a text input dialog
+        # For now, show a placeholder message
+        await callback.answer(
+            "⚠️ Функция переименования пока не реализована.\nИспользуйте стандартные средства файловой системы.",
+            show_alert=True,
+        )
+
+    elif action == "back":
+        # Return to files list
+        await show_local_files_paginated(
+            callback=callback,
+            callback_data=LocalFilesMenu(menu="local", page=page),
+        )

@@ -190,6 +190,9 @@ async def upload_file(
         # Clean up any remaining temporary files
         for temp_file in UPLOADS_DIR.glob("temp_old_*"):
             temp_file.unlink()
+            
+        # Clean up old temp_current_ files if a newer version exists
+        await _cleanup_old_temp_files(document.file_name)
 
         await state.clear()
 
@@ -329,6 +332,18 @@ async def _show_error_message(message: Message, state: FSMContext, error_text: s
             )
         except Exception as e:
             logger.warning(f"Failed to show error: {e}")
+
+
+async def _cleanup_old_temp_files(new_filename: str):
+    """Clean up old temp_current_ files when a new version is uploaded."""
+    try:
+        # Check if there's an old temp_current_ file with the same base name
+        temp_current_file = UPLOADS_DIR / f"temp_current_{new_filename}"
+        if temp_current_file.exists():
+            temp_current_file.unlink()
+            logger.info(f"Cleaned up old temp_current_ file: temp_current_{new_filename}")
+    except Exception as e:
+        logger.warning(f"Failed to cleanup old temp file: {e}")
 
 
 async def _show_schedule_menu(message: Message):
