@@ -51,10 +51,11 @@ async def mip_broadcast_cmd(callback: CallbackQuery, state: FSMContext):
 async def process_text_message(message: Message, state: FSMContext):
     """Обработка текстового сообщения"""
     await state.update_data(
-        message_text=message.text, message_type="text", photo_id=None
+        message_text=message.text, 
+        message_type="text", 
+        original_message_id=message.message_id,
+        original_chat_id=message.chat.id
     )
-
-    await message.delete()
 
     # Показать выбор типа рассылки
     await show_broadcast_type_selection(message, state)
@@ -63,14 +64,14 @@ async def process_text_message(message: Message, state: FSMContext):
 @mip_broadcast_router.message(BroadcastState.waiting_message, F.photo)
 async def process_photo_message(message: Message, state: FSMContext):
     """Обработка сообщения с фото"""
-    photo: PhotoSize = message.photo[-1]  # Берем фото лучшего качества
     caption = message.caption or ""
 
     await state.update_data(
-        message_text=caption, message_type="photo", photo_id=photo.file_id
+        message_text=caption, 
+        message_type="photo", 
+        original_message_id=message.message_id,
+        original_chat_id=message.chat.id
     )
-
-    await message.delete()
 
     # Показать выбор типа рассылки
     await show_broadcast_type_selection(message, state)
@@ -376,7 +377,8 @@ async def start_broadcast(
 
     message_text = data.get("message_text", "")
     message_type = data.get("message_type", "text")
-    photo_id = data.get("photo_id")
+    original_message_id = data.get("original_message_id")
+    original_chat_id = data.get("original_chat_id")
     recipient_ids = data.get("recipient_ids", [])
     user_count = data.get("user_count", 0)
     recipients = data.get("recipients", "")
@@ -435,16 +437,13 @@ async def start_broadcast(
     try:
         for i, user_id in enumerate(recipient_ids, 1):
             try:
-                if message_type == "photo" and photo_id:
-                    # Отправляем фото с подписью
-                    await bot.send_photo(
-                        chat_id=user_id, photo=photo_id, caption=message_text
-                    )
-                    success_count += 1
-                else:
-                    # Отправляем текстовое сообщение
-                    if await send_message(bot, user_id, message_text):
-                        success_count += 1
+                # Используем copy_message для сохранения оригинального форматирования
+                await bot.copy_message(
+                    chat_id=user_id,
+                    from_chat_id=original_chat_id,
+                    message_id=original_message_id
+                )
+                success_count += 1
 
                 # Обновляем прогресс каждые 10 сообщений
                 if i % 10 == 0 or i == len(recipient_ids):
