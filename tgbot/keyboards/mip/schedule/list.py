@@ -35,7 +35,25 @@ class LocalFileDetailMenu(CallbackData, prefix="local_file_detail"):
 
 class LocalFileActionMenu(CallbackData, prefix="local_file_action"):
     file_index: int
-    action: str  # "delete", "rename", or "back"
+    action: str  # "delete", "rename", "recover", or "back"
+    page: int = 1
+
+
+class FileVersionsMenu(CallbackData, prefix="file_versions"):
+    filename: str
+    page: int = 1
+
+
+class FileVersionSelectMenu(CallbackData, prefix="version_select"):
+    file_id: int
+    filename: str
+    page: int = 1
+
+
+class RestoreConfirmMenu(CallbackData, prefix="restore_confirm"):
+    file_id: int
+    filename: str
+    action: str  # "confirm" or "cancel"
     page: int = 1
 
 
@@ -403,7 +421,7 @@ def local_file_detail_kb(
     file_index: int, filename: str, page: int
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура детального просмотра локального файла с возможностью удаления и переименования.
+    Клавиатура детального просмотра локального файла с возможностью удаления, переименования и восстановления.
     """
     buttons = [
         [
@@ -411,6 +429,14 @@ def local_file_detail_kb(
                 text="✏️ Переименовать",
                 callback_data=LocalFileActionMenu(
                     file_index=file_index, action="rename", page=page
+                ).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="⏪ Восстановить",
+                callback_data=LocalFileActionMenu(
+                    file_index=file_index, action="recover", page=page
                 ).pack(),
             )
         ],
@@ -456,3 +482,133 @@ def schedule_list_back_kb() -> InlineKeyboardMarkup:
         inline_keyboard=buttons,
     )
     return keyboard
+
+
+def file_versions_list_kb(
+    file_versions: Sequence[ScheduleFilesLog], filename: str, current_page: int = 1, total_pages: int = 1
+) -> InlineKeyboardMarkup:
+    """
+    Пагинированная клавиатура для выбора версий файла для восстановления.
+    """
+    buttons = []
+    
+    # Add version selection buttons (max 1 per row for clarity)
+    for i, version in enumerate(file_versions, 1):
+        upload_time = version.uploaded_at.strftime("%H:%M:%S %d.%m.%y")
+        size_mb = round(version.file_size / (1024 * 1024), 2)
+        
+        # Calculate global version number
+        global_version_number = (current_page - 1) * 8 + i
+        version_text = f"{global_version_number}. {upload_time} ({size_mb} MB)"
+        
+        buttons.append([
+            InlineKeyboardButton(
+                text=version_text,
+                callback_data=FileVersionSelectMenu(
+                    file_id=version.id, filename=filename, page=current_page
+                ).pack(),
+            )
+        ])
+    
+    # Pagination (only if more than one page)
+    if total_pages > 1:
+        pagination_row = []
+
+        # First button (⏪ or empty)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=FileVersionsMenu(filename=filename, page=1).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Second button (⬅️ or empty)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=FileVersionsMenu(
+                        filename=filename, page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Center button - Page indicator
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Fourth button (➡️ or empty)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=FileVersionsMenu(
+                        filename=filename, page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Fifth button (⏭️ or empty)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=FileVersionsMenu(filename=filename, page=total_pages).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+    
+    # Navigation
+    buttons.append([
+        InlineKeyboardButton(
+            text="🔙 К файлу",
+            callback_data=LocalFilesMenu(menu="local", page=1).pack(),
+        ),
+        InlineKeyboardButton(
+            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+        ),
+    ])
+    
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def restore_confirmation_kb(
+    file_id: int, filename: str, page: int = 1
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура подтверждения восстановления файла.
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="✅ Да, восстановить",
+                callback_data=RestoreConfirmMenu(
+                    file_id=file_id, filename=filename, action="confirm", page=page
+                ).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="❌ Отмена",
+                callback_data=RestoreConfirmMenu(
+                    file_id=file_id, filename=filename, action="cancel", page=page
+                ).pack(),
+            )
+        ],
+    ]
+    
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
