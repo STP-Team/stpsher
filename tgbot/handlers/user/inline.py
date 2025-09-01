@@ -219,10 +219,10 @@ def create_user_result_item(
     if user.head:
         if user_head:
             message_parts.append(
-                f"<b>👤 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+                f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
             )
         else:
-            message_parts.append(f"<b>👤 Руководитель:</b> {user.head}")
+            message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")
 
     message_parts.append("")
 
@@ -459,7 +459,7 @@ def get_role_info(role: int) -> dict:
             "text": "Сотрудник",
         },
         2: {
-            "emoji": "👔",
+            "emoji": "👑",
             "text": "Руководитель",
         },
         3: {

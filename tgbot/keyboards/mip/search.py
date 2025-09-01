@@ -631,7 +631,7 @@ def role_selection_kb(user_id: int, current_role: int) -> InlineKeyboardMarkup:
     if current_role != 2:
         role_buttons.append(
             InlineKeyboardButton(
-                text="👔 Руководитель",
+                text="👑 Руководитель",
                 callback_data=SelectUserRole(user_id=user_id, role=2).pack(),
             )
         )

@@ -22,7 +22,7 @@ def get_role_info(role: int) -> dict:
             "text": "Сотрудник",
         },
         2: {
-            "emoji": "👔",
+            "emoji": "👑",
             "text": "Руководитель",
         },
         3: {
@@ -51,10 +51,10 @@ def create_user_info_message(user: User, user_head: User = None) -> str:
     if user.head:
         if user_head and user_head.username:
             message_parts.append(
-                f"<b>👤 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+                f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
             )
         else:
-            message_parts.append(f"<b>👤 Руководитель:</b> {user.head}")
+            message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")
 
     message_parts.append("")
 
