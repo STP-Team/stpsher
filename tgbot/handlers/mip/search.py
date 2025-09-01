@@ -67,13 +67,11 @@ async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
     try:
         # Получаем базовые данные
         user_awards = await stp_repo.user_award.get_user_awards(user_id)
-        achievements_sum = await stp_repo.transactions.get_user_achievements_sum(
-            user_id
-        )
+        achievements_sum = await stp_repo.transaction.get_user_achievements_sum(user_id)
         awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id)
 
         # Рассчитываем уровень
-        user_balance = await stp_repo.transactions.get_user_balance(user_id)
+        user_balance = await stp_repo.transaction.get_user_balance(user_id)
         current_level = LevelingSystem.calculate_level(achievements_sum)
 
         return {
@@ -106,8 +104,8 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
         for user in group_users:
             if user.user_id:  # Только авторизованные пользователи
                 # Суммируем очки
-                achievements_sum = (
-                    await stp_repo.transactions.get_user_achievements_sum(user.user_id)
+                achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
+                    user.user_id
                 )
                 total_points += achievements_sum
 

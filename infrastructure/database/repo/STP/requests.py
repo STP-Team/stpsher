@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.database.repo.STP.achievement import AchievementsRepo
 from infrastructure.database.repo.STP.award import AwardsRepo
+from infrastructure.database.repo.STP.broadcast import BroadcastRepo
 from infrastructure.database.repo.STP.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.STP.transactions import TransactionRepo
 from infrastructure.database.repo.STP.user import UserRepo
@@ -56,8 +57,15 @@ class MainRequestsRepo:
         return AchievementsRepo(self.session)
 
     @property
-    def transactions(self) -> TransactionRepo:
+    def transaction(self) -> TransactionRepo:
         """
         The UserAchievementsRepo repository sessions are required to manage transactions.
         """
         return TransactionRepo(self.session)
+
+    @property
+    def broadcast(self) -> BroadcastRepo:
+        """
+        The BroadcastRepo repository sessions are required to manage broadcasts.
+        """
+        return BroadcastRepo(self.session)

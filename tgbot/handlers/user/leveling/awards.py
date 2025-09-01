@@ -135,7 +135,7 @@ async def awards_available(
     # Достаём номер страницы из callback data, стандартно = 1
     page = getattr(callback_data, "page", 1)
 
-    user_balance = await stp_repo.transactions.get_user_balance(user.user_id)
+    user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
 
     # Получаем доступные награды на основе баланса пользователя
     available_awards = await stp_repo.award.get_available_awards(user_balance)
@@ -371,7 +371,7 @@ async def award_confirmation_handler(
         return
 
     # Получаем баланс пользователя
-    user_balance = await stp_repo.transactions.get_user_balance(user.user_id)
+    user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
 
     # Проверяем, достаточно ли баллов
     if user_balance < award_info.cost:
@@ -445,7 +445,7 @@ async def award_purchase_final_handler(
             return
 
         # Получаем баланс пользователя
-        user_balance = await stp_repo.transactions.get_user_balance(user.user_id)
+        user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
 
         if user_balance < award_info.cost:
             await callback.answer(

@@ -25,8 +25,8 @@ async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRep
         )
         return
 
-    user_balance = await stp_repo.transactions.get_user_balance(user_id=user.user_id)
-    achievements_sum = await stp_repo.transactions.get_user_achievements_sum(
+    user_balance = await stp_repo.transaction.get_user_balance(user_id=user.user_id)
+    achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
         user_id=user.user_id
     )
     awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
@@ -61,8 +61,8 @@ async def user_start_cb(
         )
         return
 
-    user_balance = await stp_repo.transactions.get_user_balance(user_id=user.user_id)
-    achievements_sum = await stp_repo.transactions.get_user_achievements_sum(
+    user_balance = await stp_repo.transaction.get_user_balance(user_id=user.user_id)
+    achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
         user_id=user.user_id
     )
     awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
