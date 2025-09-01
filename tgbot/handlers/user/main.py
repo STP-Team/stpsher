@@ -25,42 +25,12 @@ async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRep
         )
         return
 
-    user_achievements = await stp_repo.user_achievement.get_user_achievements(
-        user.user_id
-    )
-    user_awards = await stp_repo.user_award.get_user_awards(user.user_id)
-    achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
+    user_balance = await stp_repo.transactions.get_user_balance(user_id=user.user_id)
+    achievements_sum = await stp_repo.transactions.get_user_achievements_sum(
         user_id=user.user_id
     )
     awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
-
-    # Новые методы для получения самых частых
-    most_frequent_achievement = (
-        await stp_repo.user_achievement.get_most_frequent_achievement(
-            user_id=user.user_id
-        )
-    )
-    most_used_award = await stp_repo.user_award.get_most_used_award(
-        user_id=user.user_id
-    )
-
-    # Формируем текст для самого частого достижения
-    if most_frequent_achievement:
-        achievement_text = (
-            f"{most_frequent_achievement[0]} ({most_frequent_achievement[1]}x)"
-        )
-    else:
-        achievement_text = "Нет достижений"
-
-    # Формируем текст для самой частой награды
-    if most_used_award:
-        award_text = f"{most_used_award[0]} ({most_used_award[1]}x)"
-    else:
-        award_text = "Нет наград"
-
-    level_info_text = LevelingSystem.get_level_info_text(
-        achievements_sum, achievements_sum - awards_sum
-    )
+    level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
 
     await message.answer(
         f"""👋 Привет, <b>{user.fullname}</b>!
@@ -71,15 +41,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRep
 
 <blockquote expandable><b>📊 Баланс</b>
 Всего заработано: {achievements_sum} баллов
-Всего потрачено: {awards_sum} баллов
-
-<b>🎯 Достижения</b>
-<b>Всего получено:</b> {len(user_achievements)}
-<b>Самое частое:</b> {achievement_text}
-
-<b>🏅 Награды</b>
-<b>Всего куплено:</b> {len(user_awards)}
-<b>Самая частая:</b> {award_text}</blockquote>""",
+Всего потрачено: {awards_sum} баллов</blockquote>""",
         reply_markup=main_kb(),
     )
 
@@ -99,42 +61,12 @@ async def user_start_cb(
         )
         return
 
-    user_achievements = await stp_repo.user_achievement.get_user_achievements(
-        user.user_id
-    )
-    user_awards = await stp_repo.user_award.get_user_awards(user.user_id)
-    achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
+    user_balance = await stp_repo.transactions.get_user_balance(user_id=user.user_id)
+    achievements_sum = await stp_repo.transactions.get_user_achievements_sum(
         user_id=user.user_id
     )
     awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
-
-    # Новые методы для получения самых частых
-    most_frequent_achievement = (
-        await stp_repo.user_achievement.get_most_frequent_achievement(
-            user_id=user.user_id
-        )
-    )
-    most_used_award = await stp_repo.user_award.get_most_used_award(
-        user_id=user.user_id
-    )
-
-    # Формируем текст для самого частого достижения
-    if most_frequent_achievement:
-        achievement_text = (
-            f"{most_frequent_achievement[0]} ({most_frequent_achievement[1]}x)"
-        )
-    else:
-        achievement_text = "Нет достижений"
-
-    # Формируем текст для самой частой награды
-    if most_used_award:
-        award_text = f"{most_used_award[0]} ({most_used_award[1]}x)"
-    else:
-        award_text = "Нет наград"
-
-    level_info_text = LevelingSystem.get_level_info_text(
-        achievements_sum, achievements_sum - awards_sum
-    )
+    level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
 
     await callback.message.edit_text(
         f"""👋 Привет, <b>{user.fullname}</b>!
@@ -145,14 +77,6 @@ async def user_start_cb(
 
 <blockquote expandable><b>📊 Баланс</b>
 Всего заработано: {achievements_sum} баллов
-Всего потрачено: {awards_sum} баллов
-
-<b>🎯 Достижения</b>
-<b>Всего получено:</b> {len(user_achievements)}
-<b>Самое частое:</b> {achievement_text}
-
-<b>🏅 Награды</b>
-<b>Всего куплено:</b> {len(user_awards)}
-<b>Самая частая:</b> {award_text}</blockquote>""",
+Всего потрачено: {awards_sum} баллов</blockquote>""",
         reply_markup=main_kb(),
     )
