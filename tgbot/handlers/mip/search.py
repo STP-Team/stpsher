@@ -498,15 +498,6 @@ async def show_user_details(
             ),
         )
 
-        # Определяем возможность редактирования и параметры клавиатуры
-        can_edit = user.role in [1, 2, 3, 10]  # Специалисты и руководители
-        is_head = user.role == 2  # Руководитель
-
-        await callback.message.edit_text(
-            user_info,
-            reply_markup=user_detail_kb(user_id, return_to, head_id, can_edit, is_head),
-        )
-
     except Exception as e:
         logger.error(f"Ошибка при получении информации о пользователе: {e}")
         await callback.answer("❌ Ошибка при получении данных", show_alert=True)
