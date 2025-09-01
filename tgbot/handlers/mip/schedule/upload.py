@@ -276,7 +276,7 @@ async def _process_file(file_name: str, main_db: Session) -> dict | None:
 
 def _generate_stats_text(stats: dict) -> str:
     """Generate statistics text from processing results."""
-    text = "\n\n<b>📊 Статистика обработки</b>\n"
+    text = "\n<b>📊 Статистика обработки</b>\n"
 
     sections = [
         ("🔥 Уволено", stats["fired_names"]),
