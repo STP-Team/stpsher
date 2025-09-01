@@ -142,11 +142,12 @@ class UserAwardsRepo(BaseRepo):
         return total or 0  # Если награда не найдена - возвращаем 0
 
     async def get_review_awards_for_activation(
-        self, manager_role: int
+        self, manager_role: int, division: str = None
     ) -> list[UserAwardWithDetails]:
         """
         Получаем список наград ожидающих активации
         Фильтруем по статусу "review" и manager_role
+        Опционально фильтруем по division пользователей
         """
         from infrastructure.database.models import Award, User
 
@@ -155,10 +156,15 @@ class UserAwardsRepo(BaseRepo):
             .join(Award, UserAward.award_id == Award.id)
             .join(User, UserAward.user_id == User.user_id)
             .where(UserAward.status == "review", Award.manager_role == manager_role)
-            .order_by(
-                UserAward.bought_at.asc()
-            )  # Сортируем по дате покупки (сначала старые)
         )
+        
+        # Добавляем фильтр по division если указан
+        if division:
+            select_stmt = select_stmt.where(User.division == division)
+        
+        select_stmt = select_stmt.order_by(
+            UserAward.bought_at.asc()
+        )  # Сортируем по дате покупки (сначала старые)
 
         result = await self.session.execute(select_stmt)
         awards_with_details = result.all()

@@ -3,6 +3,7 @@ from typing import List
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from infrastructure.database.models import User
 from infrastructure.database.repo.STP.user_award import UserAwardWithDetails
 from tgbot.keyboards.user.main import MainMenu
 
@@ -46,6 +47,22 @@ class CancelActivationMenu(CallbackData, prefix="cancel_activation"):
     user_award_id: int
 
 
+class DutyAwardActivationMenu(CallbackData, prefix="duty_activation"):
+    user_award_id: int
+    page: int = 1
+
+
+class DutyAwardActionMenu(CallbackData, prefix="duty_action"):
+    user_award_id: int
+    action: str  # "approve" or "reject"
+    page: int = 1
+
+
+class DutyActivationListMenu(CallbackData, prefix="duty_list"):
+    menu: str = "duty_activation"
+    page: int = 1
+
+
 def get_status_emoji(status: str) -> str:
     status_emojis = {
         "stored": "📦",
@@ -57,33 +74,52 @@ def get_status_emoji(status: str) -> str:
     return status_emojis.get(status, "❓")
 
 
-def awards_kb() -> InlineKeyboardMarkup:
+def awards_kb(user: User = None) -> InlineKeyboardMarkup:
     """
     Клавиатура меню наград.
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """
-    buttons = [
+    buttons = []
+
+    # Add duty activation button first if user is a duty (role 3)
+    if user and user.role == 3:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="✍️ Активация наград",
+                    callback_data=DutyActivationListMenu().pack(),
+                ),
+            ]
+        )
+
+    buttons.extend(
         [
-            InlineKeyboardButton(
-                text="❇️ Доступные", callback_data=AwardsMenu(menu="available").pack()
-            ),
-            InlineKeyboardButton(
-                text="✴️ Купленные",
-                callback_data=AwardsMenu(menu="executed").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="🏆 Все возможные", callback_data=AwardsMenu(menu="all").pack()
-            ),
-        ],
+            [
+                InlineKeyboardButton(
+                    text="❇️ Доступные",
+                    callback_data=AwardsMenu(menu="available").pack(),
+                ),
+                InlineKeyboardButton(
+                    text="✴️ Купленные",
+                    callback_data=AwardsMenu(menu="executed").pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🏆 Все возможные", callback_data=AwardsMenu(menu="all").pack()
+                ),
+            ],
+        ]
+    )
+
+    buttons.append(
         [
             InlineKeyboardButton(
                 text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
             ),
-        ],
-    ]
+        ]
+    )
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=buttons,
@@ -228,6 +264,147 @@ def award_confirmation_kb(award_id: int, page: int) -> InlineKeyboardMarkup:
                 text="↩️ Назад",
                 callback_data=AwardPurchaseConfirmMenu(
                     award_id=award_id, page=page, action="back"
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def duty_award_activation_kb(
+    current_page: int, total_pages: int, page_awards: list = None
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура пагинации для активации наград дежурными
+    """
+    buttons = []
+
+    # Добавляем кнопки для выбора наград (по одной в ряд из-за длинных названий)
+    if page_awards:
+        start_idx = (current_page - 1) * 5  # 5 наград на страницу
+
+        for i, award_detail in enumerate(page_awards):
+            user_award = award_detail.user_award
+            award_info = award_detail.award_info
+            award_number = start_idx + i + 1
+
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{award_number}. {award_info.name}",
+                        callback_data=DutyAwardActivationMenu(
+                            user_award_id=user_award.id, page=current_page
+                        ).pack(),
+                    )
+                ]
+            )
+
+    # Пагинация
+    if total_pages > 1:
+        pagination_row = []
+
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=DutyActivationListMenu(
+                        menu="duty_activation", page=1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Вторая кнопка (⬅️ или пусто)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=DutyActivationListMenu(
+                        menu="duty_activation", page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Центральная кнопка - Индикатор страницы
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Четвертая кнопка (➡️ или пусто)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=DutyActivationListMenu(
+                        menu="duty_activation", page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=DutyActivationListMenu(
+                        menu="duty_activation", page=total_pages
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Навигация
+    navigation_row = [
+        InlineKeyboardButton(
+            text="↩️ Назад", callback_data=MainMenu(menu="awards").pack()
+        ),
+        InlineKeyboardButton(
+            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+        ),
+    ]
+    buttons.append(navigation_row)
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def duty_award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMarkup:
+    """Клавиатура для детального просмотра награды дежурным"""
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="✅ Подтвердить",
+                callback_data=DutyAwardActionMenu(
+                    user_award_id=user_award_id, action="approve", page=current_page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="❌ Отклонить",
+                callback_data=DutyAwardActionMenu(
+                    user_award_id=user_award_id, action="reject", page=current_page
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=DutyActivationListMenu(
+                    menu="duty_activation", page=current_page
                 ).pack(),
             ),
             InlineKeyboardButton(
@@ -470,6 +647,39 @@ def to_awards_kb() -> InlineKeyboardMarkup:
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def duty_award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMarkup:
+    """Клавиатура для детального просмотра награды дежурным"""
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="✅ Подтвердить",
+                callback_data=DutyAwardActionMenu(
+                    user_award_id=user_award_id, action="approve", page=current_page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="❌ Отклонить",
+                callback_data=DutyAwardActionMenu(
+                    user_award_id=user_award_id, action="reject", page=current_page
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=DutyActivationListMenu(
+                    menu="duty_activation", page=current_page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
