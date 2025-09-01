@@ -188,6 +188,37 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения администраторов: {e}")
             return []
 
+    async def get_users_by_role(
+        self, role: int, division: str = None
+    ) -> Sequence[User]:
+        """
+        Получить пользователей с определенной ролью
+
+        Args:
+            role: Роль пользователя
+            division: Направление пользователя. Если указано "НТП", будет искать всех пользователей
+                     с division содержащим "НТП" (включая "НТП1", "НТП2" и т.д.)
+
+        Returns:
+            Список пользователей с указанной ролью
+        """
+        if division:
+            if division == "НТП":
+                query = select(User).where(
+                    User.role == role, User.division.ilike(f"%{division}%")
+                )
+            else:
+                query = select(User).where(User.role == role, User.division == division)
+        else:
+            query = select(User).where(User.role == role)
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения пользователей с ролью {role}: {e}")
+            return []
+
     async def delete_user(self, fullname: str = None, user_id: int = None) -> int:
         """
         Удаление пользователей из БД по полному имени или user_id

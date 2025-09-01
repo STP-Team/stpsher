@@ -5,6 +5,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.STP.user_award import UserAwardWithDetails
+from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -88,7 +89,7 @@ def awards_kb(user: User = None) -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(
                     text="✍️ Активация наград",
-                    callback_data=DutyActivationListMenu().pack(),
+                    callback_data=LevelingMenu(menu="awards_activation").pack(),
                 ),
             ]
         )

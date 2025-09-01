@@ -66,34 +66,22 @@ async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
     """Получить статистику пользователя (уровень, очки, достижения, награды)"""
     try:
         # Получаем базовые данные
-        user_achievements = await stp_repo.user_achievement.get_user_achievements(
-            user_id
-        )
         user_awards = await stp_repo.user_award.get_user_awards(user_id)
-        achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
+        achievements_sum = await stp_repo.transactions.get_user_achievements_sum(
             user_id
         )
         awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id)
 
-        # Получаем самые частые
-        most_frequent_achievement = (
-            await stp_repo.user_achievement.get_most_frequent_achievement(user_id)
-        )
-        most_used_award = await stp_repo.user_award.get_most_used_award(user_id)
-
         # Рассчитываем уровень
+        user_balance = await stp_repo.transactions.get_user_balance(user_id)
         current_level = LevelingSystem.calculate_level(achievements_sum)
-        user_balance = achievements_sum - awards_sum
 
         return {
             "level": current_level,
             "balance": user_balance,
             "total_earned": achievements_sum,
             "total_spent": awards_sum,
-            "achievements_count": len(user_achievements),
             "awards_count": len(user_awards),
-            "most_frequent_achievement": most_frequent_achievement,
-            "most_used_award": most_used_award,
         }
     except Exception as e:
         logger.error(f"Ошибка получения статистики пользователя {user_id}: {e}")
@@ -102,10 +90,7 @@ async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
             "balance": 0,
             "total_earned": 0,
             "total_spent": 0,
-            "achievements_count": 0,
             "awards_count": 0,
-            "most_frequent_achievement": None,
-            "most_used_award": None,
         }
 
 
@@ -116,31 +101,15 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
         group_users = await stp_repo.user.get_users_by_head(head_name)
 
         total_points = 0
-        group_achievements = {}
         group_awards = {}
 
         for user in group_users:
             if user.user_id:  # Только авторизованные пользователи
                 # Суммируем очки
                 achievements_sum = (
-                    await stp_repo.user_achievement.get_user_achievements_sum(
-                        user.user_id
-                    )
+                    await stp_repo.transactions.get_user_achievements_sum(user.user_id)
                 )
                 total_points += achievements_sum
-
-                # Собираем статистику достижений
-                most_frequent_achievement = (
-                    await stp_repo.user_achievement.get_most_frequent_achievement(
-                        user.user_id
-                    )
-                )
-                if most_frequent_achievement:
-                    achievement_name = most_frequent_achievement[0]
-                    achievement_count = most_frequent_achievement[1]
-                    group_achievements[achievement_name] = (
-                        group_achievements.get(achievement_name, 0) + achievement_count
-                    )
 
                 # Собираем статистику наград
                 most_used_award = await stp_repo.user_award.get_most_used_award(
@@ -153,29 +122,15 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
                         group_awards.get(award_name, 0) + award_count
                     )
 
-        # Находим самые популярные
-        most_popular_achievement = (
-            max(group_achievements.items(), key=lambda x: x[1])
-            if group_achievements
-            else None
-        )
-        most_popular_award = (
-            max(group_awards.items(), key=lambda x: x[1]) if group_awards else None
-        )
-
         return {
             "total_users": len(group_users),
             "total_points": total_points,
-            "most_popular_achievement": most_popular_achievement,
-            "most_popular_award": most_popular_award,
         }
     except Exception as e:
         logger.error(f"Ошибка получения статистики группы {head_name}: {e}")
         return {
             "total_users": 0,
             "total_points": 0,
-            "most_popular_achievement": None,
-            "most_popular_award": None,
         }
 
 
@@ -449,50 +404,23 @@ async def show_user_details(
 
         # Добавляем статистику уровня (только для специалистов и дежурных)
         if user.user_id and user.role in [1, 3]:
-            # Форматируем достижения и награды
-            achievement_text = "Нет достижений"
-            if stats["most_frequent_achievement"]:
-                achievement_text = f"{stats['most_frequent_achievement'][0]} ({stats['most_frequent_achievement'][1]}x)"
-
-            award_text = "Нет наград"
-            if stats["most_used_award"]:
-                award_text = (
-                    f"{stats['most_used_award'][0]} ({stats['most_used_award'][1]}x)"
-                )
-
             user_info += f"""
 
 <blockquote expandable><b>📊 Статистика игрока</b>
 <b>⚔️ Уровень:</b> {stats["level"]}
 <b>✨ Баланс:</b> {stats["balance"]} баллов
 <b>📈 Всего заработано:</b> {stats["total_earned"]} баллов
-<b>💸 Всего потрачено:</b> {stats["total_spent"]} баллов
-
-<b>🎯 Достижения ({stats["achievements_count"]}):</b>
-<b>Самое частое:</b> {achievement_text}
-
-<b>🏅 Награды ({stats["awards_count"]}):</b>
-<b>Самая частая:</b> {award_text}</blockquote>"""
+<b>💸 Всего потрачено:</b> {stats["total_spent"]} баллов</blockquote>"""
 
         # Дополнительная информация для руководителей
         if user.role == 2:  # Руководитель
             group_stats = await get_group_statistics(user.fullname, stp_repo)
 
-            group_achievement_text = "Нет данных"
-            if group_stats["most_popular_achievement"]:
-                group_achievement_text = f"{group_stats['most_popular_achievement'][0]} ({group_stats['most_popular_achievement'][1]}x)"
-
-            group_award_text = "Нет данных"
-            if group_stats["most_popular_award"]:
-                group_award_text = f"{group_stats['most_popular_award'][0]} ({group_stats['most_popular_award'][1]}x)"
-
             user_info += f"""
 
 <blockquote expandable><b>👥 Статистика группы</b>
 <b>Сотрудников в группе:</b> {group_stats["total_users"]}
-<b>Общие очки группы:</b> {group_stats["total_points"]} баллов
-<b>Популярное достижение:</b> {group_achievement_text}
-<b>Популярная награда:</b> {group_award_text}</blockquote>
+<b>Общие очки группы:</b> {group_stats["total_points"]} баллов</blockquote>
 
 <i>💡 Нажми кнопку ниже чтобы увидеть список группы</i>"""
 

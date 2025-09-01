@@ -259,3 +259,27 @@ def awards_paginated_kb(
     buttons.append(navigation_row)
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def award_notify_kb() -> InlineKeyboardMarkup:
+    """
+    Клавиатура меню МИП для уведомления о новой награде на активацию
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="✍️ Награды для активации",
+                callback_data=LevelingMenu(menu="awards_activation").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🏠 Главное меню", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
+    ]
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=buttons,
+    )
+    return keyboard

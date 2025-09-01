@@ -15,7 +15,7 @@ class Award(Base, TableNameMixin):
         description (Mapped[int]): Стоимость награды.
         cost (Mapped[str]): Роль для взаимодействия.
         count (Mapped[int]): Кол-во доступных использований награды после приобретения.
-        manager_role (Mapped[str]): Описание награды.
+        manager_role (Mapped[int]): Описание награды.
         shift_dependent (Mapped[bool]): Зависимость применения награды от наличия смены.
 
     Methods:
@@ -37,7 +37,7 @@ class Award(Base, TableNameMixin):
     division: Mapped[str] = mapped_column(VARCHAR(3), nullable=False)
     cost: Mapped[int] = mapped_column(Integer, nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
-    manager_role: Mapped[str] = mapped_column(Integer, nullable=False)
+    manager_role: Mapped[int] = mapped_column(Integer, nullable=False)
 
     def __repr__(self):
         return (

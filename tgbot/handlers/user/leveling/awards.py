@@ -5,6 +5,8 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.keyboards.mip.leveling.awards import award_notify_kb
+from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.leveling.awards import (
     AwardDetailMenu,
     AwardHistoryMenu,
@@ -31,6 +33,7 @@ from tgbot.keyboards.user.leveling.awards import (
 )
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import executed_codes
+from tgbot.services.broadcaster import broadcast
 
 
 def get_status_emoji(status: str) -> str:
@@ -132,12 +135,7 @@ async def awards_available(
     # Достаём номер страницы из callback data, стандартно = 1
     page = getattr(callback_data, "page", 1)
 
-    # Получаем баланс пользователя (заработанные - потраченные баллы)
-    achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
-        user_id=user.user_id
-    )
-    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
-    user_balance = achievements_sum - awards_sum
+    user_balance = await stp_repo.transactions.get_user_balance(user.user_id)
 
     # Получаем доступные награды на основе баланса пользователя
     available_awards = await stp_repo.award.get_available_awards(user_balance)
@@ -373,11 +371,7 @@ async def award_confirmation_handler(
         return
 
     # Получаем баланс пользователя
-    achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
-        user_id=user.user_id
-    )
-    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
-    user_balance = achievements_sum - awards_sum
+    user_balance = await stp_repo.transactions.get_user_balance(user.user_id)
 
     # Проверяем, достаточно ли баллов
     if user_balance < award_info.cost:
@@ -450,12 +444,8 @@ async def award_purchase_final_handler(
             )
             return
 
-        # Проверяем баланс еще раз (на случай изменений)
-        achievements_sum = await stp_repo.user_achievement.get_user_achievements_sum(
-            user_id=user.user_id
-        )
-        awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
-        user_balance = achievements_sum - awards_sum
+        # Получаем баланс пользователя
+        user_balance = await stp_repo.transactions.get_user_balance(user.user_id)
 
         if user_balance < award_info.cost:
             await callback.answer(
@@ -541,9 +531,42 @@ async def use_award_handler(
             show_alert=True,
         )
 
-        logger.info(
-            f"[Использование награды] {user.username} ({user.user_id}) отправил на рассмотрение награду '{award_name}'"
-        )
+        if user_award_detail.award_info.manager_role == 3:
+            award_managers = await stp_repo.user.get_users_by_role(
+                role=user_award_detail.award_info.manager_role,
+                division=user_award_detail.award_info.division,
+            )
+        else:
+            award_managers = await stp_repo.user.get_users_by_role(
+                role=user_award_detail.award_info.manager_role
+            )
+
+        manager_ids = [
+            manager.user_id
+            for manager in award_managers
+            if manager.user_id
+            and manager.user_id != user_award_detail.user_award.user_id
+        ]
+
+        if manager_ids:
+            notification_text = f"""<b>🔔 Новая заявка на награду</b>
+
+<b>🏆 Награда:</b> {award_name}
+<b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>📋 Описание:</b> {user_award_detail.award_info.description}
+
+<b>Требуется рассмотрение заявки</b>"""
+
+            result = await broadcast(
+                bot=callback.bot,
+                users=manager_ids,
+                text=notification_text,
+                reply_markup=award_notify_kb(),
+            )
+
+            logger.info(
+                f"[Использование награды] {user.username} ({user.user_id}) отправил на рассмотрение награду '{award_name}'. Уведомлено менеджеров: {result} из {len([m for m in award_managers if m.user_id])}"
+            )
     else:
         await callback.answer("❌ Невозможно использовать награду", show_alert=True)
 
@@ -670,7 +693,9 @@ async def cancel_activation_handler(
         await callback.answer("❌ Ошибка при отмене активации", show_alert=True)
 
 
-@user_leveling_awards_router.callback_query(DutyActivationListMenu.filter())
+@user_leveling_awards_router.callback_query(
+    LevelingMenu.filter(F.menu == "awards_activation")
+)
 async def duty_awards_activation(
     callback: CallbackQuery,
     callback_data: DutyActivationListMenu,
