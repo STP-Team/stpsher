@@ -84,6 +84,7 @@ async def upload_file(
         )
 
         # Download and save new file
+        await _save_file(message, document)
         file_replaced = old_file_exists
 
         # Step 3: Update progress - logging to database
