@@ -1,5 +1,5 @@
 from sqlalchemy import Integer
-from sqlalchemy.dialects.mysql import VARCHAR, TINYINT
+from sqlalchemy.dialects.mysql import VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from infrastructure.database.models.base import Base, TableNameMixin
@@ -38,10 +38,9 @@ class Award(Base, TableNameMixin):
     cost: Mapped[int] = mapped_column(Integer, nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
     manager_role: Mapped[str] = mapped_column(Integer, nullable=False)
-    shift_dependent: Mapped[bool] = mapped_column(TINYINT, default=True, nullable=False)
 
     def __repr__(self):
         return (
             f"<Award {self.id} {self.name} {self.description}"
-            f"{self.division} {self.cost} {self.count} {self.manager_role} {self.shift_dependent}>"
+            f"{self.division} {self.cost} {self.count} {self.manager_role}>"
         )
