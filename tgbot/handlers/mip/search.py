@@ -707,6 +707,7 @@ async def view_user_schedule(
                     current_month=current_month,
                     return_to=return_to,
                     head_id=head_id,
+                    is_detailed=False,
                 ),
             )
 
@@ -732,6 +733,7 @@ async def view_user_schedule(
                     current_month=current_month,
                     return_to=return_to,
                     head_id=head_id,
+                    is_detailed=False,
                 ),
             )
 
@@ -761,7 +763,7 @@ async def navigate_user_schedule(
             return
 
         # Определяем компактность вывода
-        compact = action != "detailed"
+        compact = action not in ["detailed"]
 
         # Преобразуем индекс месяца в название
         month_to_display = get_month_name_by_index(month_idx)
@@ -784,6 +786,7 @@ async def navigate_user_schedule(
                     current_month=month_to_display,
                     return_to=return_to,
                     head_id=head_id,
+                    is_detailed=not compact,
                 ),
             )
 
@@ -809,6 +812,7 @@ async def navigate_user_schedule(
                     current_month=month_to_display,
                     return_to=return_to,
                     head_id=head_id,
+                    is_detailed=not compact,
                 ),
             )
 

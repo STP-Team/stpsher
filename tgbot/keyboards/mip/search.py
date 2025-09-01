@@ -469,6 +469,7 @@ def user_schedule_with_month_kb(
     current_month: str,
     return_to: str = "search",
     head_id: int = 0,
+    is_detailed: bool = False,
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура расписания пользователя с навигацией по месяцам
@@ -477,6 +478,7 @@ def user_schedule_with_month_kb(
     :param current_month: Текущий выбранный месяц (название)
     :param return_to: Откуда пришли (search, head_group)
     :param head_id: ID руководителя (если пришли из группы)
+    :param is_detailed: Текущий режим отображения (True - детальный, False - компактный)
     :return: Объект встроенной клавиатуры
     """
     current_month_idx = get_month_index_by_name(current_month)
@@ -522,13 +524,21 @@ def user_schedule_with_month_kb(
         ),
     ]
     
+    # Определяем текст и действие для кнопки переключения режима
+    if is_detailed:
+        toggle_text = "📋 Кратко"
+        toggle_action = "compact"
+    else:
+        toggle_text = "📋 Подробнее"
+        toggle_action = "detailed"
+    
     buttons = [
         nav_row,  # Ряд навигации по месяцам
         [
             InlineKeyboardButton(
-                text="📋 Подробнее",
+                text=toggle_text,
                 callback_data=MipScheduleNavigation(
-                    action="detailed",
+                    action=toggle_action,
                     user_id=user_id,
                     month_idx=current_month_idx,
                     return_to=return_to,
