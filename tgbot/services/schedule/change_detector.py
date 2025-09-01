@@ -139,7 +139,7 @@ class ScheduleChangeDetector:
             )
 
             # Находим все месяцы и их диапазоны колонок
-            months_ranges = self._find_all_months_ranges()
+            months_ranges = self._find_all_months_ranges(df)
             if not months_ranges:
                 logger.warning(f"[График] Месяцы не найдены в файле {file_path}")
                 return schedules
@@ -161,7 +161,9 @@ class ScheduleChangeDetector:
                 # Проходим по всем месяцам
                 for month, (start_col, end_col) in months_ranges.items():
                     # Находим заголовки дней для этого месяца
-                    day_headers = self._find_day_headers_in_range(start_col, end_col)
+                    day_headers = self._find_day_headers_in_range(
+                        df, start_col, end_col
+                    )
 
                     logger.debug(
                         f"[График] {fullname} - {month}: найдено {len(day_headers)} дней"
@@ -279,7 +281,7 @@ class ScheduleChangeDetector:
                     else ""
                 )
 
-                if self._is_valid_fullname():
+                if self._is_valid_fullname(cell_value.strip()):
                     fullname = cell_value.strip()
                     users_rows[fullname] = row_idx
                     break
@@ -391,8 +393,8 @@ class ScheduleChangeDetector:
         all_days = set(old_schedule.keys()) | set(new_schedule.keys())
 
         for day in all_days:
-            old_value = self._normalize_value()
-            new_value = self._normalize_value()
+            old_value = self._normalize_value(old_schedule.get(day, ""))
+            new_value = self._normalize_value(new_schedule.get(day, ""))
 
             if old_value != new_value:
                 # Очищаем название дня для отображения

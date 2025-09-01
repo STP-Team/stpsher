@@ -19,13 +19,19 @@ logger = logging.getLogger(__name__)
 async def _update_existing_user(db_user: User, excel_user: Dict[str, str]) -> int:
     """Update existing user with new data. Returns 1 if updated, 0 if no changes."""
     updated = False
+    is_in_transfer_section = excel_user.get("is_in_transfer_section", False)
 
-    if db_user.position != excel_user["position"]:
+    # Only update position if user is NOT in transfer section
+    if not is_in_transfer_section and db_user.position != excel_user["position"]:
         logger.info(
             f"[Изменения] {db_user.fullname}: должность {db_user.position} → {excel_user['position']}"
         )
         db_user.position = excel_user["position"]
         updated = True
+    elif is_in_transfer_section and db_user.position != excel_user["position"]:
+        logger.info(
+            f"[Изменения] {db_user.fullname}: игнорируем изменение должности (пользователь в секции переводов)"
+        )
 
     if db_user.head != excel_user["head"]:
         logger.info(
@@ -39,6 +45,11 @@ async def _update_existing_user(db_user: User, excel_user: Dict[str, str]) -> in
 
 async def _add_new_user(session, division: str, excel_user: Dict[str, str]):
     """Add new user to database."""
+    is_in_transfer_section = excel_user.get("is_in_transfer_section", False)
+    if is_in_transfer_section:
+        logger.info(f"[Изменения] Пропуск добавления нового пользователя {excel_user['fullname']} (в секции переводов)")
+        return
+        
     new_user = User(
         division=division,
         position=excel_user["position"],
@@ -140,6 +151,19 @@ def _extract_users_from_dataframe(
 ) -> List[Dict[str, str]]:
     """Extract user data from dataframe."""
     users = []
+    transfer_section_row = None
+
+    # Find "Переводы/увольнения" row
+    for row_idx in range(header_info["header_row"] + 1, len(df)):
+        fullname_cell = (
+            str(df.iloc[row_idx, header_info["fullname_col"]])
+            if pd.notna(df.iloc[row_idx, header_info["fullname_col"]])
+            else ""
+        )
+        if "переводы" in fullname_cell.lower() and "увольнения" in fullname_cell.lower():
+            transfer_section_row = row_idx
+            logger.info(f"[Изменения] Найдена секция 'Переводы/увольнения' в строке {row_idx}")
+            break
 
     for row_idx in range(header_info["header_row"] + 1, len(df)):
         fullname_cell = (
@@ -171,7 +195,17 @@ def _extract_users_from_dataframe(
                 else ""
             )
 
-            users.append({"fullname": fullname, "position": position, "head": head})
+            # Mark if user is in transfer section
+            is_in_transfer_section = (
+                transfer_section_row is not None and row_idx > transfer_section_row
+            )
+
+            users.append({
+                "fullname": fullname, 
+                "position": position, 
+                "head": head,
+                "is_in_transfer_section": is_in_transfer_section
+            })
 
     return users
 
@@ -297,8 +331,12 @@ async def process_user_changes(session_pool, file_name: str):
                             if was_updated:
                                 updated_names.append(fullname)
                     else:
-                        await _add_new_user(session, division, excel_user)
-                        new_names.append(fullname)
+                        is_in_transfer_section = excel_user.get("is_in_transfer_section", False)
+                        if not is_in_transfer_section:
+                            await _add_new_user(session, division, excel_user)
+                            new_names.append(fullname)
+                        else:
+                            logger.info(f"[Изменения] Пропуск добавления {fullname} (в секции переводов)")
 
                 except Exception as e:
                     logger.error(

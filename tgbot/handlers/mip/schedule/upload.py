@@ -175,7 +175,7 @@ async def upload_file(
             if len(notified_users) > 5:
                 status_text += f"\n... и еще {len(notified_users) - 5}"
         else:
-            status_text += "\n📤 <b>Изменения графика</b>\n"
+            status_text += "\n\n📤 <b>Изменения графика</b>\n"
             status_text += (
                 "Нет изменений в графике. Уведомления об изменении отправлены не будут"
             )
@@ -276,7 +276,7 @@ async def _process_file(file_name: str, main_db: Session) -> dict | None:
 
 def _generate_stats_text(stats: dict) -> str:
     """Generate statistics text from processing results."""
-    text = "\n<b>📊 Статистика обработки</b>\n"
+    text = "\n\n<b>📊 Статистика обработки</b>\n"
 
     sections = [
         ("🔥 Уволено", stats["fired_names"]),
