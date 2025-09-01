@@ -671,9 +671,16 @@ class DutyScheduleParser(BaseDutyParser):
     ) -> List[DutyInfo]:
         """Get list of duty officers for specified date."""
         try:
-            schedule_file = self.file_manager.find_schedule_file(division)
-            if not schedule_file:
-                raise FileNotFoundError(f"Duty schedule file for {division} not found")
+            # For НТП divisions, use separate seniority file
+            if division in ["НТП", "НТП1", "НТП2"]:
+                duty_file = self.file_manager.uploads_folder / "Старшинство_НТП.xlsx"
+                if not duty_file.exists():
+                    raise FileNotFoundError(f"Duty file 'Старшинство_НТП.xlsx' not found for {division}")
+                schedule_file = duty_file
+            else:
+                schedule_file = self.file_manager.find_schedule_file(division)
+                if not schedule_file:
+                    raise FileNotFoundError(f"Duty schedule file for {division} not found")
 
             sheet_name = self.get_duty_sheet_name(date)
 
@@ -681,23 +688,30 @@ class DutyScheduleParser(BaseDutyParser):
                 df = self.read_excel_file(schedule_file, sheet_name)
             except Exception as e:
                 logger.warning(f"Failed to read schedule with primary sheet name: {e}")
-                # Try alternative English month names
-                english_months = {
-                    1: "January",
-                    2: "February",
-                    3: "March",
-                    4: "April",
-                    5: "May",
-                    6: "June",
-                    7: "July",
-                    8: "August",
-                    9: "September",
-                    10: "October",
-                    11: "November",
-                    12: "December",
-                }
-                alt_sheet_name = f"Дежурство {english_months[date.month]}"
-                df = self.read_excel_file(schedule_file, alt_sheet_name)
+                
+                # For НТП divisions, try different sheet name patterns
+                if division in ["НТП", "НТП1", "НТП2"]:
+                    # Try just the month name
+                    month_names = [
+                        "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                        "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+                    ]
+                    month_name = month_names[date.month - 1]
+                    try:
+                        df = self.read_excel_file(schedule_file, month_name)
+                        logger.debug(f"Successfully read НТП duty sheet with name: {month_name}")
+                    except Exception as e2:
+                        logger.warning(f"Failed to read НТП duty sheet with month name '{month_name}': {e2}")
+                        df = None
+                else:
+                    # Try alternative English month names for НЦК
+                    english_months = {
+                        1: "January", 2: "February", 3: "March", 4: "April",
+                        5: "May", 6: "June", 7: "July", 8: "August",
+                        9: "September", 10: "October", 11: "November", 12: "December",
+                    }
+                    alt_sheet_name = f"Дежурство {english_months[date.month]}"
+                    df = self.read_excel_file(schedule_file, alt_sheet_name)
 
             if df is None:
                 logger.warning(
