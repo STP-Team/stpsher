@@ -856,7 +856,7 @@ class GroupScheduleParser(BaseExcelParser):
     def format_schedule(self, members: List[GroupMemberInfo], date: datetime) -> str:
         """Format group schedule for display."""
         if not members:
-            return f"👥 <b>Group for {date.strftime('%d.%m.%Y')}</b>\n\n❌ No members found"
+            return f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы"
 
         # Group by start time
         grouped_by_start_time = self._group_members_by_start_time(members)
@@ -1011,7 +1011,7 @@ class GroupScheduleParser(BaseExcelParser):
         """Format group schedule for head with pagination."""
         if not group_members:
             return (
-                f"👥 <b>Group for {date.strftime('%d.%m.%Y')}</b>\n\n❌ No members found",
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы",
                 1,
                 False,
                 False,
@@ -1032,7 +1032,15 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
         # Build message
-        lines = [f"👥 <b>Твоя группа • {date.strftime('%d.%m.%Y')}</b>", ""]
+        lines = [f"👥 <b>Твоя группа • {date.strftime('%d.%m.%Y')}</b>"]
+
+        # Add pagination info
+        if total_pages > 1:
+            lines.append(
+                f"<i>Страница {page} из {total_pages}\nОтображено {len(page_members)} из {total_members} участников</i>"
+            )
+
+        lines.append("")
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
@@ -1046,13 +1054,6 @@ class GroupScheduleParser(BaseExcelParser):
         # Remove last empty line
         if lines and lines[-1] == "":
             lines.pop()
-
-        # Add pagination info
-        if total_pages > 1:
-            lines.append("")
-            lines.append(
-                f"📄 Page {page}/{total_pages} (showing {len(page_members)} of {total_members} members)"
-            )
 
         return "\n".join(lines), total_pages, page > 1, page < total_pages
 
@@ -1105,7 +1106,15 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
         # Build message
-        lines = [f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>", ""]
+        lines = [f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>"]
+
+        # Add pagination info
+        if total_pages > 1:
+            lines.append(
+                f"<i>Страница {page} из {total_pages}\nОтображено {len(page_colleagues)} из {total_colleagues} участников</i>"
+            )
+
+        lines.append("")
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
@@ -1119,13 +1128,6 @@ class GroupScheduleParser(BaseExcelParser):
         # Remove last empty line
         if lines and lines[-1] == "":
             lines.pop()
-
-        # Add pagination info
-        if total_pages > 1:
-            lines.append("")
-            lines.append(
-                f"📄 Page {page}/{total_pages} (showing {len(page_colleagues)} of {total_colleagues} colleagues)"
-            )
 
         return "\n".join(lines), total_pages, page > 1, page < total_pages
 
