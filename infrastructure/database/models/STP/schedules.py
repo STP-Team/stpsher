@@ -6,9 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 from infrastructure.database.models.base import Base, TableNameMixin
 
 
-class ScheduleFilesLog(Base, TableNameMixin):
+class Schedules(Base, TableNameMixin):
     """
-    Модель, представляющая сущность записи лога расписания в БД
+    Модель, представляющая сущность лога расписания в БД
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор записи.
@@ -25,7 +25,7 @@ class ScheduleFilesLog(Base, TableNameMixin):
         Наследует от Base и TableNameMixin, которые предоставляют дополнительный функционал.
     """
 
-    __tablename__ = "schedule_log"
+    __tablename__ = "schedules"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     file_id: Mapped[str] = mapped_column(

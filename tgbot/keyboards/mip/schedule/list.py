@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.models.STP.schedule_log import ScheduleFilesLog
+from infrastructure.database.models.STP.schedules import Schedules
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -58,7 +58,7 @@ class RestoreConfirmMenu(CallbackData, prefix="restore_confirm"):
 
 
 def list_db_files_paginated_kb(
-    current_page: int, total_pages: int, page_files: Sequence[ScheduleFilesLog] = None
+    current_page: int, total_pages: int, page_files: Sequence[Schedules] = None
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура пагинации для файлов графиков в базе данных с кнопками выбора файлов.
@@ -179,7 +179,7 @@ def list_db_files_paginated_kb(
 
 
 def list_db_files_kb(
-    schedule_files: Sequence[ScheduleFilesLog],
+    schedule_files: Sequence[Schedules],
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура меню файлов графиков в базе данных (legacy compatibility).
@@ -338,7 +338,7 @@ def list_local_files_paginated_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="🔙 Назад", callback_data=MainMenu(menu="schedule").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -370,7 +370,7 @@ def list_local_files_kb(
     buttons.append(
         [
             InlineKeyboardButton(
-                text="🔙 Назад", callback_data=MainMenu(menu="schedule").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -470,7 +470,7 @@ def schedule_list_back_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="🔙 Назад", callback_data=MainMenu(menu="schedule").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -485,31 +485,36 @@ def schedule_list_back_kb() -> InlineKeyboardMarkup:
 
 
 def file_versions_list_kb(
-    file_versions: Sequence[ScheduleFilesLog], filename: str, current_page: int = 1, total_pages: int = 1
+    file_versions: Sequence[Schedules],
+    filename: str,
+    current_page: int = 1,
+    total_pages: int = 1,
 ) -> InlineKeyboardMarkup:
     """
     Пагинированная клавиатура для выбора версий файла для восстановления.
     """
     buttons = []
-    
+
     # Add version selection buttons (max 1 per row for clarity)
     for i, version in enumerate(file_versions, 1):
         upload_time = version.uploaded_at.strftime("%H:%M:%S %d.%m.%y")
         size_mb = round(version.file_size / (1024 * 1024), 2)
-        
+
         # Calculate global version number
         global_version_number = (current_page - 1) * 8 + i
         version_text = f"{global_version_number}. {upload_time} ({size_mb} MB)"
-        
-        buttons.append([
-            InlineKeyboardButton(
-                text=version_text,
-                callback_data=FileVersionSelectMenu(
-                    file_id=version.id, filename=filename, page=current_page
-                ).pack(),
-            )
-        ])
-    
+
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=version_text,
+                    callback_data=FileVersionSelectMenu(
+                        file_id=version.id, filename=filename, page=current_page
+                    ).pack(),
+                )
+            ]
+        )
+
     # Pagination (only if more than one page)
     if total_pages > 1:
         pagination_row = []
@@ -564,25 +569,29 @@ def file_versions_list_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=FileVersionsMenu(filename=filename, page=total_pages).pack(),
+                    callback_data=FileVersionsMenu(
+                        filename=filename, page=total_pages
+                    ).pack(),
                 )
             )
         else:
             pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
         buttons.append(pagination_row)
-    
+
     # Navigation
-    buttons.append([
-        InlineKeyboardButton(
-            text="🔙 К файлу",
-            callback_data=LocalFilesMenu(menu="local", page=1).pack(),
-        ),
-        InlineKeyboardButton(
-            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
-        ),
-    ])
-    
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="🔙 К файлу",
+                callback_data=LocalFilesMenu(menu="local", page=1).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    )
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -610,5 +619,5 @@ def restore_confirmation_kb(
             )
         ],
     ]
-    
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)

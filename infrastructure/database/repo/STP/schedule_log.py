@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import select, and_
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.STP.schedule_log import ScheduleFilesLog
+from infrastructure.database.models.STP.schedules import Schedules
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class ScheduleLogRepo(BaseRepo):
         uploaded_by_user_id: Optional[int] = None,
         uploaded_from: Optional[datetime] = None,
         uploaded_to: Optional[datetime] = None,
-    ) -> Sequence[ScheduleFilesLog]:
+    ) -> Sequence[Schedules]:
         """
         Получить записи лога расписания по фильтрам.
 
@@ -43,15 +43,15 @@ class ScheduleLogRepo(BaseRepo):
         filters = []
 
         if file_id:
-            filters.append(ScheduleFilesLog.file_id == file_id)
+            filters.append(Schedules.file_id == file_id)
         if uploaded_by_user_id:
-            filters.append(ScheduleFilesLog.uploaded_by_user_id == uploaded_by_user_id)
+            filters.append(Schedules.uploaded_by_user_id == uploaded_by_user_id)
         if uploaded_from:
-            filters.append(ScheduleFilesLog.uploaded_at >= uploaded_from)
+            filters.append(Schedules.uploaded_at >= uploaded_from)
         if uploaded_to:
-            filters.append(ScheduleFilesLog.uploaded_at <= uploaded_to)
+            filters.append(Schedules.uploaded_at <= uploaded_to)
 
-        query = select(ScheduleFilesLog).order_by(ScheduleFilesLog.uploaded_at.desc())
+        query = select(Schedules).order_by(Schedules.uploaded_at.desc())
         if filters:
             query = query.where(and_(*filters))
 
@@ -64,7 +64,7 @@ class ScheduleLogRepo(BaseRepo):
 
     async def add_file_history(
         self, **kwargs: Unpack[ScheduleLogParams]
-    ) -> Optional[ScheduleFilesLog]:
+    ) -> Optional[Schedules]:
         """
         Добавить новую запись в логи расписания.
 
@@ -74,7 +74,7 @@ class ScheduleLogRepo(BaseRepo):
         Returns:
             Новый объект ScheduleLog или None при ошибке
         """
-        file_entry = ScheduleFilesLog(**kwargs)
+        file_entry = Schedules(**kwargs)
         self.session.add(file_entry)
         try:
             await self.session.commit()

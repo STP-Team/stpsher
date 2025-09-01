@@ -25,7 +25,7 @@ from tgbot.keyboards.mip.schedule.list import (
     schedule_list_back_kb,
 )
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu
-from tgbot.misc.states.mip.schedule import RecoverFileVersion, RenameLocalFile
+from tgbot.misc.states.mip.schedule import RenameLocalFile
 
 mip_list_router = Router()
 mip_list_router.message.filter(F.chat.type == "private", MipFilter())
@@ -585,7 +585,13 @@ async def process_new_filename(message: Message, state: FSMContext):
         await state.clear()
 
 
-async def show_file_versions(callback: CallbackQuery, filename: str, page: int, stp_repo: MainRequestsRepo, versions_page: int = 1):
+async def show_file_versions(
+    callback: CallbackQuery,
+    filename: str,
+    page: int,
+    stp_repo: MainRequestsRepo,
+    versions_page: int = 1,
+):
     """Show paginated list of available versions of a file for recovery"""
     try:
         # Clean filename for matching (remove temp_current_ prefix if present)
@@ -596,14 +602,16 @@ async def show_file_versions(callback: CallbackQuery, filename: str, page: int, 
         # Get all versions of this file
         logs = await stp_repo.upload.get_files_history()
         all_file_versions = []
-        
+
         for log in logs:
             if log.file_name == filename or log.file_name == clean_filename:
                 all_file_versions.append(log)
-        
+
         # Sort by upload date (newest first)
-        all_file_versions = sorted(all_file_versions, key=lambda x: x.uploaded_at, reverse=True)
-        
+        all_file_versions = sorted(
+            all_file_versions, key=lambda x: x.uploaded_at, reverse=True
+        )
+
         if not all_file_versions:
             await callback.message.edit_text(
                 f"""<b>⏪ Восстановление файла</b>
@@ -612,7 +620,7 @@ async def show_file_versions(callback: CallbackQuery, filename: str, page: int, 
 
 ❌ Для этого файла не найдено версий в истории загрузок.
 Возможно, файл был создан локально или загружен до внедрения системы логирования.""",
-                reply_markup=schedule_list_back_kb()
+                reply_markup=schedule_list_back_kb(),
             )
             return
 
@@ -620,7 +628,7 @@ async def show_file_versions(callback: CallbackQuery, filename: str, page: int, 
         versions_per_page = 8
         total_versions = len(all_file_versions)
         total_pages = (total_versions + versions_per_page - 1) // versions_per_page
-        
+
         # Calculate start and end for current versions page
         start_idx = (versions_page - 1) * versions_per_page
         end_idx = start_idx + versions_per_page
@@ -636,47 +644,51 @@ async def show_file_versions(callback: CallbackQuery, filename: str, page: int, 
 
         await callback.message.edit_text(
             message_text,
-            reply_markup=file_versions_list_kb(page_versions, filename, versions_page, total_pages)
+            reply_markup=file_versions_list_kb(
+                page_versions, filename, versions_page, total_pages
+            ),
         )
-        
+
     except Exception as e:
-        await callback.answer(f"Ошибка при получении версий файла: {str(e)}", show_alert=True)
+        await callback.answer(
+            f"Ошибка при получении версий файла: {str(e)}", show_alert=True
+        )
 
 
 @mip_list_router.callback_query(FileVersionsMenu.filter())
 async def handle_file_versions_pagination(
-    callback: CallbackQuery, 
-    callback_data: FileVersionsMenu, 
-    stp_repo: MainRequestsRepo
+    callback: CallbackQuery, callback_data: FileVersionsMenu, stp_repo: MainRequestsRepo
 ):
     """Handler for file versions pagination"""
     filename = callback_data.filename
     versions_page = callback_data.page
-    
+
     await show_file_versions(callback, filename, 1, stp_repo, versions_page)
 
 
 @mip_list_router.callback_query(FileVersionSelectMenu.filter())
 async def handle_version_selection(
-    callback: CallbackQuery, 
-    callback_data: FileVersionSelectMenu, 
-    stp_repo: MainRequestsRepo
+    callback: CallbackQuery,
+    callback_data: FileVersionSelectMenu,
+    stp_repo: MainRequestsRepo,
 ):
     """Handler for version selection confirmation"""
     file_id = callback_data.file_id
     filename = callback_data.filename
     page = callback_data.page
-    
+
     try:
         # Get version info
         logs = await stp_repo.upload.get_files_history()
         selected_version = next((l for l in logs if l.id == file_id), None)
-        
+
         if not selected_version:
             await callback.answer("Версия файла не найдена", show_alert=True)
             return
 
-        uploader = await stp_repo.user.get_user(user_id=selected_version.uploaded_by_user_id)
+        uploader = await stp_repo.user.get_user(
+            user_id=selected_version.uploaded_by_user_id
+        )
         uploader_name = uploader.fullname if uploader else "Неизвестно"
         upload_time = selected_version.uploaded_at.strftime("%H:%M:%S %d.%m.%Y")
         size_mb = round(selected_version.file_size / (1024 * 1024), 2)
@@ -686,7 +698,7 @@ async def handle_version_selection(
 
 <b>Файл:</b> {filename}
 <b>Выбранная версия:</b> {upload_time}
-<b>Загружена:</b> {uploader_name}
+<b>Загружена:</b> <a href='t.me/{uploader.username}'>{uploader_name}</a>
 <b>Размер:</b> {size_mb} MB
 
 ⚠️ <b>ВНИМАНИЕ!</b>
@@ -696,10 +708,9 @@ async def handle_version_selection(
 Продолжить восстановление?"""
 
         await callback.message.edit_text(
-            message_text,
-            reply_markup=restore_confirmation_kb(file_id, filename, page)
+            message_text, reply_markup=restore_confirmation_kb(file_id, filename, page)
         )
-        
+
     except Exception as e:
         await callback.answer(f"Ошибка: {str(e)}", show_alert=True)
 
@@ -708,48 +719,46 @@ async def handle_version_selection(
 async def handle_restore_confirmation(
     callback: CallbackQuery,
     callback_data: RestoreConfirmMenu,
-    stp_repo: MainRequestsRepo
+    stp_repo: MainRequestsRepo,
 ):
     """Handler for restore confirmation"""
     file_id = callback_data.file_id
     filename = callback_data.filename
     action = callback_data.action
     page = callback_data.page
-    
+
     if action == "cancel":
         # Return to local files list (page 1)
         await show_local_files_paginated(
-            callback=callback,
-            callback_data=LocalFilesMenu(menu="local", page=1)
+            callback=callback, callback_data=LocalFilesMenu(menu="local", page=1)
         )
         return
-    
+
     elif action == "confirm":
         try:
             # Get version info
             logs = await stp_repo.upload.get_files_history()
             selected_version = next((l for l in logs if l.id == file_id), None)
-            
+
             if not selected_version:
                 await callback.answer("Версия файла не найдена", show_alert=True)
                 return
 
             filepath = os.path.join("uploads", filename)
-            
+
             # Download file from Telegram and save to uploads folder
             file_info = await callback.bot.get_file(selected_version.file_id)
             await callback.bot.download_file(file_info.file_path, filepath)
-            
+
             await callback.answer(
                 f"✅ Файл '{filename}' успешно восстановлен!", show_alert=True
             )
-            
+
             # Return to local files list (page 1)
             await show_local_files_paginated(
-                callback=callback,
-                callback_data=LocalFilesMenu(menu="local", page=1)
+                callback=callback, callback_data=LocalFilesMenu(menu="local", page=1)
             )
-            
+
         except Exception as e:
             await callback.answer(
                 f"Ошибка при восстановлении: {str(e)}", show_alert=True
