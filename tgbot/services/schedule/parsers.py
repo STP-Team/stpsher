@@ -2,6 +2,7 @@
 Optimized and refactored schedule parsers with common utilities.
 """
 
+import calendar
 import logging
 import re
 from abc import ABC, abstractmethod
@@ -459,6 +460,25 @@ class ScheduleParser(MonthlyScheduleParser):
             # Get duty parser to check for duty information
             duty_parser = DutyScheduleParser()
 
+            # OPTIMIZATION: Get all duties for the month at once instead of day by day
+            current_year = datetime.now().year
+            month_num = MonthManager.get_month_number(month)
+            
+            try:
+                # Create a date object for the first day of the month to get month duties
+                first_day_of_month = datetime(current_year, month_num, 1)
+                
+                # Get all duties for the entire month at once
+                month_duties = await duty_parser.get_duties_for_month(
+                    first_day_of_month, division, stp_repo
+                )
+                
+                logger.debug(f"Retrieved duties for {len(month_duties)} days in month {month}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to get month duties, falling back to individual day queries: {e}")
+                month_duties = {}
+
             # Create result with duty information
             schedule_with_duties = {}
 
@@ -474,28 +494,27 @@ class ScheduleParser(MonthlyScheduleParser):
                     if day_match:
                         day_num = int(day_match.group(1))
 
-                        # Create a date object for this day
-                        from datetime import datetime
+                        # Check if we have month duties data
+                        if month_duties and day_num in month_duties:
+                            # Use optimized month data
+                            duties = month_duties[day_num]
+                        else:
+                            # Fallback to individual day query
+                            try:
+                                date = datetime(current_year, month_num, day_num)
+                                duties = await duty_parser.get_duties_for_date(
+                                    date, division, stp_repo
+                                )
+                            except ValueError:
+                                # Invalid date, skip duty check
+                                duties = []
 
-                        current_year = datetime.now().year
-                        month_num = MonthManager.get_month_number(month)
+                        # Check if user is on duty
+                        for duty in duties:
+                            if self.utils.names_match(fullname, duty.name):
+                                duty_info = f"{duty.schedule} [{duty.shift_type}]"
+                                break
 
-                        try:
-                            date = datetime(current_year, month_num, day_num)
-
-                            # Get duties for this date
-                            duties = await duty_parser.get_duties_for_date(
-                                date, division, stp_repo
-                            )
-
-                            # Check if user is on duty
-                            for duty in duties:
-                                if self.utils.names_match(fullname, duty.name):
-                                    duty_info = f"{duty.schedule} [{duty.shift_type}]"
-                                    break
-                        except ValueError:
-                            # Invalid date, skip duty check
-                            pass
                 except Exception as e:
                     logger.debug(f"Error checking duty for {fullname} on {day}: {e}")
 
@@ -665,6 +684,162 @@ class DutyScheduleParser(BaseDutyParser):
         except Exception as e:
             logger.error(f"Error getting current senior duty for {division}: {e}")
             return None
+
+    async def get_duties_for_month(
+        self, date: datetime, division: str, stp_repo: MainRequestsRepo
+    ) -> Dict[int, List[DutyInfo]]:
+        """Get list of duty officers for entire month. Returns dict with day number as key."""
+        try:
+            # For НТП divisions, use separate seniority file
+            if division in ["НТП", "НТП1", "НТП2"]:
+                duty_file = self.file_manager.uploads_folder / "Старшинство_НТП.xlsx"
+                if not duty_file.exists():
+                    raise FileNotFoundError(
+                        f"Duty file 'Старшинство_НТП.xlsx' not found for {division}"
+                    )
+                schedule_file = duty_file
+            else:
+                schedule_file = self.file_manager.find_schedule_file(division)
+                if not schedule_file:
+                    raise FileNotFoundError(
+                        f"Duty schedule file for {division} not found"
+                    )
+
+            sheet_name = self.get_duty_sheet_name(date)
+
+            try:
+                df = self.read_excel_file(schedule_file, sheet_name)
+            except Exception as e:
+                logger.warning(f"Failed to read schedule with primary sheet name: {e}")
+
+                # For НТП divisions, try different sheet name patterns
+                if division in ["НТП", "НТП1", "НТП2"]:
+                    # Try just the month name
+                    month_names = [
+                        "Январь",
+                        "Февраль",
+                        "Март",
+                        "Апрель",
+                        "Май",
+                        "Июнь",
+                        "Июль",
+                        "Август",
+                        "Сентябрь",
+                        "Октябрь",
+                        "Ноябрь",
+                        "Декабрь",
+                    ]
+                    month_name = month_names[date.month - 1]
+                    try:
+                        df = self.read_excel_file(schedule_file, month_name)
+                        logger.debug(
+                            f"Successfully read НТП duty sheet with name: {month_name}"
+                        )
+                    except Exception as e2:
+                        logger.warning(
+                            f"Failed to read НТП duty sheet with month name '{month_name}': {e2}"
+                        )
+                        df = None
+                else:
+                    # Try alternative English month names for НЦК
+                    english_months = {
+                        1: "January",
+                        2: "February",
+                        3: "March",
+                        4: "April",
+                        5: "May",
+                        6: "June",
+                        7: "July",
+                        8: "August",
+                        9: "September",
+                        10: "October",
+                        11: "November",
+                        12: "December",
+                    }
+                    alt_sheet_name = f"Дежурство {english_months[date.month]}"
+                    df = self.read_excel_file(schedule_file, alt_sheet_name)
+
+            if df is None:
+                logger.warning(
+                    f"[График дежурных] Не удалось найти график дежурных на {date} для {division}"
+                )
+                raise ValueError("Failed to read duty schedule")
+
+            # Find all date columns for the month
+            month_duties = {}
+            
+            # Find all columns that might contain days from this month
+            days_in_month = calendar.monthrange(date.year, date.month)[1]
+            
+            # Find date columns for all days in the month
+            date_columns = {}
+            for day in range(1, days_in_month + 1):
+                try:
+                    day_date = datetime(date.year, date.month, day)
+                    date_col = self.date_finder.find_date_column(df, day_date, search_rows=3)
+                    if date_col is not None:
+                        date_columns[day] = date_col
+                except ValueError:
+                    # Invalid date, skip
+                    continue
+            
+            logger.debug(f"Found date columns for {len(date_columns)} days in month {date.month}")
+
+            # Parse duties for all found dates at once
+            for row_idx in range(len(df)):
+                # Find name in first few columns
+                name = ""
+                for col_idx in range(min(3, len(df.columns))):
+                    cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
+
+                    if (
+                        len(cell_value.split()) >= 3
+                        and re.search(r"[А-Яа-я]", cell_value)
+                        and not re.search(r"\d", cell_value)
+                    ):
+                        name = cell_value.strip()
+                        break
+
+                if not name:
+                    continue
+
+                # Get user info once per person (optimization)
+                user: User = await stp_repo.user.get_user(fullname=name)
+                if not user:
+                    continue
+
+                # Check duty information for all dates in the month
+                for day, date_col in date_columns.items():
+                    if date_col < len(df.columns):
+                        duty_cell = self.utils.get_cell_value(df, row_idx, date_col)
+
+                        if duty_cell and duty_cell.strip() not in ["", "nan", "None"]:
+                            shift_type, schedule = self.parse_duty_entry(duty_cell)
+
+                            if shift_type in ["С", "П"] and self.utils.is_time_format(schedule):
+                                if day not in month_duties:
+                                    month_duties[day] = []
+                                
+                                month_duties[day].append(
+                                    DutyInfo(
+                                        name=name,
+                                        user_id=user.user_id,
+                                        username=user.username,
+                                        schedule=schedule,
+                                        shift_type=shift_type,
+                                        work_hours=schedule,
+                                    )
+                                )
+
+            total_duties = sum(len(duties) for duties in month_duties.values())
+            logger.info(
+                f"Found duties for {len(month_duties)} days in month {date.month}/{date.year}, total {total_duties} duties"
+            )
+            return month_duties
+
+        except Exception as e:
+            logger.error(f"Error getting duty officers for month: {e}")
+            return {}
 
     async def get_duties_for_date(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
