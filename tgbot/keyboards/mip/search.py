@@ -23,7 +23,12 @@ class HeadGroupMenu(CallbackData, prefix="head_group"):
 
 class EditUserMenu(CallbackData, prefix="edit_user"):
     user_id: int
-    action: str  # "edit_fullname"
+    action: str  # "edit_fullname", "edit_role"
+
+
+class SelectUserRole(CallbackData, prefix="select_role"):
+    user_id: int
+    role: int  # 1, 2, 3
 
 
 class ViewUserSchedule(CallbackData, prefix="view_schedule"):
@@ -35,6 +40,7 @@ class ViewUserSchedule(CallbackData, prefix="view_schedule"):
 
 class MipScheduleNavigation(CallbackData, prefix="mip_sched"):
     """Callback data для навигации по месяцам в расписании пользователя для МИП"""
+
     action: str  # "prev", "next", "-", "detailed", "compact"
     user_id: int
     month_idx: int  # индекс месяца (1-12)
@@ -119,7 +125,7 @@ def user_detail_kb(
             ]
         )
 
-    # Кнопка редактирования (если разрешено)
+    # Кнопки редактирования (если разрешено)
     if can_edit:
         buttons.append(
             [
@@ -127,6 +133,16 @@ def user_detail_kb(
                     text="✏️ Изменить ФИО",
                     callback_data=EditUserMenu(
                         user_id=user_id, action="edit_fullname"
+                    ).pack(),
+                )
+            ]
+        )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="👤 Изменить роль",
+                    callback_data=EditUserMenu(
+                        user_id=user_id, action="edit_role"
                     ).pack(),
                 )
             ]
@@ -438,14 +454,34 @@ def schedule_back_to_user_kb(
 
 # Список месяцев на русском языке
 MONTHS_RU = [
-    "январь", "февраль", "март", "апрель", "май", "июнь",
-    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
+    "январь",
+    "февраль",
+    "март",
+    "апрель",
+    "май",
+    "июнь",
+    "июль",
+    "август",
+    "сентябрь",
+    "октябрь",
+    "ноябрь",
+    "декабрь",
 ]
 
 # Эмодзи для месяцев
 MONTH_EMOJIS = {
-    1: "❄️", 2: "💙", 3: "🌸", 4: "🌷", 5: "🌻", 6: "☀️",
-    7: "🏖️", 8: "🌾", 9: "🍂", 10: "🎃", 11: "🍁", 12: "🎄"
+    1: "❄️",
+    2: "💙",
+    3: "🌸",
+    4: "🌷",
+    5: "🌻",
+    6: "☀️",
+    7: "🏖️",
+    8: "🌾",
+    9: "🍂",
+    10: "🎃",
+    11: "🍁",
+    12: "🎄",
 }
 
 
@@ -482,14 +518,14 @@ def user_schedule_with_month_kb(
     :return: Объект встроенной клавиатуры
     """
     current_month_idx = get_month_index_by_name(current_month)
-    
+
     # Получаем предыдущий и следующий месяцы
     prev_month_idx = current_month_idx - 1 if current_month_idx > 1 else 12
     next_month_idx = current_month_idx + 1 if current_month_idx < 12 else 1
-    
+
     # Эмодзи для текущего месяца
     month_emoji = MONTH_EMOJIS.get(current_month_idx, "📅")
-    
+
     # Создаем ряд навигации по месяцам
     nav_row = [
         InlineKeyboardButton(
@@ -499,7 +535,7 @@ def user_schedule_with_month_kb(
                 user_id=user_id,
                 month_idx=prev_month_idx,
                 return_to=return_to,
-                head_id=head_id
+                head_id=head_id,
             ).pack(),
         ),
         InlineKeyboardButton(
@@ -509,7 +545,7 @@ def user_schedule_with_month_kb(
                 user_id=user_id,
                 month_idx=current_month_idx,
                 return_to=return_to,
-                head_id=head_id
+                head_id=head_id,
             ).pack(),
         ),
         InlineKeyboardButton(
@@ -519,11 +555,11 @@ def user_schedule_with_month_kb(
                 user_id=user_id,
                 month_idx=next_month_idx,
                 return_to=return_to,
-                head_id=head_id
+                head_id=head_id,
             ).pack(),
         ),
     ]
-    
+
     # Определяем текст и действие для кнопки переключения режима
     if is_detailed:
         toggle_text = "📋 Кратко"
@@ -531,7 +567,7 @@ def user_schedule_with_month_kb(
     else:
         toggle_text = "📋 Подробнее"
         toggle_action = "detailed"
-    
+
     buttons = [
         nav_row,  # Ряд навигации по месяцам
         [
@@ -542,7 +578,7 @@ def user_schedule_with_month_kb(
                     user_id=user_id,
                     month_idx=current_month_idx,
                     return_to=return_to,
-                    head_id=head_id
+                    head_id=head_id,
                 ).pack(),
             ),
         ],
@@ -556,7 +592,68 @@ def user_schedule_with_month_kb(
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
-        ]
+        ],
     ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def role_selection_kb(user_id: int, current_role: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для выбора роли пользователя
+
+    :param user_id: ID пользователя
+    :param current_role: Текущая роль пользователя (чтобы скрыть кнопку)
+    :return: Объект встроенной клавиатуры для выбора роли
+    """
+    # Все возможные роли в нужном порядке
+    role_buttons = []
+
+    # Специалист (1)
+    if current_role != 1:
+        role_buttons.append(
+            InlineKeyboardButton(
+                text="👤 Специалист",
+                callback_data=SelectUserRole(user_id=user_id, role=1).pack(),
+            )
+        )
+
+    # Дежурный (3)
+    if current_role != 3:
+        role_buttons.append(
+            InlineKeyboardButton(
+                text="🚨 Дежурный",
+                callback_data=SelectUserRole(user_id=user_id, role=3).pack(),
+            )
+        )
+
+    # Руководитель (2)
+    if current_role != 2:
+        role_buttons.append(
+            InlineKeyboardButton(
+                text="👔 Руководитель",
+                callback_data=SelectUserRole(user_id=user_id, role=2).pack(),
+            )
+        )
+
+    # Создаем строки по 2 кнопки
+    buttons = []
+    for i in range(0, len(role_buttons), 2):
+        row = role_buttons[i : i + 2]
+        buttons.append(row)
+
+    # Добавляем кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=SearchUserResult(user_id=user_id).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
+        ]
+    )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

@@ -11,3 +11,4 @@ class EditEmployee(StatesGroup):
     """Состояния для редактирования данных сотрудника"""
 
     waiting_new_fullname = State()  # Ожидание ввода нового ФИО
+    waiting_new_role = State()  # Ожидание выбора новой роли

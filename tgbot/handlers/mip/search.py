@@ -9,16 +9,19 @@ from aiogram.types import CallbackQuery, Message
 from infrastructure.database.models import User
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
+from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
     HeadGroupMenu,
     MipScheduleNavigation,
     SearchMenu,
     SearchUserResult,
+    SelectUserRole,
     ViewUserSchedule,
     edit_user_back_kb,
     get_month_name_by_index,
     head_group_kb,
+    role_selection_kb,
     search_back_kb,
     search_main_kb,
     search_results_kb,
@@ -26,9 +29,9 @@ from tgbot.keyboards.mip.search import (
     user_schedule_with_month_kb,
 )
 from tgbot.keyboards.user.main import MainMenu
+from tgbot.misc.dicts import role_names
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
-from tgbot.handlers.user.schedule.main import schedule_service
 
 mip_search_router = Router()
 mip_search_router.message.filter(F.chat.type == "private", MipFilter())
@@ -459,7 +462,7 @@ async def show_user_details(
 
             user_info += f"""
 
-<b>📊 Статистика игрока</b>
+<blockquote expandable><b>📊 Статистика игрока</b>
 <b>⚔️ Уровень:</b> {stats["level"]}
 <b>✨ Баланс:</b> {stats["balance"]} баллов
 <b>📈 Всего заработано:</b> {stats["total_earned"]} баллов
@@ -469,7 +472,7 @@ async def show_user_details(
 <b>Самое частое:</b> {achievement_text}
 
 <b>🏅 Награды ({stats["awards_count"]}):</b>
-<b>Самая частая:</b> {award_text}"""
+<b>Самая частая:</b> {award_text}</blockquote>"""
 
         # Дополнительная информация для руководителей
         if user.role == 2:  # Руководитель
@@ -485,11 +488,11 @@ async def show_user_details(
 
             user_info += f"""
 
-<b>👥 Статистика группы</b>
+<blockquote expandable><b>👥 Статистика группы</b>
 <b>Сотрудников в группе:</b> {group_stats["total_users"]}
 <b>Общие очки группы:</b> {group_stats["total_points"]} баллов
 <b>Популярное достижение:</b> {group_achievement_text}
-<b>Популярная награда:</b> {group_award_text}
+<b>Популярная награда:</b> {group_award_text}</blockquote>
 
 <i>💡 Нажми кнопку ниже чтобы увидеть список группы</i>"""
 
@@ -601,6 +604,32 @@ async def start_edit_user(
         )
         await state.set_state(EditEmployee.waiting_new_fullname)
 
+    elif action == "edit_role":
+        # Получаем текущие данные пользователя
+        user = await stp_repo.user.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Получаем название текущей роли
+        current_role_name = (
+            role_names[user.role]
+            if user.role < len(role_names)
+            else f"Неизвестная роль ({user.role})"
+        )
+
+        await callback.message.edit_text(
+            f"""<b>👤 Изменение роли</b>
+
+<b>Сотрудник:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>Текущая роль:</b> {current_role_name}
+
+Выбери новую роль для пользователя:
+
+<i>Пользователь получит уведомление об изменении роли</i>""",
+            reply_markup=role_selection_kb(user_id, user.role),
+        )
+
 
 @mip_search_router.message(EditEmployee.waiting_new_fullname)
 async def process_edit_fullname(
@@ -644,8 +673,8 @@ async def process_edit_fullname(
             message_id=bot_message_id,
             text=f"""<b>✅ ФИО изменено</b>
 
-<b>Было:</b> {current_fullname}
-<b>Стало:</b> {new_fullname}
+<b>Было:</b> <code>{current_fullname}</code>
+<b>Стало:</b> <code>{new_fullname}</code>
 
 Изменения сохранены в базе данных.""",
             reply_markup=edit_user_back_kb(user_id),
@@ -825,3 +854,67 @@ async def navigate_user_schedule(
     except Exception as e:
         logger.error(f"Ошибка при навигации по расписанию пользователя {user_id}: {e}")
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
+
+
+@mip_search_router.callback_query(SelectUserRole.filter())
+async def process_role_change(
+    callback: CallbackQuery, callback_data: SelectUserRole, stp_repo: MainRequestsRepo
+):
+    """Обработка изменения роли пользователя"""
+    user_id = callback_data.user_id
+    new_role = callback_data.role
+
+    try:
+        # Получаем данные пользователя
+        user = await stp_repo.user.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Проверяем, что роль действительно изменилась
+        if user.role == new_role:
+            await callback.answer("❌ Пользователь уже имеет эту роль", show_alert=True)
+            return
+
+        # Получаем названия ролей
+        old_role_name = (
+            role_names[user.role]
+            if user.role < len(role_names)
+            else f"Неизвестная роль ({user.role})"
+        )
+        new_role_name = (
+            role_names[new_role]
+            if new_role < len(role_names)
+            else f"Неизвестная роль ({new_role})"
+        )
+
+        # Обновляем роль в базе данных
+        await stp_repo.user.update_user(user_id=user_id, role=new_role)
+
+        # Отправляем уведомление пользователю о смене роли
+        try:
+            await callback.bot.send_message(
+                chat_id=user_id,
+                text=f"""<b>🔔 Изменение роли</b>
+
+Роль в системе была изменена: {old_role_name} → {new_role_name}
+
+<i>Изменения могут повлиять на доступные функции бота</i>""",
+            )
+        except Exception as notify_error:
+            logger.error(
+                f"Не удалось отправить уведомление пользователю {user_id}: {notify_error}"
+            )
+
+        logger.info(
+            f"[МИП] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль пользователя {user_id}: {old_role_name} → {new_role_name}"
+        )
+
+        # Возвращаемся к информации о пользователе
+        # Создаем новый callback_data для возврата к пользователю
+        user_callback_data = SearchUserResult(user_id=user_id)
+        await show_user_details(callback, user_callback_data, stp_repo)
+
+    except Exception as e:
+        logger.error(f"Ошибка при изменении роли пользователя {user_id}: {e}")
+        await callback.answer("❌ Ошибка при сохранении роли", show_alert=True)
