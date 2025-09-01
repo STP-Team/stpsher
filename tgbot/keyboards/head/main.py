@@ -20,7 +20,7 @@ def main_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="🎯 Показатели группы", callback_data=MainMenu(menu="kpi").pack()
+                text="🌟 Показатели группы", callback_data=MainMenu(menu="kpi").pack()
             ),
         ],
         [

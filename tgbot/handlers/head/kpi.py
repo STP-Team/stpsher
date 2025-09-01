@@ -23,7 +23,7 @@ async def head_start_cb(callback: CallbackQuery, user: User, kpi_repo: KPIReques
     contact_type = "чатов" if user.division == "НЦК" else "звонков"
 
     # Текст для обоих направлений
-    message_text = f"""<b>🎯 Показатели группы • {russian_months.get(head_kpi.updated_at.month).capitalize()}</b>
+    message_text = f"""<b>🌟 Показатели группы • {russian_months.get(head_kpi.updated_at.month).capitalize()}</b>
 
 <b>📊 Всего {contact_type}:</b> {head_kpi.contacts_count}
 
