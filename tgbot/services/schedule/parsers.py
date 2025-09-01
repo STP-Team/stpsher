@@ -463,20 +463,24 @@ class ScheduleParser(MonthlyScheduleParser):
             # OPTIMIZATION: Get all duties for the month at once instead of day by day
             current_year = datetime.now().year
             month_num = MonthManager.get_month_number(month)
-            
+
             try:
                 # Create a date object for the first day of the month to get month duties
                 first_day_of_month = datetime(current_year, month_num, 1)
-                
+
                 # Get all duties for the entire month at once
                 month_duties = await duty_parser.get_duties_for_month(
                     first_day_of_month, division, stp_repo
                 )
-                
-                logger.debug(f"Retrieved duties for {len(month_duties)} days in month {month}")
-                
+
+                logger.debug(
+                    f"Retrieved duties for {len(month_duties)} days in month {month}"
+                )
+
             except Exception as e:
-                logger.warning(f"Failed to get month duties, falling back to individual day queries: {e}")
+                logger.warning(
+                    f"Failed to get month duties, falling back to individual day queries: {e}"
+                )
                 month_duties = {}
 
             # Create result with duty information
@@ -512,7 +516,7 @@ class ScheduleParser(MonthlyScheduleParser):
                         # Check if user is on duty
                         for duty in duties:
                             if self.utils.names_match(fullname, duty.name):
-                                duty_info = f"{duty.schedule} [{duty.shift_type}]"
+                                duty_info = f"{duty.schedule} {duty.shift_type}"
                                 break
 
                 except Exception as e:
@@ -767,23 +771,27 @@ class DutyScheduleParser(BaseDutyParser):
 
             # Find all date columns for the month
             month_duties = {}
-            
+
             # Find all columns that might contain days from this month
             days_in_month = calendar.monthrange(date.year, date.month)[1]
-            
+
             # Find date columns for all days in the month
             date_columns = {}
             for day in range(1, days_in_month + 1):
                 try:
                     day_date = datetime(date.year, date.month, day)
-                    date_col = self.date_finder.find_date_column(df, day_date, search_rows=3)
+                    date_col = self.date_finder.find_date_column(
+                        df, day_date, search_rows=3
+                    )
                     if date_col is not None:
                         date_columns[day] = date_col
                 except ValueError:
                     # Invalid date, skip
                     continue
-            
-            logger.debug(f"Found date columns for {len(date_columns)} days in month {date.month}")
+
+            logger.debug(
+                f"Found date columns for {len(date_columns)} days in month {date.month}"
+            )
 
             # Parse duties for all found dates at once
             for row_idx in range(len(df)):
@@ -816,10 +824,12 @@ class DutyScheduleParser(BaseDutyParser):
                         if duty_cell and duty_cell.strip() not in ["", "nan", "None"]:
                             shift_type, schedule = self.parse_duty_entry(duty_cell)
 
-                            if shift_type in ["С", "П"] and self.utils.is_time_format(schedule):
+                            if shift_type in ["С", "П"] and self.utils.is_time_format(
+                                schedule
+                            ):
                                 if day not in month_duties:
                                     month_duties[day] = []
-                                
+
                                 month_duties[day].append(
                                     DutyInfo(
                                         name=name,
@@ -1130,7 +1140,7 @@ class HeadScheduleParser(BaseExcelParser):
         try:
             for duty in duties:
                 if self.utils.names_match(head_name, duty.name):
-                    return f"{duty.schedule} [{duty.shift_type}]"
+                    return f"{duty.schedule} {duty.shift_type}"
             return None
         except Exception as e:
             logger.debug(f"Error checking duty for {head_name}: {e}")

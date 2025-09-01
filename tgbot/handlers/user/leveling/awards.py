@@ -567,7 +567,6 @@ async def use_award_handler(
 
             user_head: User | None = await stp_repo.user.get_user(fullname=user.head)
 
-            # TODO добавить поддержку дежурного НТП
             duty_scheduler = DutyScheduleParser()
             current_duty = await duty_scheduler.get_current_senior_duty(
                 division=user_head.division, stp_repo=stp_repo
@@ -703,7 +702,6 @@ async def cancel_activation_handler(
         if success:
             await callback.answer(f"✅ Активация награды '{award_info.name}' отменена!")
 
-            # TODO добавить поддержку дежурного НТП
             user_head: User | None = await stp_repo.user.get_user(fullname=user.head)
             duty_scheduler = DutyScheduleParser()
             current_duty = await duty_scheduler.get_current_senior_duty(
