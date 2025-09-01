@@ -85,9 +85,7 @@ async def awards_all(
 • НТП: {stats_ntp}  
 • НЦК: {stats_nck}  
 {filtered_stats}
-</blockquote>
-
-    {chr(10).join(awards_list)}
+</blockquote>{chr(10).join(awards_list)}
     """
 
     await callback.message.edit_text(
