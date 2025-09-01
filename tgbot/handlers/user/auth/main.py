@@ -142,7 +142,7 @@ async def user_auth_fullname(
 
 Супер, авторизация пройдена. Теперь у тебя есть доступ ко всем ботам СТП 🥳""",
             )
-            await user_start_cmd(message=message, user=db_user)
+            await user_start_cmd(message=message, user=db_user, stp_repo=stp_repo)
             return
         else:
             await message.bot.edit_message_text(
