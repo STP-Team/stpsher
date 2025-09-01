@@ -16,6 +16,7 @@ from pandas import DataFrame
 from infrastructure.database.models import User
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
+from ...keyboards.user.schedule.main import get_yekaterinburg_date
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
@@ -619,6 +620,51 @@ class BaseDutyParser(BaseExcelParser, ABC):
 
 class DutyScheduleParser(BaseDutyParser):
     """Parser for duty schedules."""
+
+    async def get_current_senior_duty(
+        self, division: str, stp_repo: MainRequestsRepo
+    ) -> Optional[DutyInfo]:
+        """Get current senior duty for division based on current time."""
+        date = get_yekaterinburg_date()
+
+        try:
+            # Get all duties for today
+            duties = await self.get_duties_for_date(date, division, stp_repo)
+
+            # Filter for senior duties only
+            senior_duties = [duty for duty in duties if duty.shift_type == "С"]
+
+            if not senior_duties:
+                return None
+
+            # Find the current senior duty based on time
+            for duty in senior_duties:
+                if self.utils.is_time_format(duty.schedule):
+                    start_minutes, end_minutes = self.utils.parse_time_range(
+                        duty.schedule
+                    )
+                    current_datetime = datetime.now()
+                    current_time_minutes = (
+                        current_datetime.hour * 60 + current_datetime.minute
+                    )
+                    # Check if current time is within duty hours
+                    if start_minutes <= current_time_minutes <= end_minutes:
+                        return duty
+
+                    # Handle overnight shifts (end time is next day)
+                    elif end_minutes > 24 * 60:  # Overnight shift
+                        if (
+                            current_time_minutes >= start_minutes
+                            or current_time_minutes <= (end_minutes - 24 * 60)
+                        ):
+                            return duty
+
+            # If no active duty found, return the first senior duty (fallback)
+            return senior_duties[0] if senior_duties else None
+
+        except Exception as e:
+            logger.error(f"Error getting current senior duty for {division}: {e}")
+            return None
 
     async def get_duties_for_date(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
@@ -1264,3 +1310,11 @@ class ScheduleParserFactory:
     def create_group_parser(uploads_folder: str = "uploads") -> GroupScheduleParser:
         """Create a group schedule parser instance."""
         return GroupScheduleParser(uploads_folder)
+
+    @staticmethod
+    async def get_current_senior_duty(
+        division: str, stp_repo, uploads_folder: str = "uploads"
+    ) -> Optional[DutyInfo]:
+        """Get current senior duty for division - convenience method."""
+        parser = ScheduleParserFactory.create_duty_parser(uploads_folder)
+        return await parser.get_current_senior_duty(division, stp_repo)

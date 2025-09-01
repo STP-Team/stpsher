@@ -62,7 +62,7 @@ async def send_auth_email(code: str, email: str, bot_username: str):
 
 
 async def send_activation_award_email(
-    user: User, user_head: User | None, award: Award, user_award: UserAward
+    user: User, user_head: User | None, current_duty: User | None, award: Award, user_award: UserAward
 ):
     email_subject = "Активация награды"
     email_content = f"""Добрый день!<br><br>
@@ -82,6 +82,9 @@ async def send_activation_award_email(
     if user_head and user_head.email:
         email.append(user_head.email)
 
+    if current_duty and current_duty.email:
+        email.append(current_duty.email)
+
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
     logger.info(
         f"[Активация награды] Уведомление об активации награды {award.name} пользователем {user.fullname} отправлено на {email}"
@@ -89,7 +92,7 @@ async def send_activation_award_email(
 
 
 async def send_cancel_award_email(
-    user: User, user_head: User | None, award: Award, user_award: UserAward
+    user: User, user_head: User | None, current_duty: User | None, award: Award, user_award: UserAward
 ):
     email_subject = "Отмена активации награды"
     email_content = f"""Добрый день!<br><br>
@@ -106,6 +109,9 @@ async def send_cancel_award_email(
 
     if user_head and user_head.email:
         email.append(user_head.email)
+        
+    if current_duty and current_duty.email:
+        email.append(current_duty.email)
 
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
     logger.info(
