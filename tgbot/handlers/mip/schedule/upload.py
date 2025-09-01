@@ -1,7 +1,9 @@
 import fnmatch
 import logging
+import re
 from pathlib import Path
 
+import pandas as pd
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -93,7 +95,9 @@ async def upload_file(
             state,
             "⏳ <b>Обработка файла...</b>\n\n"
             f"📄 <b>{document.file_name}</b>\n"
-            f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
+            f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n"
+            f"Тип: {'📅 График' if _is_schedule_file(document.file_name) else '📄 Обычный файл'}\n"
+            f"Статус: {'🔄 Заменит существующий' if old_file_exists else '✨ Новый файл'}\n\n"
             "📝 Логируем загрузку файла в базу данных...",
         )
 
@@ -112,11 +116,18 @@ async def upload_file(
             "⏳ <b>Обработка файла...</b>\n\n"
             f"📄 <b>{document.file_name}</b>\n"
             f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
-            "🔍 Анализируем содержимого файла...",
+            "🔍 Анализируем содержимое файла...",
+        )
+
+        # Get detailed file statistics
+        file_stats = await _get_detailed_file_stats(
+            document.file_name, old_file_exists, temp_old_file
         )
 
         # Process file and generate status
         status_text = _generate_file_status(document, file_replaced)
+        status_text += _generate_detailed_file_stats_text(file_stats)
+
         user_stats = await _process_file(document.file_name, main_db)
 
         if user_stats:
@@ -126,13 +137,16 @@ async def upload_file(
         changed_users = []
         notified_users = []
         if old_file_exists and temp_old_file and _is_schedule_file(document.file_name):
+            # Include file stats in the progress message
+            stats_text = _generate_detailed_file_stats_text(file_stats)
             await _update_progress_status(
                 message,
                 state,
                 "⏳ <b>Обработка файла...</b>\n\n"
                 f"📄 <b>{document.file_name}</b>\n"
-                f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
-                "📊 Ищем изменений в расписании...",
+                f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ"
+                + stats_text
+                + "\n\n📊 Ищем изменений в расписании...",
             )
 
             from tgbot.services.schedule.change_detector import ScheduleChangeDetector
@@ -143,13 +157,15 @@ async def upload_file(
             temp_old_file.rename(UPLOADS_DIR / f"old_{document.file_name}")
 
             try:
+                stats_text = _generate_detailed_file_stats_text(file_stats)
                 await _update_progress_status(
                     message,
                     state,
                     "⏳ <b>Обработка файла...</b>\n\n"
                     f"📄 <b>{document.file_name}</b>\n"
-                    f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n\n"
-                    "📤 Проверяем изменения в графике и отправляем уведомления пользователям...",
+                    f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ"
+                    + stats_text
+                    + "\n\n📤 Проверяем изменения в графике и отправляем уведомления пользователям...",
                 )
 
                 (
@@ -173,11 +189,25 @@ async def upload_file(
             status_text += (
                 f"Пользователей с измененным графиком: {len(changed_users)}\n"
             )
+            # Extract just the names from the change data
+            user_names = []
+            for user_change in changed_users:
+                if isinstance(user_change, dict) and "fullname" in user_change:
+                    user_names.append(user_change["fullname"])
+                elif isinstance(user_change, str):
+                    user_names.append(user_change)
+                else:
+                    user_names.append(str(user_change))
+
             status_text += "\n".join(
-                f"• {name}" for name in changed_users[:5]
+                f"• {name}" for name in user_names[:5]
             )  # Show first 5
-            if len(notified_users) > 5:
-                status_text += f"\n... и еще {len(changed_users) - 5}\n\nВсего удалось отправить {len(notified_users)} уведомлений"
+            if len(user_names) > 5:
+                status_text += f"\n... и еще {len(user_names) - 5}"
+
+            status_text += (
+                f"\n\nВсего удалось отправить {len(notified_users)} уведомлений"
+            )
         else:
             status_text += "\n\n📤 <b>Изменения графика</b>\n"
             status_text += (
@@ -336,6 +366,245 @@ async def _show_error_message(message: Message, state: FSMContext, error_text: s
             )
         except Exception as e:
             logger.warning(f"Failed to show error: {e}")
+
+
+async def _get_detailed_file_stats(
+    file_name: str, old_file_exists: bool, temp_old_file: Path = None
+) -> dict:
+    """Get detailed statistics for both new and old files."""
+    stats = {
+        "new_file": {"total_people": 0, "schedule_people": 0, "fired_people": 0},
+        "old_file": {"total_people": 0, "schedule_people": 0, "fired_people": 0}
+        if old_file_exists
+        else None,
+    }
+
+    try:
+        # Get stats for new file
+        new_file_path = UPLOADS_DIR / file_name
+        if new_file_path.exists():
+            stats["new_file"] = _extract_file_stats(new_file_path)
+
+        # Get stats for old file if it exists
+        if old_file_exists and temp_old_file and temp_old_file.exists():
+            stats["old_file"] = _extract_file_stats(temp_old_file)
+
+    except Exception as e:
+        logger.error(f"Error getting detailed file stats: {e}")
+
+    return stats
+
+
+def _extract_file_stats(file_path: Path) -> dict:
+    """Extract statistics from a single Excel file."""
+    stats = {"total_people": 0, "schedule_people": 0, "fired_people": 0}
+
+    try:
+        # For temporary files, check against original name pattern
+        original_name = file_path.name
+        if file_path.name.startswith("temp_old_"):
+            original_name = file_path.name.replace("temp_old_", "")
+
+        if not _is_schedule_file(original_name):
+            return stats
+
+        # Read Excel file directly from path
+        df = pd.read_excel(file_path, sheet_name=0, header=None, dtype=str)
+
+        # Extract users directly from dataframe using the same logic as user_processor
+        stats["total_people"] = _count_users_in_dataframe(df)
+
+        # Count people with actual schedule data (not just in list)
+        stats["schedule_people"] = _count_users_with_schedule(df)
+
+        # Count fired people - for temp files, we need to temporarily create a file in uploads
+        if file_path.name.startswith("temp_old_"):
+            # For old files, we can't easily extract fired users without the proper file structure
+            # So we'll skip this for now and just show 0
+            stats["fired_people"] = 0
+        else:
+            from tgbot.services.scheduler import get_fired_users_from_excel
+
+            fired_users = get_fired_users_from_excel([str(file_path)])
+            stats["fired_people"] = len(fired_users)
+
+    except Exception as e:
+        logger.error(f"Error extracting stats from {file_path}: {e}")
+
+    return stats
+
+
+def _count_users_in_dataframe(df: pd.DataFrame) -> int:
+    """Count users in dataframe using same logic as user_processor."""
+    users_found = set()
+
+    # Find header row and columns using same logic as user_processor
+    header_info = _find_header_columns_direct(df)
+    if not header_info:
+        return 0
+
+    # Extract users from the dataframe
+    for row_idx in range(header_info["header_row"] + 1, len(df)):
+        fullname_cell = (
+            str(df.iloc[row_idx, header_info["fullname_col"]])
+            if pd.notna(df.iloc[row_idx, header_info["fullname_col"]])
+            else ""
+        )
+
+        if _is_valid_fullname_direct(fullname_cell):
+            users_found.add(fullname_cell.strip())
+
+    return len(users_found)
+
+
+def _count_users_with_schedule(df: pd.DataFrame) -> int:
+    """Count users who have actual schedule data in their rows."""
+    schedule_count = 0
+
+    for row_idx in range(len(df)):
+        for col_idx in range(min(4, len(df.columns))):
+            cell_value = (
+                str(df.iloc[row_idx, col_idx])
+                if pd.notna(df.iloc[row_idx, col_idx])
+                else ""
+            )
+            if _is_valid_person_name(cell_value.strip()):
+                # Check if person has schedule data in the row
+                has_schedule = False
+                for schedule_col in range(4, min(len(df.columns), 50)):
+                    if schedule_col < len(df.columns):
+                        schedule_val = (
+                            str(df.iloc[row_idx, schedule_col])
+                            if pd.notna(df.iloc[row_idx, schedule_col])
+                            else ""
+                        )
+                        if schedule_val.strip() and schedule_val.strip() not in [
+                            "",
+                            "nan",
+                            "None",
+                        ]:
+                            has_schedule = True
+                            break
+                if has_schedule:
+                    schedule_count += 1
+                break
+
+    return schedule_count
+
+
+def _find_header_columns_direct(df: pd.DataFrame) -> dict:
+    """Find header row and column positions directly from dataframe."""
+    for row_idx in range(min(10, len(df))):
+        row_values = []
+        for col_idx in range(min(10, len(df.columns))):
+            cell_value = (
+                str(df.iloc[row_idx, col_idx])
+                if pd.notna(df.iloc[row_idx, col_idx])
+                else ""
+            )
+            row_values.append(cell_value.strip().upper())
+
+        position_col = head_col = None
+
+        for col_idx, value in enumerate(row_values):
+            if "ДОЛЖНОСТЬ" in value:
+                position_col = col_idx
+            if "РУКОВОДИТЕЛЬ" in value:
+                head_col = col_idx
+
+        if position_col is not None and head_col is not None:
+            return {
+                "header_row": row_idx,
+                "fullname_col": 0,
+                "position_col": position_col,
+                "head_col": head_col,
+            }
+
+    return None
+
+
+def _is_valid_fullname_direct(fullname_cell: str) -> bool:
+    """Check if cell contains valid fullname using same logic as user_processor."""
+    return (
+        len(fullname_cell.split()) >= 3
+        and re.search(r"[А-Яа-я]", fullname_cell)
+        and not re.search(r"\d", fullname_cell)
+        and fullname_cell.strip() not in ["", "nan", "None"]
+        and "переводы" not in fullname_cell.lower()
+        and "увольнения" not in fullname_cell.lower()
+    )
+
+
+def _is_valid_person_name(text: str) -> bool:
+    """Check if text is a valid person name."""
+    if not text or text.strip() in ["", "nan", "None", "ДАТА →"]:
+        return False
+
+    text = text.strip()
+    words = text.split()
+
+    # Should have at least 2 words (surname + name)
+    if len(words) < 2:
+        return False
+
+    # Should contain Cyrillic characters
+    if not re.search(r"[А-Яа-я]", text):
+        return False
+
+    # Should not contain digits
+    if re.search(r"\d", text):
+        return False
+
+    # Skip service records
+    if text.upper() in ["СТАЖЕРЫ ОБЩЕГО РЯДА", "ДАТА", "ПЕРЕВОДЫ/УВОЛЬНЕНИЯ"]:
+        return False
+
+    return True
+
+
+def _generate_detailed_file_stats_text(stats: dict) -> str:
+    """Generate detailed statistics text for both files."""
+    if not stats:
+        return ""
+
+    text = "\n\n📊 <b>Детальная статистика</b>\n"
+
+    # New file stats
+    new_stats = stats.get("new_file", {})
+    text += "\n<blockquote expandable>📄 <b>Новый файл:</b>\n"
+    text += f"• Всего сотрудников: {new_stats.get('total_people', 0)}\n"
+    text += f"• С расписанием: {new_stats.get('schedule_people', 0)}\n"
+    if new_stats.get("fired_people", 0) > 0:
+        text += f"• К увольнению: {new_stats.get('fired_people', 0)}\n"
+
+    # Old file stats (if exists)
+    old_stats = stats.get("old_file")
+    if old_stats:
+        text += "\n📋 <b>Предыдущий файл:</b>\n"
+        text += f"• Всего сотрудников: {old_stats.get('total_people', 0)}\n"
+        text += f"• С расписанием: {old_stats.get('schedule_people', 0)}\n"
+        if old_stats.get("fired_people", 0) > 0:
+            text += f"• К увольнению: {old_stats.get('fired_people', 0)}\n"
+
+        # Show differences
+        total_diff = new_stats.get("total_people", 0) - old_stats.get("total_people", 0)
+        schedule_diff = new_stats.get("schedule_people", 0) - old_stats.get(
+            "schedule_people", 0
+        )
+
+        if total_diff != 0 or schedule_diff != 0:
+            text += "\n📈 <b>Изменения:</b>\n"
+            if total_diff > 0:
+                text += f"• +{total_diff} сотрудников\n"
+            elif total_diff < 0:
+                text += f"• {total_diff} сотрудников\n"
+
+            if schedule_diff > 0:
+                text += f"• +{schedule_diff} с расписанием\n"
+            elif schedule_diff < 0:
+                text += f"• {schedule_diff} с расписанием\n"
+
+    return text + "</blockquote>"
 
 
 async def _cleanup_old_temp_files(new_filename: str):
