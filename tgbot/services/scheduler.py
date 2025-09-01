@@ -238,7 +238,7 @@ async def notify_to_unauthorized_users(session_pool, bot: Bot):
 
             if not unauthorized_users:
                 logger.info("[Авторизация] Неавторизованных пользователей не найдено")
-                return
+                return None
 
             logger.info(
                 f"[Авторизация] Найдено {len(unauthorized_users)} неавторизованных пользователей"
@@ -273,7 +273,6 @@ async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]
 
     Args:
         unauthorized_users: Список неавторизованных пользователей
-        stp_repo: Репозиторий для работы с БД
 
     Returns:
         Словарь {имя_руководителя: [список_неавторизованных_подчиненных]}

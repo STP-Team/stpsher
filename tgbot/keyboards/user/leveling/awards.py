@@ -653,39 +653,6 @@ def to_awards_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def duty_award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMarkup:
-    """Клавиатура для детального просмотра награды дежурным"""
-    buttons = [
-        [
-            InlineKeyboardButton(
-                text="✅ Подтвердить",
-                callback_data=DutyAwardActionMenu(
-                    user_award_id=user_award_id, action="approve", page=current_page
-                ).pack(),
-            ),
-            InlineKeyboardButton(
-                text="❌ Отклонить",
-                callback_data=DutyAwardActionMenu(
-                    user_award_id=user_award_id, action="reject", page=current_page
-                ).pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=DutyActivationListMenu(
-                    menu="duty_activation", page=current_page
-                ).pack(),
-            ),
-            InlineKeyboardButton(
-                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
-            ),
-        ],
-    ]
-
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
 def award_detail_back_kb() -> InlineKeyboardMarkup:
     """Клавиатура для возврата из детального просмотра награды"""
     buttons = [

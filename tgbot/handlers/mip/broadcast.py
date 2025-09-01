@@ -165,6 +165,7 @@ async def broadcast_division(
 ):
     """Рассылка по подразделению"""
     division_code = callback_data.action.upper()  # "NTP" or "NCK"
+    division_name = ""
     match division_code:
         case "NTP1":
             division_name = "НТП1"

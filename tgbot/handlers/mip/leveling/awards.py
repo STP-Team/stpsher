@@ -81,8 +81,7 @@ async def awards_all(
 <b>🏆 Все возможные награды</b>
 <i>Страница {page} из {total_pages}</i>
 
-<blockquote expandable>
-Всего наград:  
+<blockquote expandable><b>Всего наград:</b>  
 • НТП: {stats_ntp}  
 • НЦК: {stats_nck}  
 {filtered_stats}

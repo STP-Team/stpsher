@@ -1,24 +1,26 @@
 import os
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.list import (
+    LocalFileActionMenu,
+    LocalFileDetailMenu,
+    LocalFilesMenu,
+    ScheduleFileActionMenu,
+    ScheduleFileDetailMenu,
+    ScheduleHistoryMenu,
     list_db_files_paginated_kb,
-    schedule_list_back_kb,
     list_local_files_paginated_kb,
     local_file_detail_kb,
-    ScheduleHistoryMenu,
-    ScheduleFileDetailMenu,
-    ScheduleFileActionMenu,
-    LocalFilesMenu,
-    LocalFileDetailMenu,
-    LocalFileActionMenu,
     schedule_file_detail_kb,
+    schedule_list_back_kb,
 )
 from tgbot.keyboards.mip.schedule.main import ScheduleMenu
+from tgbot.misc.states.mip.schedule import RenameLocalFile
 
 mip_list_router = Router()
 mip_list_router.message.filter(F.chat.type == "private", MipFilter())
@@ -36,8 +38,9 @@ async def show_local_files(callback: CallbackQuery):
 
 @mip_list_router.callback_query(LocalFilesMenu.filter())
 async def show_local_files_paginated(
-    callback: CallbackQuery,
-    callback_data: LocalFilesMenu,
+    callback: CallbackQuery = None,
+    callback_data: LocalFilesMenu = None,
+    message: Message = None,
 ):
     """Paginated handler for local files view"""
     page = callback_data.page
@@ -47,12 +50,15 @@ async def show_local_files_paginated(
     local_files = sorted(local_files)  # Sort alphabetically
 
     if not local_files:
-        await callback.message.edit_text(
-            """<b>📁 Локальные файлы</b>
+        text = """<b>📁 Локальные файлы</b>
         
-Сейчас на сервер ничего не загружено :(""",
-            reply_markup=schedule_list_back_kb(),
-        )
+Сейчас на сервер ничего не загружено :("""
+        markup = schedule_list_back_kb()
+
+        if callback:
+            await callback.message.edit_text(text, reply_markup=markup)
+        elif message:
+            await message.answer(text, reply_markup=markup)
         return
 
     # Pagination logic
@@ -83,12 +89,12 @@ async def show_local_files_paginated(
 {files_text}
 <i>Нажми на файл для подробной информации</i>"""
 
-    await callback.message.edit_text(
-        message_text,
-        reply_markup=list_local_files_paginated_kb(
-            page, total_pages, page_files, local_files
-        ),
-    )
+    markup = list_local_files_paginated_kb(page, total_pages, page_files, local_files)
+
+    if callback:
+        await callback.message.edit_text(message_text, reply_markup=markup)
+    elif message:
+        await message.answer(message_text, reply_markup=markup)
 
 
 @mip_list_router.callback_query(ScheduleMenu.filter(F.menu == "history"))
@@ -402,13 +408,13 @@ async def show_local_file_detail(
 <b>🏋 Размер файла</b>
 {size_mb} MB
 
-<b>📅 Дата изменения на сервере</b>
+<b>📅 Дата последнего изменения на сервере</b>
 {mod_datetime.strftime("%d.%m.%Y в %H:%M:%S")}
 
 <b>🤨 Последний загрузивший</b>
 {uploader_info}
 
-<b>📅 Дата загрузки</b>
+<b>📅 Дата первой загрузки</b>
 {upload_date}"""
 
         # Add warning for temp_current_ files
@@ -433,7 +439,7 @@ async def show_local_file_detail(
 async def handle_local_file_action(
     callback: CallbackQuery,
     callback_data: LocalFileActionMenu,
-    stp_repo: MainRequestsRepo,
+    state: FSMContext,
 ):
     """Handler for local file actions (delete/rename/back)"""
     file_index = callback_data.file_index
@@ -480,12 +486,20 @@ async def handle_local_file_action(
             await callback.answer(f"Ошибка при удалении: {str(e)}", show_alert=True)
 
     elif action == "rename":
-        # For rename functionality, we'll need to implement a text input dialog
-        # For now, show a placeholder message
-        await callback.answer(
-            "⚠️ Функция переименования пока не реализована.\nИспользуйте стандартные средства файловой системы.",
-            show_alert=True,
+        # Start rename process by setting state and storing file info
+        await callback.message.edit_text(
+            f"""<b>📝 Переименование файла</b>
+
+<b>Текущее название:</b>
+{filename}
+
+Введите новое название файла:""",
+            reply_markup=schedule_list_back_kb(),
         )
+
+        # Set state and store file info
+        await state.set_state(RenameLocalFile.waiting_new_filename)
+        await state.update_data(file_index=file_index, old_filename=filename, page=page)
 
     elif action == "back":
         # Return to files list
@@ -493,3 +507,68 @@ async def handle_local_file_action(
             callback=callback,
             callback_data=LocalFilesMenu(menu="local", page=page),
         )
+
+
+@mip_list_router.message(RenameLocalFile.waiting_new_filename)
+async def process_new_filename(message: Message, state: FSMContext):
+    """Handler for processing new filename input"""
+    try:
+        # Get state data
+        data = await state.get_data()
+        old_filename = data.get("old_filename")
+        page = data.get("page")
+
+        new_filename = message.text.strip()
+
+        # Validate new filename
+        if not new_filename:
+            await message.answer(
+                "❌ Название файла не может быть пустым. Попробуйте еще раз:"
+            )
+            return
+
+        # Check for invalid characters
+        invalid_chars = ["<", ">", ":", '"', "|", "?", "*", "/", "\\"]
+        if any(char in new_filename for char in invalid_chars):
+            await message.answer(
+                f"❌ Название файла содержит недопустимые символы: {', '.join(invalid_chars)}\\n"
+                "Попробуйте еще раз:"
+            )
+            return
+
+        # Check if file with new name already exists
+        new_filepath = os.path.join("uploads", new_filename)
+        if os.path.exists(new_filepath):
+            await message.answer(
+                f"❌ Файл с названием '{new_filename}' уже существует.\\n"
+                "Выберите другое название:"
+            )
+            return
+
+        # Perform rename
+        old_filepath = os.path.join("uploads", old_filename)
+
+        if not os.path.exists(old_filepath):
+            await message.answer("❌ Исходный файл не найден")
+            await state.clear()
+            return
+
+        os.rename(old_filepath, new_filepath)
+
+        await message.answer(
+            f"✅ Файл успешно переименован:\n<code>{old_filename}</code> → <code>{new_filename}</code>"
+        )
+
+        # Clear state
+        await state.clear()
+
+        # Show updated file list
+        await show_local_files_paginated(
+            callback=None,
+            callback_data=LocalFilesMenu(menu="local", page=page),
+            message=message,
+        )
+
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при переименовании: {str(e)}")
+        await state.clear()

@@ -514,7 +514,6 @@ class ScheduleParser(MonthlyScheduleParser):
         month: str,
         division: str,
         compact: bool = False,
-        stp_repo=None,
     ) -> str:
         """Get formatted user schedule."""
         try:

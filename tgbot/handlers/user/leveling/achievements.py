@@ -94,6 +94,7 @@ async def achievements_all(
         name = str(achievement.name).replace("<", "&lt;").replace(">", "&gt;")
         position = str(achievement.position).replace("<", "&lt;").replace(">", "&gt;")
 
+        period = ""
         match achievement.period:
             case "d":
                 period = "Раз в день"

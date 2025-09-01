@@ -136,7 +136,9 @@ def list_db_files_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=ScheduleHistoryMenu(menu="history", page=total_pages).pack(),
+                    callback_data=ScheduleHistoryMenu(
+                        menu="history", page=total_pages
+                    ).pack(),
                 )
             )
         else:
@@ -194,7 +196,10 @@ def list_db_files_kb(
 
 
 def list_local_files_paginated_kb(
-    current_page: int, total_pages: int, page_files: list[str] = None, all_files: list[str] = None
+    current_page: int,
+    total_pages: int,
+    page_files: list[str] = None,
+    all_files: list[str] = None,
 ) -> InlineKeyboardMarkup:
     """
     Пагинированная клавиатура для локальных файлов графиков с кнопками выбора файлов.
@@ -213,10 +218,12 @@ def list_local_files_paginated_kb(
             first_file = page_files[i]
             first_file_number = start_idx + i + 1
             first_file_index = all_files.index(first_file)
-            
+
             # Truncate filename for display if too long
-            display_name = first_file if len(first_file) <= 25 else first_file[:22] + "..."
-            
+            display_name = (
+                first_file if len(first_file) <= 25 else first_file[:22] + "..."
+            )
+
             file_row.append(
                 InlineKeyboardButton(
                     text=f"{first_file_number}. {display_name}",
@@ -231,10 +238,12 @@ def list_local_files_paginated_kb(
                 second_file = page_files[i + 1]
                 second_file_number = start_idx + i + 2
                 second_file_index = all_files.index(second_file)
-                
+
                 # Truncate filename for display if too long
-                display_name = second_file if len(second_file) <= 25 else second_file[:22] + "..."
-                
+                display_name = (
+                    second_file if len(second_file) <= 25 else second_file[:22] + "..."
+                )
+
                 file_row.append(
                     InlineKeyboardButton(
                         text=f"{second_file_number}. {display_name}",
@@ -390,19 +399,13 @@ def schedule_file_detail_kb(file_id: int, page: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def local_file_detail_kb(file_index: int, filename: str, page: int) -> InlineKeyboardMarkup:
+def local_file_detail_kb(
+    file_index: int, filename: str, page: int
+) -> InlineKeyboardMarkup:
     """
     Клавиатура детального просмотра локального файла с возможностью удаления и переименования.
     """
     buttons = [
-        [
-            InlineKeyboardButton(
-                text="🗑️ Удалить файл",
-                callback_data=LocalFileActionMenu(
-                    file_index=file_index, action="delete", page=page
-                ).pack(),
-            )
-        ],
         [
             InlineKeyboardButton(
                 text="✏️ Переименовать",
@@ -413,9 +416,15 @@ def local_file_detail_kb(file_index: int, filename: str, page: int) -> InlineKey
         ],
         [
             InlineKeyboardButton(
-                text="📥 Скачать файл",
+                text="🗑️ Удалить",
+                callback_data=LocalFileActionMenu(
+                    file_index=file_index, action="delete", page=page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="📥 Скачать",
                 callback_data=f"send_local:{filename}",
-            )
+            ),
         ],
         [
             InlineKeyboardButton(
