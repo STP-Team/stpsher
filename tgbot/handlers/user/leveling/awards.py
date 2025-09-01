@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import User, Award
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.mip.leveling.awards import award_notify_kb
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
@@ -34,6 +34,7 @@ from tgbot.keyboards.user.leveling.awards import (
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import executed_codes
 from tgbot.services.broadcaster import broadcast
+from tgbot.services.mailing import send_activation_award_email, send_cancel_award_email
 
 
 def get_status_emoji(status: str) -> str:
@@ -436,7 +437,7 @@ async def award_purchase_final_handler(
     if action == "buy":
         # Получаем информацию о награде
         try:
-            award_info = await stp_repo.award.get_award(award_id)
+            award_info: Award = await stp_repo.award.get_award(award_id)
         except Exception as e:
             logger.error(f"Error getting award {award_id}: {e}")
             await callback.answer(
@@ -458,6 +459,14 @@ async def award_purchase_final_handler(
         try:
             new_user_award = await stp_repo.user_award.create_user_award(
                 user_id=user.user_id, award_id=award_id, status="stored"
+            )
+            await stp_repo.transaction.add_transaction(
+                user_id=user.user_id,
+                type="spend",
+                source_type="award",
+                source_id=award_id,
+                amount=award_info.cost,
+                comment=f"Автоматическая покупка награды {award_info.name}",
             )
 
             # Пересчитываем новый баланс
@@ -562,6 +571,14 @@ async def use_award_handler(
                 users=manager_ids,
                 text=notification_text,
                 reply_markup=award_notify_kb(),
+            )
+
+            user_head: User | None = await stp_repo.user.get_user(fullname=user.head)
+            await send_activation_award_email(
+                user,
+                user_head,
+                user_award_detail.award_info,
+                user_award_detail.user_award,
             )
 
             logger.info(
@@ -676,6 +693,9 @@ async def cancel_activation_handler(
 
         if success:
             await callback.answer(f"✅ Активация награды '{award_info.name}' отменена!")
+
+            user_head: User | None = await stp_repo.user.get_user(fullname=user.head)
+            await send_cancel_award_email(user, user_head, award_info, user_award)
 
             logger.info(
                 f"[Отмена активации] {user.username} ({user.user_id}) отменил активацию награды '{award_info.name}'"

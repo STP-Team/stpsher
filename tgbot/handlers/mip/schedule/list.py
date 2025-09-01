@@ -381,10 +381,10 @@ async def show_local_file_detail(
         uploader_info = "Неизвестно"
         upload_date = "Неизвестно"
 
-        # Clean filename for matching (remove temp_current_ prefix if present)
+        # Clean filename for matching
         clean_filename = filename
         if filename.startswith("temp_current_"):
-            clean_filename = filename[13:]  # Remove "temp_current_" prefix
+            clean_filename = filename[13:]
 
         # Find the most recent log entry for this filename (try both original and clean names)
         for log in sorted(logs, key=lambda x: x.uploaded_at, reverse=True):
@@ -594,10 +594,10 @@ async def show_file_versions(
 ):
     """Show paginated list of available versions of a file for recovery"""
     try:
-        # Clean filename for matching (remove temp_current_ prefix if present)
+        # Clean filename for matching
         clean_filename = filename
         if filename.startswith("temp_current_"):
-            clean_filename = filename[13:]  # Remove "temp_current_" prefix
+            clean_filename = filename[13:]
 
         # Get all versions of this file
         logs = await stp_repo.upload.get_files_history()

@@ -5,6 +5,8 @@ from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from infrastructure.database.models import Award, User
+from infrastructure.database.models.STP.user_award import UserAward
 from tgbot.config import load_config
 
 config = load_config(".env")
@@ -28,7 +30,7 @@ async def send_email(
 
     msg = MIMEMultipart()
     msg["From"] = config.mail.user
-    msg["To"] = ", ".join(to_addrs) if type(to_addrs) is list[str] else to_addrs  #
+    msg["To"] = ", ".join(to_addrs) if isinstance(to_addrs, list) else to_addrs
     msg["Subject"] = Header(subject, "utf-8")
 
     content_type = "html" if html else "plain"
@@ -56,4 +58,56 @@ async def send_auth_email(code: str, email: str, bot_username: str):
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
     logger.info(
         f"[Авторизация] Письмо с кодом авторизации {code} отправлено на {email}"
+    )
+
+
+async def send_activation_award_email(
+    user: User, user_head: User | None, award: Award, user_award: UserAward
+):
+    email_subject = "Активация награды"
+    email_content = f"""Добрый день!<br><br>
+
+<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отправил запрос на активацию награды <b>{award.name}</b><br>
+📝 Описание: {award.description}<br>
+📍 Активаций: <b>{user_award.usage_count + 1}</b> из <b>{award.count}</b><br><br>
+
+Для активации награды перейдите в СТПшера"""
+
+    email = []
+    if user.division == "НЦК":
+        email.append(config.mail.nck_email_addr)
+    else:
+        email.append(config.mail.ntp_email_addr)
+
+    if user_head and user_head.email:
+        email.append(user_head.email)
+
+    await send_email(to_addrs=email, subject=email_subject, body=email_content)
+    logger.info(
+        f"[Активация награды] Уведомление об активации награды {award.name} пользователем {user.fullname} отправлено на {email}"
+    )
+
+
+async def send_cancel_award_email(
+    user: User, user_head: User | None, award: Award, user_award: UserAward
+):
+    email_subject = "Отмена активации награды"
+    email_content = f"""Добрый день!<br><br>
+
+<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отменил использование награды <b>{award.name}</b><br>
+📝 Описание: {award.description}<br>
+📍 Активаций: <b>{user_award.usage_count}</b> из <b>{award.count}</b>"""
+
+    email = []
+    if user.division == "НЦК":
+        email.append(config.mail.nck_email_addr)
+    else:
+        email.append(config.mail.ntp_email_addr)
+
+    if user_head and user_head.email:
+        email.append(user_head.email)
+
+    await send_email(to_addrs=email, subject=email_subject, body=email_content)
+    logger.info(
+        f"[Активация награды] Уведомление об отмене активации награды {award.name} пользователем {user.fullname} отправлено на {email}"
     )
