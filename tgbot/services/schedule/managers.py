@@ -14,17 +14,32 @@ class ScheduleFileManager:
     def find_schedule_file(self, division: str) -> Optional[Path]:
         """Find schedule file by division"""
         try:
-            patterns = [
-                f"ГРАФИК {division} I*",
-                f"ГРАФИК {division} II*",
-            ]
+            # Use broader pattern and filter afterwards to avoid glob matching issues
+            all_files = list(self.uploads_folder.glob("ГРАФИК*"))
 
-            for pattern in patterns:
-                files = list(self.uploads_folder.glob(pattern))
-                if files:
-                    latest_file = max(files, key=lambda f: f.stat().st_mtime)
-                    logger.debug(f"[График] Найден файл графиков: {latest_file}")
-                    return latest_file
+            filtered_files = []
+            for file in all_files:
+                name_parts = file.stem.split()
+                logger.debug(
+                    f"[График] Processing file: {file.name}, parts: {name_parts}"
+                )
+                if len(name_parts) >= 3:
+                    file_division = name_parts[1]
+                    logger.debug(
+                        f"[График] File division: '{file_division}', looking for: '{division}'"
+                    )
+                    if file_division == division:
+                        logger.debug(f"[График] MATCH: {file.name}")
+                        filtered_files.append(file)
+                    else:
+                        logger.debug(f"[График] NO MATCH: {file.name}")
+
+            logger.debug(f"[График] Filtered files: {[f.name for f in filtered_files]}")
+
+            if filtered_files:
+                latest_file = max(filtered_files, key=lambda f: f.stat().st_mtime)
+                logger.debug(f"[График] Найден файл графиков: {latest_file}")
+                return latest_file
 
             logger.error(f"[График] Файл графика для {division} не найден")
             return None
