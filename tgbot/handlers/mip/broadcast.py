@@ -321,7 +321,9 @@ async def confirm_heads_selection(
             all_group_users.extend(group_users)
 
     # Убираем дубликаты пользователей
-    unique_users = list({user.user_id: user for user in all_group_users}.values())
+    unique_users = list(
+        {user.user_id: user for user in all_group_users if user.user_id}.values()
+    )
     user_count = len(unique_users)
 
     if user_count == 0:
@@ -365,7 +367,9 @@ async def confirm_heads_selection(
 @mip_broadcast_router.callback_query(
     BroadcastState.selecting_type, BroadcastMenu.filter(F.action == "confirm")
 )
-async def start_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot):
+async def start_broadcast(
+    callback: CallbackQuery, state: FSMContext, bot: Bot, stp_repo: MainRequestsRepo
+):
     """Начать рассылку"""
     data = await state.get_data()
 
@@ -379,6 +383,38 @@ async def start_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot):
     if not recipient_ids:
         await callback.answer("❌ Список получателей пуст", show_alert=True)
         return
+
+    # Определяем тип и цель рассылки для сохранения в БД
+    broadcast_type = "division"
+    broadcast_target = ""
+
+    if recipients == "everyone":
+        broadcast_type = "division"
+        broadcast_target = "all"
+    elif recipients in ["ntp1", "ntp2", "nck"]:
+        broadcast_type = "division"
+        broadcast_target = data.get("division_name", recipients.upper())
+    elif recipients == "groups":
+        broadcast_type = "group"
+        selected_head_names = data.get("selected_head_names", [])
+        broadcast_target = ", ".join(selected_head_names)
+
+    # Сохраняем рассылку в БД
+    try:
+        saved_broadcast = await stp_repo.broadcast.create_broadcast(
+            user_id=callback.from_user.id,
+            type=broadcast_type,
+            target=broadcast_target,
+            text=message_text,
+            recipients=recipient_ids,
+        )
+        if saved_broadcast:
+            logger.info(f"Рассылка сохранена в БД с ID: {saved_broadcast.id}")
+        else:
+            logger.warning("Не удалось сохранить рассылку в БД")
+    except Exception as e:
+        logger.error(f"Ошибка сохранения рассылки в БД: {e}")
+        # Продолжаем выполнение рассылки даже если не удалось сохранить в БД
 
     # Показываем прогресс
     progress_message = await callback.message.edit_text(
