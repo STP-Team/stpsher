@@ -99,3 +99,12 @@ class MonthManager:
     def get_available_months(cls) -> List[str]:
         """Get list of available months"""
         return [month.lower() for month in cls.MONTHS_ORDER]
+
+    @classmethod
+    def get_month_number(cls, month: str) -> int:
+        """Get month number (1-12) from month name"""
+        normalized_month = cls.normalize_month(month)
+        try:
+            return cls.MONTHS_ORDER.index(normalized_month) + 1
+        except ValueError:
+            return 1  # Default to January if month not found

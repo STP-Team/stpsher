@@ -20,7 +20,7 @@ user_schedule_my_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_schedule_my_router.callback_query(ScheduleMenu.filter(F.menu == "my"))
-async def user_schedule(callback: CallbackQuery, user: User):
+async def user_schedule(callback: CallbackQuery, user: User, stp_repo):
     """Обработчик личного расписания"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -28,7 +28,7 @@ async def user_schedule(callback: CallbackQuery, user: User):
     try:
         month = schedule_service.get_current_month()
         schedule_text = await schedule_service.get_user_schedule_response(
-            user=user, month=month, compact=True
+            user=user, month=month, compact=True, stp_repo=stp_repo
         )
 
         await callback.message.edit_text(
@@ -43,7 +43,7 @@ async def user_schedule(callback: CallbackQuery, user: User):
 
 
 @user_schedule_my_router.callback_query(MonthNavigation.filter(F.action == "compact"))
-async def handle_compact_view(callback: CallbackQuery, user: User):
+async def handle_compact_view(callback: CallbackQuery, user: User, stp_repo):
     """Обработчик перехода к компактному виду"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -54,7 +54,7 @@ async def handle_compact_view(callback: CallbackQuery, user: User):
 
     try:
         schedule_text = await schedule_service.get_user_schedule_response(
-            user=user, month=current_month, compact=True
+            user=user, month=current_month, compact=True, stp_repo=stp_repo
         )
 
         await callback.message.edit_text(
@@ -71,7 +71,7 @@ async def handle_compact_view(callback: CallbackQuery, user: User):
 
 @user_schedule_my_router.callback_query(MonthNavigation.filter())
 async def handle_month_navigation(
-    callback: CallbackQuery, callback_data: MonthNavigation, user: User
+    callback: CallbackQuery, callback_data: MonthNavigation, user: User, stp_repo
 ):
     """Обработчик навигации по месяцам"""
     if not await schedule_service.check_user_auth(callback, user):
@@ -85,7 +85,7 @@ async def handle_month_navigation(
         if action in ["prev", "next"]:
             # Компактный режим для навигации
             schedule_text = await schedule_service.get_user_schedule_response(
-                user=user, month=current_month, compact=True
+                user=user, month=current_month, compact=True, stp_repo=stp_repo
             )
 
             await callback.message.edit_text(
@@ -97,8 +97,11 @@ async def handle_month_navigation(
 
         elif action == "detailed":
             # Детальный режим
+            await callback.bot.send_chat_action(
+                chat_id=callback.message.chat.id, action="TYPING"
+            )
             schedule_text = await schedule_service.get_user_schedule_response(
-                user=user, month=current_month, compact=False
+                user=user, month=current_month, compact=False, stp_repo=stp_repo
             )
 
             keyboard = create_detailed_schedule_keyboard(current_month, schedule_type)

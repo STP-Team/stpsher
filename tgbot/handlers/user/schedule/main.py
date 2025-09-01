@@ -96,15 +96,26 @@ class ScheduleHandlerService:
         return self.yekaterinburg_tz.localize(target_date)
 
     async def get_user_schedule_response(
-        self, user: User, month: str, compact: bool = True
+        self, user: User, month: str, compact: bool = True, stp_repo=None
     ) -> str:
-        """Получает расписание пользователя"""
-        return self.schedule_parser.get_user_schedule_formatted(
-            fullname=user.fullname,
-            month=month,
-            division=user.division,
-            compact=compact,
-        )
+        """Получает расписание пользователя с информацией о дежурствах"""
+        if stp_repo and not compact:
+            # Only fetch duty information for detailed view
+            return await self.schedule_parser.get_user_schedule_formatted_with_duties(
+                fullname=user.fullname,
+                month=month,
+                division=user.division,
+                compact=compact,
+                stp_repo=stp_repo,
+            )
+        else:
+            # Use regular schedule for compact view
+            return self.schedule_parser.get_user_schedule_formatted(
+                fullname=user.fullname,
+                month=month,
+                division=user.division,
+                compact=compact,
+            )
 
     async def get_duties_response(
         self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None

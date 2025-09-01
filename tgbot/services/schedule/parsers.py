@@ -442,8 +442,68 @@ class ScheduleParser(MonthlyScheduleParser):
             logger.error(f"Error getting schedule: {e}")
             raise
 
+    async def get_user_schedule_with_duties(
+        self, fullname: str, month: str, division: str, stp_repo=None
+    ) -> Dict[str, tuple[str, Optional[str]]]:
+        """Get user's schedule with duty information for specified month."""
+        try:
+            # Get regular schedule data
+            schedule_data = self.get_user_schedule(fullname, month, division)
+            
+            if not schedule_data or not stp_repo:
+                return {day: (schedule, None) for day, schedule in schedule_data.items()}
+            
+            # Get duty parser to check for duty information
+            duty_parser = DutyScheduleParser()
+            
+            # Create result with duty information
+            schedule_with_duties = {}
+            
+            for day, schedule in schedule_data.items():
+                duty_info = None
+                
+                # Try to parse the date and check for duty information
+                try:
+                    # Extract day number from day string (e.g., "1 (Пн)" -> 1)
+                    import re
+                    day_match = re.search(r"(\d+)", day)
+                    if day_match:
+                        day_num = int(day_match.group(1))
+                        
+                        # Create a date object for this day
+                        from datetime import datetime
+                        current_year = datetime.now().year
+                        month_num = MonthManager.get_month_number(month)
+                        
+                        try:
+                            date = datetime(current_year, month_num, day_num)
+                            
+                            # Get duties for this date
+                            duties = await duty_parser.get_duties_for_date(date, division, stp_repo)
+                            
+                            # Check if user is on duty
+                            for duty in duties:
+                                if self.utils.names_match(fullname, duty.name):
+                                    duty_info = f"{duty.schedule} [{duty.shift_type}]"
+                                    break
+                        except ValueError:
+                            # Invalid date, skip duty check
+                            pass
+                except Exception as e:
+                    logger.debug(f"Error checking duty for {fullname} on {day}: {e}")
+                
+                schedule_with_duties[day] = (schedule, duty_info)
+            
+            return schedule_with_duties
+            
+        except Exception as e:
+            logger.error(f"Error getting schedule with duties: {e}")
+            # Fallback to regular schedule without duties
+            schedule_data = self.get_user_schedule(fullname, month, division)
+            return {day: (schedule, None) for day, schedule in schedule_data.items()}
+
     def get_user_schedule_formatted(
-        self, fullname: str, month: str, division: str, compact: bool = False
+        self, fullname: str, month: str, division: str, compact: bool = False, stp_repo=None
     ) -> str:
         """Get formatted user schedule."""
         try:
@@ -458,6 +518,32 @@ class ScheduleParser(MonthlyScheduleParser):
                 return self.formatter.format_compact(month, *analysis)
             else:
                 return self.formatter.format_detailed(month, *analysis)
+
+        except Exception as e:
+            logger.error(f"Schedule formatting error: {e}")
+            return f"❌ <b>Schedule check error:</b>\n<code>{e}</code>"
+
+    async def get_user_schedule_formatted_with_duties(
+        self, fullname: str, month: str, division: str, compact: bool = False, stp_repo=None
+    ) -> str:
+        """Get formatted user schedule with duty information."""
+        try:
+            schedule_data_with_duties = await self.get_user_schedule_with_duties(
+                fullname, month, division, stp_repo
+            )
+
+            if not schedule_data_with_duties:
+                return f"❌ Schedule for <b>{fullname}</b> in {month} not found"
+
+            # Extract regular schedule data for analysis
+            schedule_data = {day: schedule for day, (schedule, _) in schedule_data_with_duties.items()}
+            analysis = self.analyzer.analyze_schedule(schedule_data)
+
+            if compact:
+                # For compact view, use regular formatting without duties
+                return self.formatter.format_compact(month, *analysis)
+            else:
+                return self.formatter.format_detailed_with_duties(month, schedule_data_with_duties, *analysis)
 
         except Exception as e:
             logger.error(f"Schedule formatting error: {e}")

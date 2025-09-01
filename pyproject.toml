@@ -13,7 +13,7 @@ dependencies = [
     "databases>=0.9.0",
     "environs>=14.3.0",
     "openpyxl>=3.1.5",
-    "pandas>=2.3.1",
+    "pandas>=2.3.2",
     "pandas-stubs==2.3.0.250703",
     "redis>=6.3.0",
     "sqlalchemy==2.0.43",

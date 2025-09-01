@@ -2,7 +2,7 @@
 Schedule formatting functionality.
 """
 
-from typing import List
+from typing import Dict, List, Optional, Tuple
 
 from .models import DayInfo
 
@@ -253,3 +253,113 @@ class ScheduleFormatter:
             elif patronymic.endswith(("ич", "ович", "евич")):
                 return "👨‍💼"
         return "👨‍💼"
+
+    @staticmethod
+    def format_detailed_with_duties(
+        month: str,
+        schedule_data_with_duties: Dict[str, Tuple[str, Optional[str]]],
+        work_days: List[DayInfo],
+        days_off: List[DayInfo],
+        vacation_days: List[DayInfo],
+        vacation_bs_days: List[DayInfo],
+        army_days: List[DayInfo],
+        sick_days: List[DayInfo],
+        missing_days: List[DayInfo],
+    ) -> str:
+        """Detailed schedule format with duty information"""
+        lines = [f"<b>👔 Мой график • {month.capitalize()}</b>\n"]
+
+        all_days = []
+        for day_info in work_days:
+            all_days.append((day_info, "work"))
+        for day_info in days_off:
+            all_days.append((day_info, "day_off"))
+        for day_info in vacation_days:
+            all_days.append((day_info, "vacation"))
+        for day_info in vacation_bs_days:
+            all_days.append((day_info, "vacation_bs"))
+        for day_info in army_days:
+            all_days.append((day_info, "army"))
+        for day_info in sick_days:
+            all_days.append((day_info, "sick"))
+        for day_info in missing_days:
+            all_days.append((day_info, "missing"))
+
+        def extract_day_number(day_str: str) -> int:
+            try:
+                return int(day_str.split()[0])
+            except (ValueError, IndexError):
+                return 0
+
+        all_days.sort(key=lambda x: extract_day_number(x[0].day))
+
+        lines.append("📅 <b>Расписание по дням:</b>")
+
+        total_work_hours = 0
+        work_days_count = 0
+        vacation_days_count = 0
+        vacation_bs_days_count = 0
+        army_days_count = 0
+        sick_days_count = 0
+        missing_days_count = 0
+        days_off_count = 0
+
+        for day_info, day_type in all_days:
+            # Get duty information for this day
+            duty_info = None
+            day_key = day_info.day
+            if day_key in schedule_data_with_duties:
+                _, duty_info = schedule_data_with_duties[day_key]
+
+            if day_type == "work":
+                schedule_text = f"<code>{day_info.schedule}</code>"
+                if duty_info:
+                    schedule_text += f" ({duty_info})"
+
+                if day_info.work_hours > 0:
+                    lines.append(f"<b>{day_info.day}:</b> {schedule_text}")
+                    total_work_hours += day_info.work_hours
+                else:
+                    lines.append(f"<b>{day_info.day}:</b> {schedule_text}")
+                work_days_count += 1
+            elif day_type == "day_off":
+                day_text = "Выходной"
+                if duty_info:
+                    day_text += f" <i>({duty_info})</i>"
+                lines.append(f"<b>{day_info.day}:</b> {day_text}")
+                days_off_count += 1
+            elif day_type == "vacation":
+                lines.append(f"<b>{day_info.day}:</b> ⛱️ Отпуск")
+                vacation_days_count += 1
+            elif day_type == "vacation_bs":
+                lines.append(f"<b>{day_info.day}:</b> ⛱️ БС")
+                vacation_bs_days_count += 1
+            elif day_type == "army":
+                lines.append(f"<b>{day_info.day}:</b> 🎖️ Военкомат")
+                army_days_count += 1
+            elif day_type == "sick":
+                lines.append(f"<b>{day_info.day}:</b> 🤒 Больничный")
+                sick_days_count += 1
+            elif day_type == "missing":
+                lines.append(f"<b>{day_info.day}:</b> 🕵️‍♂️ Отсутствие")
+                missing_days_count += 1
+
+        lines.append("")
+        lines.append("<blockquote expandable>📊 <b>Статистика:</b>")
+        lines.append(f"Рабочих дней: <b>{work_days_count}</b>")
+        if total_work_hours > 0:
+            lines.append(f"Рабочих часов: <b>{round(total_work_hours)}ч</b>")
+        lines.append(f"Выходных: <b>{days_off_count}</b>")
+        if vacation_days_count > 0:
+            lines.append(f"Отпуск: <b>{vacation_days_count} дн.</b>")
+        if vacation_bs_days_count > 0:
+            lines.append(f"БС: <b>{vacation_bs_days_count} дн.</b>")
+        if army_days_count > 0:
+            lines.append(f"Военкомат: <b>{army_days_count} дн.</b>")
+        if sick_days_count > 0:
+            lines.append(f"БЛ: <b>{sick_days_count} дн.</b>")
+        if missing_days_count > 0:
+            lines.append(f"Отсутствий: <b>{missing_days_count} дн.</b>")
+        lines.append("</blockquote>")
+
+        return "\n".join(lines)
