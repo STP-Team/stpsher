@@ -188,19 +188,32 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения администраторов: {e}")
             return []
 
-    async def delete_user(self, fullname: str) -> int:
+    async def delete_user(self, fullname: str = None, user_id: int = None) -> int:
         """
-        Удаление ВСЕХ пользователей из БД по полному имени
+        Удаление пользователей из БД по полному имени или user_id
 
         Args:
-            fullname: Полное ФИО пользователя для удаления
+            fullname: Полное ФИО пользователя для удаления (опционально)
+            user_id: ID пользователя для удаления (опционально)
 
         Returns:
             Количество удаленных пользователей
         """
+        if not fullname and not user_id:
+            raise ValueError(
+                "At least one parameter (fullname or user_id) must be provided"
+            )
+
         try:
-            # Находим всех пользователей с таким ФИО
-            query = select(User).where(User.fullname == fullname)
+            # Строим условие для поиска
+            conditions = []
+            if fullname:
+                conditions.append(User.fullname == fullname)
+            if user_id:
+                conditions.append(User.user_id == user_id)
+
+            # Находим пользователей по условиям
+            query = select(User).where(*conditions)
             result = await self.session.execute(query)
             users = result.scalars().all()
 
@@ -209,17 +222,19 @@ class UserRepo(BaseRepo):
                 await self.session.delete(user)
                 deleted_count += 1
                 logger.info(
-                    f"[БД] Пользователь {fullname} (ID: {user.user_id}) удален из базы данных"
+                    f"[БД] Пользователь {user.fullname} (ID: {user.user_id}) удален из базы данных"
                 )
 
             if deleted_count > 0:
                 await self.session.commit()
+                identifier = f"ФИО {fullname}" if fullname else f"user_id {user_id}"
                 logger.info(
-                    f"[БД] Всего удалено {deleted_count} пользователей с ФИО {fullname}"
+                    f"[БД] Всего удалено {deleted_count} пользователей по {identifier}"
                 )
 
             return deleted_count
         except SQLAlchemyError as e:
-            logger.error(f"[БД] Ошибка удаления пользователей {fullname}: {e}")
+            identifier = f"ФИО {fullname}" if fullname else f"user_id {user_id}"
+            logger.error(f"[БД] Ошибка удаления пользователей по {identifier}: {e}")
             await self.session.rollback()
             return 0
