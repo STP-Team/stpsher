@@ -308,7 +308,7 @@ async def _update_status_message(message: Message, state: FSMContext, status_tex
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
                 text=status_text,
-                reply_markup=schedule_upload_back_kb(),  # Restore keyboard when done
+                reply_markup=schedule_upload_back_kb(upload_done=True),
             )
         except Exception as e:
             logger.warning(f"Failed to update message: {e}")
