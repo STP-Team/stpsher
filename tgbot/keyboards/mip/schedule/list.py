@@ -1,16 +1,152 @@
 from collections.abc import Sequence
 
+from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models.STP.schedule_log import ScheduleFilesLog
 from tgbot.keyboards.user.main import MainMenu
 
 
+class ScheduleHistoryMenu(CallbackData, prefix="schedule_history"):
+    menu: str = "history"
+    page: int = 1
+
+
+class ScheduleFileDetailMenu(CallbackData, prefix="schedule_file_detail"):
+    file_id: int
+    page: int = 1
+
+
+class ScheduleFileActionMenu(CallbackData, prefix="schedule_file_action"):
+    file_id: int
+    action: str  # "restore" or "back"
+    page: int = 1
+
+
+def list_db_files_paginated_kb(
+    current_page: int, total_pages: int, page_files: Sequence[ScheduleFilesLog] = None
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура пагинации для файлов графиков в базе данных с кнопками выбора файлов.
+    """
+    buttons = []
+
+    # Добавляем кнопки для выбора файлов (максимум 2 в ряд)
+    if page_files:
+        # Вычисляем стартовый индекс для нумерации на текущей странице
+        start_idx = (current_page - 1) * 5  # 5 файлов на страницу
+
+        for i in range(0, len(page_files), 2):
+            file_row = []
+
+            # Первый файл в ряду
+            first_file = page_files[i]
+            first_file_number = start_idx + i + 1
+            file_row.append(
+                InlineKeyboardButton(
+                    text=f"{first_file_number}. {first_file.file_name or 'Unknown'}",
+                    callback_data=ScheduleFileDetailMenu(
+                        file_id=first_file.id, page=current_page
+                    ).pack(),
+                )
+            )
+
+            # Второй файл в ряду (если есть)
+            if i + 1 < len(page_files):
+                second_file = page_files[i + 1]
+                second_file_number = start_idx + i + 2
+                file_row.append(
+                    InlineKeyboardButton(
+                        text=f"{second_file_number}. {second_file.file_name or 'Unknown'}",
+                        callback_data=ScheduleFileDetailMenu(
+                            file_id=second_file.id, page=current_page
+                        ).pack(),
+                    )
+                )
+
+            buttons.append(file_row)
+
+    # Пагинация
+    if total_pages > 1:
+        pagination_row = []
+
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=ScheduleHistoryMenu(menu="history", page=1).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Вторая кнопка (⬅️ или пусто)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=ScheduleHistoryMenu(
+                        menu="history", page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Центральная кнопка - Индикатор страницы (всегда видна)
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Четвертая кнопка (➡️ или пусто)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=ScheduleHistoryMenu(
+                        menu="history", page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=ScheduleHistoryMenu(menu="history", page=total_pages).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Навигация
+    navigation_row = [
+        InlineKeyboardButton(
+            text="🔙 Назад", callback_data=MainMenu(menu="schedule").pack()
+        ),
+        InlineKeyboardButton(
+            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+        ),
+    ]
+    buttons.append(navigation_row)
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 def list_db_files_kb(
     schedule_files: Sequence[ScheduleFilesLog],
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура меню файлов графиков в базе данных.
+    Клавиатура меню файлов графиков в базе данных (legacy compatibility).
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """
@@ -74,6 +210,39 @@ def list_local_files_kb(
         inline_keyboard=buttons,
     )
     return keyboard
+
+
+def schedule_file_detail_kb(file_id: int, page: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура детального просмотра файла с возможностью восстановления.
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="💾 Восстановить файл",
+                callback_data=ScheduleFileActionMenu(
+                    file_id=file_id, action="restore", page=page
+                ).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="📥 Скачать файл",
+                callback_data=f"download_db:{file_id}",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ К списку",
+                callback_data=ScheduleHistoryMenu(menu="history", page=page).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ],
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def schedule_list_back_kb() -> InlineKeyboardMarkup:

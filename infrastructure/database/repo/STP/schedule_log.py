@@ -51,11 +51,7 @@ class ScheduleLogRepo(BaseRepo):
         if uploaded_to:
             filters.append(ScheduleFilesLog.uploaded_at <= uploaded_to)
 
-        query = (
-            select(ScheduleFilesLog)
-            .order_by(ScheduleFilesLog.uploaded_at.desc())
-            .limit(5)
-        )
+        query = select(ScheduleFilesLog).order_by(ScheduleFilesLog.uploaded_at.desc())
         if filters:
             query = query.where(and_(*filters))
 
