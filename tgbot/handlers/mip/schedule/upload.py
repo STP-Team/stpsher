@@ -123,6 +123,7 @@ async def upload_file(
             status_text += _generate_stats_text(user_stats)
 
         # Step 5: Check for schedule changes
+        changed_users = []
         notified_users = []
         if old_file_exists and temp_old_file and _is_schedule_file(document.file_name):
             await _update_progress_status(
@@ -151,7 +152,10 @@ async def upload_file(
                     "📤 Проверяем изменения в графике и отправляем уведомления пользователям...",
                 )
 
-                notified_users = await change_detector.process_schedule_changes(
+                (
+                    changed_users,
+                    notified_users,
+                ) = await change_detector.process_schedule_changes(
                     new_file_name=document.file_name,
                     old_file_name=f"old_{document.file_name}",
                     bot=message.bot,
@@ -164,16 +168,16 @@ async def upload_file(
                     old_file_path.unlink()
 
         # Add notification info to status
-        if notified_users:
+        if changed_users:
             status_text += "\n\n📤 <b>Изменения графика</b>\n"
             status_text += (
-                f"Пользователей с измененным графиком: {len(notified_users)}\n"
+                f"Пользователей с измененным графиком: {len(changed_users)}\n"
             )
             status_text += "\n".join(
-                f"• {name}" for name in notified_users[:5]
+                f"• {name}" for name in changed_users[:5]
             )  # Show first 5
             if len(notified_users) > 5:
-                status_text += f"\n... и еще {len(notified_users) - 5}"
+                status_text += f"\n... и еще {len(changed_users) - 5}\n\nВсего удалось отправить {len(notified_users)} уведомлений"
         else:
             status_text += "\n\n📤 <b>Изменения графика</b>\n"
             status_text += (
@@ -190,7 +194,7 @@ async def upload_file(
         # Clean up any remaining temporary files
         for temp_file in UPLOADS_DIR.glob("temp_old_*"):
             temp_file.unlink()
-            
+
         # Clean up old temp_current_ files if a newer version exists
         await _cleanup_old_temp_files(document.file_name)
 
@@ -341,7 +345,9 @@ async def _cleanup_old_temp_files(new_filename: str):
         temp_current_file = UPLOADS_DIR / f"temp_current_{new_filename}"
         if temp_current_file.exists():
             temp_current_file.unlink()
-            logger.info(f"Cleaned up old temp_current_ file: temp_current_{new_filename}")
+            logger.info(
+                f"Cleaned up old temp_current_ file: temp_current_{new_filename}"
+            )
     except Exception as e:
         logger.warning(f"Failed to cleanup old temp file: {e}")
 

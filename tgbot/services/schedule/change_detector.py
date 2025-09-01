@@ -1,7 +1,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -21,7 +21,7 @@ class ScheduleChangeDetector:
 
     async def process_schedule_changes(
         self, new_file_name: str, old_file_name: str, bot, stp_repo: MainRequestsRepo
-    ) -> List[str]:
+    ) -> tuple[list[Any], list[str]]:
         """
         Процессинг изменений в графике между старым и новым графиками и отправка уведомлений.
         """
@@ -37,7 +37,7 @@ class ScheduleChangeDetector:
 
             if not changed_users:
                 logger.info("[График] Не найдено изменений в загруженном графике")
-                return []
+                return [], []
 
             # Отправка уведомления затронутым пользователям
             notified_users = []
@@ -59,11 +59,11 @@ class ScheduleChangeDetector:
             logger.info(
                 f"[График] Отправили {len(notified_users)} пользователям об изменениях в графике"
             )
-            return notified_users
+            return changed_users, notified_users
 
         except Exception as e:
             logger.error(f"[График] Ошибка проверки изменений в графике: {e}")
-            return []
+            return [], []
 
     async def _detect_schedule_changes(
         self, new_file_name: str, old_file_name: str, stp_repo: MainRequestsRepo
