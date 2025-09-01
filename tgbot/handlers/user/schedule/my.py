@@ -100,6 +100,7 @@ async def handle_month_navigation(
             await callback.bot.send_chat_action(
                 chat_id=callback.message.chat.id, action="TYPING"
             )
+            await callback.answer("⏳ Проверяю наличие дежурств, может занять время")
             schedule_text = await schedule_service.get_user_schedule_response(
                 user=user, month=current_month, compact=False, stp_repo=stp_repo
             )
