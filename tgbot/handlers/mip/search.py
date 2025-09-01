@@ -412,6 +412,12 @@ async def show_user_details(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
+        if not user_head:
+            await callback.answer(
+                "❌ Не найдена информация о руководителя пользователя", show_alert=True
+            )
+            return
+
         # Определение роли
         role_names = {
             0: "Не авторизован",
