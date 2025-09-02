@@ -6,7 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from infrastructure.database.models import Award, User
-from infrastructure.database.models.STP.user_award import UserAward
+from infrastructure.database.models.STP.awards_usage import AwardUsage
 from tgbot.config import load_config
 
 config = load_config(".env")
@@ -62,7 +62,11 @@ async def send_auth_email(code: str, email: str, bot_username: str):
 
 
 async def send_activation_award_email(
-    user: User, user_head: User | None, current_duty: User | None, award: Award, user_award: UserAward
+    user: User,
+    user_head: User | None,
+    current_duty: User | None,
+    award: Award,
+    user_award: AwardUsage,
 ):
     email_subject = "Активация награды"
     email_content = f"""Добрый день!<br><br>
@@ -92,7 +96,11 @@ async def send_activation_award_email(
 
 
 async def send_cancel_award_email(
-    user: User, user_head: User | None, current_duty: User | None, award: Award, user_award: UserAward
+    user: User,
+    user_head: User | None,
+    current_duty: User | None,
+    award: Award,
+    user_award: AwardUsage,
 ):
     email_subject = "Отмена активации награды"
     email_content = f"""Добрый день!<br><br>
@@ -109,7 +117,7 @@ async def send_cancel_award_email(
 
     if user_head and user_head.email:
         email.append(user_head.email)
-        
+
     if current_duty and current_duty.email:
         email.append(current_duty.email)
 

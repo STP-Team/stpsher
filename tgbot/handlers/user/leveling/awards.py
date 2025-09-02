@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Award, User
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.keyboards.mip.leveling.awards import award_notify_kb
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.leveling.awards import (
     AwardDetailMenu,
@@ -32,6 +33,7 @@ from tgbot.keyboards.user.leveling.awards import (
 )
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import executed_codes
+from tgbot.services.broadcaster import broadcast
 from tgbot.services.mailing import send_activation_award_email, send_cancel_award_email
 from tgbot.services.schedule import DutyScheduleParser
 
@@ -582,16 +584,16 @@ async def use_award_handler(
                 user_award_detail.user_award,
             )
 
-            # result = await broadcast(
-            #     bot=callback.bot,
-            #     users=manager_ids,
-            #     text=notification_text,
-            #     reply_markup=award_notify_kb(),
-            # )
+            result = await broadcast(
+                bot=callback.bot,
+                users=manager_ids,
+                text=notification_text,
+                reply_markup=award_notify_kb(),
+            )
 
-            # logger.info(
-            #     f"[Использование награды] {user.username} ({user.user_id}) отправил на рассмотрение награду '{award_name}'. Уведомлено менеджеров: {result} из {len([m for m in award_managers if m.user_id])}"
-            # )
+            logger.info(
+                f"[Использование награды] {user.username} ({user.user_id}) отправил на рассмотрение награду '{award_name}'. Уведомлено менеджеров: {result} из {len([m for m in award_managers if m.user_id])}"
+            )
     else:
         await callback.answer("❌ Невозможно использовать награду", show_alert=True)
 

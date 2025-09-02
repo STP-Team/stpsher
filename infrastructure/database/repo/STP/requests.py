@@ -8,7 +8,7 @@ from infrastructure.database.repo.STP.broadcast import BroadcastRepo
 from infrastructure.database.repo.STP.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.STP.transactions import TransactionRepo
 from infrastructure.database.repo.STP.user import UserRepo
-from infrastructure.database.repo.STP.user_award import UserAwardsRepo
+from infrastructure.database.repo.STP.award_usage import AwardUsageRepo
 
 
 @dataclass
@@ -43,11 +43,11 @@ class MainRequestsRepo:
         return AwardsRepo(self.session)
 
     @property
-    def user_award(self) -> UserAwardsRepo:
+    def user_award(self) -> AwardUsageRepo:
         """
         The UserAwardsRepo repository sessions are required to manage user operations.
         """
-        return UserAwardsRepo(self.session)
+        return AwardUsageRepo(self.session)
 
     @property
     def achievement(self) -> AchievementsRepo:

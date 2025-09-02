@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from infrastructure.database.models.base import Base, TableNameMixin
 
 
-class UserAward(Base, TableNameMixin):
+class AwardUsage(Base, TableNameMixin):
     """
     Класс, представляющий сущность награды пользователя в БД.
 
@@ -32,7 +32,7 @@ class UserAward(Base, TableNameMixin):
 
     """
 
-    __tablename__ = "users_awards"
+    __tablename__ = "awards_usage"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
@@ -47,4 +47,4 @@ class UserAward(Base, TableNameMixin):
     status: Mapped[str] = mapped_column(VARCHAR(10), nullable=False, default="stored")
 
     def __repr__(self):
-        return f"<UserAward {self.id} {self.user_id} {self.award_id} {self.comment} {self.usage_count} {self.bought_at} {self.updated_at} {self.updated_by_user_id} {self.status}>"
+        return f"<AwardUsage {self.id} {self.user_id} {self.award_id} {self.comment} {self.usage_count} {self.bought_at} {self.updated_at} {self.updated_by_user_id} {self.status}>"

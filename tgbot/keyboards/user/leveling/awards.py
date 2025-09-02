@@ -4,7 +4,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import User
-from infrastructure.database.repo.STP.user_award import UserAwardWithDetails
+from infrastructure.database.repo.STP.award_usage import AwardUsageWithDetails
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.main import MainMenu
 
@@ -496,7 +496,7 @@ def awards_paginated_kb(current_page: int, total_pages: int) -> InlineKeyboardMa
 
 
 def award_history_kb(
-    user_awards: List[UserAwardWithDetails],
+    user_awards: List[AwardUsageWithDetails],
     current_page: int = 1,
     awards_per_page: int = 8,
 ) -> InlineKeyboardMarkup:

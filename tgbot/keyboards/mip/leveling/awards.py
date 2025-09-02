@@ -2,7 +2,7 @@ from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.repo.STP.user_award import UserAwardWithDetails
+from infrastructure.database.repo.STP.award_usage import AwardUsageWithDetails
 from tgbot.keyboards.mip.leveling.main import (
     AwardActionMenu,
     AwardActivationMenu,
@@ -14,7 +14,7 @@ from tgbot.keyboards.user.main import MainMenu
 
 
 def award_activation_kb(
-    current_page: int, total_pages: int, page_awards: List[UserAwardWithDetails] = None
+    current_page: int, total_pages: int, page_awards: List[AwardUsageWithDetails] = None
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для списка наград ожидающих активации

@@ -1,6 +1,10 @@
 """Import all routers and add them to routers_list."""
 
 from tgbot.handlers.admin.main import admin_router
+from tgbot.handlers.gok.leveling.achievements import gok_leveling_achievements_router
+from tgbot.handlers.gok.leveling.awards import gok_leveling_awards_router
+from tgbot.handlers.gok.leveling.main import gok_leveling_router
+from tgbot.handlers.gok.main import gok_router
 from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.head.schedule.group import head_schedule_group_router
@@ -31,6 +35,10 @@ from tgbot.handlers.group.casino import group_casino_router
 
 routers_list = [
     admin_router,
+    gok_router,
+    gok_leveling_router,
+    gok_leveling_achievements_router,
+    gok_leveling_awards_router,
     head_router,
     head_kpi_router,
     head_schedule_group_router,
