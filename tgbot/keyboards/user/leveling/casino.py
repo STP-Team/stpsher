@@ -8,7 +8,7 @@ class CasinoMenu(CallbackData, prefix="casino"):
     menu: str
     bet_amount: int = 0
     current_rate: int = 10
-    game_type: str = "slots"
+    game_type: str = "slots"  # slots, dice, darts, bowling
 
 
 def casino_main_kb() -> InlineKeyboardMarkup:
@@ -22,6 +22,16 @@ def casino_main_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="🎲 Кости",
                 callback_data=CasinoMenu(menu="dice", game_type="dice").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🎯 Дартс",
+                callback_data=CasinoMenu(menu="darts", game_type="darts").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🎳 Боулинг",
+                callback_data=CasinoMenu(menu="bowling", game_type="bowling").pack(),
             ),
         ],
         [
@@ -55,7 +65,13 @@ def betting_kb(
     )
 
     # Второй ряд: главная кнопка игры
-    game_text = "🎰 Крутить 🎰" if game_type == "slots" else "🎲 Кинуть 🎲"
+    game_texts = {
+        "slots": "🎰 Крутить барабан 🎰",
+        "dice": "🎲 Кинуть кубик 🎲",
+        "darts": "🎯 Бросить дротик 🎯",
+        "bowling": "🎳 Бросить шар 🎳",
+    }
+    game_text = game_texts.get(game_type, "🎰 Крутить 🎰")
     buttons.append(
         [
             InlineKeyboardButton(

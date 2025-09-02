@@ -32,7 +32,7 @@ class TransactionRepo(BaseRepo):
         source_id: Optional[int] = None,
         comment: Optional[str] = None,
         created_by: Optional[int] = None,
-    ) -> Optional[Transaction]:
+    ) -> tuple[Transaction, int] | None:
         """
         Добавить новую транзакцию в БД
 
@@ -66,7 +66,9 @@ class TransactionRepo(BaseRepo):
             logger.info(
                 f"[БД] Создана транзакция ID: {transaction.id} для пользователя {user_id}"
             )
-            return transaction
+
+            new_balance = await self.get_user_balance(transaction.user_id)
+            return transaction, new_balance
 
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка создания транзакции: {e}")
@@ -107,10 +109,10 @@ class TransactionRepo(BaseRepo):
         """
         try:
             query = select(Transaction).where(Transaction.user_id == user_id)
-            
+
             if only_achievements:
-                query = query.where(Transaction.source_type == 'achievement')
-            
+                query = query.where(Transaction.source_type == "achievement")
+
             query = query.order_by(Transaction.created_at.desc())
             result = await self.session.execute(query)
             return result.scalars().all()
@@ -234,7 +236,9 @@ class TransactionRepo(BaseRepo):
             Сумма баллов за достижения
         """
         try:
-            achievements = await self.get_user_transactions(user_id, only_achievements=True)
+            achievements = await self.get_user_transactions(
+                user_id, only_achievements=True
+            )
             achievements_sum = 0
 
             for achievement in achievements:
@@ -243,5 +247,7 @@ class TransactionRepo(BaseRepo):
 
             return achievements_sum
         except Exception as e:
-            logger.error(f"[БД] Ошибка вычисления суммы достижений пользователя {user_id}: {e}")
+            logger.error(
+                f"[БД] Ошибка вычисления суммы достижений пользователя {user_id}: {e}"
+            )
             return 0

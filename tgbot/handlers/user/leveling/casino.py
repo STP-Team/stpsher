@@ -84,13 +84,33 @@ def get_slot_result_multiplier(slot_value: int) -> tuple[str, float]:
 
 
 def get_dice_result_multiplier(dice_value: int) -> tuple[str, float]:
-    # Target: Slots have 20.31% win rate, 58.59% expected return
-    # Dice: Only 6 wins to match slots more closely
-    if dice_value == 6:  # Единственный выигрыш - 1/6 = 16.67%
-        # Expected return: 16.67% × 3.5 = 58.35% (matches slots' 58.59%)
-        return f"🎲 {dice_value} - Джекпот! 🎲", 3.5
-    else:  # dice_value 1,2,3,4,5 - Проигрыш (5/6 = 83.33%)
+    # Побеждает только 5 и 6. Шанс победы - 33%
+    if dice_value == 6:
+        return f"🎲 {dice_value} - Джекпот! 🎲", 2.0
+    if dice_value == 5:
+        return f"🎲 {dice_value} - Джекпот! 🎲", 2.0
+    else:
         return f"🎲 {dice_value}", 0.0
+
+
+def get_darts_result_multiplier(dice_value: int) -> tuple[str, float]:
+    # Побеждает только 5 и 6. Шанс победы - 33%
+    if dice_value == 6:
+        return f"🎯 {dice_value} - Джекпот! 🎯", 2.0
+    if dice_value == 5:
+        return f"🎯 {dice_value} - Джекпот! 🎯", 2.0
+    else:  # dice_value 1,2,3,4 - Проигрыш (4/6 = 66.66%)
+        return f"🎯 {dice_value}", 0.0
+
+
+def get_bowling_result_multiplier(dice_value: int) -> tuple[str, float]:
+    # Побеждает только 5 и 6. Шанс победы - 33%
+    if dice_value == 6:
+        return f"🎳 {dice_value} - Все кегли сбиты! 🎳", 2.0
+    elif dice_value == 5:
+        return f"🎳 {dice_value} - Сбито 5 кеглей! 🎳", 2.0
+    else:  # dice_value 1,2,3,4 - Проигрыш (4/6 = 66.66%)
+        return f"🎳 {dice_value}", 0.0
 
 
 @user_leveling_casino_router.callback_query(MainMenu.filter(F.menu == "casino"))
@@ -151,8 +171,8 @@ async def casino_slot_betting(
 2. Жми <b>🎰 Крутить 🎰</b>
 
 <blockquote expandable>💎 <b>Таблица наград:</b>
-🎰 Джекпот - Три семерки → x5
-🔥 Три в ряд → x3.5  
+🎰 Джекпот - Три семерки → x5.0
+🔥 Три в ряд → x3.5
 ✨ Две семерки → x2.5</blockquote>""",
         reply_markup=betting_kb(user_balance, game_type="slots"),
     )
@@ -185,8 +205,72 @@ async def casino_dice_betting(
 2. Жми <b>🎲 Кинуть 🎲</b>
 
 <blockquote expandable>💎 <b>Таблица наград:</b>
-🎲 Выпало 6 → x3.5 (Джекпот!)</blockquote>""",
+🎲 Выпало 5 или 6 → x2.0</blockquote>""",
         reply_markup=betting_kb(user_balance, game_type="dice"),
+    )
+
+
+@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "darts"))
+async def casino_darts_betting(
+    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+):
+    """Выбор ставки для игры в дартс"""
+    user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
+
+    if user_balance < 10:
+        await callback.message.edit_text(
+            """💔 <b>Недостаточно средств!</b>
+
+Минимальная ставка - 10 баллов
+Выполняй достижения для заработка баллов!""",
+            reply_markup=back_to_casino_kb(),
+        )
+        return
+
+    await callback.message.edit_text(
+        f"""🎯 <b>Казино - Дартс</b>
+
+✨ <b>Баланс:</b> {user_balance} баллов
+
+🎮 <b>Как играть</b>
+1. Назначь ставку используя кнопки меню
+2. Жми <b>🎯 Бросить 🎯</b>
+
+<blockquote expandable>💎 <b>Таблица наград:</b>
+🎯 Выпало 5 или 6 → x2.0</blockquote>""",
+        reply_markup=betting_kb(user_balance, game_type="darts"),
+    )
+
+
+@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "bowling"))
+async def casino_bowling_betting(
+    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+):
+    """Выбор ставки для игры в боулинг"""
+    user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
+
+    if user_balance < 10:
+        await callback.message.edit_text(
+            """💔 <b>Недостаточно средств!</b>
+
+Минимальная ставка - 10 баллов
+Выполняй достижения для заработка баллов!""",
+            reply_markup=back_to_casino_kb(),
+        )
+        return
+
+    await callback.message.edit_text(
+        f"""🎳 <b>Казино - Боулинг</b>
+
+✨ <b>Баланс:</b> {user_balance} баллов
+
+🎮 <b>Как играть</b>
+1. Назначь ставку используя кнопки меню
+2. Жми <b>🎳 Катить 🎳</b>
+
+<blockquote expandable>💎 <b>Таблица наград:</b>
+🎳 Выпало 5 или 6 → x2.0</blockquote>""",
+        reply_markup=betting_kb(user_balance, game_type="bowling"),
     )
 
 
@@ -202,36 +286,43 @@ async def casino_rate_adjustment(
     new_rate = callback_data.current_rate
     game_type = callback_data.game_type
 
-    if game_type == "dice":
-        await callback.message.edit_text(
-            f"""🎲 <b>Казино - Кости</b>
+    game_info = {
+        "dice": {
+            "title": "🎲 <b>Казино - Кости</b>",
+            "action": "🎲 Кинуть 🎲",
+            "rewards": "🎲 Выпало 5 или 6 → x2.0",
+        },
+        "darts": {
+            "title": "🎯 <b>Казино - Дартс</b>",
+            "action": "🎯 Бросить 🎯",
+            "rewards": "🎯 Выпало 5 или 6 → x2.0",
+        },
+        "bowling": {
+            "title": "🎳 <b>Казино - Боулинг</b>",
+            "action": "🎳 Катить 🎳",
+            "rewards": "🎳 Выпало 5 или 6 → x2.0",
+        },
+        "slots": {
+            "title": "🎰 <b>Казино - Слоты</b>",
+            "action": "🎰 Крутить 🎰",
+            "rewards": "🎰 Джекпот - Три семерки → x5.0\n🔥 Три в ряд → x3.5\n✨ Две семерки → x2.5",
+        },
+    }
+
+    info = game_info.get(game_type, game_info["slots"])
+    await callback.message.edit_text(
+        f"""{info["title"]}
 
 ✨ <b>Баланс:</b> {user_balance} баллов
 
 🎮 <b>Как играть</b>
 1. Назначь ставку используя кнопки меню
-2. Жми <b>🎲 Кинуть 🎲</b>
+2. Жми <b>{info["action"]}</b>
 
 <blockquote expandable>💎 <b>Таблица наград:</b>
-🎲 Выпало 6 → x3.5 (Джекпот!)</blockquote>""",
-            reply_markup=betting_kb(user_balance, new_rate, game_type),
-        )
-    else:
-        await callback.message.edit_text(
-            f"""🎰 <b>Казино - Слоты</b>
-
-✨ <b>Баланс:</b> {user_balance} баллов
-
-🎮 <b>Как играть</b>
-1. Назначь ставку используя кнопки меню
-2. Жми <b>🎰 Крутить 🎰</b>
-
-<blockquote expandable>💎 <b>Таблица наград:</b>
-🎰 Джекпот - Три семерки → x5
-🔥 Три в ряд → x3.5  
-✨ Две семерки → x2.5</blockquote>""",
-            reply_markup=betting_kb(user_balance, new_rate, game_type),
-        )
+{info["rewards"]}</blockquote>""",
+        reply_markup=betting_kb(user_balance, new_rate, game_type),
+    )
 
 
 @user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "bet"))
@@ -256,72 +347,84 @@ async def casino_game(
         )
         return
 
+    # Настройки для разных игр
+    game_config = {
+        "dice": {
+            "loading_text": "🎲 <b>Кидаем кости...</b>",
+            "emoji": "🎲",
+            "multiplier_func": get_dice_result_multiplier,
+            "game_name": "костях",
+            "rewards": "🎲 Выпало 5 или 6 → x2.0",
+        },
+        "darts": {
+            "loading_text": "🎯 <b>Бросаем дартс...</b>",
+            "emoji": "🎯",
+            "multiplier_func": get_darts_result_multiplier,
+            "game_name": "дартсе",
+            "rewards": "🎯 Выпало 5 или 6 → x2.0",
+        },
+        "bowling": {
+            "loading_text": "🎳 <b>Катим шар...</b>",
+            "emoji": "🎳",
+            "multiplier_func": get_bowling_result_multiplier,
+            "game_name": "боулинге",
+            "rewards": "🎳 Выпало 5 или 6 → x2.0",
+        },
+        "slots": {
+            "loading_text": "🎰 <b>Крутим барабан...</b>",
+            "emoji": "🎰",
+            "multiplier_func": get_slot_result_multiplier,
+            "game_name": "слотах",
+            "rewards": "🎰 Джекпот - Три семерки → x5.0\n🔥 Три в ряд → x3.5\n✨ Две семерки → x2.5",
+        },
+    }
+
+    config = game_config.get(game_type, game_config["slots"])
+
     # Информируем о начале игры
+    await callback.message.edit_text(
+        f"""{config["loading_text"]}
+
+💰 <b>Ставка:</b> {bet_amount} баллов
+⏰ <b>Ждем результат...</b>
+
+<blockquote expandable>💎 <b>Таблица наград:</b>
+{config["rewards"]}</blockquote>"""
+    )
+
+    # Отправляем анимированную игру
+    game_result = await callback.message.answer_dice(emoji=config["emoji"])
+    game_value = game_result.dice.value
+
+    # Ждем анимацию (около 3 секунд для кубика и 2 секунды для казино)
     if game_type == "dice":
-        await callback.message.edit_text(
-            f"""🎲 <b>Кидаем кости...</b>
-
-💰 <b>Ставка:</b> {bet_amount} баллов
-⏰ <b>Ждем результат...</b>
-
-<blockquote expandable>💎 <b>Таблица наград:</b>
-🎲 Выпало 6 → x3.5 (Джекпот!)</blockquote>"""
-        )
-
-        # Отправляем настоящие кости с анимацией!
-        dice_result = await callback.message.answer_dice(emoji="🎲")
-        dice_value = dice_result.dice.value
-
-        # Ждем анимацию кости (около 2 секунд)
-        await asyncio.sleep(2)
-
-        # Определяем результат
-        result_text, multiplier = get_dice_result_multiplier(dice_value)
-        game_name = "костях"
+        await asyncio.sleep(3)
     else:
-        await callback.message.edit_text(
-            f"""🎰 <b>Крутим барабан...</b>
-
-💰 <b>Ставка:</b> {bet_amount} баллов
-⏰ <b>Ждем результат...</b>
-
-<blockquote expandable>💎 <b>Таблица наград:</b>
-🎰 Джекпот - Три семерки → x5
-🔥 Три в ряд → x3.5  
-✨ Две семерки → x2.5</blockquote>"""
-        )
-
-        # Отправляем настоящую слот-машину с анимацией!
-        slot_result = await callback.message.answer_dice(emoji="🎰")
-        slot_value = slot_result.dice.value
-
-        # Ждем анимацию слота (около 2 секунд)
         await asyncio.sleep(2)
 
-        # Определяем результат
-        result_text, multiplier = get_slot_result_multiplier(slot_value)
-        game_name = "слотах"
+    # Определяем результат
+    result_text, multiplier = config["multiplier_func"](game_value)
+    game_name = config["game_name"]
 
     if multiplier > 0:
         # Выигрыш
         winnings = int(bet_amount * multiplier)
 
         # Записываем транзакцию выигрыша
-        await stp_repo.transaction.add_transaction(
+        transaction, new_balance = await stp_repo.transaction.add_transaction(
             user_id=user.user_id,
             type="earn",
             source_type="casino",
-            amount=winnings,
+            amount=winnings - bet_amount,
             comment=f"Выигрыш в {game_name}: {result_text} (x{multiplier})",
         )
 
-        new_balance = await stp_repo.transaction.get_user_balance(user.user_id)
         final_result = f"""🎉 <b>Победа</b> 🎉
 
 {result_text}
 
 🔥 Выигрыш: {bet_amount} x{multiplier} = {winnings} баллов!
-✨ Баланс: {new_balance - bet_amount} → {new_balance} баллов"""
+✨ Баланс: {user_balance - bet_amount} → {new_balance} баллов"""
 
         logger.info(
             f"[Казино] {callback.from_user.username} выиграл {winnings} баллов в {game_name} ({result_text})"
@@ -330,7 +433,7 @@ async def casino_game(
     else:
         # Проигрыш
         # Списываем ставку
-        await stp_repo.transaction.add_transaction(
+        transaction, new_balance = await stp_repo.transaction.add_transaction(
             user_id=user.user_id,
             type="spend",
             source_type="casino",
@@ -338,7 +441,6 @@ async def casino_game(
             comment=f"Проигрыш в {game_name}: {result_text}",
         )
 
-        new_balance = await stp_repo.transaction.get_user_balance(user.user_id)
         final_result = f"""💔 <b>Проигрыш</b>
 
 {result_text}
