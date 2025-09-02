@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.KPI.rg_month_kpi import HeadMonthKPI
+from infrastructure.database.models.KPI.head_kpi import HeadMonthKPI
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
