@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.schedule.main import (
@@ -23,7 +23,7 @@ head_schedule_head_router.callback_query.filter(
 
 
 @head_schedule_head_router.callback_query(ScheduleMenu.filter(F.menu == "heads"))
-async def heads_schedule(callback: CallbackQuery, user: User, stp_repo):
+async def heads_schedule(callback: CallbackQuery, user: Employee, stp_repo):
     """Обработчик расписания руководителей групп"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -45,7 +45,7 @@ async def heads_schedule(callback: CallbackQuery, user: User, stp_repo):
 
 @head_schedule_head_router.callback_query(HeadNavigation.filter())
 async def handle_head_navigation(
-    callback: CallbackQuery, callback_data: HeadNavigation, user: User, stp_repo
+    callback: CallbackQuery, callback_data: HeadNavigation, user: Employee, stp_repo
 ):
     """Обработчик навигации по руководителям групп"""
     if not await schedule_service.check_user_auth(callback, user):

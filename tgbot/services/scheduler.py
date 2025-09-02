@@ -13,7 +13,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from infrastructure.database.repo.STP.user import UserRepo
+from infrastructure.database.repo.STP.employee import EmployeeRepo
 from tgbot.config import load_config
 from tgbot.services.broadcaster import send_message
 
@@ -199,7 +199,7 @@ async def process_fired_users(session_pool):
 
         # Получение сессии из пула
         async with session_pool() as session:
-            user_repo = UserRepo(session)
+            user_repo = EmployeeRepo(session)
 
             total_deleted = 0
             for fullname in fired_users:
@@ -234,7 +234,7 @@ async def notify_to_unauthorized_users(session_pool, bot: Bot):
     try:
         async with session_pool() as session:
             stp_repo = MainRequestsRepo(session)
-            unauthorized_users = await stp_repo.user.get_unauthorized_users()
+            unauthorized_users = await stp_repo.employee.get_unauthorized_users()
 
             if not unauthorized_users:
                 logger.info("[Авторизация] Неавторизованных пользователей не найдено")
@@ -321,7 +321,7 @@ async def send_notifications_to_supervisors(
     for head_name, subordinates in unauthorized_by_head.items():
         try:
             # Ищем руководителя в БД
-            supervisor = await stp_repo.user.get_user(fullname=head_name)
+            supervisor = await stp_repo.employee.get_user(fullname=head_name)
 
             if not supervisor or not supervisor.user_id:
                 logger.warning(

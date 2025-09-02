@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.schedule.main import (
     MonthNavigation,
@@ -20,7 +20,7 @@ user_schedule_my_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_schedule_my_router.callback_query(ScheduleMenu.filter(F.menu == "my"))
-async def user_schedule(callback: CallbackQuery, user: User, stp_repo):
+async def user_schedule(callback: CallbackQuery, user: Employee, stp_repo):
     """Обработчик личного расписания"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -43,7 +43,7 @@ async def user_schedule(callback: CallbackQuery, user: User, stp_repo):
 
 
 @user_schedule_my_router.callback_query(MonthNavigation.filter(F.action == "compact"))
-async def handle_compact_view(callback: CallbackQuery, user: User, stp_repo):
+async def handle_compact_view(callback: CallbackQuery, user: Employee, stp_repo):
     """Обработчик перехода к компактному виду"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -71,7 +71,7 @@ async def handle_compact_view(callback: CallbackQuery, user: User, stp_repo):
 
 @user_schedule_my_router.callback_query(MonthNavigation.filter())
 async def handle_month_navigation(
-    callback: CallbackQuery, callback_data: MonthNavigation, user: User, stp_repo
+    callback: CallbackQuery, callback_data: MonthNavigation, user: Employee, stp_repo
 ):
     """Обработчик навигации по месяцам"""
     if not await schedule_service.check_user_auth(callback, user):

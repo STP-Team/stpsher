@@ -6,7 +6,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.handlers.user.schedule.main import schedule_service
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 USERS_PER_PAGE = 10
 
 
-def filter_users_by_type(users: Sequence[User], search_type: str) -> list[User]:
+def filter_users_by_type(users: Sequence[Employee], search_type: str) -> list[Employee]:
     """
     Фильтрация пользователей по типу поиска
 
@@ -66,9 +66,9 @@ async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
     """Получить статистику пользователя (уровень, очки, достижения, награды)"""
     try:
         # Получаем базовые данные
-        user_awards = await stp_repo.user_award.get_user_awards(user_id)
+        user_awards = await stp_repo.award_usage.get_user_awards(user_id)
         achievements_sum = await stp_repo.transaction.get_user_achievements_sum(user_id)
-        awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id)
+        awards_sum = await stp_repo.award_usage.get_user_awards_sum(user_id)
 
         # Рассчитываем уровень
         user_balance = await stp_repo.transaction.get_user_balance(user_id)
@@ -96,7 +96,7 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
     """Получить общую статистику группы руководителя"""
     try:
         # Получаем сотрудников группы
-        group_users = await stp_repo.user.get_users_by_head(head_name)
+        group_users = await stp_repo.employee.get_users_by_head(head_name)
 
         total_points = 0
         group_awards = {}
@@ -110,7 +110,7 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
                 total_points += achievements_sum
 
                 # Собираем статистику наград
-                most_used_award = await stp_repo.user_award.get_most_used_award(
+                most_used_award = await stp_repo.award_usage.get_most_used_award(
                     user.user_id
                 )
                 if most_used_award:
@@ -138,7 +138,7 @@ async def get_group_statistics_by_id(
     """Получить общую статистику группы руководителя по его ID"""
     try:
         # Получаем руководителя по ID
-        head_user = await stp_repo.user.get_user(user_id=head_user_id)
+        head_user = await stp_repo.employee.get_user(user_id=head_user_id)
         if not head_user:
             return {
                 "total_users": 0,
@@ -179,7 +179,7 @@ async def show_specialists(
     page = callback_data.page
 
     # Получаем всех пользователей и фильтруем специалистов
-    all_users = await stp_repo.user.get_users()
+    all_users = await stp_repo.employee.get_users()
     if not all_users:
         await callback.answer("❌ Пользователи не найдены", show_alert=True)
         return
@@ -215,7 +215,7 @@ async def show_heads(
     page = callback_data.page
 
     # Получаем всех пользователей и фильтруем руководителей
-    all_users = await stp_repo.user.get_users()
+    all_users = await stp_repo.employee.get_users()
     if not all_users:
         await callback.answer("❌ Пользователи не найдены", show_alert=True)
         return
@@ -290,7 +290,9 @@ async def process_search_query(
 
     try:
         # Поиск пользователей по частичному совпадению ФИО
-        found_users = await stp_repo.user.get_users_by_fio_parts(search_query, limit=50)
+        found_users = await stp_repo.employee.get_users_by_fio_parts(
+            search_query, limit=50
+        )
 
         if not found_users:
             await message.bot.edit_message_text(
@@ -361,8 +363,8 @@ async def show_user_details(
     head_id = callback_data.head_id
 
     try:
-        user = await stp_repo.user.get_user(user_id=user_id)
-        user_head = await stp_repo.user.get_user(fullname=user.head)
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        user_head = await stp_repo.employee.get_user(fullname=user.head)
 
         if not user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
@@ -449,7 +451,7 @@ async def show_head_group(
 
     try:
         # Получаем сотрудников группы
-        group_users = await stp_repo.user.get_users_by_head(head_name)
+        group_users = await stp_repo.employee.get_users_by_head(head_name)
 
         if not group_users:
             await callback.answer("❌ Сотрудники не найдены", show_alert=True)
@@ -507,7 +509,7 @@ async def start_edit_user(
 
     if action == "edit_fullname":
         # Получаем текущие данные пользователя
-        user = await stp_repo.user.get_user(user_id=user_id)
+        user = await stp_repo.employee.get_user(user_id=user_id)
         if not user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
@@ -532,7 +534,7 @@ async def start_edit_user(
 
     elif action == "edit_role":
         # Получаем текущие данные пользователя
-        user = await stp_repo.user.get_user(user_id=user_id)
+        user = await stp_repo.employee.get_user(user_id=user_id)
         if not user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
@@ -592,7 +594,7 @@ async def process_edit_fullname(
 
     try:
         # Обновляем ФИО в базе данных
-        await stp_repo.user.update_user(user_id=user_id, fullname=new_fullname)
+        await stp_repo.employee.update_user(user_id=user_id, fullname=new_fullname)
 
         await message.bot.edit_message_text(
             chat_id=message.chat.id,
@@ -639,7 +641,7 @@ async def view_user_schedule(
 
     try:
         # Получаем пользователя
-        user = await stp_repo.user.get_user(user_id=user_id)
+        user = await stp_repo.employee.get_user(user_id=user_id)
         if not user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
@@ -718,7 +720,7 @@ async def navigate_user_schedule(
 
     try:
         # Получаем пользователя
-        user = await stp_repo.user.get_user(user_id=user_id)
+        user = await stp_repo.employee.get_user(user_id=user_id)
         if not user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
@@ -792,7 +794,7 @@ async def process_role_change(
 
     try:
         # Получаем данные пользователя
-        user = await stp_repo.user.get_user(user_id=user_id)
+        user = await stp_repo.employee.get_user(user_id=user_id)
         if not user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
@@ -815,7 +817,7 @@ async def process_role_change(
         )
 
         # Обновляем роль в базе данных
-        await stp_repo.user.update_user(user_id=user_id, role=new_role)
+        await stp_repo.employee.update_user(user_id=user_id, role=new_role)
 
         # Отправляем уведомление пользователю о смене роли
         try:

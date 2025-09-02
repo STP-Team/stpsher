@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import Award, User
+from infrastructure.database.models import Award, Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.mip.leveling.awards import award_notify_kb
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 
 
 @user_leveling_awards_router.callback_query(MainMenu.filter(F.menu == "awards"))
-async def user_awards_cb(callback: CallbackQuery, user: User):
+async def user_awards_cb(callback: CallbackQuery, user: Employee):
     await callback.message.edit_text(
         """<b>👏 Награды</b>
 
@@ -75,7 +75,7 @@ async def user_awards_cb(callback: CallbackQuery, user: User):
 @user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "all"))
 async def awards_all(
     callback: CallbackQuery,
-    user: User,
+    user: Employee,
     callback_data: AwardsMenu,
     stp_repo: MainRequestsRepo,
 ):
@@ -126,7 +126,7 @@ async def awards_all(
 @user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "available"))
 async def awards_available(
     callback: CallbackQuery,
-    user: User,
+    user: Employee,
     callback_data: AwardsMenu,
     stp_repo: MainRequestsRepo,
 ):
@@ -194,7 +194,7 @@ async def awards_available(
 @user_leveling_awards_router.callback_query(AwardsMenu.filter(F.menu == "executed"))
 async def awards_history(callback: CallbackQuery, stp_repo: MainRequestsRepo):
     """Показывает историю наград пользователя в виде клавиатуры с пагинацией"""
-    user_awards_with_details = await stp_repo.user_award.get_user_awards_with_details(
+    user_awards_with_details = await stp_repo.award_usage.get_user_awards_with_details(
         user_id=callback.from_user.id
     )
 
@@ -232,7 +232,7 @@ async def awards_history_pagination(
     """Обработчик пагинации истории наград"""
     page = callback_data.page
 
-    user_awards_with_details = await stp_repo.user_award.get_user_awards_with_details(
+    user_awards_with_details = await stp_repo.award_usage.get_user_awards_with_details(
         user_id=callback.from_user.id
     )
 
@@ -266,7 +266,7 @@ async def award_detail_view(
     user_award_id = callback_data.user_award_id
 
     # Получаем информацию о награде
-    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    user_award_detail = await stp_repo.award_usage.get_user_award_detail(user_award_id)
 
     if not user_award_detail:
         await callback.message.edit_text(
@@ -324,7 +324,9 @@ async def award_detail_view(
         message_text += f"\n\n<b>💬 Комментарий</b>\n└ {user_award.comment}"
 
     if user_award.updated_by_user_id:
-        manager = await stp_repo.user.get_user(user_id=user_award.updated_by_user_id)
+        manager = await stp_repo.employee.get_user(
+            user_id=user_award.updated_by_user_id
+        )
         if manager.username:
             message_text += (
                 f"\n\n<blockquote expandable><b>👤 Последний проверяющий</b>\n<a href='t.me/{manager.username}'>"
@@ -353,7 +355,7 @@ async def award_detail_view(
 async def award_confirmation_handler(
     callback: CallbackQuery,
     callback_data: AwardPurchaseMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """
@@ -414,7 +416,7 @@ async def award_confirmation_handler(
 async def award_purchase_final_handler(
     callback: CallbackQuery,
     callback_data: AwardPurchaseConfirmMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """
@@ -458,7 +460,7 @@ async def award_purchase_final_handler(
 
         # Создаем награду пользователю с новым статусом "stored"
         try:
-            new_user_award = await stp_repo.user_award.create_user_award(
+            new_user_award = await stp_repo.award_usage.create_user_award(
                 user_id=user.user_id, award_id=award_id, status="stored"
             )
             await stp_repo.transaction.add_transaction(
@@ -507,7 +509,7 @@ async def award_purchase_final_handler(
 async def use_award_handler(
     callback: CallbackQuery,
     callback_data: UseAwardMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """
@@ -521,12 +523,12 @@ async def use_award_handler(
     user_award_id = callback_data.user_award_id
 
     # Получаем информацию о награде
-    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    user_award_detail = await stp_repo.award_usage.get_user_award_detail(user_award_id)
     if not user_award_detail:
         await callback.answer("❌ Награда не найдена", show_alert=True)
         return
 
-    success = await stp_repo.user_award.use_award(user_award_id)
+    success = await stp_repo.award_usage.use_award(user_award_id)
 
     if success:
         award_name = user_award_detail.award_info.name
@@ -542,12 +544,12 @@ async def use_award_handler(
         )
 
         if user_award_detail.award_info.manager_role == 3:
-            award_managers = await stp_repo.user.get_users_by_role(
+            award_managers = await stp_repo.employee.get_users_by_role(
                 role=user_award_detail.award_info.manager_role,
                 division=user_award_detail.award_info.division,
             )
         else:
-            award_managers = await stp_repo.user.get_users_by_role(
+            award_managers = await stp_repo.employee.get_users_by_role(
                 role=user_award_detail.award_info.manager_role
             )
 
@@ -567,13 +569,15 @@ async def use_award_handler(
 
 <b>Требуется рассмотрение заявки</b>"""
 
-            user_head: User | None = await stp_repo.user.get_user(fullname=user.head)
+            user_head: Employee | None = await stp_repo.employee.get_user(
+                fullname=user.head
+            )
 
             duty_scheduler = DutyScheduleParser()
             current_duty = await duty_scheduler.get_current_senior_duty(
                 division=user_head.division, stp_repo=stp_repo
             )
-            current_duty_user = await stp_repo.user.get_user(
+            current_duty_user = await stp_repo.employee.get_user(
                 user_id=current_duty.user_id
             )
             await send_activation_award_email(
@@ -607,7 +611,7 @@ async def use_award_handler(
 async def sell_award_handler(
     callback: CallbackQuery,
     callback_data: SellAwardMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """
@@ -617,7 +621,7 @@ async def sell_award_handler(
     source_menu = callback_data.source_menu
 
     # Получаем информацию о награде
-    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    user_award_detail = await stp_repo.award_usage.get_user_award_detail(user_award_id)
     if not user_award_detail:
         await callback.answer("❌ Награда не найдена", show_alert=True)
         return
@@ -633,7 +637,7 @@ async def sell_award_handler(
         return
 
     try:
-        success = await stp_repo.user_award.delete_user_award(user_award_id)
+        success = await stp_repo.award_usage.delete_user_award(user_award_id)
 
         if success:
             await callback.answer(
@@ -671,7 +675,7 @@ async def sell_award_handler(
 async def cancel_activation_handler(
     callback: CallbackQuery,
     callback_data: CancelActivationMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """
@@ -680,7 +684,7 @@ async def cancel_activation_handler(
     user_award_id = callback_data.user_award_id
 
     # Получаем информацию о награде
-    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    user_award_detail = await stp_repo.award_usage.get_user_award_detail(user_award_id)
     if not user_award_detail:
         await callback.answer("❌ Награда не найдена", show_alert=True)
         return
@@ -697,19 +701,21 @@ async def cancel_activation_handler(
 
     try:
         # Меняем статус обратно на "stored"
-        success = await stp_repo.user_award.update_award(
+        success = await stp_repo.award_usage.update_award(
             award_id=user_award_id, status="stored"
         )
 
         if success:
             await callback.answer(f"✅ Активация награды '{award_info.name}' отменена!")
 
-            user_head: User | None = await stp_repo.user.get_user(fullname=user.head)
+            user_head: Employee | None = await stp_repo.employee.get_user(
+                fullname=user.head
+            )
             duty_scheduler = DutyScheduleParser()
             current_duty = await duty_scheduler.get_current_senior_duty(
                 division=user_head.division, stp_repo=stp_repo
             )
-            current_duty_user = await stp_repo.user.get_user(
+            current_duty_user = await stp_repo.employee.get_user(
                 user_id=current_duty.user_id
             )
             await send_cancel_award_email(
@@ -739,7 +745,7 @@ async def duty_awards_activation(
     callback: CallbackQuery,
     callback_data: DutyActivationListMenu,
     stp_repo: MainRequestsRepo,
-    user: User,
+    user: Employee,
 ):
     """
     Обработчик меню наград для активации дежурными
@@ -751,7 +757,7 @@ async def duty_awards_activation(
     page = getattr(callback_data, "page", 1)
 
     # Получаем награды ожидающие активации с manager_role == 3 только из того же division что и дежурный
-    review_awards = await stp_repo.user_award.get_review_awards_for_activation(
+    review_awards = await stp_repo.award_usage.get_review_awards_for_activation(
         manager_role=3, division=user.division
     )
 
@@ -781,7 +787,7 @@ async def duty_awards_activation(
         award_info = award_detail.award_info
 
         # Получаем информацию о пользователе
-        user = await stp_repo.user.get_user(user_id=user_award.user_id)
+        user = await stp_repo.employee.get_user(user_id=user_award.user_id)
         user_name = user.fullname if user else f"ID: {user_award.user_id}"
 
         if user.username:
@@ -822,7 +828,7 @@ async def duty_award_activation_detail(
     current_page = callback_data.page
 
     # Получаем информацию о конкретной награде
-    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    user_award_detail = await stp_repo.award_usage.get_user_award_detail(user_award_id)
 
     if not user_award_detail:
         await callback.message.edit_text(
@@ -837,8 +843,8 @@ async def duty_award_activation_detail(
     award_info = user_award_detail.award_info
 
     # Получаем информацию о пользователе
-    user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
-    user_head: User = await stp_repo.user.get_user(fullname=user.head)
+    user: Employee = await stp_repo.employee.get_user(user_id=user_award.user_id)
+    user_head: Employee = await stp_repo.employee.get_user(fullname=user.head)
 
     user_info = (
         f"<a href='t.me/{user.username}'>{user.fullname}</a>"
@@ -893,7 +899,7 @@ async def duty_award_action(
     callback: CallbackQuery,
     callback_data: DutyAwardActionMenu,
     stp_repo: MainRequestsRepo,
-    user: User,
+    user: Employee,
 ):
     """Обработка подтверждения/отклонения награды дежурным"""
     user_award_id = callback_data.user_award_id
@@ -902,7 +908,7 @@ async def duty_award_action(
 
     try:
         # Получаем информацию о награде
-        user_award_detail = await stp_repo.user_award.get_user_award_detail(
+        user_award_detail = await stp_repo.award_usage.get_user_award_detail(
             user_award_id
         )
 
@@ -912,11 +918,13 @@ async def duty_award_action(
 
         user_award = user_award_detail.user_award
         award_info = user_award_detail.award_info
-        employee_user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
+        employee_user: Employee = await stp_repo.employee.get_user(
+            user_id=user_award.user_id
+        )
 
         if action == "approve":
             # Подтверждаем награду
-            await stp_repo.user_award.approve_award_usage(
+            await stp_repo.award_usage.approve_award_usage(
                 user_award_id=user_award_id,
                 updated_by_user_id=callback.from_user.id,
             )
@@ -954,7 +962,7 @@ async def duty_award_action(
 
         elif action == "reject":
             # Отклоняем награду
-            await stp_repo.user_award.reject_award_usage(
+            await stp_repo.award_usage.reject_award_usage(
                 user_award_id=user_award_id, updated_by_user_id=callback.from_user.id
             )
 

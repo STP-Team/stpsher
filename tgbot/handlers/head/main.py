@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.main import main_kb
 from tgbot.keyboards.user.main import MainMenu, auth_kb
@@ -13,7 +13,7 @@ head_router.callback_query.filter(F.message.chat.type == "private", HeadFilter()
 
 
 @head_router.message(CommandStart())
-async def user_start_cmd(message: Message, user: User):
+async def user_start_cmd(message: Message, user: Employee):
     if not user:
         await message.answer(
             """👋 Привет
@@ -35,7 +35,7 @@ async def user_start_cmd(message: Message, user: User):
 
 
 @head_router.callback_query(MainMenu.filter(F.menu == "main"))
-async def user_start_cb(callback: CallbackQuery, user: User):
+async def user_start_cb(callback: CallbackQuery, user: Employee):
     if not user:
         await callback.message.edit_text(
             """👋 Привет

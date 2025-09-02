@@ -7,7 +7,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.user.leveling.casino import (
     get_bowling_result_multiplier,
@@ -33,7 +33,7 @@ def parse_amount(text: str) -> Optional[int]:
 
 async def play_casino_game(
     message: Message,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
     game_type: str,
     bet_amount: int,
@@ -175,7 +175,7 @@ async def play_casino_game(
 
 
 @group_casino_router.message(Command("slots"))
-async def slots_command(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def slots_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /slots для игры в слоты в группе"""
 
     # Проверяем авторизацию пользователя
@@ -215,7 +215,7 @@ async def slots_command(message: Message, user: User, stp_repo: MainRequestsRepo
 
 
 @group_casino_router.message(Command("dice"))
-async def dice_command(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /dice для игры в кости в группе"""
 
     # Проверяем авторизацию пользователя
@@ -253,7 +253,7 @@ async def dice_command(message: Message, user: User, stp_repo: MainRequestsRepo)
 
 
 @group_casino_router.message(Command("darts"))
-async def darts_command(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def darts_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /darts для игры в дартс в группе"""
 
     # Проверяем авторизацию пользователя
@@ -291,7 +291,7 @@ async def darts_command(message: Message, user: User, stp_repo: MainRequestsRepo
 
 
 @group_casino_router.message(Command("bowling"))
-async def bowling_command(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def bowling_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /bowling для игры в боулинг в группе"""
 
     # Проверяем авторизацию пользователя

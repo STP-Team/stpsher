@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
 from tgbot.services.leveling import LevelingSystem
@@ -13,7 +13,7 @@ user_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_router.message(CommandStart())
-async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def user_start_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     if not user:
         await message.answer(
             """👋 Привет
@@ -29,7 +29,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRep
     achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
         user_id=user.user_id
     )
-    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
+    awards_sum = await stp_repo.award_usage.get_user_awards_sum(user_id=user.user_id)
     level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
 
     await message.answer(
@@ -48,7 +48,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRep
 
 @user_router.callback_query(MainMenu.filter(F.menu == "main"))
 async def user_start_cb(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     if not user:
         await callback.message.edit_text(
@@ -65,7 +65,7 @@ async def user_start_cb(
     achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
         user_id=user.user_id
     )
-    awards_sum = await stp_repo.user_award.get_user_awards_sum(user_id=user.user_id)
+    awards_sum = await stp_repo.award_usage.get_user_awards_sum(user_id=user.user_id)
     level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
 
     await callback.message.edit_text(

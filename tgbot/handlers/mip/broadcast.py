@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, PhotoSize
+from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
@@ -17,7 +17,6 @@ from tgbot.keyboards.mip.broadcast import (
 )
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.states.mip.broadcast import BroadcastState
-from tgbot.services.broadcaster import send_message
 
 mip_broadcast_router = Router()
 mip_broadcast_router.message.filter(F.chat.type == "private", MipFilter())
@@ -51,10 +50,10 @@ async def mip_broadcast_cmd(callback: CallbackQuery, state: FSMContext):
 async def process_text_message(message: Message, state: FSMContext):
     """Обработка текстового сообщения"""
     await state.update_data(
-        message_text=message.text, 
-        message_type="text", 
+        message_text=message.text,
+        message_type="text",
         original_message_id=message.message_id,
-        original_chat_id=message.chat.id
+        original_chat_id=message.chat.id,
     )
 
     # Показать выбор типа рассылки
@@ -67,10 +66,10 @@ async def process_photo_message(message: Message, state: FSMContext):
     caption = message.caption or ""
 
     await state.update_data(
-        message_text=caption, 
-        message_type="photo", 
+        message_text=caption,
+        message_type="photo",
         original_message_id=message.message_id,
-        original_chat_id=message.chat.id
+        original_chat_id=message.chat.id,
     )
 
     # Показать выбор типа рассылки
@@ -112,7 +111,7 @@ async def broadcast_everyone(
     data = await state.get_data()
 
     # Получаем всех пользователей
-    all_users = await stp_repo.user.get_users()
+    all_users = await stp_repo.employee.get_users()
     user_count = len(all_users)
 
     message_preview = data.get("message_text", "")
@@ -178,7 +177,7 @@ async def broadcast_division(
             division_name = "НЦК"
 
     # Получаем пользователей подразделения
-    all_users = await stp_repo.user.get_users()
+    all_users = await stp_repo.employee.get_users()
     division_users = [
         user for user in all_users if user.division == division_name and user.user_id
     ]
@@ -226,7 +225,7 @@ async def select_heads(
 ):
     """Выбор руководителей для рассылки по группам"""
     # Получаем всех руководителей
-    all_users = await stp_repo.user.get_users()
+    all_users = await stp_repo.employee.get_users()
     heads = [user for user in all_users if user.role == 2]  # role 2 = head
 
     if not heads:
@@ -319,7 +318,7 @@ async def confirm_heads_selection(
             selected_head_names.append(head_name)
 
             # Получаем сотрудников группы
-            group_users = await stp_repo.user.get_users_by_head(head_name)
+            group_users = await stp_repo.employee.get_users_by_head(head_name)
             all_group_users.extend(group_users)
 
     # Убираем дубликаты пользователей
@@ -441,7 +440,7 @@ async def start_broadcast(
                 await bot.copy_message(
                     chat_id=user_id,
                     from_chat_id=original_chat_id,
-                    message_id=original_message_id
+                    message_id=original_message_id,
                 )
                 success_count += 1
 

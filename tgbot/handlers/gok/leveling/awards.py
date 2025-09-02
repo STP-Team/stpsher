@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import GokFilter
 from tgbot.handlers.gok.leveling.main import filter_items_by_division
@@ -111,7 +111,7 @@ async def gok_awards_activation(
     page = getattr(callback_data, "page", 1)
 
     # Получаем награды ожидающие активации с manager_role == 5 (ГОК)
-    review_awards = await stp_repo.user_award.get_review_awards_for_activation(
+    review_awards = await stp_repo.award_usage.get_review_awards_for_activation(
         manager_role=5
     )
 
@@ -141,7 +141,7 @@ async def gok_awards_activation(
         award_info = award_detail.award_info
 
         # Получаем информацию о пользователе
-        user = await stp_repo.user.get_user(user_id=user_award.user_id)
+        user = await stp_repo.employee.get_user(user_id=user_award.user_id)
         user_name = user.fullname if user else f"ID: {user_award.user_id}"
 
         if user.username:
@@ -182,7 +182,7 @@ async def gok_award_activation_detail(
     current_page = callback_data.page
 
     # Получаем информацию о конкретной награде
-    user_award_detail = await stp_repo.user_award.get_user_award_detail(user_award_id)
+    user_award_detail = await stp_repo.award_usage.get_user_award_detail(user_award_id)
 
     if not user_award_detail:
         await callback.message.edit_text(
@@ -197,8 +197,8 @@ async def gok_award_activation_detail(
     award_info = user_award_detail.award_info
 
     # Получаем информацию о пользователе
-    user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
-    user_head: User = await stp_repo.user.get_user(fullname=user.head)
+    user: Employee = await stp_repo.employee.get_user(user_id=user_award.user_id)
+    user_head: Employee = await stp_repo.employee.get_user(fullname=user.head)
 
     user_info = (
         f"<a href='t.me/{user.username}'>{user.fullname}</a>"
@@ -253,7 +253,7 @@ async def gok_award_action(
     callback: CallbackQuery,
     callback_data: GokAwardActionMenu,
     stp_repo: MainRequestsRepo,
-    user: User,
+    user: Employee,
 ):
     """Обработка подтверждения/отклонения награды"""
     user_award_id = callback_data.user_award_id
@@ -262,7 +262,7 @@ async def gok_award_action(
 
     try:
         # Получаем информацию о награде
-        user_award_detail = await stp_repo.user_award.get_user_award_detail(
+        user_award_detail = await stp_repo.award_usage.get_user_award_detail(
             user_award_id
         )
 
@@ -272,11 +272,13 @@ async def gok_award_action(
 
         user_award = user_award_detail.user_award
         award_info = user_award_detail.award_info
-        employee_user: User = await stp_repo.user.get_user(user_id=user_award.user_id)
+        employee_user: Employee = await stp_repo.employee.get_user(
+            user_id=user_award.user_id
+        )
 
         if action == "approve":
             # Подтверждаем награду
-            await stp_repo.user_award.approve_award_usage(
+            await stp_repo.award_usage.approve_award_usage(
                 user_award_id=user_award_id,
                 updated_by_user_id=callback.from_user.id,
             )
@@ -314,7 +316,7 @@ async def gok_award_action(
 
         elif action == "reject":
             # Отклоняем награду
-            await stp_repo.user_award.reject_award_usage(
+            await stp_repo.award_usage.reject_award_usage(
                 user_award_id=user_award_id, updated_by_user_id=callback.from_user.id
             )
 

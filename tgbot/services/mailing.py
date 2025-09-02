@@ -5,7 +5,7 @@ from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from infrastructure.database.models import Award, User
+from infrastructure.database.models import Award, Employee
 from infrastructure.database.models.STP.awards_usage import AwardUsage
 from tgbot.config import load_config
 
@@ -62,9 +62,9 @@ async def send_auth_email(code: str, email: str, bot_username: str):
 
 
 async def send_activation_award_email(
-    user: User,
-    user_head: User | None,
-    current_duty: User | None,
+    user: Employee,
+    user_head: Employee | None,
+    current_duty: Employee | None,
     award: Award,
     user_award: AwardUsage,
 ):
@@ -96,9 +96,9 @@ async def send_activation_award_email(
 
 
 async def send_cancel_award_email(
-    user: User,
-    user_head: User | None,
-    current_duty: User | None,
+    user: Employee,
+    user_head: Employee | None,
+    current_duty: Employee | None,
     award: Award,
     user_award: AwardUsage,
 ):

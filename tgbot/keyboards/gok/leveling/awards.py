@@ -88,7 +88,7 @@ def gok_award_activation_kb(
 
     # Award buttons for current page
     for i, award_detail in enumerate(page_awards):
-        user_award = award_detail.user_award
+        user_award = award_detail.award_usage
         award_info = award_detail.award_info
 
         # Truncate name for button display

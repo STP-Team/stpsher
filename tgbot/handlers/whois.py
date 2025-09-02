@@ -5,7 +5,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def get_role_info(role: int) -> dict:
     return roles.get(role, roles[1])
 
 
-def create_user_info_message(user: User, user_head: User = None) -> str:
+def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     """Создание сообщения с информацией о пользователе (аналогично inline search)"""
 
     # Определяем роль и эмодзи
@@ -70,7 +70,7 @@ def create_user_info_message(user: User, user_head: User = None) -> str:
 
 
 @whois_router.message(Command("whois"))
-async def whois_command(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def whois_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /whois для получения информации о пользователе"""
 
     # Проверяем авторизацию пользователя
@@ -103,7 +103,7 @@ async def whois_command(message: Message, user: User, stp_repo: MainRequestsRepo
 
     try:
         # Ищем пользователя в базе данных
-        target_user = await stp_repo.user.get_user(user_id=replied_user_id)
+        target_user = await stp_repo.employee.get_user(user_id=replied_user_id)
 
         if not target_user:
             await message.reply(
@@ -124,7 +124,7 @@ async def whois_command(message: Message, user: User, stp_repo: MainRequestsRepo
         # Получаем информацию о руководителе, если указан
         user_head = None
         if target_user.head:
-            user_head = await stp_repo.user.get_user(fullname=target_user.head)
+            user_head = await stp_repo.employee.get_user(fullname=target_user.head)
 
         # Формируем и отправляем ответ с информацией о пользователе
         user_info_message = create_user_info_message(target_user, user_head)
@@ -145,7 +145,7 @@ async def whois_command(message: Message, user: User, stp_repo: MainRequestsRepo
 
 # Дополнительный хэндлер для команды /whois с аргументом (поиск по имени)
 @whois_router.message(Command("whois", magic=F.args))
-async def whois_with_args(message: Message, user: User, stp_repo: MainRequestsRepo):
+async def whois_with_args(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /whois с аргументом для поиска по имени"""
 
     # Проверяем авторизацию пользователя
@@ -163,7 +163,9 @@ async def whois_with_args(message: Message, user: User, stp_repo: MainRequestsRe
 
     try:
         # Поиск пользователей по частичному совпадению ФИО
-        found_users = await stp_repo.user.get_users_by_fio_parts(search_query, limit=10)
+        found_users = await stp_repo.employee.get_users_by_fio_parts(
+            search_query, limit=10
+        )
 
         if not found_users:
             await message.reply(
@@ -185,7 +187,7 @@ async def whois_with_args(message: Message, user: User, stp_repo: MainRequestsRe
             # Получаем информацию о руководителе
             user_head = None
             if target_user.head:
-                user_head = await stp_repo.user.get_user(fullname=target_user.head)
+                user_head = await stp_repo.employee.get_user(fullname=target_user.head)
 
             user_info_message = create_user_info_message(target_user, user_head)
             await message.reply(user_info_message, parse_mode="HTML")

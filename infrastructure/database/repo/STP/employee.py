@@ -4,13 +4,13 @@ from typing import Optional, Sequence, TypedDict, Unpack
 from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.STP.user import User
+from infrastructure.database.models.STP.employee import Employee
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
 
 
-class RegisteredUserParams(TypedDict, total=False):
+class EmployeeParams(TypedDict, total=False):
     """Доступные параметры для обновления пользователя в таблице RegisteredUsers."""
 
     user_id: int
@@ -23,14 +23,14 @@ class RegisteredUserParams(TypedDict, total=False):
     role: int
 
 
-class UserRepo(BaseRepo):
+class EmployeeRepo(BaseRepo):
     async def get_user(
         self,
         user_id: Optional[int] = None,
         username: Optional[str] = None,
         fullname: Optional[str] = None,
         email: Optional[str] = None,
-    ) -> Optional[User]:
+    ) -> Optional[Employee]:
         """
         Поиск пользователя в БД по фильтрам
 
@@ -46,19 +46,19 @@ class UserRepo(BaseRepo):
         filters = []
 
         if user_id:
-            filters.append(User.user_id == user_id)
+            filters.append(Employee.user_id == user_id)
         if username:
-            filters.append(User.username == username)
+            filters.append(Employee.username == username)
         if fullname:
-            filters.append(User.fullname == fullname)
+            filters.append(Employee.fullname == fullname)
         if email:
-            filters.append(User.email == email)
+            filters.append(Employee.email == email)
 
         if not filters:
             raise ValueError("At least one parameter must be provided to get_user()")
 
         # Combine all filters using OR
-        query = select(User).where(*filters)
+        query = select(Employee).where(*filters)
 
         try:
             result = await self.session.execute(query)
@@ -67,8 +67,8 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения пользователя: {e}")
             return None
 
-    async def get_users(self) -> Sequence[User] | None:
-        query = select(User)
+    async def get_users(self) -> Sequence[Employee] | None:
+        query = select(Employee)
 
         try:
             result = await self.session.execute(query)
@@ -77,7 +77,7 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения списка пользователей: {e}")
             return None
 
-    async def get_unauthorized_users(self, head_name: str = None) -> Sequence[User]:
+    async def get_unauthorized_users(self, head_name: str = None) -> Sequence[Employee]:
         """
         Получить список неавторизованных пользователей
         Неавторизованные пользователи - те, у которых отсутствует user_id (не связан с Telegram)
@@ -89,13 +89,13 @@ class UserRepo(BaseRepo):
             Список неавторизованных пользователей
         """
         # Основное условие - отсутствие user_id означает что пользователь не авторизован в Telegram
-        base_conditions = [User.user_id.is_(None)]
+        base_conditions = [Employee.user_id.is_(None)]
 
         # Добавляем фильтр по руководителю если указан
         if head_name:
-            base_conditions.append(User.head == head_name)
+            base_conditions.append(Employee.head == head_name)
 
-        query = select(User).where(*base_conditions).order_by(User.fullname)
+        query = select(Employee).where(*base_conditions).order_by(Employee.fullname)
 
         try:
             result = await self.session.execute(query)
@@ -109,12 +109,12 @@ class UserRepo(BaseRepo):
     async def update_user(
         self,
         user_id: int = None,
-        **kwargs: Unpack[RegisteredUserParams],
-    ) -> Optional[User]:
-        select_stmt = select(User).where(User.user_id == user_id)
+        **kwargs: Unpack[EmployeeParams],
+    ) -> Optional[Employee]:
+        select_stmt = select(Employee).where(Employee.user_id == user_id)
 
         result = await self.session.execute(select_stmt)
-        user: User | None = result.scalar_one_or_none()
+        user: Employee | None = result.scalar_one_or_none()
 
         # Если пользователь существует - обновляем его
         if user:
@@ -126,7 +126,7 @@ class UserRepo(BaseRepo):
 
     async def get_users_by_fio_parts(
         self, fullname: str, limit: int = 10
-    ) -> Sequence[User]:
+    ) -> Sequence[Employee]:
         """
         Поиск пользователей по частичному совпадению ФИО
         Возвращает список пользователей для случаев, когда найдено несколько совпадений
@@ -145,10 +145,10 @@ class UserRepo(BaseRepo):
         # Создаём условия для каждой части имени
         like_conditions = []
         for part in name_parts:
-            like_conditions.append(User.fullname.ilike(f"%{part}%"))
+            like_conditions.append(Employee.fullname.ilike(f"%{part}%"))
 
         # Все части должны присутствовать в ФИО (AND)
-        query = select(User).where(and_(*like_conditions)).limit(limit)
+        query = select(Employee).where(and_(*like_conditions)).limit(limit)
 
         try:
             result = await self.session.execute(query)
@@ -157,7 +157,7 @@ class UserRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения пользователей по ФИО: {e}")
             return []
 
-    async def get_users_by_head(self, head_name: str) -> Sequence[User]:
+    async def get_users_by_head(self, head_name: str) -> Sequence[Employee]:
         """
         Получить всех пользователей с указанным руководителем
 
@@ -169,7 +169,9 @@ class UserRepo(BaseRepo):
         """
         try:
             result = await self.session.execute(
-                select(User).where(User.head == head_name).order_by(User.fullname)
+                select(Employee)
+                .where(Employee.head == head_name)
+                .order_by(Employee.fullname)
             )
             return list(result.scalars().all())
         except Exception as e:
@@ -178,8 +180,8 @@ class UserRepo(BaseRepo):
             )
             return []
 
-    async def get_admins(self) -> Sequence[User]:
-        query = select(User).where(User.role == 10)
+    async def get_admins(self) -> Sequence[Employee]:
+        query = select(Employee).where(Employee.role == 10)
 
         try:
             result = await self.session.execute(query)
@@ -190,7 +192,7 @@ class UserRepo(BaseRepo):
 
     async def get_users_by_role(
         self, role: int, division: str = None
-    ) -> Sequence[User]:
+    ) -> Sequence[Employee]:
         """
         Получить пользователей с определенной ролью
 
@@ -204,13 +206,15 @@ class UserRepo(BaseRepo):
         """
         if division:
             if division == "НТП":
-                query = select(User).where(
-                    User.role == role, User.division.ilike(f"%{division}%")
+                query = select(Employee).where(
+                    Employee.role == role, Employee.division.ilike(f"%{division}%")
                 )
             else:
-                query = select(User).where(User.role == role, User.division == division)
+                query = select(Employee).where(
+                    Employee.role == role, Employee.division == division
+                )
         else:
-            query = select(User).where(User.role == role)
+            query = select(Employee).where(Employee.role == role)
 
         try:
             result = await self.session.execute(query)
@@ -239,12 +243,12 @@ class UserRepo(BaseRepo):
             # Строим условие для поиска
             conditions = []
             if fullname:
-                conditions.append(User.fullname == fullname)
+                conditions.append(Employee.fullname == fullname)
             if user_id:
-                conditions.append(User.user_id == user_id)
+                conditions.append(Employee.user_id == user_id)
 
             # Находим пользователей по условиям
-            query = select(User).where(*conditions)
+            query = select(Employee).where(*conditions)
             result = await self.session.execute(query)
             users = result.scalars().all()
 

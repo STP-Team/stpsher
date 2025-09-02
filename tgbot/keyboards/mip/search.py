@@ -1,7 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -173,7 +173,7 @@ def user_detail_kb(
 
 
 def head_group_kb(
-    users: list[User], head_id: int, page: int = 1, total_pages: int = 1
+    users: list[Employee], head_id: int, page: int = 1, total_pages: int = 1
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура группы руководителя (список его сотрудников)
@@ -299,7 +299,7 @@ def edit_user_back_kb(user_id: int) -> InlineKeyboardMarkup:
 
 
 def search_results_kb(
-    users: list[User], page: int = 1, total_pages: int = 1, search_type: str = "all"
+    users: list[Employee], page: int = 1, total_pages: int = 1, search_type: str = "all"
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура с результатами поиска (пагинированная)

@@ -5,7 +5,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.leveling.achievements import (
     AchievementsMenu,
@@ -47,7 +47,7 @@ async def user_achievements_cb(callback: CallbackQuery):
 async def achievements_all(
     callback: CallbackQuery,
     callback_data: AchievementsMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """

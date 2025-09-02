@@ -7,7 +7,7 @@ from infrastructure.database.repo.STP.award import AwardsRepo
 from infrastructure.database.repo.STP.broadcast import BroadcastRepo
 from infrastructure.database.repo.STP.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.STP.transactions import TransactionRepo
-from infrastructure.database.repo.STP.user import UserRepo
+from infrastructure.database.repo.STP.employee import EmployeeRepo
 from infrastructure.database.repo.STP.award_usage import AwardUsageRepo
 
 
@@ -22,11 +22,11 @@ class MainRequestsRepo:
     session: AsyncSession
 
     @property
-    def user(self) -> UserRepo:
+    def employee(self) -> EmployeeRepo:
         """
-        The User repository sessions are required to manage user operations.
+        The Employee repository sessions are required to manage user operations.
         """
-        return UserRepo(self.session)
+        return EmployeeRepo(self.session)
 
     @property
     def upload(self) -> ScheduleLogRepo:
@@ -43,7 +43,7 @@ class MainRequestsRepo:
         return AwardsRepo(self.session)
 
     @property
-    def user_award(self) -> AwardUsageRepo:
+    def award_usage(self) -> AwardUsageRepo:
         """
         The UserAwardsRepo repository sessions are required to manage user operations.
         """

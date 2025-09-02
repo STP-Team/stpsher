@@ -3,7 +3,7 @@ from typing import List
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.award_usage import AwardUsageWithDetails
 from tgbot.keyboards.mip.leveling.main import LevelingMenu
 from tgbot.keyboards.user.main import MainMenu
@@ -75,7 +75,7 @@ def get_status_emoji(status: str) -> str:
     return status_emojis.get(status, "❓")
 
 
-def awards_kb(user: User = None) -> InlineKeyboardMarkup:
+def awards_kb(user: Employee = None) -> InlineKeyboardMarkup:
     """
     Клавиатура меню наград.
 
@@ -289,7 +289,7 @@ def duty_award_activation_kb(
         start_idx = (current_page - 1) * 5  # 5 наград на страницу
 
         for i, award_detail in enumerate(page_awards):
-            user_award = award_detail.user_award
+            user_award = award_detail.award_usage
             award_info = award_detail.award_info
             award_number = start_idx + i + 1
 

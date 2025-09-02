@@ -6,7 +6,7 @@ import pytz
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu, auth_kb
 from tgbot.keyboards.user.schedule.main import (
     get_yekaterinburg_date,
@@ -43,7 +43,7 @@ class ScheduleHandlerService:
         self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
     @staticmethod
-    async def check_user_auth(callback: CallbackQuery, user: User) -> bool:
+    async def check_user_auth(callback: CallbackQuery, user: Employee) -> bool:
         """Проверяет авторизацию пользователя"""
         if not user:
             await callback.message.answer(
@@ -96,7 +96,7 @@ class ScheduleHandlerService:
         return self.yekaterinburg_tz.localize(target_date)
 
     async def get_user_schedule_response(
-        self, user: User, month: str, compact: bool = True, stp_repo=None
+        self, user: Employee, month: str, compact: bool = True, stp_repo=None
     ) -> str:
         """Получает расписание пользователя с информацией о дежурствах"""
         if stp_repo and not compact:
@@ -131,7 +131,7 @@ class ScheduleHandlerService:
             active_duties = []
             for duty in duties:
                 try:
-                    user = await stp_repo.user.get_user(fullname=duty.name)
+                    user = await stp_repo.employee.get_user(fullname=duty.name)
                     if user:
                         active_duties.append(duty)
                     else:
@@ -161,7 +161,7 @@ class ScheduleHandlerService:
 
     async def get_group_schedule_response(
         self,
-        user: User,
+        user: Employee,
         date: Optional[datetime.datetime] = None,
         page: int = 1,
         stp_repo=None,
@@ -208,7 +208,7 @@ schedule_service = ScheduleHandlerService()
 
 
 @user_schedule_router.callback_query(MainMenu.filter(F.menu == "schedule"))
-async def schedule(callback: CallbackQuery, user: User):
+async def schedule(callback: CallbackQuery, user: Employee):
     """Главное меню расписаний"""
     if not await schedule_service.check_user_auth(callback, user):
         return

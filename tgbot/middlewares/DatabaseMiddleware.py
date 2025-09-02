@@ -49,7 +49,9 @@ class DatabaseMiddleware(BaseMiddleware):
                         kpi_repo = KPIRequestsRepo(kpi_session)  # Для основной базы СТП
 
                         # Получаем пользователя из БД
-                        user = await stp_repo.user.get_user(user_id=event.from_user.id)
+                        user = await stp_repo.employee.get_user(
+                            user_id=event.from_user.id
+                        )
 
                         # Add repositories and user to data for other middlewares
                         data["stp_repo"] = stp_repo

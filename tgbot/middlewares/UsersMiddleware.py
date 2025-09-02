@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, Dict, Union
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, InlineQuery, Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.services.logger import setup_logging
@@ -38,7 +38,7 @@ class UsersMiddleware(BaseMiddleware):
             chat = None
 
         # Get user and repos from previous middleware (DatabaseMiddleware)
-        user: User = data.get("user")
+        user: Employee = data.get("user")
         stp_repo: MainRequestsRepo = data.get("stp_repo")
         kpi_repo: KPIRequestsRepo = data.get("kpi_repo")
 
@@ -51,7 +51,9 @@ class UsersMiddleware(BaseMiddleware):
 
     @staticmethod
     async def _update_username(
-        user: User, event: Union[Message, CallbackQuery, InlineQuery], stp_repo: MainRequestsRepo
+        user: Employee,
+        event: Union[Message, CallbackQuery, InlineQuery],
+        stp_repo: MainRequestsRepo,
     ):
         """
         Обновление юзернейма пользователя если он отличается от записанного
@@ -68,7 +70,7 @@ class UsersMiddleware(BaseMiddleware):
         if stored_username != current_username:
             try:
                 if current_username is None:
-                    await stp_repo.user.update_user(
+                    await stp_repo.employee.update_user(
                         user_id=event.from_user.id,
                         username=None,
                     )
@@ -76,7 +78,7 @@ class UsersMiddleware(BaseMiddleware):
                         f"[Юзернейм] Удален юзернейм пользователя {event.from_user.id}"
                     )
                 else:
-                    await stp_repo.user.update_user(
+                    await stp_repo.employee.update_user(
                         user_id=event.from_user.id, username=current_username
                     )
                     logger.info(

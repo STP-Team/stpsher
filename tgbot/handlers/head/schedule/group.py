@@ -4,7 +4,7 @@ from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.schedule.main import (
@@ -31,7 +31,7 @@ class HeadGroupScheduleService:
         self.group_parser = GroupScheduleParser()
 
     async def get_group_schedule_for_head(
-        self, user: User, date: datetime, page: int, stp_repo
+        self, user: Employee, date: datetime, page: int, stp_repo
     ) -> tuple[str, int, bool, bool]:
         """Получить групповое расписание для руководителя"""
         try:
@@ -57,7 +57,7 @@ head_group_schedule_service = HeadGroupScheduleService()
 
 
 @head_schedule_group_router.callback_query(ScheduleMenu.filter(F.menu == "group"))
-async def head_group_schedule(callback: CallbackQuery, user: User, stp_repo):
+async def head_group_schedule(callback: CallbackQuery, user: Employee, stp_repo):
     """Обработчик группового расписания для руководителя"""
     if not await schedule_service.check_user_auth(callback, user):
         return
@@ -95,7 +95,7 @@ async def head_group_schedule(callback: CallbackQuery, user: User, stp_repo):
     GroupNavigation.filter(F.user_type == "head")
 )
 async def handle_head_group_navigation(
-    callback: CallbackQuery, callback_data: GroupNavigation, user: User, stp_repo
+    callback: CallbackQuery, callback_data: GroupNavigation, user: Employee, stp_repo
 ):
     """Обработчик навигации по групповому расписанию для руководителя"""
     if not await schedule_service.check_user_auth(callback, user):

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from infrastructure.database.models.base import Base, TableNameMixin
 
 
-class User(Base, TableNameMixin):
+class Employee(Base, TableNameMixin):
     """
     Модель, представляющая сущность пользователя в БД
 
@@ -30,7 +30,7 @@ class User(Base, TableNameMixin):
 
     """
 
-    __tablename__ = "users"
+    __tablename__ = "employees"
 
     id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
     user_id: Mapped[int] = mapped_column(BIGINT, nullable=True)
@@ -43,4 +43,4 @@ class User(Base, TableNameMixin):
     role: Mapped[int] = mapped_column(BIGINT, nullable=False)
 
     def __repr__(self):
-        return f"<User {self.id} {self.user_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"
+        return f"<Employee {self.id} {self.user_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"

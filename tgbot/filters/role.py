@@ -1,12 +1,12 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from infrastructure.database.models.STP.user import User
+from infrastructure.database.models.STP.employee import Employee
 from tgbot.misc.dicts import executed_codes
 
 
 class RootFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 
@@ -14,7 +14,7 @@ class RootFilter(BaseFilter):
 
 
 class MipFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 
@@ -22,7 +22,7 @@ class MipFilter(BaseFilter):
 
 
 class DutyFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 
@@ -30,7 +30,7 @@ class DutyFilter(BaseFilter):
 
 
 class GokFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 
@@ -38,7 +38,7 @@ class GokFilter(BaseFilter):
 
 
 class HeadFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 
@@ -46,7 +46,7 @@ class HeadFilter(BaseFilter):
 
 
 class AdministratorFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 
@@ -54,7 +54,7 @@ class AdministratorFilter(BaseFilter):
 
 
 class SpecialistFilter(BaseFilter):
-    async def __call__(self, obj: Message, user: User, **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         if user is None:
             return False
 

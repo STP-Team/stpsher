@@ -6,7 +6,7 @@ from typing import List
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.leveling.casino import (
     CasinoMenu,
@@ -115,7 +115,7 @@ def get_bowling_result_multiplier(dice_value: int) -> tuple[str, float]:
 
 @user_leveling_casino_router.callback_query(MainMenu.filter(F.menu == "casino"))
 async def casino_main_menu(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Главное меню казино"""
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
@@ -138,7 +138,7 @@ async def casino_main_menu(
 
 @user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "main"))
 async def casino_main_menu_back(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Возврат в главное меню казино"""
     await casino_main_menu(callback, user, stp_repo)
@@ -146,7 +146,7 @@ async def casino_main_menu_back(
 
 @user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "slots"))
 async def casino_slot_betting(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Выбор ставки для игры в слоты"""
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
@@ -180,7 +180,7 @@ async def casino_slot_betting(
 
 @user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "dice"))
 async def casino_dice_betting(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Выбор ставки для игры в кости"""
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
@@ -212,7 +212,7 @@ async def casino_dice_betting(
 
 @user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "darts"))
 async def casino_darts_betting(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Выбор ставки для игры в дартс"""
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
@@ -244,7 +244,7 @@ async def casino_darts_betting(
 
 @user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "bowling"))
 async def casino_bowling_betting(
-    callback: CallbackQuery, user: User, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Выбор ставки для игры в боулинг"""
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
@@ -278,7 +278,7 @@ async def casino_bowling_betting(
 async def casino_rate_adjustment(
     callback: CallbackQuery,
     callback_data: CasinoMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """Регулировка ставки"""
@@ -329,7 +329,7 @@ async def casino_rate_adjustment(
 async def casino_game(
     callback: CallbackQuery,
     callback_data: CasinoMenu,
-    user: User,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """Игра в казино (слоты или кости)"""

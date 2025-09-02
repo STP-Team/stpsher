@@ -3,7 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.main import MainMenu
@@ -21,7 +21,7 @@ head_schedule_router.callback_query.filter(
 
 
 @head_schedule_router.callback_query(MainMenu.filter(F.menu == "schedule"))
-async def schedule(callback: CallbackQuery, user: User):
+async def schedule(callback: CallbackQuery, user: Employee):
     """Главное меню расписаний"""
     if not await schedule_service.check_user_auth(callback, user):
         return

@@ -8,7 +8,7 @@ from aiogram.types import (
     InputTextMessageContent,
 )
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import (
     AdministratorFilter,
@@ -68,16 +68,16 @@ class InlineSearchFilter:
     @staticmethod
     async def search_users_with_filters(
         stp_repo, filters: dict, limit: int = 20
-    ) -> List[User]:
+    ) -> List[Employee]:
         """Поиск пользователей с применением фильтров"""
         try:
             # Базовый поиск по имени
             if filters["name"]:
-                users = await stp_repo.user.get_users_by_fio_parts(
+                users = await stp_repo.employee.get_users_by_fio_parts(
                     filters["name"], limit=50
                 )
             else:
-                users = await stp_repo.user.get_users()
+                users = await stp_repo.employee.get_users()
                 users = list(users) if users else []
 
             if not users:
@@ -116,7 +116,7 @@ class InlineSearchFilter:
 
 @user_inline_router.inline_query()
 async def advanced_inline_handler(
-    inline_query: InlineQuery, user: User, stp_repo: MainRequestsRepo
+    inline_query: InlineQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Продвинутый обработчик инлайн-запросов с поиском и фильтрами"""
     query_text = inline_query.query.strip()
@@ -163,7 +163,7 @@ async def advanced_inline_handler(
 
                     # Добавляем результаты поиска
                     for found_user in sorted_users[:12]:  # Максимум 12 результатов
-                        user_head = await stp_repo.user.get_user(
+                        user_head = await stp_repo.employee.get_user(
                             fullname=found_user.head
                         )
                         result_item = create_user_result_item(
@@ -194,7 +194,7 @@ async def advanced_inline_handler(
 
 
 def create_user_result_item(
-    user: User, user_head: User, search_filters: dict
+    user: Employee, user_head: Employee, search_filters: dict
 ) -> InlineQueryResultArticle:
     """Создание элемента результата для найденного пользователя"""
     # Определяем роль и эмодзи
@@ -351,7 +351,7 @@ def create_error_item(error: Exception) -> InlineQueryResultArticle:
 
 
 async def create_default_commands(
-    user: User, stp_repo
+    user: Employee, stp_repo
 ) -> List[InlineQueryResultArticle]:
     """Создание дефолтных команд"""
     results = []

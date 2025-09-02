@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.user.main import user_start_cmd
 from tgbot.misc.helpers import generate_auth_code
@@ -124,7 +124,7 @@ async def user_auth_fullname(
         )
         return
 
-    db_user: User | None = await stp_repo.user.get_user(fullname=message.text)
+    db_user: Employee | None = await stp_repo.employee.get_user(fullname=message.text)
     if db_user:
         if not db_user.user_id:
             db_user.user_id = message.chat.id

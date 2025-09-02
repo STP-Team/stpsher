@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.schedule.main import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
@@ -42,7 +42,7 @@ class ScheduleChangeDetector:
             # Отправка уведомления затронутым пользователям
             notified_users = []
             for user_changes in changed_users:
-                user: User = await stp_repo.user.get_user(
+                user: Employee = await stp_repo.employee.get_user(
                     fullname=user_changes["fullname"]
                 )
                 if user and user.user_id:
@@ -102,7 +102,7 @@ class ScheduleChangeDetector:
 
             for fullname in all_users:
                 # Проверяем, что пользователь есть в БД
-                user = await stp_repo.user.get_user(fullname=fullname)
+                user = await stp_repo.employee.get_user(fullname=fullname)
                 if not user:
                     continue
 

@@ -6,7 +6,7 @@ from typing import Optional, TypedDict, Unpack
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models import Award, User
+from infrastructure.database.models import Award, Employee
 from infrastructure.database.models.STP.awards_usage import AwardUsage
 from infrastructure.database.repo.base import BaseRepo
 
@@ -149,18 +149,18 @@ class AwardUsageRepo(BaseRepo):
         Фильтруем по статусу "review" и manager_role
         Опционально фильтруем по division пользователей
         """
-        from infrastructure.database.models import Award, User
+        from infrastructure.database.models import Award, Employee
 
         select_stmt = (
-            select(AwardUsage, Award, User)
+            select(AwardUsage, Award, Employee)
             .join(Award, AwardUsage.award_id == Award.id)
-            .join(User, AwardUsage.user_id == User.user_id)
+            .join(Employee, AwardUsage.user_id == Employee.user_id)
             .where(AwardUsage.status == "review", Award.manager_role == manager_role)
         )
 
         # Добавляем фильтр по division если указан
         if division:
-            select_stmt = select_stmt.where(User.division == division)
+            select_stmt = select_stmt.where(Employee.division == division)
 
         select_stmt = select_stmt.order_by(
             AwardUsage.bought_at.asc()
@@ -348,10 +348,10 @@ class AwardUsageRepo(BaseRepo):
                     func.sum(AwardUsage.usage_count).label("total_usage"),
                     func.count(AwardUsage.award_id).label("purchase_count"),
                 )
-                .select_from(User)
-                .join(AwardUsage, User.user_id == AwardUsage.user_id)
+                .select_from(Employee)
+                .join(AwardUsage, Employee.user_id == AwardUsage.user_id)
                 .join(Award, AwardUsage.award_id == Award.id)
-                .where(User.head == head_name)
+                .where(Employee.head == head_name)
                 .group_by(Award.name)
                 .order_by(func.sum(AwardUsage.usage_count).desc())
             )

@@ -147,7 +147,7 @@ async def show_history_files_paginated(
     # Build file list for current page
     files_info = []
     for counter, file in enumerate(page_files, start=start_idx + 1):
-        user = await stp_repo.user.get_user(user_id=file.uploaded_by_user_id)
+        user = await stp_repo.employee.get_user(user_id=file.uploaded_by_user_id)
 
         if user.username:
             files_info.append(
@@ -216,7 +216,7 @@ async def show_file_detail(
             )
             return
 
-        user = await stp_repo.user.get_user(user_id=file_log.uploaded_by_user_id)
+        user = await stp_repo.employee.get_user(user_id=file_log.uploaded_by_user_id)
 
         # Check if file exists locally
         local_exists = os.path.exists(
@@ -393,7 +393,7 @@ async def show_local_file_detail(
                 break
 
         if file_log:
-            uploader = await stp_repo.user.get_user(
+            uploader = await stp_repo.employee.get_user(
                 user_id=file_log.uploaded_by_user_id
             )
             if uploader:
@@ -686,7 +686,7 @@ async def handle_version_selection(
             await callback.answer("Версия файла не найдена", show_alert=True)
             return
 
-        uploader = await stp_repo.user.get_user(
+        uploader = await stp_repo.employee.get_user(
             user_id=selected_version.uploaded_by_user_id
         )
         uploader_name = uploader.fullname if uploader else "Неизвестно"

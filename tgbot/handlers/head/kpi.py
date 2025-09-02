@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
-from infrastructure.database.models import User
+from infrastructure.database.models import Employee
 from infrastructure.database.models.KPI.rg_month_stats import HeadMonthKPI
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from tgbot.filters.role import HeadFilter
@@ -15,7 +15,9 @@ head_kpi_router.callback_query.filter(F.message.chat.type == "private", HeadFilt
 
 
 @head_kpi_router.callback_query(MainMenu.filter(F.menu == "kpi"))
-async def head_start_cb(callback: CallbackQuery, user: User, kpi_repo: KPIRequestsRepo):
+async def head_start_cb(
+    callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
+):
     head_kpi: HeadMonthKPI = await kpi_repo.head_month_kpi.get_kpi(
         fullname=user.fullname
     )
