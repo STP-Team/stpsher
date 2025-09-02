@@ -2,7 +2,7 @@ import logging
 from typing import Any, Awaitable, Callable, Dict, Union
 
 from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineQuery, Message
 
 from infrastructure.database.models import User
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
@@ -22,19 +22,20 @@ class UsersMiddleware(BaseMiddleware):
     async def __call__(
         self,
         handler: Callable[
-            [Union[Message, CallbackQuery], Dict[str, Any]], Awaitable[Any]
+            [Union[Message, CallbackQuery, InlineQuery], Dict[str, Any]], Awaitable[Any]
         ],
-        event: Union[Message, CallbackQuery],
+        event: Union[Message, CallbackQuery, InlineQuery],
         data: Dict[str, Any],
     ) -> Any:
-        # Get chat from event (different for Message vs CallbackQuery)
-        chat = (
-            event.chat
-            if isinstance(event, Message)
-            else event.message.chat
-            if event.message
-            else None
-        )
+        # Get chat from event (different for Message vs CallbackQuery vs InlineQuery)
+        chat = None
+        if isinstance(event, Message):
+            chat = event.chat
+        elif isinstance(event, CallbackQuery) and event.message:
+            chat = event.message.chat
+        elif isinstance(event, InlineQuery):
+            # InlineQuery doesn't have a chat, but we can get from_user
+            chat = None
 
         # Get user and repos from previous middleware (DatabaseMiddleware)
         user: User = data.get("user")
@@ -50,7 +51,7 @@ class UsersMiddleware(BaseMiddleware):
 
     @staticmethod
     async def _update_username(
-        user: User, event: Union[Message, CallbackQuery], stp_repo: MainRequestsRepo
+        user: User, event: Union[Message, CallbackQuery, InlineQuery], stp_repo: MainRequestsRepo
     ):
         """
         Обновление юзернейма пользователя если он отличается от записанного
