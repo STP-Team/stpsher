@@ -1,5 +1,5 @@
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class MainMenu(CallbackData, prefix="menu"):
@@ -48,6 +48,12 @@ def main_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="👏 Награды",
                 callback_data=MainMenu(menu="awards").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🎲 Казино",
+                callback_data=MainMenu(menu="casino").pack(),
             ),
         ],
         # [

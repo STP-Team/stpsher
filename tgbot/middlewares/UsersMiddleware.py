@@ -44,6 +44,10 @@ class UsersMiddleware(BaseMiddleware):
         if user:
             await self._update_username(user, event, stp_repo)
 
+        # Continue to the next middleware/handler
+        result = await handler(event, data)
+        return result
+
     @staticmethod
     async def _update_username(
         user: User, event: Union[Message, CallbackQuery], stp_repo: MainRequestsRepo

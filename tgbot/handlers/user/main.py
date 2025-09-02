@@ -39,7 +39,7 @@ async def user_start_cmd(message: Message, user: User, stp_repo: MainRequestsRep
 
 {level_info_text}
 
-<blockquote expandable><b>📊 Баланс</b>
+<blockquote expandable><b>✨ Баланс</b>
 Всего заработано: {achievements_sum} баллов
 Всего потрачено: {awards_sum} баллов</blockquote>""",
         reply_markup=main_kb(),
@@ -75,7 +75,7 @@ async def user_start_cb(
 
 {level_info_text}
 
-<blockquote expandable><b>📊 Баланс</b>
+<blockquote expandable><b>✨ Баланс</b>
 Всего заработано: {achievements_sum} баллов
 Всего потрачено: {awards_sum} баллов</blockquote>""",
         reply_markup=main_kb(),

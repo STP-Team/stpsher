@@ -17,7 +17,7 @@ class Transaction(Base, TableNameMixin):
         user_id (Mapped[int]): Идентификатор пользователя.
         type (Mapped[str]): Тип операции: начисление или списание.
         source_id (Mapped[Optional[int]]): Идентификатор достижения или награды. Для manual — NULL.
-        source_type (Mapped[str]): Источник транзакции.
+        source_type (Mapped[str]): Источник транзакции: achievement, award, manual, casino.
         amount (Mapped[int]): Количество баллов.
         comment (Mapped[Optional[str]]): Комментарий.
         created_by (Mapped[Optional[int]]): ID администратора, создавшего транзакцию.
@@ -40,7 +40,7 @@ class Transaction(Base, TableNameMixin):
     user_id: Mapped[int] = mapped_column(BIGINT, nullable=False)
     type: Mapped[str] = mapped_column(Enum('earn', 'spend'), nullable=False, comment='Тип операции: начисление или списание')
     source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment='Идентификатор достижения или награды. Для manual — NULL')
-    source_type: Mapped[str] = mapped_column(Enum('achievement', 'award', 'manual'), nullable=False, comment='Источник транзакции')
+    source_type: Mapped[str] = mapped_column(Enum('achievement', 'award', 'manual', 'casino'), nullable=False, comment='Источник транзакции')
     amount: Mapped[int] = mapped_column(Integer, nullable=False, comment='Количество баллов')
     comment: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment='Комментарий')
     created_by: Mapped[Optional[int]] = mapped_column(BIGINT, nullable=True, comment='ID администратора, создавшего транзакцию')
