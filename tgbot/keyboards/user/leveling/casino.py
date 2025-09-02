@@ -19,8 +19,6 @@ def casino_main_kb() -> InlineKeyboardMarkup:
                 text="🎰 Слоты",
                 callback_data=CasinoMenu(menu="slots", game_type="slots").pack(),
             ),
-        ],
-        [
             InlineKeyboardButton(
                 text="🎲 Кости",
                 callback_data=CasinoMenu(menu="dice", game_type="dice").pack(),
