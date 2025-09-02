@@ -27,6 +27,7 @@ from tgbot.handlers.user.schedule.heads import user_schedule_head_router
 from tgbot.handlers.user.schedule.main import user_schedule_router
 from tgbot.handlers.user.schedule.my import user_schedule_my_router
 from tgbot.handlers.whois import whois_router
+from tgbot.handlers.group.casino import group_casino_router
 
 routers_list = [
     admin_router,
@@ -56,6 +57,7 @@ routers_list = [
     user_links_router,
     user_inline_router,
     whois_router,
+    group_casino_router,
 ]
 
 __all__ = [
