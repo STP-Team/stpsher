@@ -7,8 +7,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiogram.types import (
     BotCommand,
-    BotCommandScopeAllPrivateChats,
     BotCommandScopeAllGroupChats,
+    BotCommandScopeAllPrivateChats,
 )
 
 from infrastructure.database.setup import create_engine, create_session_pool
@@ -16,11 +16,12 @@ from tgbot.config import Config, load_config
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
+from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.services.logger import setup_logging
 from tgbot.services.scheduler import (
+    notify_to_unauthorized_users,
     process_fired_users,
     scheduler,
-    notify_to_unauthorized_users,
 )
 
 bot_config = load_config(".env")
@@ -74,11 +75,9 @@ def register_middlewares(
         stp_session_pool=main_session_pool,
         kpi_session_pool=kpi_session_pool,
     )
+    users_middleware = UsersMiddleware()
 
-    for middleware in [
-        config_middleware,
-        database_middleware,
-    ]:
+    for middleware in [config_middleware, database_middleware, users_middleware]:
         dp.message.outer_middleware(middleware)
         dp.callback_query.outer_middleware(middleware)
         dp.inline_query.outer_middleware(middleware)

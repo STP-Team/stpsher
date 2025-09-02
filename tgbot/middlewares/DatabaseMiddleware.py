@@ -5,7 +5,6 @@ from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
 
-from infrastructure.database.models import User
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.config import Config
@@ -59,8 +58,6 @@ class DatabaseMiddleware(BaseMiddleware):
                         data["kpi_session"] = kpi_session
                         data["user"] = user
 
-                        await self._update_username(user, event, stp_repo)
-
                         # Continue to the next middleware/handler
                         result = await handler(event, data)
                         return result
@@ -94,41 +91,3 @@ class DatabaseMiddleware(BaseMiddleware):
                 return None
 
         return None
-
-    @staticmethod
-    async def _update_username(
-        user: User, event: Union[Message, CallbackQuery], stp_repo: MainRequestsRepo
-    ):
-        """
-        Обновление юзернейма пользователя если он отличается от записанного
-        :param user:
-        :param event:
-        :return:
-        """
-        if not user:
-            return
-
-        current_username = event.from_user.username
-        stored_username = user.username
-
-        if stored_username != current_username:
-            try:
-                if current_username is None:
-                    await stp_repo.user.update_user(
-                        user_id=event.from_user.id,
-                        username=None,
-                    )
-                    logger.info(
-                        f"[Юзернейм] Удален юзернейм пользователя {event.from_user.id}"
-                    )
-                else:
-                    await stp_repo.user.update_user(
-                        user_id=event.from_user.id, username=current_username
-                    )
-                    logger.info(
-                        f"[Юзернейм] Обновлен юзернейм пользователя {event.from_user.id} - @{current_username}"
-                    )
-            except Exception as e:
-                logger.error(
-                    f"[Юзернейм] Ошибка обновления юзернейма для пользователя {event.from_user.id}: {e}"
-                )
