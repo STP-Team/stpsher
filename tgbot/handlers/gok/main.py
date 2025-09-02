@@ -11,6 +11,7 @@ from tgbot.keyboards.user.main import MainMenu
 
 gok_router = Router()
 gok_router.message.filter(F.chat.type == "private", GokFilter())
+gok_router.callback_query.filter(F.message.chat.type == "private", GokFilter())
 
 logger = logging.getLogger(__name__)
 
