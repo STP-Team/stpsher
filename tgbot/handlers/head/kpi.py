@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
-from infrastructure.database.models.KPI.rg_month_stats import HeadMonthKPI
+from infrastructure.database.models.KPI.rg_month_kpi import HeadMonthKPI
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.kpi import kpi_kb
