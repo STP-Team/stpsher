@@ -251,3 +251,324 @@ class TransactionRepo(BaseRepo):
                 f"[БД] Ошибка вычисления суммы достижений пользователя {user_id}: {e}"
             )
             return 0
+
+    async def get_group_transactions(self, head_name: str) -> Sequence[Transaction]:
+        """
+        Получить все транзакции группы по имени руководителя
+
+        Args:
+            head_name: ФИО руководителя
+
+        Returns:
+            Список транзакций всех участников группы
+        """
+        try:
+            from infrastructure.database.models.STP.employee import Employee
+
+            # Получаем всех участников группы
+            group_members = await self.session.execute(
+                select(Employee).where(Employee.head == head_name)
+            )
+            members = group_members.scalars().all()
+
+            if not members:
+                return []
+
+            # Получаем user_id всех участников группы
+            member_user_ids = [member.user_id for member in members if member.user_id]
+
+            if not member_user_ids:
+                return []
+
+            # Получаем все транзакции участников группы
+            query = select(Transaction).where(Transaction.user_id.in_(member_user_ids))
+            query = query.order_by(Transaction.created_at.desc())
+            result = await self.session.execute(query)
+            return result.scalars().all()
+
+        except Exception as e:
+            logger.error(
+                f"[БД] Ошибка получения транзакций группы для {head_name}: {e}"
+            )
+            return []
+
+    async def get_heads_ranking_by_division(self, division: str) -> list[dict]:
+        """
+        Получить рейтинг руководителей по дивизиону на основе очков за текущий месяц с 1-го числа
+
+        Args:
+            division: Название дивизиона
+
+        Returns:
+            Список словарей с информацией о руководителях и их местах
+        """
+        try:
+            from datetime import date, datetime
+
+            from sqlalchemy import and_, func
+
+            from infrastructure.database.models.STP.employee import Employee
+
+            # Получаем начало текущего месяца (1-е число)
+            current_date = datetime.now()
+            month_start = date(current_date.year, current_date.month, 1)
+
+            # Получаем всех руководителей указанного дивизиона
+            heads_query = select(Employee).where(
+                and_(
+                    Employee.division == division,
+                    Employee.role == 2,  # Роль руководителя
+                )
+            )
+            heads_result = await self.session.execute(heads_query)
+            heads = heads_result.scalars().all()
+
+            if not heads:
+                return []
+
+            ranking = []
+
+            for head in heads:
+                # Получаем участников группы этого руководителя
+                group_members = await self.session.execute(
+                    select(Employee).where(Employee.head == head.fullname)
+                )
+                members = group_members.scalars().all()
+                member_user_ids = [
+                    member.user_id for member in members if member.user_id
+                ]
+
+                # Подсчитываем очки группы за текущий месяц с 1-го числа
+                if member_user_ids:
+                    points_query = select(func.sum(Transaction.amount)).where(
+                        Transaction.user_id.in_(member_user_ids),
+                        Transaction.type == "earn",
+                        func.date(Transaction.created_at) >= month_start,
+                    )
+                    points_result = await self.session.execute(points_query)
+                    points = points_result.scalar() or 0
+                else:
+                    points = 0
+
+                ranking.append(
+                    {
+                        "head_name": head.fullname,
+                        "username": head.username,
+                        "points": points,
+                        "group_size": len(members),
+                    }
+                )
+
+            # Сортируем по убыванию очков
+            ranking.sort(key=lambda x: x["points"], reverse=True)
+
+            # Добавляем места
+            for i, head_data in enumerate(ranking, 1):
+                head_data["place"] = i
+
+            return ranking
+
+        except Exception as e:
+            logger.error(
+                f"[БД] Ошибка получения рейтинга руководителей для дивизиона {division}: {e}"
+            )
+            return []
+
+    async def get_group_all_time_top_3(self, head_name: str) -> list[dict]:
+        """
+        Получить ТОП-3 участников группы по всем баллам за все время
+
+        Args:
+            head_name: ФИО руководителя
+
+        Returns:
+            Список словарей с информацией о топ-3 участниках группы за все время
+        """
+        try:
+            from sqlalchemy import func
+
+            from infrastructure.database.models.STP.employee import Employee
+
+            # Получаем всех участников группы
+            group_members = await self.session.execute(
+                select(Employee).where(Employee.head == head_name)
+            )
+            members = group_members.scalars().all()
+
+            if not members:
+                return []
+
+            # Получаем user_id всех участников группы
+            member_user_ids = [member.user_id for member in members if member.user_id]
+
+            if not member_user_ids:
+                return []
+
+            # Запрос для получения суммы очков каждого участника за все время
+            all_time_stats_query = (
+                select(
+                    Transaction.user_id,
+                    func.sum(Transaction.amount).label("all_time_points"),
+                )
+                .where(
+                    Transaction.user_id.in_(member_user_ids), Transaction.type == "earn"
+                )
+                .group_by(Transaction.user_id)
+            )
+
+            all_time_stats_result = await self.session.execute(all_time_stats_query)
+            all_time_stats = all_time_stats_result.all()
+
+            # Сортируем по убыванию и берем ТОП-3
+            top_3_all_time = sorted(
+                all_time_stats, key=lambda x: x.all_time_points, reverse=True
+            )[:3]
+
+            # Формируем список ТОП-3 с именами
+            top_3_list = []
+            for user_stats in top_3_all_time:
+                member = next(
+                    (m for m in members if m.user_id == user_stats.user_id), None
+                )
+                if member:
+                    top_3_list.append(
+                        {
+                            "name": member.fullname,
+                            "username": member.username,
+                            "points": user_stats.all_time_points,
+                        }
+                    )
+
+            return top_3_list
+
+        except Exception as e:
+            logger.error(
+                f"[БД] Ошибка получения ТОП-3 за все время для группы {head_name}: {e}"
+            )
+            return []
+
+    async def get_group_stats_by_head(self, head_name: str) -> dict:
+        """
+        Получить статистику группы по имени руководителя
+
+        Args:
+            head_name: ФИО руководителя
+
+        Returns:
+            Словарь со статистикой группы
+        """
+        try:
+            from datetime import datetime
+
+            from sqlalchemy import func
+
+            from infrastructure.database.models.STP.employee import Employee
+
+            # Получаем всех участников группы
+            group_members = await self.session.execute(
+                select(Employee).where(Employee.head == head_name)
+            )
+            members = group_members.scalars().all()
+
+            if not members:
+                return {
+                    "total_members": 0,
+                    "total_points": 0,
+                    "top_3_this_month": [],
+                    "group_level": 0,
+                }
+
+            # Получаем user_id всех участников группы
+            member_user_ids = [member.user_id for member in members if member.user_id]
+
+            if not member_user_ids:
+                return {
+                    "total_members": len(members),
+                    "total_points": 0,
+                    "top_3_this_month": [],
+                    "group_level": 0,
+                }
+
+            # Получаем общую сумму баллов группы (все транзакции типа earn)
+            total_points_query = select(func.sum(Transaction.amount)).where(
+                Transaction.user_id.in_(member_user_ids), Transaction.type == "earn"
+            )
+            total_points_result = await self.session.execute(total_points_query)
+            total_points = total_points_result.scalar() or 0
+
+            # Получаем ТОП-3 за текущий месяц с 1-го числа
+            current_date = datetime.now()
+            month_start = datetime(current_date.year, current_date.month, 1)
+
+            # Запрос для получения суммы очков каждого участника за текущий месяц с 1-го числа
+            month_stats_query = (
+                select(
+                    Transaction.user_id,
+                    func.sum(Transaction.amount).label("month_points"),
+                )
+                .where(
+                    Transaction.user_id.in_(member_user_ids),
+                    Transaction.type == "earn",
+                    Transaction.created_at >= month_start,
+                )
+                .group_by(Transaction.user_id)
+            )
+
+            month_stats_result = await self.session.execute(month_stats_query)
+            month_stats = month_stats_result.all()
+
+            # Сортируем по убыванию и берем ТОП-3
+            top_3_month = sorted(
+                month_stats, key=lambda x: x.month_points, reverse=True
+            )[:3]
+
+            # Формируем список ТОП-3 с именами
+            top_3_list = []
+            for user_stats in top_3_month:
+                member = next(
+                    (m for m in members if m.user_id == user_stats.user_id), None
+                )
+                if member:
+                    top_3_list.append(
+                        {
+                            "name": member.fullname,
+                            "username": member.username,
+                            "points": user_stats.month_points,
+                        }
+                    )
+
+            # Вычисляем средний уровень группы на основе общей суммы очков за достижения
+            achievements_sum_query = select(func.sum(Transaction.amount)).where(
+                Transaction.user_id.in_(member_user_ids),
+                Transaction.type == "earn",
+                Transaction.source_type == "achievement",
+            )
+            achievements_sum_result = await self.session.execute(achievements_sum_query)
+            achievements_sum = achievements_sum_result.scalar() or 0
+
+            from tgbot.services.leveling import LevelingSystem
+
+            avg_level = (
+                LevelingSystem.calculate_level(achievements_sum // len(member_user_ids))
+                if member_user_ids
+                else 0
+            )
+
+            return {
+                "total_members": len(members),
+                "total_points": total_points,
+                "top_3_this_month": top_3_list,
+                "group_level": avg_level,
+                "achievements_sum": achievements_sum,
+            }
+
+        except Exception as e:
+            logger.error(
+                f"[БД] Ошибка получения статистики группы для {head_name}: {e}"
+            )
+            return {
+                "total_members": 0,
+                "total_points": 0,
+                "top_3_this_month": [],
+                "group_level": 0,
+            }

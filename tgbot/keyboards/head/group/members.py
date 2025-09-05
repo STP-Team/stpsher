@@ -217,7 +217,7 @@ def head_member_detail_kb(
     buttons = [
         [
             InlineKeyboardButton(
-                text="📅 Расписание",
+                text="📅 График",
                 callback_data=HeadMemberActionMenu(
                     member_id=member_id, action="schedule", page=page
                 ).pack(),

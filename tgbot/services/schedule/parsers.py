@@ -1483,7 +1483,7 @@ class GroupScheduleParser(BaseExcelParser):
         """Format group schedule for regular user with pagination."""
         if not group_members:
             return (
-                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Расписание для группы не найдено",
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
                 1,
                 False,
                 False,
@@ -1498,7 +1498,7 @@ class GroupScheduleParser(BaseExcelParser):
 
         if not colleagues:
             return (
-                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Расписание для группы не найдено",
+                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
                 1,
                 False,
                 False,

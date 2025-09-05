@@ -17,7 +17,7 @@ def group_management_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="📅 Расписание",
+                text="📅 График",
                 callback_data=GroupManagementMenu(menu="schedule").pack(),
             ),
             InlineKeyboardButton(

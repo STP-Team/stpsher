@@ -1,7 +1,13 @@
+from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from tgbot.keyboards.gok.main import GokGameMenu, GokProductsMenu
+from tgbot.keyboards.head.game.history import HeadGroupHistoryMenu, HeadRankingMenu
 from tgbot.keyboards.user.main import MainMenu
+
+
+class HeadGroupStatsMenu(CallbackData, prefix="head_group_stats"):
+    menu: str
 
 
 def head_game_kb() -> InlineKeyboardMarkup:
@@ -17,6 +23,16 @@ def head_game_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="👏 Предметы",
                 callback_data=GokProductsMenu(menu="products_all").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="📜 История группы",
+                callback_data=HeadGroupHistoryMenu(menu="history").pack(),
+            ),
+            InlineKeyboardButton(
+                text="📊 Рейтинг",
+                callback_data=HeadRankingMenu(menu="ranking").pack(),
             ),
         ],
         [

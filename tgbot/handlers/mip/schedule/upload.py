@@ -573,7 +573,7 @@ def _generate_detailed_file_stats_text(stats: dict) -> str:
     new_stats = stats.get("new_file", {})
     text += "\n<blockquote expandable>📄 <b>Новый файл:</b>\n"
     text += f"• Всего сотрудников: {new_stats.get('total_people', 0)}\n"
-    text += f"• С расписанием: {new_stats.get('schedule_people', 0)}\n"
+    text += f"• С графиком: {new_stats.get('schedule_people', 0)}\n"
     if new_stats.get("fired_people", 0) > 0:
         text += f"• К увольнению: {new_stats.get('fired_people', 0)}\n"
 
@@ -582,7 +582,7 @@ def _generate_detailed_file_stats_text(stats: dict) -> str:
     if old_stats:
         text += "\n📋 <b>Предыдущий файл:</b>\n"
         text += f"• Всего сотрудников: {old_stats.get('total_people', 0)}\n"
-        text += f"• С расписанием: {old_stats.get('schedule_people', 0)}\n"
+        text += f"• С графиком: {old_stats.get('schedule_people', 0)}\n"
         if old_stats.get("fired_people", 0) > 0:
             text += f"• К увольнению: {old_stats.get('fired_people', 0)}\n"
 
@@ -600,9 +600,9 @@ def _generate_detailed_file_stats_text(stats: dict) -> str:
                 text += f"• {total_diff} сотрудников\n"
 
             if schedule_diff > 0:
-                text += f"• +{schedule_diff} с расписанием\n"
+                text += f"• +{schedule_diff} с графиком\n"
             elif schedule_diff < 0:
-                text += f"• {schedule_diff} с расписанием\n"
+                text += f"• {schedule_diff} с графиком\n"
 
     return text + "</blockquote>"
 

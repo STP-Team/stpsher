@@ -108,7 +108,7 @@ class ScheduleFormatter:
 
         all_days.sort(key=lambda x: extract_day_number(x[0].day))
 
-        lines.append("📅 <b>Расписание по дням:</b>")
+        lines.append("📅 <b>График по дням:</b>")
 
         total_work_hours = 0
         work_days_count = 0
@@ -293,7 +293,7 @@ class ScheduleFormatter:
 
         all_days.sort(key=lambda x: extract_day_number(x[0].day))
 
-        lines.append("📅 <b>Расписание по дням:</b>")
+        lines.append("📅 <b>График по дням:</b>")
 
         total_work_hours = 0
         work_days_count = 0

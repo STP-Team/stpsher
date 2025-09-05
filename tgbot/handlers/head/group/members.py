@@ -244,7 +244,7 @@ async def view_member_schedule(
             )
 
             await callback.message.edit_text(
-                f"""📅 <b>Расписание участника</b>
+                f"""📅 <b>График участника</b>
 
 <b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
 <b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
@@ -260,21 +260,21 @@ async def view_member_schedule(
 
         except Exception as schedule_error:
             # Если не удалось получить расписание, показываем ошибку
-            error_message = "❌ Расписание для данного сотрудника не найдено"
+            error_message = "❌ График для данного сотрудника не найдено"
             if "не найден" in str(schedule_error).lower():
-                error_message = f"❌ Сотрудник {member.fullname} не найден в расписании"
+                error_message = f"❌ Сотрудник {member.fullname} не найден в графике"
             elif "файл" in str(schedule_error).lower():
-                error_message = "❌ Файл расписания недоступен"
+                error_message = "❌ Файл графика недоступен"
 
             await callback.message.edit_text(
-                f"""📅 <b>Расписание участника</b>
+                f"""📅 <b>График участника</b>
 
 <b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
 <b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
 
 {error_message}
 
-<i>Возможно, сотрудник не включен в текущее расписание или файл недоступен.</i>""",
+<i>Возможно, сотрудник не включен в текущий график или файл недоступен.</i>""",
                 reply_markup=head_member_schedule_kb(
                     member_id=member_id,
                     current_month=current_month,
@@ -320,13 +320,13 @@ async def navigate_member_schedule(
         month_to_display = get_month_name_by_index(month_idx)
 
         try:
-            # Получаем расписание участника с дежурствами
+            # Получаем график участника с дежурствами
             schedule_response = await schedule_service.get_user_schedule_response(
                 user=member, month=month_to_display, compact=compact, stp_repo=stp_repo
             )
 
             await callback.message.edit_text(
-                f"""📅 <b>Расписание участника</b>
+                f"""📅 <b>График участника</b>
 
 <b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
 <b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
@@ -342,21 +342,21 @@ async def navigate_member_schedule(
 
         except Exception as schedule_error:
             # Если не удалось получить расписание, показываем ошибку
-            error_message = "❌ Расписание для данного сотрудника не найдено"
+            error_message = "❌ График для данного сотрудника не найдено"
             if "не найден" in str(schedule_error).lower():
-                error_message = f"❌ Сотрудник {member.fullname} не найден в расписании"
+                error_message = f"❌ Сотрудник {member.fullname} не найден в графике"
             elif "файл" in str(schedule_error).lower():
-                error_message = "❌ Файл расписания недоступен"
+                error_message = "❌ Файл графика недоступен"
 
             await callback.message.edit_text(
-                f"""📅 <b>Расписание участника</b>
+                f"""📅 <b>График участника</b>
 
 <b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
 <b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
 
 {error_message}
 
-<i>Возможно, сотрудник не включен в текущее расписание или файл недоступен.</i>""",
+<i>Возможно, сотрудник не включен в текущий график или файл недоступен.</i>""",
                 reply_markup=head_member_schedule_kb(
                     member_id=member_id,
                     current_month=month_to_display,

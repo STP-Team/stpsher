@@ -190,7 +190,7 @@ class ScheduleChangeDetector:
                 # ОТЛАДОЧНАЯ ИНФОРМАЦИЯ для первых нескольких пользователей
                 if len(schedules) <= 3:
                     logger.debug(
-                        f"[График] Расписание для {fullname}: {len(user_complete_schedule)} записей"
+                        f"[График] График для {fullname}: {len(user_complete_schedule)} записей"
                     )
                     sample_keys = list(user_complete_schedule.keys())[
                         :5
