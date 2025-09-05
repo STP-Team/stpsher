@@ -4,33 +4,33 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-class GokLevelingMenu(CallbackData, prefix="gok_leveling"):
+class GokGameMenu(CallbackData, prefix="gok_game"):
     menu: str
     page: int = 1
     filters: str = "НЦК,НТП"  # Фильтры по направлению
 
 
 class GokFilterToggleMenu(CallbackData, prefix="gok_filter_toggle"):
-    menu: str  # "achievements_all" или "awards_all"
+    menu: str  # "achievements_all" или "products_all"
     filter_name: str  # "НЦК" или "НТП"
     page: int = 1
     current_filters: str = "НЦК,НТП"  # текущие активные фильтры
 
 
-class GokAwardsMenu(CallbackData, prefix="gok_awards"):
+class GokProductsMenu(CallbackData, prefix="gok_products"):
     menu: str
     page: int = 1
-    award_id: int = 0
+    product_id: int = 0
     filters: str = "НЦК,НТП"  # comma-separated active filters
 
 
-class GokAwardActivationMenu(CallbackData, prefix="gok_award_activation"):
-    user_award_id: int
+class GokPurchaseActivationMenu(CallbackData, prefix="gok_purchase_activation"):
+    purchase_id: int
     page: int = 1
 
 
-class GokAwardActionMenu(CallbackData, prefix="gok_award_action"):
-    user_award_id: int
+class GokPurchaseActionMenu(CallbackData, prefix="gok_purchase_action"):
+    purchase_id: int
     action: str  # "approve" or "reject"
     page: int = 1
 
@@ -116,23 +116,23 @@ def create_filters_row(
 
 def gok_kb() -> InlineKeyboardMarkup:
     """
-    Клавиатура меню ГОК для достижений и наград
+    Клавиатура меню ГОК для достижений и предметов
     """
     buttons = [
         [
             InlineKeyboardButton(
-                text="✍️ Награды для активации",
-                callback_data=GokLevelingMenu(menu="awards_activation").pack(),
+                text="✍️ Покупки для активации",
+                callback_data=GokGameMenu(menu="purchases_activation").pack(),
             ),
         ],
         [
             InlineKeyboardButton(
                 text="🎯 Достижения",
-                callback_data=GokLevelingMenu(menu="achievements_all").pack(),
+                callback_data=GokGameMenu(menu="achievements_all").pack(),
             ),
             InlineKeyboardButton(
-                text="👏 Награды",
-                callback_data=GokAwardsMenu(menu="awards_all").pack(),
+                text="👏 Предметы",
+                callback_data=GokProductsMenu(menu="products_all").pack(),
             ),
         ],
     ]

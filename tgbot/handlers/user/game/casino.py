@@ -8,20 +8,20 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.keyboards.user.leveling.casino import (
+from tgbot.keyboards.user.game.casino import (
     CasinoMenu,
     back_to_casino_kb,
     betting_kb,
     casino_main_kb,
     play_again_kb,
 )
-from tgbot.keyboards.user.main import MainMenu
+from tgbot.keyboards.user.game.main import GameMenu
 
-user_leveling_casino_router = Router()
-user_leveling_casino_router.message.filter(
+user_game_casino_router = Router()
+user_game_casino_router.message.filter(
     F.chat.type == "private",
 )
-user_leveling_casino_router.callback_query.filter(F.message.chat.type == "private")
+user_game_casino_router.callback_query.filter(F.message.chat.type == "private")
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,9 @@ def get_dice_result_multiplier(dice_value: int) -> tuple[str, float]:
     if dice_value == 6:
         return f"🎲 {dice_value} - Джекпот! 🎲", 2.0
     if dice_value == 5:
-        return f"🎲 {dice_value} - Джекпот! 🎲", 2.0
+        return f"🎲 {dice_value} - Множитель 1.5x! 🎲", 1.5
+    if dice_value == 4:
+        return f"🎲 {dice_value} - Утешительный приз 🎲", 0.75
     else:
         return f"🎲 {dice_value}", 0.0
 
@@ -98,8 +100,10 @@ def get_darts_result_multiplier(dice_value: int) -> tuple[str, float]:
     if dice_value == 6:
         return f"🎯 {dice_value} - Джекпот! 🎯", 2.0
     if dice_value == 5:
-        return f"🎯 {dice_value} - Джекпот! 🎯", 2.0
-    else:  # dice_value 1,2,3,4 - Проигрыш (4/6 = 66.66%)
+        return f"🎯 {dice_value} - Почти попали! 🎯", 1.5
+    if dice_value == 4:
+        return f"🎯 {dice_value} - Утешительный приз 🎯", 0.75
+    else:
         return f"🎯 {dice_value}", 0.0
 
 
@@ -108,12 +112,14 @@ def get_bowling_result_multiplier(dice_value: int) -> tuple[str, float]:
     if dice_value == 6:
         return f"🎳 {dice_value} - Все кегли сбиты! 🎳", 2.0
     elif dice_value == 5:
-        return f"🎳 {dice_value} - Сбито 5 кеглей! 🎳", 2.0
-    else:  # dice_value 1,2,3,4 - Проигрыш (4/6 = 66.66%)
+        return f"🎳 {dice_value} - Сбито 5 кеглей! 🎳", 1.5
+    elif dice_value == 4:
+        return f"🎳 {dice_value} - Утешительный приз! 🎳", 0.75
+    else:
         return f"🎳 {dice_value}", 0.0
 
 
-@user_leveling_casino_router.callback_query(MainMenu.filter(F.menu == "casino"))
+@user_game_casino_router.callback_query(GameMenu.filter(F.menu == "casino"))
 async def casino_main_menu(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -136,7 +142,7 @@ async def casino_main_menu(
     )
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "main"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "main"))
 async def casino_main_menu_back(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -144,7 +150,7 @@ async def casino_main_menu_back(
     await casino_main_menu(callback, user, stp_repo)
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "slots"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "slots"))
 async def casino_slot_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -178,7 +184,7 @@ async def casino_slot_betting(
     )
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "dice"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "dice"))
 async def casino_dice_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -205,12 +211,16 @@ async def casino_dice_betting(
 2. Жми <b>🎲 Кинуть 🎲</b>
 
 <blockquote expandable>💎 <b>Таблица наград:</b>
-🎲 Выпало 5 или 6 → x2.0</blockquote>""",
+· Выпало 6 → 2x
+· Выпало 5 → 1.5x
+· Выпало 4 → 0.75x (утешительный приз)
+
+Остальные комбинации проигрышные</blockquote>""",
         reply_markup=betting_kb(user_balance, game_type="dice"),
     )
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "darts"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "darts"))
 async def casino_darts_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -237,12 +247,16 @@ async def casino_darts_betting(
 2. Жми <b>🎯 Бросить 🎯</b>
 
 <blockquote expandable>💎 <b>Таблица наград:</b>
-🎯 Выпало 5 или 6 → x2.0</blockquote>""",
+· В яблочко → 2x
+· 1 кольцо от центра → 1.5x
+· 2 кольцо от центра → 0.75x (утешительный приз)
+
+Остальные комбинации проигрышные</blockquote>""",
         reply_markup=betting_kb(user_balance, game_type="darts"),
     )
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "bowling"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "bowling"))
 async def casino_bowling_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -269,12 +283,16 @@ async def casino_bowling_betting(
 2. Жми <b>🎳 Катить 🎳</b>
 
 <blockquote expandable>💎 <b>Таблица наград:</b>
-🎳 Выпало 5 или 6 → x2.0</blockquote>""",
+· Страйк → 2x
+· 5 кеглей → 1.5x
+· 4 кегли → 0.75x (утешительный приз)
+
+Остальные комбинации проигрышные</blockquote>""",
         reply_markup=betting_kb(user_balance, game_type="bowling"),
     )
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "rate"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "rate"))
 async def casino_rate_adjustment(
     callback: CallbackQuery,
     callback_data: CasinoMenu,
@@ -325,7 +343,7 @@ async def casino_rate_adjustment(
     )
 
 
-@user_leveling_casino_router.callback_query(CasinoMenu.filter(F.menu == "bet"))
+@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "bet"))
 async def casino_game(
     callback: CallbackQuery,
     callback_data: CasinoMenu,

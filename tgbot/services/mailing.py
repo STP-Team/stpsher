@@ -5,8 +5,8 @@ from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from infrastructure.database.models import Award, Employee
-from infrastructure.database.models.STP.awards_usage import AwardUsage
+from infrastructure.database.models import Product, Employee
+from infrastructure.database.models.STP.purchase import Purchase
 from tgbot.config import load_config
 
 config = load_config(".env")
@@ -61,21 +61,21 @@ async def send_auth_email(code: str, email: str, bot_username: str):
     )
 
 
-async def send_activation_award_email(
+async def send_activation_product_email(
     user: Employee,
     user_head: Employee | None,
     current_duty: Employee | None,
-    award: Award,
-    user_award: AwardUsage,
+    product: Product,
+    purchase: Purchase,
 ):
-    email_subject = "Активация награды"
+    email_subject = "Активация предмета"
     email_content = f"""Добрый день!<br><br>
 
-<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отправил запрос на активацию награды <b>{award.name}</b><br>
-📝 Описание: {award.description}<br>
-📍 Активаций: <b>{user_award.usage_count + 1}</b> из <b>{award.count}</b><br><br>
+<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отправил запрос на активацию <b>{product.name}</b><br>
+📝 Описание: {product.description}<br>
+📍 Активаций: <b>{purchase.usage_count + 1}</b> из <b>{product.count}</b><br><br>
 
-Для активации награды перейдите в СТПшера"""
+Для активации перейдите в СТПшера"""
 
     email = []
     if user.division == "НЦК":
@@ -91,23 +91,23 @@ async def send_activation_award_email(
 
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
     logger.info(
-        f"[Активация награды] Уведомление об активации награды {award.name} пользователем {user.fullname} отправлено на {email}"
+        f"[Активация предмета] Уведомление об активации {product.name} пользователем {user.fullname} отправлено на {email}"
     )
 
 
-async def send_cancel_award_email(
+async def send_cancel_product_email(
     user: Employee,
     user_head: Employee | None,
     current_duty: Employee | None,
-    award: Award,
-    user_award: AwardUsage,
+    product: Product,
+    purchase: Purchase,
 ):
-    email_subject = "Отмена активации награды"
+    email_subject = "Отмена покупки"
     email_content = f"""Добрый день!<br><br>
 
-<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отменил использование награды <b>{award.name}</b><br>
-📝 Описание: {award.description}<br>
-📍 Активаций: <b>{user_award.usage_count}</b> из <b>{award.count}</b>"""
+<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отменил использование <b>{product.name}</b><br>
+📝 Описание: {product.description}<br>
+📍 Активаций: <b>{purchase.usage_count}</b> из <b>{product.count}</b>"""
 
     email = []
     if user.division == "НЦК":
@@ -123,5 +123,5 @@ async def send_cancel_award_email(
 
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
     logger.info(
-        f"[Активация награды] Уведомление об отмене активации награды {award.name} пользователем {user.fullname} отправлено на {email}"
+        f"[Активация предмета] Уведомление об отмене активации {product.name} пользователем {user.fullname} отправлено на {email}"
     )

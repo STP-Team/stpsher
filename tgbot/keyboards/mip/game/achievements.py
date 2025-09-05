@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from tgbot.keyboards.mip.leveling.main import LevelingMenu, create_filters_row
+from tgbot.keyboards.mip.game.main import GameMenu, create_filters_row
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -21,7 +21,7 @@ def achievements_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=LevelingMenu(
+                    callback_data=GameMenu(
                         menu="achievements_all", page=1, filters=filters
                     ).pack(),
                 )
@@ -34,7 +34,7 @@ def achievements_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⬅️",
-                    callback_data=LevelingMenu(
+                    callback_data=GameMenu(
                         menu="achievements_all", page=current_page - 1, filters=filters
                     ).pack(),
                 )
@@ -55,7 +55,7 @@ def achievements_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="➡️",
-                    callback_data=LevelingMenu(
+                    callback_data=GameMenu(
                         menu="achievements_all", page=current_page + 1, filters=filters
                     ).pack(),
                 )
@@ -68,7 +68,7 @@ def achievements_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=LevelingMenu(
+                    callback_data=GameMenu(
                         menu="achievements_all", page=total_pages, filters=filters
                     ).pack(),
                 )
@@ -85,7 +85,7 @@ def achievements_paginated_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=MainMenu(menu="leveling").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()

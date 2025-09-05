@@ -63,12 +63,12 @@ def filter_users_by_type(users: Sequence[Employee], search_type: str) -> list[Em
 
 
 async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
-    """Получить статистику пользователя (уровень, очки, достижения, награды)"""
+    """Получить статистику пользователя (уровень, очки, достижения, покупки)"""
     try:
         # Получаем базовые данные
-        user_awards = await stp_repo.award_usage.get_user_awards(user_id)
+        user_purchases = await stp_repo.purchase.get_user_purchases(user_id)
         achievements_sum = await stp_repo.transaction.get_user_achievements_sum(user_id)
-        awards_sum = await stp_repo.award_usage.get_user_awards_sum(user_id)
+        purchases_sum = await stp_repo.purchase.get_user_purchases_sum(user_id)
 
         # Рассчитываем уровень
         user_balance = await stp_repo.transaction.get_user_balance(user_id)
@@ -78,8 +78,8 @@ async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
             "level": current_level,
             "balance": user_balance,
             "total_earned": achievements_sum,
-            "total_spent": awards_sum,
-            "awards_count": len(user_awards),
+            "total_spent": purchases_sum,
+            "purchases_count": len(user_purchases),
         }
     except Exception as e:
         logger.error(f"Ошибка получения статистики пользователя {user_id}: {e}")
@@ -88,7 +88,7 @@ async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
             "balance": 0,
             "total_earned": 0,
             "total_spent": 0,
-            "awards_count": 0,
+            "purchases_count": 0,
         }
 
 
@@ -99,7 +99,7 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
         group_users = await stp_repo.employee.get_users_by_head(head_name)
 
         total_points = 0
-        group_awards = {}
+        group_purchases = {}
 
         for user in group_users:
             if user.user_id:  # Только авторизованные пользователи
@@ -109,15 +109,15 @@ async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> di
                 )
                 total_points += achievements_sum
 
-                # Собираем статистику наград
-                most_used_award = await stp_repo.award_usage.get_most_used_award(
+                # Собираем статистику предметов
+                most_bought_product = await stp_repo.purchase.get_most_bought_product(
                     user.user_id
                 )
-                if most_used_award:
-                    award_name = most_used_award[0]
-                    award_count = most_used_award[1]
-                    group_awards[award_name] = (
-                        group_awards.get(award_name, 0) + award_count
+                if most_bought_product:
+                    product_name = most_bought_product[0]
+                    product_count = most_bought_product[1]
+                    group_purchases[product_name] = (
+                        group_purchases.get(product_name, 0) + product_count
                     )
 
         return {
@@ -144,7 +144,7 @@ async def get_group_statistics_by_id(
                 "total_users": 0,
                 "total_points": 0,
                 "most_popular_achievement": None,
-                "most_popular_award": None,
+                "most_popular_product": None,
             }
 
         # Используем существующую функцию
@@ -155,7 +155,7 @@ async def get_group_statistics_by_id(
             "total_users": 0,
             "total_points": 0,
             "most_popular_achievement": None,
-            "most_popular_award": None,
+            "most_popular_product": None,
         }
 
 
@@ -475,9 +475,9 @@ async def show_head_group(
         if group_stats["most_popular_achievement"]:
             group_achievement_text = f"{group_stats['most_popular_achievement'][0]} ({group_stats['most_popular_achievement'][1]}x)"
 
-        group_award_text = "Нет данных"
-        if group_stats["most_popular_award"]:
-            group_award_text = f"{group_stats['most_popular_award'][0]} ({group_stats['most_popular_award'][1]}x)"
+        group_product_text = "Нет данных"
+        if group_stats["most_popular_product"]:
+            group_product_text = f"{group_stats['most_popular_product'][0]} ({group_stats['most_popular_product'][1]}x)"
 
         await callback.message.edit_text(
             f"""<b>👥 Группа: {head_name}</b>
@@ -485,7 +485,7 @@ async def show_head_group(
 <b>Сотрудников:</b> {total_users}
 <b>Общие очки:</b> {group_stats["total_points"]} баллов
 <b>Популярное достижение:</b> {group_achievement_text}
-<b>Популярная награда:</b> {group_award_text}
+<b>Популярный предмет:</b> {group_product_text}
 
 <b>Страница {page} из {total_pages}</b>""",
             reply_markup=head_group_kb(page_users, head_name, page, total_pages),

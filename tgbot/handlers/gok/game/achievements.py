@@ -4,32 +4,29 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import MipFilter
-from tgbot.handlers.mip.leveling.main import filter_items_by_division
-from tgbot.keyboards.mip.leveling.achievements import achievements_paginated_kb
-from tgbot.keyboards.mip.leveling.main import (
-    LevelingMenu,
-    parse_filters,
-)
+from tgbot.filters.role import GokFilter
+from tgbot.handlers.gok.game.main import filter_items_by_division
+from tgbot.keyboards.gok.game.achievements import gok_achievements_paginated_kb
+from tgbot.keyboards.gok.main import GokGameMenu, parse_filters
 
-mip_leveling_achievements_router = Router()
-mip_leveling_achievements_router.message.filter(F.chat.type == "private", MipFilter())
-mip_leveling_achievements_router.callback_query.filter(
-    F.message.chat.type == "private", MipFilter()
+gok_game_achievements_router = Router()
+gok_game_achievements_router.message.filter(F.chat.type == "private", GokFilter())
+gok_game_achievements_router.callback_query.filter(
+    F.message.chat.type == "private", GokFilter()
 )
 
 logger = logging.getLogger(__name__)
 
 
-@mip_leveling_achievements_router.callback_query(
-    LevelingMenu.filter(F.menu == "achievements_all")
+@gok_game_achievements_router.callback_query(
+    GokGameMenu.filter(F.menu == "achievements_all")
 )
-async def achievements_all(
-    callback: CallbackQuery, callback_data: LevelingMenu, stp_repo: MainRequestsRepo
+async def gok_achievements_all(
+    callback: CallbackQuery, callback_data: GokGameMenu, stp_repo: MainRequestsRepo
 ):
     """
-    Обработчик клика на меню всех возможных достижений для МИП
-    МИП видит все достижения из всех направлений с возможностью фильтрации
+    Обработчик клика на меню всех возможных достижений для ГОК
+    ГОК видит все достижения из всех направлений с возможностью фильтрации
     """
 
     # Достаём параметры из callback data
@@ -95,8 +92,9 @@ async def achievements_all(
 {chr(10).join(achievements_list)}"""
 
     await callback.message.edit_text(
-        message_text, reply_markup=achievements_paginated_kb(page, total_pages, filters)
+        message_text,
+        reply_markup=gok_achievements_paginated_kb(page, total_pages, filters),
     )
     logger.info(
-        f"[МИП] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню всех достижений, страница {page}, фильтры: {filters}"
+        f"[ГОК] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню всех достижений, страница {page}, фильтры: {filters}"
     )

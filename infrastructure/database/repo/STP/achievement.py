@@ -21,9 +21,9 @@ class AchievementsRepo(BaseRepo):
             select_stmt = select(Achievement)
 
         result = await self.session.execute(select_stmt)
-        awards = result.scalars().all()
+        achievements = result.scalars().all()
 
-        return list(awards)
+        return list(achievements)
 
     async def get_achievement(self, achievement_id: int) -> Optional[Achievement]:
         """

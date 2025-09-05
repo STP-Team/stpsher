@@ -4,29 +4,42 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import GokFilter
-from tgbot.handlers.gok.leveling.main import filter_items_by_division
-from tgbot.keyboards.gok.leveling.achievements import gok_achievements_paginated_kb
-from tgbot.keyboards.gok.main import GokLevelingMenu, parse_filters
+from tgbot.filters.role import MipFilter
+from tgbot.keyboards.mip.game.achievements import achievements_paginated_kb
+from tgbot.keyboards.mip.game.main import (
+    GameMenu,
+    parse_filters,
+)
 
-gok_leveling_achievements_router = Router()
-gok_leveling_achievements_router.message.filter(F.chat.type == "private", GokFilter())
-gok_leveling_achievements_router.callback_query.filter(
-    F.message.chat.type == "private", GokFilter()
+mip_game_achievements_router = Router()
+mip_game_achievements_router.message.filter(F.chat.type == "private", MipFilter())
+mip_game_achievements_router.callback_query.filter(
+    F.message.chat.type == "private", MipFilter()
 )
 
 logger = logging.getLogger(__name__)
 
 
-@gok_leveling_achievements_router.callback_query(
-    GokLevelingMenu.filter(F.menu == "achievements_all")
+def filter_items_by_division(items, active_filters):
+    """Filter achievements or products by division based on active filters"""
+    # Filter by specific divisions
+    filtered_items = []
+    for item in items:
+        if item.division in active_filters:
+            filtered_items.append(item)
+
+    return filtered_items
+
+
+@mip_game_achievements_router.callback_query(
+    GameMenu.filter(F.menu == "achievements_all")
 )
-async def gok_achievements_all(
-    callback: CallbackQuery, callback_data: GokLevelingMenu, stp_repo: MainRequestsRepo
+async def achievements_all(
+    callback: CallbackQuery, callback_data: GameMenu, stp_repo: MainRequestsRepo
 ):
     """
-    Обработчик клика на меню всех возможных достижений для ГОК
-    ГОК видит все достижения из всех направлений с возможностью фильтрации
+    Обработчик клика на меню всех возможных достижений для МИП
+    МИП видит все достижения из всех направлений с возможностью фильтрации
     """
 
     # Достаём параметры из callback data
@@ -92,9 +105,8 @@ async def gok_achievements_all(
 {chr(10).join(achievements_list)}"""
 
     await callback.message.edit_text(
-        message_text,
-        reply_markup=gok_achievements_paginated_kb(page, total_pages, filters),
+        message_text, reply_markup=achievements_paginated_kb(page, total_pages, filters)
     )
     logger.info(
-        f"[ГОК] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню всех достижений, страница {page}, фильтры: {filters}"
+        f"[МИП] - [Меню] {callback.from_user.username} ({callback.from_user.id}): Открыто меню всех достижений, страница {page}, фильтры: {filters}"
     )

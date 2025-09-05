@@ -112,7 +112,7 @@ def achievements_paginated_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=MainMenu(menu="achievements").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -128,7 +128,7 @@ def to_achievements_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="↩️ Назад", callback_data=MainMenu(menu="achievements").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()

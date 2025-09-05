@@ -6,33 +6,33 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from tgbot.keyboards.user.main import MainMenu
 
 
-class LevelingMenu(CallbackData, prefix="leveling"):
+class GameMenu(CallbackData, prefix="game"):
     menu: str
     page: int = 1
     filters: str = "НЦК,НТП"  # Фильтры по направлению
 
 
 class FilterToggleMenu(CallbackData, prefix="filter_toggle"):
-    menu: str  # "achievements_all" или "awards_all"
+    menu: str  # "achievements_all" или "products_all"
     filter_name: str  # "НЦК" или "НТП"
     page: int = 1
     current_filters: str = "НЦК,НТП"  # текущие активные фильтры
 
 
-class AwardsMenu(CallbackData, prefix="awards"):
+class ProductsMenu(CallbackData, prefix="products"):
     menu: str
     page: int = 1
-    award_id: int = 0
+    product_id: int = 0
     filters: str = "НЦК,НТП"  # comma-separated active filters
 
 
-class AwardActivationMenu(CallbackData, prefix="award_activation"):
-    user_award_id: int
+class PurchaseActivationMenu(CallbackData, prefix="purchase_activation"):
+    purchase_id: int
     page: int = 1
 
 
-class AwardActionMenu(CallbackData, prefix="award_action"):
-    user_award_id: int
+class PurchaseActionMenu(CallbackData, prefix="purchase_action"):
+    purchase_id: int
     action: str  # "approve" or "reject"
     page: int = 1
 
@@ -116,25 +116,25 @@ def create_filters_row(
     return buttons
 
 
-def leveling_kb() -> InlineKeyboardMarkup:
+def game_kb() -> InlineKeyboardMarkup:
     """
-    Клавиатура меню МИП для достижений и наград
+    Клавиатура меню МИП для достижений и предметов
     """
     buttons = [
         [
             InlineKeyboardButton(
-                text="✍️ Награды для активации",
-                callback_data=LevelingMenu(menu="awards_activation").pack(),
+                text="✍️ Покупки для активации",
+                callback_data=GameMenu(menu="purchases_activation").pack(),
             ),
         ],
         [
             InlineKeyboardButton(
                 text="🎯 Достижения",
-                callback_data=LevelingMenu(menu="achievements_all").pack(),
+                callback_data=GameMenu(menu="achievements_all").pack(),
             ),
             InlineKeyboardButton(
-                text="👏 Награды",
-                callback_data=AwardsMenu(menu="awards_all").pack(),
+                text="👏 Предметы",
+                callback_data=ProductsMenu(menu="products_all").pack(),
             ),
         ],
         [

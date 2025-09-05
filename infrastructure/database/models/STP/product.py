@@ -5,18 +5,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 from infrastructure.database.models.base import Base, TableNameMixin
 
 
-class Award(Base, TableNameMixin):
+class Product(Base, TableNameMixin):
     """
-    Класс, представляющий сущность награды в БД.
+    Класс, представляющий сущность предмета в БД.
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.
-        name (Mapped[str]): Название награды.
-        description (Mapped[int]): Стоимость награды.
-        cost (Mapped[str]): Роль для взаимодействия.
-        count (Mapped[int]): Кол-во доступных использований награды после приобретения.
-        manager_role (Mapped[int]): Описание награды.
-        shift_dependent (Mapped[bool]): Зависимость применения награды от наличия смены.
+        name (Mapped[str]): Название предмета.
+        description (Mapped[int]): Описание предмета.
+        cost (Mapped[str]): Стоимость предмета.
+        count (Mapped[int]): Кол-во доступных использований предмета после приобретения.
+        manager_role (Mapped[int]): Роль для взаимодействия.
 
     Methods:
         __repr__(): Returns a string representation of the User object.
@@ -29,7 +28,7 @@ class Award(Base, TableNameMixin):
 
     """
 
-    __tablename__ = "awards"
+    __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(VARCHAR(255), nullable=False)
@@ -41,6 +40,6 @@ class Award(Base, TableNameMixin):
 
     def __repr__(self):
         return (
-            f"<Award {self.id} {self.name} {self.description}"
+            f"<Product {self.id} {self.name} {self.description}"
             f"{self.division} {self.cost} {self.count} {self.manager_role}>"
         )

@@ -3,9 +3,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
-from tgbot.services.leveling import LevelingSystem
 
 user_router = Router()
 user_router.message.filter(F.chat.type == "private")
@@ -13,7 +11,7 @@ user_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_router.message(CommandStart())
-async def user_start_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
+async def user_start_cmd(message: Message, user: Employee):
     if not user:
         await message.answer(
             """👋 Привет
@@ -25,31 +23,18 @@ async def user_start_cmd(message: Message, user: Employee, stp_repo: MainRequest
         )
         return
 
-    user_balance = await stp_repo.transaction.get_user_balance(user_id=user.user_id)
-    achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
-        user_id=user.user_id
-    )
-    awards_sum = await stp_repo.award_usage.get_user_awards_sum(user_id=user.user_id)
-    level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
-
     await message.answer(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
 Я - бот-помощник СТП
 
-{level_info_text}
-
-<blockquote expandable><b>✨ Баланс</b>
-Всего заработано: {achievements_sum} баллов
-Всего потрачено: {awards_sum} баллов</blockquote>""",
+<i>Используй меню для взаимодействия с ботом</i>""",
         reply_markup=main_kb(),
     )
 
 
 @user_router.callback_query(MainMenu.filter(F.menu == "main"))
-async def user_start_cb(
-    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
-):
+async def user_start_cb(callback: CallbackQuery, user: Employee):
     if not user:
         await callback.message.edit_text(
             """👋 Привет
@@ -61,22 +46,11 @@ async def user_start_cb(
         )
         return
 
-    user_balance = await stp_repo.transaction.get_user_balance(user_id=user.user_id)
-    achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
-        user_id=user.user_id
-    )
-    awards_sum = await stp_repo.award_usage.get_user_awards_sum(user_id=user.user_id)
-    level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
-
     await callback.message.edit_text(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
 Я - бот-помощник СТП
 
-{level_info_text}
-
-<blockquote expandable><b>✨ Баланс</b>
-Всего заработано: {achievements_sum} баллов
-Всего потрачено: {awards_sum} баллов</blockquote>""",
+<i>Используй меню для взаимодействия с ботом</i>""",
         reply_markup=main_kb(),
     )

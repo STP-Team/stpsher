@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.database.repo.STP.achievement import AchievementsRepo
-from infrastructure.database.repo.STP.award import AwardsRepo
+from infrastructure.database.repo.STP.product import ProductsRepo
 from infrastructure.database.repo.STP.broadcast import BroadcastRepo
 from infrastructure.database.repo.STP.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.STP.transactions import TransactionRepo
 from infrastructure.database.repo.STP.employee import EmployeeRepo
-from infrastructure.database.repo.STP.award_usage import AwardUsageRepo
+from infrastructure.database.repo.STP.purchase import PurchaseRepo
 
 
 @dataclass
@@ -36,18 +36,18 @@ class MainRequestsRepo:
         return ScheduleLogRepo(self.session)
 
     @property
-    def award(self) -> AwardsRepo:
+    def product(self) -> ProductsRepo:
         """
-        The AwardsRepo repository sessions are required to manage user operations.
+        The ProductsRepo repository sessions are required to manage user operations.
         """
-        return AwardsRepo(self.session)
+        return ProductsRepo(self.session)
 
     @property
-    def award_usage(self) -> AwardUsageRepo:
+    def purchase(self) -> PurchaseRepo:
         """
-        The UserAwardsRepo repository sessions are required to manage user operations.
+        The PurchaseRepo repository sessions are required to manage user operations.
         """
-        return AwardUsageRepo(self.session)
+        return PurchaseRepo(self.session)
 
     @property
     def achievement(self) -> AchievementsRepo:
@@ -59,7 +59,7 @@ class MainRequestsRepo:
     @property
     def transaction(self) -> TransactionRepo:
         """
-        The UserAchievementsRepo repository sessions are required to manage transactions.
+        The TransactionRepo repository sessions are required to manage transactions.
         """
         return TransactionRepo(self.session)
 

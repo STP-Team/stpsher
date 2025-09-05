@@ -1,5 +1,3 @@
-# Add this to tgbot/handlers/user/main.py or create a new file tgbot/handlers/user/whois.py
-
 import logging
 from aiogram import F, Router
 from aiogram.filters import Command

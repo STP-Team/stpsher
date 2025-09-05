@@ -9,7 +9,7 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.handlers.user.leveling.casino import (
+from tgbot.handlers.user.game.casino import (
     get_bowling_result_multiplier,
     get_darts_result_multiplier,
     get_dice_result_multiplier,

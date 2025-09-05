@@ -42,18 +42,8 @@ def main_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="🎯 Достижения",
-                callback_data=MainMenu(menu="achievements").pack(),
-            ),
-            InlineKeyboardButton(
-                text="👏 Награды",
-                callback_data=MainMenu(menu="awards").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="🎲 Казино",
-                callback_data=MainMenu(menu="casino").pack(),
+                text="🏮 Игровой профиль",
+                callback_data=MainMenu(menu="game").pack(),
             ),
         ],
         # [

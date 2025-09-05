@@ -39,9 +39,9 @@ class TransactionRepo(BaseRepo):
         Args:
             user_id: Идентификатор пользователя
             type: Тип операции: 'earn' или 'spend'
-            source_type: Источник транзакции: 'achievement', 'award', 'manual'
+            source_type: Источник транзакции: 'achievement', 'product', 'casino', 'manual'
             amount: Количество баллов
-            source_id: Идентификатор достижения или награды (опционально)
+            source_id: Идентификатор достижения или предмета (опционально)
             comment: Комментарий (опционально)
             created_by: ID администратора, создавшего транзакцию (опционально)
 

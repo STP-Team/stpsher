@@ -8,21 +8,21 @@ from tgbot.filters.role import GokFilter
 from tgbot.keyboards.gok.main import (
     gok_kb,
     GokFilterToggleMenu,
-    GokLevelingMenu,
+    GokGameMenu,
     toggle_filter,
-    GokAwardsMenu,
+    GokProductsMenu,
 )
 from tgbot.keyboards.user.main import MainMenu
 
-gok_leveling_router = Router()
-gok_leveling_router.message.filter(F.chat.type == "private", GokFilter())
-gok_leveling_router.callback_query.filter(F.message.chat.type == "private", GokFilter())
+gok_game_router = Router()
+gok_game_router.message.filter(F.chat.type == "private", GokFilter())
+gok_game_router.callback_query.filter(F.message.chat.type == "private", GokFilter())
 
 logger = logging.getLogger(__name__)
 
 
 def filter_items_by_division(items, active_filters):
-    """Filter achievements or awards by division based on active filters"""
+    """Filter achievements or products by division based on active filters"""
     # Filter by specific divisions
     filtered_items = []
     for item in items:
@@ -32,28 +32,28 @@ def filter_items_by_division(items, active_filters):
     return filtered_items
 
 
-@gok_leveling_router.callback_query(MainMenu.filter(F.menu == "leveling"))
+@gok_game_router.callback_query(MainMenu.filter(F.menu == "game"))
 async def gok_achievements_cmd(callback: CallbackQuery):
     await callback.message.edit_text(
         """<b>🏆 Ачивки</b>
 
 Здесь ты можешь:
-- Подтверждать/отклонять награды специалистов
+- Подтверждать/отклонять покупки специалистов
 - Просматривать список достижений
-- Просматривать список наград""",
+- Просматривать список предметов""",
         reply_markup=gok_kb(),
     )
 
 
-@gok_leveling_router.callback_query(GokFilterToggleMenu.filter())
+@gok_game_router.callback_query(GokFilterToggleMenu.filter())
 async def gok_toggle_filter_handler(
     callback: CallbackQuery,
     callback_data: GokFilterToggleMenu,
     stp_repo: MainRequestsRepo,
 ):
     """Обработчик переключения фильтров"""
-    from tgbot.handlers.gok.leveling.achievements import gok_achievements_all
-    from tgbot.handlers.gok.leveling.awards import gok_awards_all
+    from tgbot.handlers.gok.game.achievements import gok_achievements_all
+    from tgbot.handlers.gok.game.products import gok_products_all
 
     menu = callback_data.menu
     filter_name = callback_data.filter_name
@@ -66,12 +66,12 @@ async def gok_toggle_filter_handler(
     if menu == "achievements_all":
         await gok_achievements_all(
             callback,
-            GokLevelingMenu(menu="achievements_all", page=1, filters=new_filters),
+            GokGameMenu(menu="achievements_all", page=1, filters=new_filters),
             stp_repo,
         )
-    elif menu == "awards_all":
-        await gok_awards_all(
+    elif menu == "products_all":
+        await gok_products_all(
             callback,
-            GokAwardsMenu(menu="awards_all", page=1, filters=new_filters),
+            GokProductsMenu(menu="products_all", page=1, filters=new_filters),
             stp_repo,
         )

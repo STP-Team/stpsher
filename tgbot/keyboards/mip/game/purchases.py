@@ -2,59 +2,62 @@ from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.repo.STP.award_usage import AwardUsageWithDetails
-from tgbot.keyboards.mip.leveling.main import (
-    AwardActionMenu,
-    AwardActivationMenu,
-    AwardsMenu,
-    LevelingMenu,
+from infrastructure.database.repo.STP.purchase import PurchaseDetailedParams
+from tgbot.keyboards.mip.game.main import (
+    PurchaseActionMenu,
+    PurchaseActivationMenu,
+    ProductsMenu,
+    GameMenu,
     create_filters_row,
 )
 from tgbot.keyboards.user.main import MainMenu
 
 
-def award_activation_kb(
-    current_page: int, total_pages: int, page_awards: List[AwardUsageWithDetails] = None
+def purchase_activation_kb(
+    current_page: int,
+    total_pages: int,
+    page_purchases: List[PurchaseDetailedParams] = None,
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура для списка наград ожидающих активации
+    Клавиатура для списка покупок, ожидающих активации
     """
     buttons = []
 
-    # Добавляем кнопки для выбора наград (максимум 2 в ряд)
-    if page_awards:
+    # Добавляем кнопки для выбора покупок (максимум 2 в ряд)
+    if page_purchases:
         # Вычисляем стартовый индекс для нумерации на текущей странице
-        start_idx = (current_page - 1) * 5  # 5 наград на страницу
+        start_idx = (current_page - 1) * 5  # 5 покупок на страницу
 
-        for i in range(0, len(page_awards), 2):
-            award_row = []
+        for i in range(0, len(page_purchases), 2):
+            purchase_row = []
 
-            # Первая награда в ряду
-            first_award = page_awards[i]
-            first_award_number = start_idx + i + 1
-            award_row.append(
+            # Первая покупка в ряду
+            first_purchase = page_purchases[i]
+            first_purchase_number = start_idx + i + 1
+            purchase_row.append(
                 InlineKeyboardButton(
-                    text=f"{first_award_number}. {first_award.award_info.name}",
-                    callback_data=AwardActivationMenu(
-                        user_award_id=first_award.user_award.id, page=current_page
+                    text=f"{first_purchase_number}. {first_purchase.product_info.name}",
+                    callback_data=PurchaseActivationMenu(
+                        purchase_id=first_purchase.user_purchase.id, page=current_page
                     ).pack(),
                 )
             )
 
-            # Вторая награда в ряду (если есть)
-            if i + 1 < len(page_awards):
-                second_award = page_awards[i + 1]
-                second_award_number = start_idx + i + 2
-                award_row.append(
+            # Вторая покупка в ряду (если есть)
+            if i + 1 < len(page_purchases):
+                second_purchase = page_purchases[i + 1]
+                second_purchase_number = start_idx + i + 2
+                purchase_row.append(
                     InlineKeyboardButton(
-                        text=f"{second_award_number}. {second_award.award_info.name}",
-                        callback_data=AwardActivationMenu(
-                            user_award_id=second_award.user_award.id, page=current_page
+                        text=f"{second_purchase_number}. {second_purchase.product_info.name}",
+                        callback_data=PurchaseActivationMenu(
+                            purchase_id=second_purchase.user_purchase.id,
+                            page=current_page,
                         ).pack(),
                     )
                 )
 
-            buttons.append(award_row)
+            buttons.append(purchase_row)
 
     # Пагинация
     if total_pages > 1:
@@ -65,7 +68,7 @@ def award_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=LevelingMenu(menu="awards_activation", page=1).pack(),
+                    callback_data=GameMenu(menu="purchases_activation", page=1).pack(),
                 )
             )
         else:
@@ -76,8 +79,8 @@ def award_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⬅️",
-                    callback_data=LevelingMenu(
-                        menu="awards_activation", page=current_page - 1
+                    callback_data=GameMenu(
+                        menu="purchases_activation", page=current_page - 1
                     ).pack(),
                 )
             )
@@ -97,8 +100,8 @@ def award_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="➡️",
-                    callback_data=LevelingMenu(
-                        menu="awards_activation", page=current_page + 1
+                    callback_data=GameMenu(
+                        menu="purchases_activation", page=current_page + 1
                     ).pack(),
                 )
             )
@@ -110,8 +113,8 @@ def award_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=LevelingMenu(
-                        menu="awards_activation", page=total_pages
+                    callback_data=GameMenu(
+                        menu="purchases_activation", page=total_pages
                     ).pack(),
                 )
             )
@@ -123,7 +126,7 @@ def award_activation_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=MainMenu(menu="leveling").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -134,30 +137,30 @@ def award_activation_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMarkup:
+def purchase_detail_kb(purchase_id: int, current_page: int) -> InlineKeyboardMarkup:
     """
-    Клавиатура детального просмотра награды для МИП с возможностью подтверждения/отклонения
+    Клавиатура детального просмотра покупки для МИП с возможностью подтверждения/отклонения
     """
     buttons = [
         [
             InlineKeyboardButton(
                 text="✅ Подтвердить",
-                callback_data=AwardActionMenu(
-                    user_award_id=user_award_id, action="approve", page=current_page
+                callback_data=PurchaseActionMenu(
+                    purchase_id=purchase_id, action="approve", page=current_page
                 ).pack(),
             ),
             InlineKeyboardButton(
                 text="❌ Отклонить",
-                callback_data=AwardActionMenu(
-                    user_award_id=user_award_id, action="reject", page=current_page
+                callback_data=PurchaseActionMenu(
+                    purchase_id=purchase_id, action="reject", page=current_page
                 ).pack(),
             ),
         ],
         [
             InlineKeyboardButton(
                 text="↩️ Назад",
-                callback_data=LevelingMenu(
-                    menu="awards_activation", page=current_page
+                callback_data=GameMenu(
+                    menu="purchases_activation", page=current_page
                 ).pack(),
             ),
             InlineKeyboardButton(
@@ -169,11 +172,11 @@ def award_detail_kb(user_award_id: int, current_page: int) -> InlineKeyboardMark
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def awards_paginated_kb(
+def purchase_paginated_kb(
     current_page: int, total_pages: int, filters: str = "НЦК,НТП"
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура пагинации для всех возможных наград с фильтрами
+    Клавиатура пагинации для всех возможных покупок с фильтрами
     """
     buttons = []
 
@@ -186,8 +189,8 @@ def awards_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=AwardsMenu(
-                        menu="awards_all", page=1, filters=filters
+                    callback_data=ProductsMenu(
+                        menu="products_all", page=1, filters=filters
                     ).pack(),
                 )
             )
@@ -199,8 +202,8 @@ def awards_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⬅️",
-                    callback_data=AwardsMenu(
-                        menu="awards_all", page=current_page - 1, filters=filters
+                    callback_data=ProductsMenu(
+                        menu="products_all", page=current_page - 1, filters=filters
                     ).pack(),
                 )
             )
@@ -220,8 +223,8 @@ def awards_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="➡️",
-                    callback_data=AwardsMenu(
-                        menu="awards_all", page=current_page + 1, filters=filters
+                    callback_data=ProductsMenu(
+                        menu="products_all", page=current_page + 1, filters=filters
                     ).pack(),
                 )
             )
@@ -233,8 +236,8 @@ def awards_paginated_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=AwardsMenu(
-                        menu="awards_all", page=total_pages, filters=filters
+                    callback_data=ProductsMenu(
+                        menu="products_all", page=total_pages, filters=filters
                     ).pack(),
                 )
             )
@@ -244,13 +247,13 @@ def awards_paginated_kb(
         buttons.append(pagination_row)
 
     # Добавляем ряд фильтров
-    filter_buttons = create_filters_row("awards_all", filters, current_page)
+    filter_buttons = create_filters_row("products_all", filters, current_page)
     buttons.append(filter_buttons)  # Все фильтры в одной строке
 
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=MainMenu(menu="leveling").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -261,15 +264,15 @@ def awards_paginated_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def award_notify_kb() -> InlineKeyboardMarkup:
+def purchase_notify_kb() -> InlineKeyboardMarkup:
     """
-    Клавиатура меню МИП для уведомления о новой награде на активацию
+    Клавиатура меню МИП для уведомления о новой покупке на активацию
     """
     buttons = [
         [
             InlineKeyboardButton(
-                text="✍️ Награды для активации",
-                callback_data=LevelingMenu(menu="awards_activation").pack(),
+                text="✍️ Покупки для активации",
+                callback_data=GameMenu(menu="purchases_activation").pack(),
             ),
         ],
         [

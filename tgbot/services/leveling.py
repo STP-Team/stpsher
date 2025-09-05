@@ -165,7 +165,7 @@ class LevelingSystem:
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
-            user_balance: Текущий доступный баланс (achievements_sum - awards_sum)
+            user_balance: Текущий доступный баланс
 
         Returns:
             Форматированная строка для отображения информации об уровне пользователя

@@ -19,12 +19,12 @@ def casino_main_kb() -> InlineKeyboardMarkup:
                 text="🎰 Слоты",
                 callback_data=CasinoMenu(menu="slots", game_type="slots").pack(),
             ),
+        ],
+        [
             InlineKeyboardButton(
                 text="🎲 Кости",
                 callback_data=CasinoMenu(menu="dice", game_type="dice").pack(),
             ),
-        ],
-        [
             InlineKeyboardButton(
                 text="🎯 Дартс",
                 callback_data=CasinoMenu(menu="darts", game_type="darts").pack(),
@@ -36,7 +36,10 @@ def casino_main_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]

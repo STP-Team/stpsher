@@ -1,5 +1,3 @@
-# Add to tgbot/handlers/user/leveling/achievements.py
-
 import logging
 
 from aiogram import F, Router
@@ -7,43 +5,103 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.keyboards.user.leveling.achievements import (
+from tgbot.keyboards.user.game.achievements import (
     AchievementsMenu,
     achievements_kb,
     achievements_paginated_kb,
     to_achievements_kb,
 )
-from tgbot.keyboards.user.main import MainMenu
+from tgbot.keyboards.user.game.main import GameMenu
 
-user_leveling_achievements_router = Router()
-user_leveling_achievements_router.message.filter(
+user_game_achievements_router = Router()
+user_game_achievements_router.message.filter(
     F.chat.type == "private",
 )
-user_leveling_achievements_router.callback_query.filter(
-    F.message.chat.type == "private"
-)
+user_game_achievements_router.callback_query.filter(F.message.chat.type == "private")
 
 logger = logging.getLogger(__name__)
 
 
-@user_leveling_achievements_router.callback_query(
-    MainMenu.filter(F.menu == "achievements")
-)
-async def user_achievements_cb(callback: CallbackQuery):
+@user_game_achievements_router.callback_query(GameMenu.filter(F.menu == "achievements"))
+async def user_achievements_cb(
+    callback: CallbackQuery, 
+    user: Employee, 
+    stp_repo: MainRequestsRepo
+):
+    # Получаем достижения только для направления пользователя
+    user_achievements = await stp_repo.achievement.get_achievements(
+        division=user.division
+    )
+
+    if not user_achievements:
+        await callback.message.edit_text(
+            """<b>🎯 Достижения</b>
+
+В твоем направлении пока нет доступных достижений 😔""",
+            reply_markup=to_achievements_kb(),
+        )
+        return
+
+    # Логика пагинации
+    achievements_per_page = 5
+    total_achievements = len(user_achievements)
+    total_pages = (
+        total_achievements + achievements_per_page - 1
+    ) // achievements_per_page
+
+    # Считаем начало и конец первой страницы
+    start_idx = 0
+    end_idx = achievements_per_page
+    page_achievements = user_achievements[start_idx:end_idx]
+
+    # Построение списка достижений для первой страницы
+    achievements_list = []
+    for counter, achievement in enumerate(page_achievements, start=1):
+        # Экранируем HTML символы в полях
+        description = (
+            str(achievement.description).replace("<", "&lt;").replace(">", "&gt;")
+        )
+        name = str(achievement.name).replace("<", "&lt;").replace(">", "&gt;")
+        position = str(achievement.position).replace("<", "&lt;").replace(">", "&gt;")
+
+        period = ""
+        match achievement.period:
+            case "d":
+                period = "Раз в день"
+            case "w":
+                period = "Раз в неделю"
+            case "m":
+                period = "Раз в месяц"
+            case "A":
+                period = "Вручную"
+            case _:
+                period = "Неизвестно"
+
+        achievements_list.append(f"""{counter}. <b>{name}</b>
+🏅 Награда: {achievement.reward} баллов
+📝 Описание: {description}
+🔰 Должность: {position}
+🕒 Начисление: {period}""")
+        achievements_list.append("")
+
+    message_text = f"""<b>🎯 Достижения</b>
+<i>Страница 1 из {total_pages}</i>
+
+<b>📊 Всего достижений:</b> {total_achievements}
+
+{chr(10).join(achievements_list)}"""
+
     await callback.message.edit_text(
-        """<b>🎯 Достижения</b>
+        message_text, reply_markup=achievements_paginated_kb(1, total_pages)
+    )
 
-Здесь ты можешь найти свои, а так же все возможные достижения
-
-<i>За достижения ты получаешь баллы
-Их можно тратить на <b>👏 Награды</b></i>""",
-        reply_markup=achievements_kb(),
+    logger.info(
+        f"[Пользователь] - [Меню] {callback.from_user.username} ({callback.from_user.id}): "
+        f"Открыто меню достижений направления {user.division}, страница 1"
     )
 
 
-@user_leveling_achievements_router.callback_query(
-    AchievementsMenu.filter(F.menu == "all")
-)
+@user_game_achievements_router.callback_query(AchievementsMenu.filter(F.menu == "all"))
 async def achievements_all(
     callback: CallbackQuery,
     callback_data: AchievementsMenu,
