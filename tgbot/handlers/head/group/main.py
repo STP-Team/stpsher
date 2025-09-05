@@ -16,7 +16,7 @@ async def group_management_cb(callback: CallbackQuery):
     await callback.message.edit_text(
         """👥 <b>Управление группой</b>
 
-Выбери действие для управления вашей группой:""",
+Используй меню для выбора действия""",
         reply_markup=group_management_kb(),
     )
 
