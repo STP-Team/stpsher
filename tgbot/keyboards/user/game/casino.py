@@ -1,6 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.mip.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -221,6 +222,9 @@ def betting_kb(
             InlineKeyboardButton(
                 text="↩️ Назад", callback_data=CasinoMenu(menu="main").pack()
             ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
         ]
     )
 
@@ -238,8 +242,8 @@ def play_again_kb(last_bet: int = 0, game_type: str = "slots") -> InlineKeyboard
         ],
         [
             InlineKeyboardButton(
-                text="🎰 Казино",
-                callback_data=MainMenu(menu="casino").pack(),
+                text="🎲 Казино",
+                callback_data=CasinoMenu(menu="main").pack(),
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
