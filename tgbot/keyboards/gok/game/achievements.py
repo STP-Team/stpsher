@@ -27,7 +27,7 @@ def gok_achievements_paginated_kb(
     if page > 1:
         nav_buttons.append(
             InlineKeyboardButton(
-                text="⬅️ Назад",
+                text="↩️ Назад",
                 callback_data=GokGameMenu(
                     menu="achievements_all", page=page - 1, filters=filters
                 ).pack(),

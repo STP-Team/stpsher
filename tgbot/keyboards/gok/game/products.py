@@ -35,7 +35,7 @@ def gok_purchases_paginated_kb(
     if page > 1:
         nav_buttons.append(
             InlineKeyboardButton(
-                text="⬅️ Назад",
+                text="↩️ Назад",
                 callback_data=GokProductsMenu(
                     menu="products_all", page=page - 1, filters=filters
                 ).pack(),
@@ -114,7 +114,7 @@ def gok_purchases_activation_kb(
         if page > 1:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="⬅️ Назад",
+                    text="↩️ Назад",
                     callback_data=GokGameMenu(
                         menu="purchases_activation", page=page - 1
                     ).pack(),

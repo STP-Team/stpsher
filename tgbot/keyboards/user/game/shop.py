@@ -1,6 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -203,11 +204,13 @@ def product_confirmation_kb(product_id: int, current_page: int) -> InlineKeyboar
                     product_id=product_id, page=current_page, action="buy"
                 ).pack(),
             ),
+        ],
+        [
             InlineKeyboardButton(
-                text="❌ Отмена",
-                callback_data=ShopConfirm(
-                    product_id=product_id, page=current_page, action="back"
-                ).pack(),
+                text="↩️ Назад", callback_data=ShopMenu(menu="available", page=current_page).pack()
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]
@@ -222,7 +225,9 @@ def product_purchase_success_kb(user_product_id: int) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="🎯 Использовать",
-                callback_data=ProductDetailsShop(user_product_id=user_product_id).pack(),
+                callback_data=ProductDetailsShop(
+                    user_product_id=user_product_id
+                ).pack(),
             ),
             InlineKeyboardButton(
                 text="💸 Вернуть",
@@ -233,11 +238,15 @@ def product_purchase_success_kb(user_product_id: int) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="🛒 Продолжить покупки",
-                callback_data=ShopMenu(menu="available", page=1).pack(),
+                text="🎒 Инвентарь",
+                callback_data=GameMenu(menu="inventory").pack(),
             ),
         ],
         [
+            InlineKeyboardButton(
+                text="🛒 Магазин",
+                callback_data=ShopMenu(menu="available", page=1).pack(),
+            ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
