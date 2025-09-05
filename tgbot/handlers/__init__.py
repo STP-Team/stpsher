@@ -12,6 +12,7 @@ from tgbot.handlers.head.schedule.group import head_schedule_group_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
 from tgbot.handlers.mip.game.achievements import mip_game_achievements_router
 from tgbot.handlers.mip.game.main import mip_game_router
+from tgbot.handlers.mip.game.products import mip_game_products_router
 from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
@@ -44,6 +45,7 @@ routers_list = [
     head_schedule_group_router,
     mip_router,
     mip_game_router,
+    mip_game_products_router,
     mip_game_achievements_router,
     mip_broadcast_router,
     mip_schedule_router,

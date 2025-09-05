@@ -35,7 +35,7 @@ def filter_items_by_division(items, active_filters):
 @gok_game_router.callback_query(MainMenu.filter(F.menu == "game"))
 async def gok_achievements_cmd(callback: CallbackQuery):
     await callback.message.edit_text(
-        """<b>🏆 Ачивки</b>
+        """<b>🏮 Игра</b>
 
 Здесь ты можешь:
 - Подтверждать/отклонять покупки специалистов

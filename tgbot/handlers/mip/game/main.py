@@ -5,10 +5,12 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
-from tgbot.handlers.user.game.achievements import achievements_all
+from tgbot.handlers.mip.game.products import products_all
+from tgbot.handlers.mip.game.achievements import achievements_all
 from tgbot.keyboards.mip.game.main import (
     FilterToggleMenu,
     GameMenu,
+    ProductsMenu,
     game_kb,
     toggle_filter,
 )
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 @mip_game_router.callback_query(MainMenu.filter(F.menu == "game"))
 async def mip_achievements_cmd(callback: CallbackQuery):
     await callback.message.edit_text(
-        """<b>🏆 Ачивки</b>
+        """<b>🏮 Игра</b>
 
 Здесь ты можешь:
 - Подтверждать/отклонять покупки специалистов
@@ -51,5 +53,11 @@ async def toggle_filter_handler(
         await achievements_all(
             callback,
             GameMenu(menu="achievements_all", page=1, filters=new_filters),
+            stp_repo,
+        )
+    if menu == "products_all":
+        await products_all(
+            callback,
+            ProductsMenu(menu="products_all", page=1, filters=new_filters),
             stp_repo,
         )

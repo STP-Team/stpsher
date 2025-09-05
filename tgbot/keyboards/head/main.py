@@ -15,7 +15,7 @@ def main_kb() -> InlineKeyboardMarkup:
                 text="📅 Графики", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
-                text="🏆 Ачивки", callback_data=MainMenu(menu="game").pack()
+                text="🏮 Игра", callback_data=MainMenu(menu="game").pack()
             ),
         ],
         [

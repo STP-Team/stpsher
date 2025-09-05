@@ -9,6 +9,7 @@ from tgbot.keyboards.user.main import MainMenu
 class GameMenu(CallbackData, prefix="game"):
     menu: str
     page: int = 1
+    filters: str = "НЦК,НТП"
 
 
 class FilterToggleMenu(CallbackData, prefix="filter_toggle"):
