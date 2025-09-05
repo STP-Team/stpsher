@@ -325,7 +325,7 @@ class ScheduleFormatter:
             elif day_type == "day_off":
                 day_text = "Выходной"
                 if duty_info:
-                    day_text += f" <i>({duty_info})</i>"
+                    day_text += f" ({duty_info})"
                 lines.append(f"<b>{day_info.day}:</b> {day_text}")
                 days_off_count += 1
             elif day_type == "vacation":
