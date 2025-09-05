@@ -235,7 +235,7 @@ async def show_heads(
     page_users = heads[start_idx:end_idx]
 
     await callback.message.edit_text(
-        f"""<b>👔 Руководители</b>
+        f"""<b>👑 Руководители</b>
 
 Найдено руководителей: {total_users}
 Страница {page} из {total_pages}

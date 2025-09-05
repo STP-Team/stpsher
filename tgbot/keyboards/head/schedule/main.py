@@ -25,7 +25,7 @@ def schedule_kb_head() -> InlineKeyboardMarkup:
                 callback_data=ScheduleMenu(menu="duties").pack(),
             ),
             InlineKeyboardButton(
-                text="👨‍💼 Руководители",
+                text="👑 Руководители",
                 callback_data=ScheduleMenu(menu="heads").pack(),
             ),
         ],

@@ -61,7 +61,7 @@ def search_main_kb() -> InlineKeyboardMarkup:
                 callback_data=SearchMenu(menu="specialists").pack(),
             ),
             InlineKeyboardButton(
-                text="👔 Руководители", callback_data=SearchMenu(menu="heads").pack()
+                text="👑 Руководители", callback_data=SearchMenu(menu="heads").pack()
             ),
         ],
         [

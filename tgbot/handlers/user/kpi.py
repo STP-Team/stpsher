@@ -3,6 +3,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
+from tgbot.keyboards.user.kpi import kpi_kb
 from tgbot.keyboards.user.main import MainMenu
 
 user_kpi_router = Router()
@@ -26,5 +27,6 @@ async def user_kpi_cb(
 ⚡️ <b>AHT:</b> {day_kpi.aht if day_kpi.aht else "Неизвестно"}
 🛠️ <b>FLR:</b> {day_kpi.flr if day_kpi.flr else "Неизвестно"}
 🥇 <b>Оценка:</b> {day_kpi.csi if day_kpi.csi else "Неизвестно"}
-🥱 <b>Отклик:</b> {day_kpi.pok if day_kpi.pok else "Неизвестно"}"""
+🥱 <b>Отклик:</b> {day_kpi.pok if day_kpi.pok else "Неизвестно"}""",
+        reply_markup=kpi_kb(),
     )
