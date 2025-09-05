@@ -94,7 +94,7 @@ def head_group_members_kb(
 
         # Добавляем эмодзи для неавторизованных пользователей
         status_emoji = "🔒 " if not member.user_id else ""
-        role_emoji = "👮 " if member.role == 3 else ""
+        role_emoji = {3: "👮 ", 10: "🔨 "}.get(member.role, "")
         button_text = f"{status_emoji}{role_emoji}{member_short_name}"
 
         row.append(
@@ -111,7 +111,7 @@ def head_group_members_kb(
             member = page_members[i + 1]
             member_short_name = short_name(member.fullname)
             status_emoji = "🔒 " if not member.user_id else ""
-            role_emoji = "👮 " if member.role == 3 else ""
+            role_emoji = {3: "👮 ", 10: "🔨 "}.get(member.role, "")
             button_text = f"{status_emoji}{role_emoji}{member_short_name}"
 
             row.append(
