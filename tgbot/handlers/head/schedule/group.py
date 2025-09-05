@@ -84,6 +84,7 @@ async def head_group_schedule(callback: CallbackQuery, user: Employee, stp_repo)
                 has_prev=has_prev,
                 has_next=has_next,
                 user_type="head",
+                from_group_mgmt=False,
             ),
         )
 
@@ -137,6 +138,7 @@ async def handle_head_group_navigation(
                 has_prev=has_prev,
                 has_next=has_next,
                 user_type=user_type,
+                from_group_mgmt=callback_data.from_group_mgmt,
             ),
         )
         await callback.answer()

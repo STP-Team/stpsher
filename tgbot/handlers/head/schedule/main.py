@@ -7,9 +7,7 @@ from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.keyboards.user.schedule.main import (
-    schedule_kb,
-)
+from tgbot.keyboards.head.schedule.main import schedule_kb_head
 
 logger = logging.getLogger(__name__)
 
@@ -30,5 +28,5 @@ async def schedule(callback: CallbackQuery, user: Employee):
         """<b>📅 Меню графиков</b>
         
 Здесь ты найдешь все, что связано с графиками""",
-        reply_markup=schedule_kb(),
+        reply_markup=schedule_kb_head(),
     )

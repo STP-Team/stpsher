@@ -15,12 +15,12 @@ def main_kb() -> InlineKeyboardMarkup:
                 text="📅 Графики", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
-                text="🏮 Игра", callback_data=MainMenu(menu="game").pack()
+                text="🌟 Показатели", callback_data=MainMenu(menu="kpi").pack()
             ),
         ],
         [
             InlineKeyboardButton(
-                text="🌟 Показатели группы", callback_data=MainMenu(menu="kpi").pack()
+                text="👥 Управление группой", callback_data=MainMenu(menu="group_management").pack()
             ),
         ],
         [

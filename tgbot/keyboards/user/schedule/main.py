@@ -65,6 +65,7 @@ class GroupNavigation(CallbackData, prefix="group_nav"):
     date: str  # дата в формате YYYY-MM-DD
     page: int = 1  # номер страницы для пагинации
     user_type: str = "user"  # "head" или "user"
+    from_group_mgmt: bool = False  # вызвано ли из меню управления группой
 
 
 def get_yekaterinburg_date() -> datetime:
@@ -538,6 +539,7 @@ def group_schedule_kb(
     has_prev: bool = False,
     has_next: bool = False,
     user_type: str = "user",
+    from_group_mgmt: bool = False,
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для группового расписания с навигацией по дням и страницам
@@ -549,6 +551,7 @@ def group_schedule_kb(
         has_prev: Есть ли предыдущая страница
         has_next: Есть ли следующая страница
         user_type: Тип пользователя ("head" или "user")
+        from_group_mgmt: Вызвано ли из меню управления группой
 
     Returns:
         Клавиатура с навигацией по дням и страницам
@@ -575,6 +578,7 @@ def group_schedule_kb(
                 date=prev_date.strftime("%Y-%m-%d"),
                 page=1,  # Сбрасываем на первую страницу при смене даты
                 user_type=user_type,
+                from_group_mgmt=from_group_mgmt,
             ).pack(),
         ),
         InlineKeyboardButton(
@@ -584,6 +588,7 @@ def group_schedule_kb(
                 date=current_date.strftime("%Y-%m-%d"),
                 page=page,
                 user_type=user_type,
+                from_group_mgmt=from_group_mgmt,
             ).pack(),
         ),
         InlineKeyboardButton(
@@ -593,6 +598,7 @@ def group_schedule_kb(
                 date=next_date.strftime("%Y-%m-%d"),
                 page=1,  # Сбрасываем на первую страницу при смене даты
                 user_type=user_type,
+                from_group_mgmt=from_group_mgmt,
             ).pack(),
         ),
     ]
@@ -693,15 +699,29 @@ def group_schedule_kb(
         )
 
     # Кнопки навигации
-    buttons.append(
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
-            ),
-            InlineKeyboardButton(
-                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
-            ),
-        ]
-    )
+    if from_group_mgmt:
+        from tgbot.keyboards.head.group import GroupManagementMenu
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад", 
+                    callback_data=MainMenu(menu="group_management").pack()
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
+            ]
+        )
+    else:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
+            ]
+        )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

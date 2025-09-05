@@ -83,6 +83,7 @@ async def group_schedule(callback: CallbackQuery, user: Employee, stp_repo):
                 has_prev=has_prev,
                 has_next=has_next,
                 user_type="user",
+                from_group_mgmt=False,
             ),
         )
 
@@ -90,7 +91,7 @@ async def group_schedule(callback: CallbackQuery, user: Employee, stp_repo):
         await schedule_service.handle_schedule_error(callback, e)
 
 
-@user_schedule_group_router.callback_query(GroupNavigation.filter())
+@user_schedule_group_router.callback_query(GroupNavigation.filter(F.user_type == "user"))
 async def handle_group_navigation(
     callback: CallbackQuery, callback_data: GroupNavigation, user: Employee, stp_repo
 ):
@@ -134,6 +135,7 @@ async def handle_group_navigation(
                 has_prev=has_prev,
                 has_next=has_next,
                 user_type=user_type,
+                from_group_mgmt=callback_data.from_group_mgmt,
             ),
         )
         await callback.answer()
