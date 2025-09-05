@@ -986,7 +986,7 @@ class DutyScheduleParser(BaseDutyParser):
             return duties
 
         except Exception as e:
-            logger.error(f"Error getting duty officers: {e}")
+            logger.warning(f"Error getting duty officers: {e}")
             return []
 
     def format_schedule(self, duties: List[DutyInfo], date: datetime) -> str:
@@ -1235,11 +1235,11 @@ class GroupScheduleParser(BaseExcelParser):
         # Add working hours
         working_hours = member.working_hours or "Не указано"
         result = f"{user_link} <code>{working_hours}</code>"
-        
+
         # Add duty information if available
         if member.duty_info:
             result += f" ({member.duty_info})"
-            
+
         return result
 
     def _sort_members_by_time(
@@ -1360,7 +1360,9 @@ class GroupScheduleParser(BaseExcelParser):
 
             # Fetch duty information for each member for the specified date
             try:
-                duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
+                duties = await self.duty_parser.get_duties_for_date(
+                    date, division, stp_repo
+                )
                 for member in group_members:
                     # Check if this member is on duty
                     for duty in duties:

@@ -223,7 +223,7 @@ def head_member_detail_kb(
                 ).pack(),
             ),
             InlineKeyboardButton(
-                text="📊 KPI",
+                text="🌟 Показатели",
                 callback_data=HeadMemberActionMenu(
                     member_id=member_id, action="kpi", page=page
                 ).pack(),

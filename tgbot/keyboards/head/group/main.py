@@ -21,20 +21,18 @@ def group_management_kb() -> InlineKeyboardMarkup:
                 callback_data=GroupManagementMenu(menu="schedule").pack(),
             ),
             InlineKeyboardButton(
-                text="📊 KPI",
+                text="🌟 Показатели",
                 callback_data=GroupManagementMenu(menu="kpi").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="🏮 Игра",
-                callback_data=GroupManagementMenu(menu="game").pack(),
             ),
         ],
         [
             InlineKeyboardButton(
                 text="👥 Состав",
                 callback_data=GroupManagementMenu(menu="members").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏮 Игра",
+                callback_data=GroupManagementMenu(menu="game").pack(),
             ),
         ],
         [

@@ -14,7 +14,7 @@ head_group_router.callback_query.filter(F.message.chat.type == "private", HeadFi
 async def group_management_cb(callback: CallbackQuery):
     """Обработчик управления группой"""
     await callback.message.edit_text(
-        """👥 <b>Управление группой</b>
+        """❤️ <b>Группа</b>
 
 Используй меню для выбора действия""",
         reply_markup=group_management_kb(),

@@ -552,7 +552,7 @@ async def process_new_filename(message: Message, state: FSMContext):
         if os.path.exists(new_filepath):
             await message.answer(
                 f"❌ Файл с названием '{new_filename}' уже существует.\\n"
-                "Выберите другое название:"
+                "Выбери другое название:"
             )
             return
 
@@ -640,7 +640,7 @@ async def show_file_versions(
 <b>Найдено версий:</b> {total_versions}
 <i>Страница {versions_page} из {total_pages}</i>
 
-<i>Выберите версию для восстановления:</i>"""
+<i>Выбери версию для восстановления:</i>"""
 
         await callback.message.edit_text(
             message_text,

@@ -6,7 +6,7 @@ from infrastructure.database.models import Employee
 from infrastructure.database.models.KPI.head_kpi import HeadMonthKPI
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from tgbot.filters.role import HeadFilter
-from tgbot.keyboards.head.kpi import kpi_kb, KPIMenu
+from tgbot.keyboards.head.kpi import KPIMenu, kpi_kb
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import russian_months
 
@@ -107,11 +107,9 @@ async def kpi_details_cb(
 
 
 @head_kpi_router.callback_query(KPIMenu.filter(F.menu == "members"))
-async def kpi_members_cb(
-    callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
-):
+async def kpi_members_cb(callback: CallbackQuery):
     """Обработчик показателей участников группы"""
-    message_text = """<b>👥 Показатели участников группы</b>
+    message_text = """<b>🌟 Показатели группы</b>
 
 <i>Функция в разработке</i>
 
