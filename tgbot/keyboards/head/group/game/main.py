@@ -2,7 +2,10 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from tgbot.keyboards.gok.main import GokGameMenu, GokProductsMenu
-from tgbot.keyboards.head.game.history import HeadGroupHistoryMenu, HeadRankingMenu
+from tgbot.keyboards.head.group.game.history import (
+    HeadGroupHistoryMenu,
+    HeadRankingMenu,
+)
 from tgbot.keyboards.user.main import MainMenu
 
 

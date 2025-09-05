@@ -4,6 +4,7 @@ from sqlalchemy import Sequence
 
 from infrastructure.database.models.STP.transactions import Transaction
 from tgbot.keyboards.head.group.main import GroupManagementMenu
+from tgbot.keyboards.user.main import MainMenu
 
 
 class HeadGroupHistoryMenu(CallbackData, prefix="head_group_history"):
@@ -48,6 +49,10 @@ def head_group_history_kb(
                 InlineKeyboardButton(
                     text="↩️ Назад",
                     callback_data=GroupManagementMenu(menu="game").pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой",
+                    callback_data=MainMenu(menu="main").pack(),
                 ),
             ]
         )
@@ -200,6 +205,10 @@ def head_group_history_kb(
             InlineKeyboardButton(
                 text="↩️ Назад", callback_data=GroupManagementMenu(menu="game").pack()
             ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
         ]
     )
 
@@ -216,6 +225,10 @@ def head_transaction_detail_kb(page: int = 1) -> InlineKeyboardMarkup:
                 text="↩️ Назад",
                 callback_data=HeadGroupHistoryMenu(menu="history", page=page).pack(),
             ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
         ]
     ]
 
@@ -231,6 +244,10 @@ def head_ranking_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="↩️ Назад",
                 callback_data=GroupManagementMenu(menu="game").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
             ),
         ]
     ]

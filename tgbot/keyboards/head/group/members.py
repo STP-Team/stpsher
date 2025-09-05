@@ -71,6 +71,9 @@ def head_group_members_kb(
                     text="↩️ Назад",
                     callback_data=MainMenu(menu="group_management").pack(),
                 ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
             ]
         )
         return InlineKeyboardMarkup(inline_keyboard=buttons)

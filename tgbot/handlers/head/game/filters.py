@@ -7,8 +7,8 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.gok.game.main import filter_items_by_division
 from tgbot.keyboards.gok.main import GokFilterToggleMenu, parse_filters, toggle_filter
-from tgbot.keyboards.head.game.achievements import head_achievements_paginated_kb
-from tgbot.keyboards.head.game.products import head_products_paginated_kb
+from tgbot.keyboards.head.group.game.achievements import head_achievements_paginated_kb
+from tgbot.keyboards.head.group.game.products import head_products_paginated_kb
 
 head_game_filters_router = Router()
 head_game_filters_router.message.filter(F.chat.type == "private", HeadFilter())

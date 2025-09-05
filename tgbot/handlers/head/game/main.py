@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
-from tgbot.keyboards.head.game.main import head_game_kb
+from tgbot.keyboards.head.group.game.main import head_game_kb
 from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.head.group.members import short_name
 

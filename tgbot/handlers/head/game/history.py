@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
-from tgbot.keyboards.head.game.history import (
+from tgbot.keyboards.head.group.game.history import (
     HeadGroupHistoryMenu,
     HeadRankingMenu,
     HeadTransactionDetailMenu,
@@ -188,7 +188,7 @@ async def head_ranking_view(callback: CallbackQuery, stp_repo: MainRequestsRepo)
 
     if not ranking:
         await callback.message.edit_text(
-            f"""📊 <b>Рейтинг ({current_user.division})</b>
+            f"""📊 <b>Рейтинг {current_user.division}</b>
 
 В твоем направлении пока нет данных о других руководителях или активности за текущий месяц
 
