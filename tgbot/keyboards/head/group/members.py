@@ -30,7 +30,7 @@ class HeadMemberDetailMenu(CallbackData, prefix="head_member_detail"):
 
 class HeadMemberActionMenu(CallbackData, prefix="head_member_action"):
     member_id: int
-    action: str  # "schedule" or "kpi"
+    action: str  # "schedule", "kpi", or "game_profile"
     page: int = 1
 
 
@@ -49,6 +49,24 @@ class HeadMemberScheduleNavigation(CallbackData, prefix="head_member_sched_nav")
 
 class HeadMemberRoleChange(CallbackData, prefix="head_member_role"):
     member_id: int
+    page: int = 1
+
+
+class HeadMemberGameProfileMenu(CallbackData, prefix="head_member_game_profile"):
+    member_id: int
+    page: int = 1
+
+
+class HeadMemberGameHistoryMenu(CallbackData, prefix="head_member_game_history"):
+    member_id: int
+    history_page: int = 1
+    page: int = 1
+
+
+class HeadMemberTransactionDetailMenu(CallbackData, prefix="head_member_transaction_detail"):
+    member_id: int
+    transaction_id: int
+    history_page: int = 1
     page: int = 1
 
 
@@ -229,6 +247,14 @@ def head_member_detail_kb(
                 text="🌟 Показатели",
                 callback_data=HeadMemberActionMenu(
                     member_id=member_id, action="kpi", page=page
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🏮 Игровой профиль",
+                callback_data=HeadMemberActionMenu(
+                    member_id=member_id, action="game_profile", page=page
                 ).pack(),
             ),
         ],

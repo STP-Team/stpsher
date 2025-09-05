@@ -8,6 +8,14 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.group.whois import get_role_info
 from tgbot.handlers.user.schedule.main import schedule_service
+from tgbot.keyboards.head.group.game_profile import (
+    HeadMemberGameHistoryMenu,
+    HeadMemberGameProfileMenu,
+    HeadMemberTransactionDetailMenu,
+    head_member_game_history_kb,
+    head_member_game_profile_kb,
+    head_member_transaction_detail_kb,
+)
 from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.head.group.members import (
     HeadGroupMembersMenu,
@@ -197,14 +205,25 @@ async def member_action_cb(
 
 Здесь будут отображены показатели эффективности выбранного сотрудника."""
 
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_member_detail_kb(
+                member.id, callback_data.page, member.role
+            ),
+        )
+        return
+
+    elif callback_data.action == "game_profile":
+        # Вызываем обработчик просмотра игрового профиля
+        game_profile_callback_data = HeadMemberGameProfileMenu(
+            member_id=member.id, page=callback_data.page
+        )
+        await view_member_game_profile(callback, game_profile_callback_data, stp_repo)
+        return
+
     else:
         await callback.answer("❌ Неизвестное действие", show_alert=True)
         return
-
-    await callback.message.edit_text(
-        message_text,
-        reply_markup=head_member_detail_kb(member.id, callback_data.page, member.role),
-    )
 
 
 @head_group_members_router.callback_query(HeadMemberScheduleMenu.filter())
@@ -438,3 +457,267 @@ async def change_member_role(
     except Exception as e:
         logger.error(f"Ошибка при изменении роли участника {member_id}: {e}")
         await callback.answer("❌ Ошибка при изменении роли", show_alert=True)
+
+
+@head_group_members_router.callback_query(HeadMemberGameProfileMenu.filter())
+async def view_member_game_profile(
+    callback: CallbackQuery,
+    callback_data: HeadMemberGameProfileMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик просмотра игрового профиля участника группы"""
+    from tgbot.services.leveling import LevelingSystem
+
+    member_id = callback_data.member_id
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Проверяем, что у участника есть user_id (авторизован в боте)
+        if not member.user_id:
+            await callback.message.edit_text(
+                f"""🏮 <b>Игровой профиль</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+
+❌ <b>Пользователь не авторизован в боте</b>
+
+<i>Игровой профиль доступен только для авторизованных пользователей</i>""",
+                reply_markup=head_member_game_profile_kb(
+                    member_id=member.id, page=page
+                ),
+                parse_mode="HTML",
+            )
+            return
+
+        # Получаем игровую статистику пользователя
+        user_balance = await stp_repo.transaction.get_user_balance(
+            user_id=member.user_id
+        )
+        achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
+            user_id=member.user_id
+        )
+        purchases_sum = await stp_repo.purchase.get_user_purchases_sum(
+            user_id=member.user_id
+        )
+        level_info_text = LevelingSystem.get_level_info_text(
+            achievements_sum, user_balance
+        )
+
+        # Формируем сообщение с игровым профилем
+        message_text = f"""🏮 <b>Игровой профиль</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
+
+{level_info_text}
+
+<blockquote expandable><b>✨ Баланс</b>
+Всего заработано: {achievements_sum} баллов
+Всего потрачено: {purchases_sum} баллов</blockquote>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_member_game_profile_kb(member_id=member.id, page=page),
+            parse_mode="HTML",
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении игрового профиля участника {member_id}: {e}"
+        )
+        await callback.answer(
+            "❌ Ошибка при получении игрового профиля", show_alert=True
+        )
+
+
+@head_group_members_router.callback_query(HeadMemberGameHistoryMenu.filter())
+async def view_member_game_history(
+    callback: CallbackQuery,
+    callback_data: HeadMemberGameHistoryMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик просмотра истории транзакций участника группы"""
+    member_id = callback_data.member_id
+    history_page = callback_data.history_page
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Проверяем, что у участника есть user_id (авторизован в боте)
+        if not member.user_id:
+            await callback.message.edit_text(
+                f"""📜 <b>История баланса</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+
+❌ <b>Пользователь не авторизован в боте</b>
+
+<i>История баланса доступна только для авторизованных пользователей</i>""",
+                reply_markup=head_member_game_history_kb(
+                    member_id=member.id, transactions=[], current_page=1, page=page
+                ),
+                parse_mode="HTML",
+            )
+            return
+
+        # Получаем транзакции пользователя
+        user_transactions = await stp_repo.transaction.get_user_transactions(
+            user_id=member.user_id
+        )
+
+        if not user_transactions:
+            message_text = f"""📜 <b>История баланса</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
+
+Здесь отображается вся история операций с баллами
+
+У этого участника пока нет транзакций 🙂
+
+<i>Транзакции появляются при покупке предметов, получении достижений и других операциях с баллами</i>"""
+        else:
+            total_transactions = len(user_transactions)
+            message_text = f"""📜 <b>История баланса</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
+
+Здесь отображается вся история операций с баллами
+
+<i>Всего транзакций: {total_transactions}</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_member_game_history_kb(
+                member_id=member.id,
+                transactions=user_transactions,
+                current_page=history_page,
+                page=page,
+            ),
+            parse_mode="HTML",
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении истории транзакций участника {member_id}: {e}"
+        )
+        await callback.answer(
+            "❌ Ошибка при получении истории транзакций", show_alert=True
+        )
+
+
+@head_group_members_router.callback_query(HeadMemberTransactionDetailMenu.filter())
+async def view_member_transaction_detail(
+    callback: CallbackQuery,
+    callback_data: HeadMemberTransactionDetailMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик детального просмотра транзакции участника группы"""
+    member_id = callback_data.member_id
+    transaction_id = callback_data.transaction_id
+    history_page = callback_data.history_page
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Получаем информацию о транзакции
+        transaction = await stp_repo.transaction.get_transaction(transaction_id)
+
+        if not transaction:
+            await callback.message.edit_text(
+                f"""📊 <b>Детали транзакции</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+
+❌ Не смог найти информацию о транзакции""",
+                reply_markup=head_member_transaction_detail_kb(
+                    member_id=member_id, history_page=history_page, page=page
+                ),
+                parse_mode="HTML",
+            )
+            return
+
+        # Определяем эмодзи и текст типа операции
+        type_emoji = "➕" if transaction.type == "earn" else "➖"
+        type_text = "Начисление" if transaction.type == "earn" else "Списание"
+
+        # Определяем источник транзакции
+        source_names = {
+            "achievement": "🏆 Достижение",
+            "product": "🛒 Покупка предмета",
+            "manual": "✍️ Ручная операция",
+            "casino": "🎰 Казино",
+        }
+        source_name = source_names.get(transaction.source_type, "❓ Неизвестно")
+
+        # Формируем сообщение с подробной информацией
+        message_text = f"""📊 <b>Детали транзакции</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
+
+<b>📈 Операция</b>
+{type_emoji} {type_text} <b>{transaction.amount}</b> баллов
+
+<b>🔢 ID:</b> <code>{transaction.id}</code>
+
+<b>📍 Источник</b>
+{source_name}
+
+<b>📅 Дата создания</b>
+{transaction.created_at.strftime("%d.%m.%Y в %H:%M")}"""
+
+        if transaction.comment:
+            message_text += f"\n\n<b>💬 Комментарий</b>\n<blockquote expandable>{transaction.comment}</blockquote>"
+
+        if transaction.source_id:
+            message_text += f"\n\n<b>🔗 ID источника</b>\n└ {transaction.source_id}"
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_member_transaction_detail_kb(
+                member_id=member_id, history_page=history_page, page=page
+            ),
+            parse_mode="HTML",
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при получении деталей транзакции {transaction_id}: {e}")
+        await callback.answer(
+            "❌ Ошибка при получении деталей транзакции", show_alert=True
+        )

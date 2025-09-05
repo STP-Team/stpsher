@@ -43,6 +43,9 @@ def head_game_kb() -> InlineKeyboardMarkup:
                 text="↩️ Назад",
                 callback_data=MainMenu(menu="group_management").pack(),
             ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
         ],
     ]
 

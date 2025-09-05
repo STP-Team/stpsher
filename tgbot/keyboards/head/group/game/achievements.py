@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from tgbot.keyboards.gok.main import GokGameMenu, create_filters_row
 from tgbot.keyboards.head.group.main import GroupManagementMenu
+from tgbot.keyboards.user.main import MainMenu
 
 
 def head_achievements_paginated_kb(
@@ -27,7 +28,7 @@ def head_achievements_paginated_kb(
     if page > 1:
         nav_buttons.append(
             InlineKeyboardButton(
-                text="↩️ Назад",
+                text="⬅️",
                 callback_data=GokGameMenu(
                     menu="achievements_all", page=page - 1, filters=filters
                 ).pack(),
@@ -44,7 +45,7 @@ def head_achievements_paginated_kb(
     if page < total_pages:
         nav_buttons.append(
             InlineKeyboardButton(
-                text="Вперёд ➡️",
+                text="➡️",
                 callback_data=GokGameMenu(
                     menu="achievements_all", page=page + 1, filters=filters
                 ).pack(),
@@ -59,6 +60,9 @@ def head_achievements_paginated_kb(
             InlineKeyboardButton(
                 text="↩️ Назад",
                 callback_data=GroupManagementMenu(menu="game").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ]
     )
