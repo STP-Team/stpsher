@@ -9,6 +9,7 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.role import AdministratorFilter, MultiRoleFilter, SpecialistFilter
 from tgbot.handlers.user.game.casino import (
     get_bowling_result_multiplier,
     get_darts_result_multiplier,
@@ -19,7 +20,9 @@ from tgbot.handlers.user.game.casino import (
 logger = logging.getLogger(__name__)
 
 group_casino_router = Router()
-group_casino_router.message.filter(F.chat.type == "group")
+group_casino_router.message.filter(
+    F.chat.type == "group", MultiRoleFilter(SpecialistFilter(), AdministratorFilter())
+)
 
 
 def parse_amount(text: str) -> Optional[int]:
@@ -242,7 +245,9 @@ async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsR
 • <code>/dice 100</code> - поставить 100 баллов
 
 <b>💎 Таблица наград:</b>
-🎲 Выпало 5 или 6 → x2.0
+· Выпало 6 → 2x
+· Выпало 5 → 1.5x
+· Выпало 4 → 0.75x (утешительный приз)
 
 <b>Минимальная ставка:</b> 10 баллов""",
             parse_mode="HTML",
@@ -280,7 +285,9 @@ async def darts_command(message: Message, user: Employee, stp_repo: MainRequests
 • <code>/darts 100</code> - поставить 100 баллов
 
 <b>💎 Таблица наград:</b>
-🎯 Выпало 5 или 6 → x2.0
+· В яблочко → 2x
+· 1 кольцо от центра → 1.5x
+· 2 кольцо от центра → 0.75x (утешительный приз)
 
 <b>Минимальная ставка:</b> 10 баллов""",
             parse_mode="HTML",
@@ -318,7 +325,9 @@ async def bowling_command(message: Message, user: Employee, stp_repo: MainReques
 • <code>/bowling 100</code> - поставить 100 баллов
 
 <b>💎 Таблица наград:</b>
-🎳 Выпало 5 или 6 → x2.0
+· Страйк → 2x
+· 5 кеглей → 1.5x
+· 4 кегли → 0.75x (утешительный приз)
 
 <b>Минимальная ставка:</b> 10 баллов""",
             parse_mode="HTML",
