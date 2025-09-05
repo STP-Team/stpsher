@@ -1204,6 +1204,10 @@ class HeadScheduleParser(BaseExcelParser):
 class GroupScheduleParser(BaseExcelParser):
     """Parser for group schedules."""
 
+    def __init__(self, uploads_folder: str = "uploads"):
+        super().__init__(uploads_folder)
+        self.duty_parser = DutyScheduleParser(uploads_folder)
+
     def _group_members_by_start_time(
         self, members: List[GroupMemberInfo]
     ) -> Dict[str, List[GroupMemberInfo]]:
@@ -1230,7 +1234,13 @@ class GroupScheduleParser(BaseExcelParser):
 
         # Add working hours
         working_hours = member.working_hours or "Не указано"
-        return f"{user_link} <code>{working_hours}</code>"
+        result = f"{user_link} <code>{working_hours}</code>"
+        
+        # Add duty information if available
+        if member.duty_info:
+            result += f" ({member.duty_info})"
+            
+        return result
 
     def _sort_members_by_time(
         self, members: List[GroupMemberInfo]
@@ -1347,6 +1357,19 @@ class GroupScheduleParser(BaseExcelParser):
                 )
 
                 group_members.append(member)
+
+            # Fetch duty information for each member for the specified date
+            try:
+                duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
+                for member in group_members:
+                    # Check if this member is on duty
+                    for duty in duties:
+                        if self.utils.names_match(member.name, duty.name):
+                            member.duty_info = f"{duty.schedule} {duty.shift_type}"
+                            break
+            except Exception as duty_error:
+                logger.warning(f"Could not fetch duty information: {duty_error}")
+                # Continue without duty info - not critical
 
             logger.info(
                 f"Found {len(group_members)} members in group for {head_fullname}"

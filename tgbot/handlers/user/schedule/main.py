@@ -99,8 +99,8 @@ class ScheduleHandlerService:
         self, user: Employee, month: str, compact: bool = True, stp_repo=None
     ) -> str:
         """Получает расписание пользователя с информацией о дежурствах"""
-        if stp_repo and not compact:
-            # Only fetch duty information for detailed view
+        if stp_repo:
+            # Fetch duty information when stp_repo is available (for heads/MIP viewing others)
             return await self.schedule_parser.get_user_schedule_formatted_with_duties(
                 fullname=user.fullname,
                 month=month,
@@ -109,7 +109,7 @@ class ScheduleHandlerService:
                 stp_repo=stp_repo,
             )
         else:
-            # Use regular schedule for compact view
+            # Use regular schedule when no stp_repo (for users viewing their own schedule)
             return self.schedule_parser.get_user_schedule_formatted(
                 fullname=user.fullname,
                 month=month,

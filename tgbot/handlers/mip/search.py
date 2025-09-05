@@ -654,9 +654,9 @@ async def view_user_schedule(
             current_month = schedule_service.get_current_month()
 
         try:
-            # Получаем расписание пользователя (компактный формат)
+            # Получаем расписание пользователя (компактный формат) с дежурствами
             schedule_response = await schedule_service.get_user_schedule_response(
-                user=user, month=current_month, compact=True
+                user=user, month=current_month, compact=True, stp_repo=stp_repo
             )
 
             await callback.message.edit_text(
@@ -733,9 +733,9 @@ async def navigate_user_schedule(
         month_to_display = get_month_name_by_index(month_idx)
 
         try:
-            # Получаем расписание пользователя
+            # Получаем расписание пользователя с дежурствами
             schedule_response = await schedule_service.get_user_schedule_response(
-                user=user, month=month_to_display, compact=compact
+                user=user, month=month_to_display, compact=compact, stp_repo=stp_repo
             )
 
             await callback.message.edit_text(

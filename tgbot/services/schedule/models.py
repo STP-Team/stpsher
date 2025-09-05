@@ -77,6 +77,7 @@ class GroupMemberInfo:
     schedule: str = ""
     position: str = ""
     working_hours: str = ""
+    duty_info: Optional[str] = None
 
     @property
     def display_name(self) -> str:

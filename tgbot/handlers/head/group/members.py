@@ -234,9 +234,9 @@ async def view_member_schedule(
             current_month = schedule_service.get_current_month()
 
         try:
-            # Получаем расписание участника (компактный формат)
+            # Получаем расписание участника (компактный формат) с дежурствами
             schedule_response = await schedule_service.get_user_schedule_response(
-                user=member, month=current_month, compact=True
+                user=member, month=current_month, compact=True, stp_repo=stp_repo
             )
 
             await callback.message.edit_text(
@@ -316,9 +316,9 @@ async def navigate_member_schedule(
         month_to_display = get_month_name_by_index(month_idx)
 
         try:
-            # Получаем расписание участника
+            # Получаем расписание участника с дежурствами
             schedule_response = await schedule_service.get_user_schedule_response(
-                user=member, month=month_to_display, compact=compact
+                user=member, month=month_to_display, compact=compact, stp_repo=stp_repo
             )
 
             await callback.message.edit_text(
