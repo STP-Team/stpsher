@@ -1,4 +1,4 @@
-# tgbot/handlers/user/schedule/group.py (новый файл)
+# tgbot/handlers/user/schedule/main.py (новый файл)
 
 import logging
 from datetime import datetime
@@ -9,9 +9,9 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.schedule.main import (
+    GroupNavigation,
     ScheduleMenu,
     get_yekaterinburg_date,
-    GroupNavigation,
     group_schedule_kb,
 )
 from tgbot.services.schedule.parsers import GroupScheduleParser
@@ -91,7 +91,9 @@ async def group_schedule(callback: CallbackQuery, user: Employee, stp_repo):
         await schedule_service.handle_schedule_error(callback, e)
 
 
-@user_schedule_group_router.callback_query(GroupNavigation.filter(F.user_type == "user"))
+@user_schedule_group_router.callback_query(
+    GroupNavigation.filter(F.user_type == "user")
+)
 async def handle_group_navigation(
     callback: CallbackQuery, callback_data: GroupNavigation, user: Employee, stp_repo
 ):

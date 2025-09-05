@@ -700,12 +700,11 @@ def group_schedule_kb(
 
     # Кнопки навигации
     if from_group_mgmt:
-        from tgbot.keyboards.head.group import GroupManagementMenu
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="↩️ Назад", 
-                    callback_data=MainMenu(menu="group_management").pack()
+                    text="↩️ Назад",
+                    callback_data=MainMenu(menu="group_management").pack(),
                 ),
                 InlineKeyboardButton(
                     text="🏠 Домой", callback_data=MainMenu(menu="main").pack()

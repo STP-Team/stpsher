@@ -662,7 +662,7 @@ async def view_user_schedule(
                 f"""<b>📅 График сотрудника</b>
 
 <b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Подразделение:</b> {user.division}
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
 
 <blockquote>{schedule_response}</blockquote>""",
                 reply_markup=user_schedule_with_month_kb(
@@ -686,7 +686,7 @@ async def view_user_schedule(
                 f"""<b>📅 График сотрудника</b>
 
 <b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Подразделение:</b> {user.division}
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
 
 {error_message}
 
@@ -741,7 +741,7 @@ async def navigate_user_schedule(
                 f"""<b>📅 График сотрудника</b>
 
 <b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Подразделение:</b> {user.division}
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
 
 <blockquote>{schedule_response}</blockquote>""",
                 reply_markup=user_schedule_with_month_kb(
@@ -765,7 +765,7 @@ async def navigate_user_schedule(
                 f"""<b>📅 График сотрудника</b>
 
 <b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Подразделение:</b> {user.division}
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
 
 {error_message}
 
