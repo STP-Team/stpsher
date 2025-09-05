@@ -6,6 +6,10 @@ from tgbot.handlers.gok.game.main import gok_game_router
 from tgbot.handlers.gok.main import gok_router
 from tgbot.handlers.group.casino import group_casino_router
 from tgbot.handlers.group.whois import whois_router
+from tgbot.handlers.head.game.achievements import head_game_achievements_router
+from tgbot.handlers.head.game.filters import head_game_filters_router
+from tgbot.handlers.head.game.main import head_game_router
+from tgbot.handlers.head.game.products import head_game_products_router
 from tgbot.handlers.head.group.main import head_group_router
 from tgbot.handlers.head.group.members import head_group_members_router
 from tgbot.handlers.head.group.schedule import head_group_schedule_router
@@ -44,6 +48,10 @@ routers_list = [
     gok_game_router,
     gok_game_achievements_router,
     head_router,
+    head_game_router,
+    head_game_achievements_router,
+    head_game_products_router,
+    head_game_filters_router,
     head_kpi_router,
     head_schedule_group_router,
     head_group_router,

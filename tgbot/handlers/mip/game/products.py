@@ -88,7 +88,7 @@ async def products_all(
     filtered_stats = f"Показано: {total_products}"
 
     message_text = f"""
-<b>🏆 Все возможные предметы</b>
+<b>👏 Все возможные предметы</b>
 <i>Страница {page} из {total_pages}</i>
 
 <blockquote expandable><b>Всего предметов:</b>  
