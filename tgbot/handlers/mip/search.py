@@ -397,7 +397,8 @@ async def show_user_details(
 <b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
 <b>Должность:</b> {user.position} {user.division}
 <b>Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>
-<b>Роль:</b> {role_name} ({user.role})"""
+
+🛡️<b>Уровень доступа:</b> {role_name} ({user.role})"""
 
         if user.email:
             user_info += f"\n<b>Рабочая почта:</b> {user.email}"
@@ -547,14 +548,14 @@ async def start_edit_user(
         )
 
         await callback.message.edit_text(
-            f"""<b>👤 Изменение роли</b>
+            f"""🛡️ <b>Изменение уровня доступа</b>
 
 <b>Сотрудник:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Текущая роль:</b> {current_role_name}
+<b>Текущий уровень доступа:</b> {current_role_name}
 
-Выбери новую роль для пользователя:
+Выбери новую уровень для пользователя:
 
-<i>Пользователь получит уведомление об изменении роли</i>""",
+<i>Пользователь получит уведомление об изменении</i>""",
             reply_markup=role_selection_kb(user_id, user.role),
         )
 
@@ -808,12 +809,12 @@ async def process_role_change(
         old_role_name = (
             role_names[user.role]
             if user.role < len(role_names)
-            else f"Неизвестная роль ({user.role})"
+            else f"Неизвестный уровень ({user.role})"
         )
         new_role_name = (
             role_names[new_role]
             if new_role < len(role_names)
-            else f"Неизвестная роль ({new_role})"
+            else f"Неизвестный уровень ({new_role})"
         )
 
         # Обновляем роль в базе данных
@@ -825,7 +826,7 @@ async def process_role_change(
                 chat_id=user_id,
                 text=f"""<b>🔔 Изменение роли</b>
 
-Роль в системе была изменена: {old_role_name} → {new_role_name}
+Уровень был изменен: {old_role_name} → {new_role_name}
 
 <i>Изменения могут повлиять на доступные функции бота</i>""",
             )

@@ -47,6 +47,11 @@ class HeadMemberScheduleNavigation(CallbackData, prefix="head_member_sched_nav")
     page: int = 1
 
 
+class HeadMemberRoleChange(CallbackData, prefix="head_member_role"):
+    member_id: int
+    page: int = 1
+
+
 def head_group_members_kb(
     members: Sequence[Employee],
     current_page: int = 1,
@@ -89,7 +94,8 @@ def head_group_members_kb(
 
         # Добавляем эмодзи для неавторизованных пользователей
         status_emoji = "🔒 " if not member.user_id else ""
-        button_text = f"{status_emoji}{member_short_name}"
+        role_emoji = "👮 " if member.role == 3 else ""
+        button_text = f"{status_emoji}{role_emoji}{member_short_name}"
 
         row.append(
             InlineKeyboardButton(
@@ -105,7 +111,8 @@ def head_group_members_kb(
             member = page_members[i + 1]
             member_short_name = short_name(member.fullname)
             status_emoji = "🔒 " if not member.user_id else ""
-            button_text = f"{status_emoji}{member_short_name}"
+            role_emoji = "👮 " if member.role == 3 else ""
+            button_text = f"{status_emoji}{role_emoji}{member_short_name}"
 
             row.append(
                 InlineKeyboardButton(
@@ -201,7 +208,9 @@ def head_group_members_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def head_member_detail_kb(member_id: int, page: int = 1) -> InlineKeyboardMarkup:
+def head_member_detail_kb(
+    member_id: int, page: int = 1, member_role: int = None
+) -> InlineKeyboardMarkup:
     """
     Клавиатура для детального просмотра участника группы
     """
@@ -220,6 +229,25 @@ def head_member_detail_kb(member_id: int, page: int = 1) -> InlineKeyboardMarkup
                 ).pack(),
             ),
         ],
+    ]
+
+    # Добавляем кнопку смены роли только для специалистов (роль 1) и дежурных (роль 3)
+    if member_role in [1, 3]:
+        role_button_text = (
+            "👮 Сделать дежурным" if member_role == 1 else "👤 Сделать спецом"
+        )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=role_button_text,
+                    callback_data=HeadMemberRoleChange(
+                        member_id=member_id, page=page
+                    ).pack(),
+                ),
+            ]
+        )
+
+    buttons.append(
         [
             InlineKeyboardButton(
                 text="↩️ Назад",
@@ -229,8 +257,8 @@ def head_member_detail_kb(member_id: int, page: int = 1) -> InlineKeyboardMarkup
                 text="🏠 Домой",
                 callback_data=MainMenu(menu="main").pack(),
             ),
-        ],
-    ]
+        ]
+    )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

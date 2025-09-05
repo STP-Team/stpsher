@@ -1,16 +1,19 @@
 import logging
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
+from tgbot.handlers.group.whois import get_role_info
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.head.group.members import (
     HeadGroupMembersMenu,
     HeadMemberActionMenu,
     HeadMemberDetailMenu,
+    HeadMemberRoleChange,
     HeadMemberScheduleMenu,
     HeadMemberScheduleNavigation,
     get_month_name_by_index,
@@ -51,9 +54,9 @@ async def group_mgmt_members_cb(callback: CallbackQuery, stp_repo: MainRequestsR
         await callback.message.edit_text(
             """👥 <b>Состав группы</b>
 
-У вас пока нет подчиненных в системе.
+У тебя пока нет подчиненных в системе
             
-<i>Если это ошибка, обратитесь к администратору.</i>""",
+<i>Если это ошибка, обратись к администратору.</i>""",
             reply_markup=head_group_members_kb([], current_page=1),
         )
         return
@@ -66,8 +69,9 @@ async def group_mgmt_members_cb(callback: CallbackQuery, stp_repo: MainRequestsR
 Участники твоей группы: <b>{total_members}</b>
 
 🔒 - не авторизован в боте
+👮 - дежурный
 
-<i>Нажмите на участника для просмотра подробной информации</i>"""
+<i>Нажми на участника для просмотра подробной информации</i>"""
 
     await callback.message.edit_text(
         message_text,
@@ -104,8 +108,9 @@ async def group_members_pagination_cb(
 Участники вашей группы: <b>{total_members}</b>
 
 🔒 - не авторизован в боте
+👮 - дежурный
 
-<i>Нажмите на участника для просмотра подробной информации</i>"""
+<i>Нажми на участника для просмотра подробной информации</i>"""
 
     await callback.message.edit_text(
         message_text,
@@ -137,7 +142,9 @@ async def member_detail_cb(
 
 <b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
 <b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
-<b>Email:</b> {member.email or "Не указано"}"""
+<b>Email:</b> {member.email or "Не указано"}
+
+🛡️ <b>Уровень доступа:</b> <code>{get_role_info(member.role)["text"]}</code>"""
 
     # Добавляем статус только для неавторизованных пользователей
     if not member.user_id:
@@ -147,7 +154,7 @@ async def member_detail_cb(
 
     await callback.message.edit_text(
         message_text,
-        reply_markup=head_member_detail_kb(member.id, callback_data.page),
+        reply_markup=head_member_detail_kb(member.id, callback_data.page, member.role),
         parse_mode="HTML",
     )
 
@@ -192,7 +199,7 @@ async def member_action_cb(
 
     await callback.message.edit_text(
         message_text,
-        reply_markup=head_member_detail_kb(member.id, callback_data.page),
+        reply_markup=head_member_detail_kb(member.id, callback_data.page, member.role),
     )
 
 
@@ -357,3 +364,73 @@ async def navigate_member_schedule(
     except Exception as e:
         logger.error(f"Ошибка при навигации по расписанию участника {member_id}: {e}")
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
+
+
+@head_group_members_router.callback_query(HeadMemberRoleChange.filter())
+async def change_member_role(
+    callback: CallbackQuery,
+    callback_data: HeadMemberRoleChange,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик смены роли участника группы"""
+    member_id = callback_data.member_id
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Проверяем, что роль может быть изменена
+        if member.role not in [1, 3]:
+            await callback.answer(
+                "❌ Уровень доступа этого пользователя нельзя изменить", show_alert=True
+            )
+            return
+
+        # Определяем новый уровень доступа
+        new_role = 3 if member.role == 1 else 1
+        old_role_name = "Специалист" if member.role == 1 else "Дежурный"
+        new_role_name = "Дежурный" if new_role == 3 else "Специалист"
+
+        # Обновляем уровень в базе данных
+        await stp_repo.employee.update_user(user_id=member.user_id, role=new_role)
+
+        # Отправляем уведомление пользователю о смене роли (только если он авторизован)
+        if member.user_id:
+            try:
+                await callback.bot.send_message(
+                    chat_id=member.user_id,
+                    text=f"""<b>🔔 Изменение роли</b>
+
+Уровень был изменен: {old_role_name} → {new_role_name}
+
+<i>Изменения могут повлиять на доступные функции бота</i>""",
+                )
+                await callback.answer(
+                    "Отправили специалисту уведомление об изменении роли"
+                )
+            except TelegramBadRequest as e:
+                await callback.answer("Не удалось отправить уведомление специалисту :(")
+                logger.error(
+                    f"Не удалось отправить уведомление пользователю {member.user_id}: {e}"
+                )
+        logger.info(
+            f"[Руководитель] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль участника {member_id}: {old_role_name} → {new_role_name}"
+        )
+
+        await member_detail_cb(
+            callback, HeadMemberDetailMenu(member_id=member.id), stp_repo
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при изменении роли участника {member_id}: {e}")
+        await callback.answer("❌ Ошибка при изменении роли", show_alert=True)

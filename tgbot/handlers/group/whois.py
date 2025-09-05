@@ -1,4 +1,5 @@
 import logging
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -38,7 +39,7 @@ def get_role_info(role: int) -> dict:
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     """Создание сообщения с информацией о пользователе (аналогично inline search)"""
 
-    # Определяем роль и эмодзи
+    # Определяем уровень доступа и эмодзи
     role_info = get_role_info(user.role)
 
     # Формируем контент сообщения
@@ -62,7 +63,7 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(f"<b>🏷 Роль:</b> {role_info['text']}")
+    message_parts.append(f"\n🛡️ <b> Уровень доступа:</b> {role_info['text']}")
 
     return "\n".join(message_parts)
 

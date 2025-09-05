@@ -137,7 +137,7 @@ def user_detail_kb(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="👤 Изменить роль",
+                    text="🛡️ Уровень доступа",
                     callback_data=EditUserMenu(
                         user_id=user_id, action="edit_role"
                     ).pack(),
