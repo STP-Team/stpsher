@@ -2,8 +2,10 @@ from typing import List
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from sqlalchemy import Sequence
 
 from infrastructure.database.repo.STP.purchase import PurchaseDetailedParams
+from infrastructure.database.models.STP.transactions import Transaction
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 
@@ -43,9 +45,9 @@ def get_status_emoji(status: str) -> str:
 
 
 def inventory_kb(
-        user_products: List[PurchaseDetailedParams],
-        current_page: int = 1,
-        products_per_page: int = 8,
+    user_products: List[PurchaseDetailedParams],
+    current_page: int = 1,
+    products_per_page: int = 8,
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура инвентаря с пагинацией.
@@ -215,11 +217,11 @@ def to_game_kb() -> InlineKeyboardMarkup:
 
 
 def product_detail_kb(
-        user_product_id: int,
-        can_use: bool = False,
-        can_sell: bool = False,
-        can_cancel: bool = False,
-        source_menu: str = "inventory",
+    user_product_id: int,
+    can_use: bool = False,
+    can_sell: bool = False,
+    can_cancel: bool = False,
+    source_menu: str = "inventory",
 ) -> InlineKeyboardMarkup:
     """Клавиатура детального просмотра предмета"""
     buttons = []
@@ -263,16 +265,11 @@ def product_detail_kb(
     # Context-aware back button
     if source_menu == "shop":
         from tgbot.keyboards.user.game.shop import ShopMenu
+
         back_callback = ShopMenu(menu="available", page=1).pack()
     else:
         back_callback = GameMenu(menu="inventory").pack()
 
-    buttons.append(
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад", callback_data=back_callback
-            )
-        ]
-    )
+    buttons.append([InlineKeyboardButton(text="↩️ Назад", callback_data=back_callback)])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

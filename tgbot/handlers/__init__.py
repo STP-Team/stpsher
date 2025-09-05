@@ -20,6 +20,7 @@ from tgbot.handlers.mip.search import mip_search_router
 from tgbot.handlers.user.auth.main import user_auth_router
 from tgbot.handlers.user.game.achievements import user_game_achievements_router
 from tgbot.handlers.user.game.casino import user_game_casino_router
+from tgbot.handlers.user.game.history import user_game_history_router
 from tgbot.handlers.user.game.inventory import user_game_inventory_router
 from tgbot.handlers.user.game.main import user_game_router
 from tgbot.handlers.user.game.shop import user_game_shop_router
@@ -62,6 +63,7 @@ routers_list = [
     user_game_inventory_router,
     user_game_achievements_router,
     user_game_casino_router,
+    user_game_history_router,
     user_links_router,
     user_inline_router,
     whois_router,
