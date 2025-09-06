@@ -146,7 +146,14 @@ class ScheduleHandlerService:
                     active_duties.append(duty)
             duties = active_duties
 
-        return self.duty_parser.format_schedule(duties, date)
+        # Check if today's date is selected to highlight current duties
+        today = get_yekaterinburg_date().date()
+        highlight_current = (date.date() == today) and stp_repo
+
+        # Get formatted duties schedule with optional current duty highlighting
+        return await self.duty_parser.format_schedule(
+            duties, date, highlight_current, division, stp_repo
+        )
 
     async def get_heads_response(
         self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None

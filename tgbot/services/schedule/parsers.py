@@ -666,7 +666,7 @@ class DutyScheduleParser(BaseDutyParser):
                     start_minutes, end_minutes = self.utils.parse_time_range(
                         duty.schedule
                     )
-                    current_datetime = datetime.now()
+                    current_datetime = get_yekaterinburg_date()
                     current_time_minutes = (
                         current_datetime.hour * 60 + current_datetime.minute
                     )
@@ -682,11 +682,56 @@ class DutyScheduleParser(BaseDutyParser):
                         ):
                             return duty
 
-            # If no active duty found, return the first senior duty (fallback)
-            return senior_duties[0] if senior_duties else None
+            # If no active duty found, return None (no fallback)
+            return None
 
         except Exception as e:
             logger.error(f"Error getting current senior duty for {division}: {e}")
+            return None
+
+    async def get_current_helper_duty(
+        self, division: str, stp_repo: MainRequestsRepo
+    ) -> Optional[DutyInfo]:
+        """Get current helper duty for division based on current time."""
+        date = get_yekaterinburg_date()
+
+        try:
+            # Get all duties for today
+            duties = await self.get_duties_for_date(date, division, stp_repo)
+
+            # Filter for helper duties only
+            helper_duties = [duty for duty in duties if duty.shift_type == "П"]
+
+            if not helper_duties:
+                return None
+
+            # Find the current helper duty based on time
+            for duty in helper_duties:
+                if self.utils.is_time_format(duty.schedule):
+                    start_minutes, end_minutes = self.utils.parse_time_range(
+                        duty.schedule
+                    )
+                    current_datetime = get_yekaterinburg_date()
+                    current_time_minutes = (
+                        current_datetime.hour * 60 + current_datetime.minute
+                    )
+                    # Check if current time is within duty hours
+                    if start_minutes <= current_time_minutes <= end_minutes:
+                        return duty
+
+                    # Handle overnight shifts (end time is next day)
+                    elif end_minutes > 24 * 60:  # Overnight shift
+                        if (
+                            current_time_minutes >= start_minutes
+                            or current_time_minutes <= (end_minutes - 24 * 60)
+                        ):
+                            return duty
+
+            # If no active duty found, return None (no fallback)
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting current helper duty for {division}: {e}")
             return None
 
     async def get_duties_for_month(
@@ -989,12 +1034,29 @@ class DutyScheduleParser(BaseDutyParser):
             logger.warning(f"Error getting duty officers: {e}")
             return []
 
-    def format_schedule(self, duties: List[DutyInfo], date: datetime) -> str:
+    async def format_schedule(
+        self,
+        duties: List[DutyInfo],
+        date: datetime,
+        highlight_current: bool = False,
+        division: str = None,
+        stp_repo=None,
+    ) -> str:
         """Format duties for date display."""
         if not duties:
             return f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдено дежурных на эту дату"
 
         lines = [f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n"]
+
+        # Get current duties if highlighting is needed
+        current_senior = None
+        current_helper = None
+        if highlight_current and division and stp_repo:
+            try:
+                current_senior = await self.get_current_senior_duty(division, stp_repo)
+                current_helper = await self.get_current_helper_duty(division, stp_repo)
+            except Exception as e:
+                logger.error(f"Error getting current duties: {e}")
 
         # Group by time
         time_groups = {}
@@ -1018,9 +1080,52 @@ class DutyScheduleParser(BaseDutyParser):
             time_groups.keys(), key=lambda t: self.utils.parse_time_range(t)[0]
         )
 
-        for time_schedule in sorted_times:
+        # Identify current duty time slots
+        current_time_slots = set()
+        if highlight_current and (current_senior or current_helper):
+            for time_schedule in sorted_times:
+                group = time_groups[time_schedule]
+                for duty in group["seniors"] + group["helpers"]:
+                    if (
+                        current_senior
+                        and duty.name == current_senior.name
+                        and duty.shift_type == current_senior.shift_type
+                    ) or (
+                        current_helper
+                        and duty.name == current_helper.name
+                        and duty.shift_type == current_helper.shift_type
+                    ):
+                        current_time_slots.add(time_schedule)
+
+        # Check if we need to start/end blockquote
+        in_blockquote = False
+        
+        # Count current slots for spacing logic
+        current_slots_count = len(current_time_slots)
+
+        for i, time_schedule in enumerate(sorted_times):
             group = time_groups[time_schedule]
-            lines.append(f"⏰ <b>{time_schedule}</b>")
+            is_current_slot = time_schedule in current_time_slots
+
+            # Check if previous slot was current
+            prev_was_current = False
+            if i > 0:
+                prev_time_schedule = sorted_times[i - 1]
+                prev_was_current = prev_time_schedule in current_time_slots
+
+            # Start blockquote if this is first current slot
+            if is_current_slot and not in_blockquote:
+                lines.append(f"<blockquote>⏰ {time_schedule}")
+                in_blockquote = True
+            # End blockquote if we were in one but this slot is not current
+            elif not is_current_slot and in_blockquote:
+                lines.append("</blockquote>")
+                in_blockquote = False
+                # Add time header without <b> tags
+                lines.append(f"⏰ {time_schedule}")
+            else:
+                # Add time header without <b> tags
+                lines.append(f"⏰ {time_schedule}")
 
             # Add senior officers
             for duty in group["seniors"]:
@@ -1048,7 +1153,24 @@ class DutyScheduleParser(BaseDutyParser):
                         f"{gender_emoji} Помощник - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
                     )
 
-            lines.append("")
+            # Check if next slot is current to decide whether to close blockquote
+            next_is_current = False
+            if i + 1 < len(sorted_times):
+                next_time_schedule = sorted_times[i + 1]
+                next_is_current = next_time_schedule in current_time_slots
+
+            # Add spacing logic
+            if is_current_slot and not next_is_current and in_blockquote:
+                # End blockquote if this was current slot and next is not current (or this is last slot)
+                lines.append("</blockquote>")
+                in_blockquote = False
+            elif not is_current_slot:
+                # Regular spacing for non-current slots
+                lines.append("")
+            elif is_current_slot and next_is_current:
+                # Add empty line between current slots if there are few current slots (≤3)
+                if current_slots_count <= 3:
+                    lines.append("")
 
         # Remove last empty line
         if lines and lines[-1] == "":
