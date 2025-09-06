@@ -76,10 +76,10 @@ async def products_all(
     for counter, product in enumerate(page_products, start=start_idx + 1):
         product_text = f"""
 <b>{counter}. {product.name}</b>
-📍 Активаций: {product.count}
+<blockquote>📍 Активаций: {product.count}
 💵 Стоимость: {product.cost} баллов
 🔰 Направление: {product.division}
-📝 Описание: {product.description}"""
+📝 Описание: {product.description}</blockquote>"""
         products_list.append(product_text)
 
     # Статистика

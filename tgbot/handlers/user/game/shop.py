@@ -105,11 +105,11 @@ async def game_shop(
             availability_icon = "💰 " if user_balance >= product.cost else "🔒 "
 
         products_list.append(f"""{counter}. {availability_icon}<b>{product.name}</b>
-💵 Стоимость: {product.cost} баллов
+<blockquote>💵 Стоимость: {product.cost} баллов
 📝 Описание: {product.description}""")
         if product.count > 1:
             products_list.append(f"""📍 Активаций: {product.count}""")
-        products_list.append("")
+        products_list.append("</blockquote>")
 
     message_text = f"""💎 <b>Магазин - {filter_title}</b>
 <i>Страница {page} из {total_pages}</i>

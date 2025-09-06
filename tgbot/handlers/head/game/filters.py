@@ -76,9 +76,9 @@ async def head_toggle_filter(
             )
 
             achievements_list.append(f"""{counter}. <b>{name}</b>
-🏅 Награда: {achievement.reward} баллов
+<blockquote>🏅 Награда: {achievement.reward} баллов
 📝 Описание: {description}
-🔰 Должность: {position} {division}""")
+🔰 Должность: {position} {division}</blockquote>""")
             achievements_list.append("")
 
         # Создаем статистику по всем достижениям (не только отфильтрованным)
@@ -131,10 +131,10 @@ async def head_toggle_filter(
         for counter, product in enumerate(page_products, start=start_idx + 1):
             product_text = f"""
 <b>{counter}. {product.name}</b>
-📍 Активаций: {product.count}
+<blockquote>📍 Активаций: {product.count}
 💵 Стоимость: {product.cost} баллов
 🔰 Направление: {product.division}
-📝 Описание: {product.description}"""
+📝 Описание: {product.description}</blockquote>"""
             products_list.append(product_text)
 
         # Статистика

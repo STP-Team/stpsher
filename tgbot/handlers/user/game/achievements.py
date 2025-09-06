@@ -7,7 +7,6 @@ from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.game.achievements import (
     AchievementsMenu,
-    achievements_kb,
     achievements_paginated_kb,
     to_achievements_kb,
 )
@@ -24,9 +23,7 @@ logger = logging.getLogger(__name__)
 
 @user_game_achievements_router.callback_query(GameMenu.filter(F.menu == "achievements"))
 async def user_achievements_cb(
-    callback: CallbackQuery, 
-    user: Employee, 
-    stp_repo: MainRequestsRepo
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
     # Получаем достижения только для направления пользователя
     user_achievements = await stp_repo.achievement.get_achievements(
@@ -78,10 +75,10 @@ async def user_achievements_cb(
                 period = "Неизвестно"
 
         achievements_list.append(f"""{counter}. <b>{name}</b>
-🏅 Награда: {achievement.reward} баллов
+<blockquote>🏅 Награда: {achievement.reward} баллов
 📝 Описание: {description}
 🔰 Должность: {position}
-🕒 Начисление: {period}""")
+🕒 Начисление: {period}</blockquote>""")
         achievements_list.append("")
 
     message_text = f"""<b>🎯 Достижения</b>
@@ -166,10 +163,10 @@ async def achievements_all(
                 period = "Неизвестно"
 
         achievements_list.append(f"""{counter}. <b>{name}</b>
-🏅 Награда: {achievement.reward} баллов
+<blockquote>🏅 Награда: {achievement.reward} баллов
 📝 Описание: {description}
 🔰 Должность: {position}
-🕒 Начисление: {period}""")
+🕒 Начисление: {period}</blockquote>""")
         achievements_list.append("")
 
     message_text = f"""<b>🎯 Все возможные достижения</b>

@@ -66,9 +66,9 @@ async def head_achievements_all(
         position = str(achievement.position).replace("<", "&lt;").replace(">", "&gt;")
 
         achievements_list.append(f"""{counter}. <b>{name}</b>
-🏅 Награда: {achievement.reward} баллов
+<blockquote>🏅 Награда: {achievement.reward} баллов
 📝 Описание: {description}
-🔰 Должность: {position} {division}""")
+🔰 Должность: {position} {division}</blockquote>""")
         achievements_list.append("")
 
     # Создаем статистику по всем достижениям (не только отфильтрованным)
