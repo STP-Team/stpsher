@@ -1,70 +1,97 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from tgbot.keyboards.gok.main import GokGameMenu, create_filters_row
 from tgbot.keyboards.head.group.main import GroupManagementMenu
+from tgbot.keyboards.mip.game.main import GameMenu, create_filters_row
 from tgbot.keyboards.user.main import MainMenu
 
 
 def head_achievements_paginated_kb(
-    page: int, total_pages: int, filters: str
+    current_page: int, total_pages: int, filters: str = "НЦК,НТП"
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура с пагинацией для списка достижений для руководителей
-    :param page: Текущая страница
-    :param total_pages: Всего страниц
-    :param filters: Активные фильтры
-    :return:
+    Клавиатура пагинации для всех возможных достижений с фильтрами
     """
     buttons = []
 
-    # Add filter buttons
-    filter_buttons = create_filters_row("achievements_all", filters, page)
-    if filter_buttons:
-        buttons.append(filter_buttons)
+    # Пагинация
+    if total_pages > 1:
+        pagination_row = []
 
-    # Pagination controls
-    nav_buttons = []
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=GameMenu(
+                        menu="achievements_all", page=1, filters=filters
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
-    if page > 1:
-        nav_buttons.append(
+        # Вторая кнопка (⬅️ или пусто)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=GameMenu(
+                        menu="achievements_all", page=current_page - 1, filters=filters
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Центральная кнопка - Индикатор страницы (всегда видна)
+        pagination_row.append(
             InlineKeyboardButton(
-                text="⬅️",
-                callback_data=GokGameMenu(
-                    menu="achievements_all", page=page - 1, filters=filters
-                ).pack(),
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
             )
         )
 
-    nav_buttons.append(
+        # Четвертая кнопка (➡️ или пусто)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=GameMenu(
+                        menu="achievements_all", page=current_page + 1, filters=filters
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=GameMenu(
+                        menu="achievements_all", page=total_pages, filters=filters
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Добавляем ряд фильтров
+    filter_buttons = create_filters_row("achievements_all", filters, current_page)
+    buttons.append(filter_buttons)  # Все фильтры в одной строке
+
+    # Навигация
+    navigation_row = [
         InlineKeyboardButton(
-            text=f"📄 {page}/{total_pages}",
-            callback_data="current_page",
-        )
-    )
-
-    if page < total_pages:
-        nav_buttons.append(
-            InlineKeyboardButton(
-                text="➡️",
-                callback_data=GokGameMenu(
-                    menu="achievements_all", page=page + 1, filters=filters
-                ).pack(),
-            )
-        )
-
-    buttons.append(nav_buttons)
-
-    # Back button - return to game menu for heads
-    buttons.append(
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=GroupManagementMenu(menu="game").pack(),
-            ),
-            InlineKeyboardButton(
-                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
-            ),
-        ]
-    )
+            text="↩️ Назад", callback_data=GroupManagementMenu(menu="game").pack()
+        ),
+        InlineKeyboardButton(
+            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+        ),
+    ]
+    buttons.append(navigation_row)
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

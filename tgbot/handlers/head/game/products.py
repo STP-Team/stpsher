@@ -6,8 +6,14 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.gok.game.main import filter_items_by_division
-from tgbot.keyboards.gok.main import GokProductsMenu, parse_filters
+from tgbot.keyboards.head.group.game.main import HeadGameMenu
 from tgbot.keyboards.head.group.game.products import head_products_paginated_kb
+from tgbot.keyboards.mip.game.main import (
+    FilterToggleMenu,
+    ProductsMenu,
+    parse_filters,
+    toggle_filter,
+)
 
 head_game_products_router = Router()
 head_game_products_router.message.filter(F.chat.type == "private", HeadFilter())
@@ -18,11 +24,23 @@ head_game_products_router.callback_query.filter(
 logger = logging.getLogger(__name__)
 
 
-@head_game_products_router.callback_query(
-    GokProductsMenu.filter(F.menu == "products_all")
-)
+@head_game_products_router.callback_query(HeadGameMenu.filter(F.menu == "products"))
+async def head_products_menu(callback: CallbackQuery, stp_repo: MainRequestsRepo):
+    """
+    Обработчик клика на меню предметов - перенаправляет на products_all с дефолтными параметрами
+    """
+    # Создаем callback_data с дефолтными параметрами
+    from tgbot.keyboards.mip.game.main import ProductsMenu
+
+    new_callback_data = ProductsMenu(menu="products_all", page=1, filters="НЦК,НТП")
+
+    # Вызываем основной обработчик
+    await head_products_all(callback, new_callback_data, stp_repo)
+
+
+@head_game_products_router.callback_query(ProductsMenu.filter(F.menu == "products_all"))
 async def head_products_all(
-    callback: CallbackQuery, callback_data: GokProductsMenu, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, callback_data: ProductsMenu, stp_repo: MainRequestsRepo
 ):
     """
     Обработчик клика на меню всех возможных предметов для руководителей
@@ -86,3 +104,26 @@ async def head_products_all(
     logger.info(
         f"[Руководитель] - [Предметы] {callback.from_user.username} ({callback.from_user.id}): Просмотр предметов, страница {page}, фильтры: {filters}"
     )
+
+
+@head_game_products_router.callback_query(
+    FilterToggleMenu.filter(F.menu == "products_all")
+)
+async def head_products_toggle_filter(
+    callback: CallbackQuery, callback_data: FilterToggleMenu, stp_repo: MainRequestsRepo
+):
+    """Обработчик переключения фильтров для предметов"""
+    menu = callback_data.menu
+    filter_name = callback_data.filter_name
+    current_filters = callback_data.current_filters
+
+    # Переключаем фильтр
+    new_filters = toggle_filter(current_filters, filter_name)
+
+    # Переходим на первую страницу при изменении фильтров
+    if menu == "products_all":
+        await head_products_all(
+            callback,
+            ProductsMenu(menu="products_all", page=1, filters=new_filters),
+            stp_repo,
+        )

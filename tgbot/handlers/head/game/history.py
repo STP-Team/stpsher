@@ -14,6 +14,7 @@ from tgbot.keyboards.head.group.game.history import (
     head_ranking_kb,
     head_transaction_detail_kb,
 )
+from tgbot.keyboards.head.group.game.main import HeadGameMenu
 from tgbot.keyboards.head.group.members import short_name
 
 head_game_history_router = Router()
@@ -24,9 +25,7 @@ head_game_history_router.callback_query.filter(
 logger = logging.getLogger(__name__)
 
 
-@head_game_history_router.callback_query(
-    HeadGroupHistoryMenu.filter(F.menu == "history")
-)
+@head_game_history_router.callback_query(HeadGameMenu.filter(F.menu == "history"))
 async def head_group_history(
     callback: CallbackQuery,
     callback_data: HeadGroupHistoryMenu,

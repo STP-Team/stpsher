@@ -6,8 +6,14 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.gok.game.main import filter_items_by_division
-from tgbot.keyboards.gok.main import GokGameMenu, parse_filters
 from tgbot.keyboards.head.group.game.achievements import head_achievements_paginated_kb
+from tgbot.keyboards.head.group.game.main import HeadGameMenu
+from tgbot.keyboards.mip.game.main import (
+    FilterToggleMenu,
+    GameMenu,
+    parse_filters,
+    toggle_filter,
+)
 
 head_game_achievements_router = Router()
 head_game_achievements_router.message.filter(F.chat.type == "private", HeadFilter())
@@ -19,10 +25,26 @@ logger = logging.getLogger(__name__)
 
 
 @head_game_achievements_router.callback_query(
-    GokGameMenu.filter(F.menu == "achievements_all")
+    HeadGameMenu.filter(F.menu == "achievements")
+)
+async def head_achievements_menu(callback: CallbackQuery, stp_repo: MainRequestsRepo):
+    """
+    Обработчик клика на меню достижений - перенаправляет на achievements_all с дефолтными параметрами
+    """
+    # Создаем callback_data с дефолтными параметрами
+    from tgbot.keyboards.mip.game.main import GameMenu
+
+    new_callback_data = GameMenu(menu="achievements_all", page=1, filters="НЦК,НТП")
+
+    # Вызываем основной обработчик
+    await head_achievements_all(callback, new_callback_data, stp_repo)
+
+
+@head_game_achievements_router.callback_query(
+    GameMenu.filter(F.menu == "achievements_all")
 )
 async def head_achievements_all(
-    callback: CallbackQuery, callback_data: GokGameMenu, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, callback_data: GameMenu, stp_repo: MainRequestsRepo
 ):
     """
     Обработчик клика на меню всех возможных достижений для руководителей
@@ -98,3 +120,26 @@ async def head_achievements_all(
     logger.info(
         f"[Руководитель] - [Достижения] {callback.from_user.username} ({callback.from_user.id}): Просмотр достижений, страница {page}, фильтры: {filters}"
     )
+
+
+@head_game_achievements_router.callback_query(
+    FilterToggleMenu.filter(F.menu == "achievements_all")
+)
+async def head_achievements_toggle_filter(
+    callback: CallbackQuery, callback_data: FilterToggleMenu, stp_repo: MainRequestsRepo
+):
+    """Обработчик переключения фильтров для достижений"""
+    menu = callback_data.menu
+    filter_name = callback_data.filter_name
+    current_filters = callback_data.current_filters
+
+    # Переключаем фильтр
+    new_filters = toggle_filter(current_filters, filter_name)
+
+    # Переходим на первую страницу при изменении фильтров
+    if menu == "achievements_all":
+        await head_achievements_all(
+            callback,
+            GameMenu(menu="achievements_all", page=1, filters=new_filters),
+            stp_repo,
+        )
