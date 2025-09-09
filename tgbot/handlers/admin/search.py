@@ -1,4 +1,4 @@
-# tgbot/handlers/mip/search.py
+# tgbot/handlers/admin/search.py
 import logging
 from typing import Sequence
 
@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import MipFilter
+from tgbot.filters.role import AdministratorFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
@@ -33,9 +33,11 @@ from tgbot.misc.dicts import role_names
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
 
-mip_search_router = Router()
-mip_search_router.message.filter(F.chat.type == "private", MipFilter())
-mip_search_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
+admin_search_router = Router()
+admin_search_router.message.filter(F.chat.type == "private", AdministratorFilter())
+admin_search_router.callback_query.filter(
+    F.message.chat.type == "private", AdministratorFilter()
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +161,7 @@ async def get_group_statistics_by_id(
         }
 
 
-@mip_search_router.callback_query(MainMenu.filter(F.menu == "search"))
+@admin_search_router.callback_query(MainMenu.filter(F.menu == "search"))
 async def search_main_menu(callback: CallbackQuery, state: FSMContext):
     """Главное меню поиска сотрудников"""
     await state.clear()
@@ -171,7 +173,7 @@ async def search_main_menu(callback: CallbackQuery, state: FSMContext):
     )
 
 
-@mip_search_router.callback_query(SearchMenu.filter(F.menu == "specialists"))
+@admin_search_router.callback_query(SearchMenu.filter(F.menu == "specialists"))
 async def show_specialists(
     callback: CallbackQuery, callback_data: SearchMenu, stp_repo: MainRequestsRepo
 ):
@@ -207,7 +209,7 @@ async def show_specialists(
     )
 
 
-@mip_search_router.callback_query(SearchMenu.filter(F.menu == "heads"))
+@admin_search_router.callback_query(SearchMenu.filter(F.menu == "heads"))
 async def show_heads(
     callback: CallbackQuery, callback_data: SearchMenu, stp_repo: MainRequestsRepo
 ):
@@ -245,7 +247,7 @@ async def show_heads(
     )
 
 
-@mip_search_router.callback_query(SearchMenu.filter(F.menu == "start_search"))
+@admin_search_router.callback_query(SearchMenu.filter(F.menu == "start_search"))
 async def start_search(callback: CallbackQuery, state: FSMContext):
     """Начать поиск по имени"""
     bot_message = await callback.message.edit_text(
@@ -261,7 +263,7 @@ async def start_search(callback: CallbackQuery, state: FSMContext):
     await state.set_state(SearchEmployee.waiting_search_query)
 
 
-@mip_search_router.message(SearchEmployee.waiting_search_query)
+@admin_search_router.message(SearchEmployee.waiting_search_query)
 async def process_search_query(
     message: Message, state: FSMContext, stp_repo: MainRequestsRepo
 ):
@@ -353,7 +355,7 @@ async def process_search_query(
         )
 
 
-@mip_search_router.callback_query(SearchUserResult.filter())
+@admin_search_router.callback_query(SearchUserResult.filter())
 async def show_user_details(
     callback: CallbackQuery, callback_data: SearchUserResult, stp_repo: MainRequestsRepo
 ):
@@ -385,7 +387,7 @@ async def show_user_details(
             4: "Администратор",
             5: "ГОК",
             6: "МИП",
-            10: "кщще",
+            10: "root",
         }
         role_name = role_names.get(user.role, "Неизвестная роль")
 
@@ -443,7 +445,7 @@ async def show_user_details(
         await callback.answer("❌ Ошибка при получении данных", show_alert=True)
 
 
-@mip_search_router.callback_query(HeadGroupMenu.filter())
+@admin_search_router.callback_query(HeadGroupMenu.filter())
 async def show_head_group(
     callback: CallbackQuery, callback_data: HeadGroupMenu, stp_repo: MainRequestsRepo
 ):
@@ -498,7 +500,7 @@ async def show_head_group(
         await callback.answer("❌ Ошибка при получении данных группы", show_alert=True)
 
 
-@mip_search_router.callback_query(EditUserMenu.filter())
+@admin_search_router.callback_query(EditUserMenu.filter())
 async def start_edit_user(
     callback: CallbackQuery,
     callback_data: EditUserMenu,
@@ -561,7 +563,7 @@ async def start_edit_user(
         )
 
 
-@mip_search_router.message(EditEmployee.waiting_new_fullname)
+@admin_search_router.message(EditEmployee.waiting_new_fullname)
 async def process_edit_fullname(
     message: Message, state: FSMContext, stp_repo: MainRequestsRepo
 ):
@@ -612,7 +614,7 @@ async def process_edit_fullname(
 
         await state.clear()
         logger.info(
-            f"[МИП] - [Изменение ФИО] {message.from_user.username} ({message.from_user.id}) изменил ФИО пользователя {user_id}: {current_fullname} → {new_fullname}"
+            f"[ADMIN] - [Изменение ФИО] {message.from_user.username} ({message.from_user.id}) изменил ФИО пользователя {user_id}: {current_fullname} → {new_fullname}"
         )
 
     except Exception as e:
@@ -629,7 +631,7 @@ async def process_edit_fullname(
         )
 
 
-@mip_search_router.callback_query(ViewUserSchedule.filter())
+@admin_search_router.callback_query(ViewUserSchedule.filter())
 async def view_user_schedule(
     callback: CallbackQuery,
     callback_data: ViewUserSchedule,
@@ -707,7 +709,7 @@ async def view_user_schedule(
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
-@mip_search_router.callback_query(MipScheduleNavigation.filter())
+@admin_search_router.callback_query(MipScheduleNavigation.filter())
 async def navigate_user_schedule(
     callback: CallbackQuery,
     callback_data: MipScheduleNavigation,
@@ -786,7 +788,7 @@ async def navigate_user_schedule(
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
-@mip_search_router.callback_query(SelectUserRole.filter())
+@admin_search_router.callback_query(SelectUserRole.filter())
 async def process_role_change(
     callback: CallbackQuery, callback_data: SelectUserRole, stp_repo: MainRequestsRepo
 ):
@@ -837,7 +839,7 @@ async def process_role_change(
             )
 
         logger.info(
-            f"[МИП] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль пользователя {user_id}: {old_role_name} → {new_role_name}"
+            f"[ADMIN] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль пользователя {user_id}: {old_role_name} → {new_role_name}"
         )
 
         # Возвращаемся к информации о пользователе

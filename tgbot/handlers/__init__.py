@@ -4,6 +4,7 @@ from tgbot.handlers.admin.main import admin_router
 from tgbot.handlers.admin.schedule.list import admin_list_router
 from tgbot.handlers.admin.schedule.main import admin_schedule_router
 from tgbot.handlers.admin.schedule.upload import admin_upload_router
+from tgbot.handlers.admin.search import admin_search_router
 from tgbot.handlers.gok.game.achievements import gok_game_achievements_router
 from tgbot.handlers.gok.game.main import gok_game_router
 from tgbot.handlers.gok.main import gok_router
@@ -51,6 +52,7 @@ routers_list = [
     admin_schedule_router,
     admin_upload_router,
     admin_list_router,
+    admin_search_router,
     gok_router,
     gok_game_router,
     gok_game_achievements_router,
