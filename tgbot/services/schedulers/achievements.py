@@ -901,23 +901,19 @@ def _create_achievement_message(achievement: Dict, new_balance: int = None) -> s
     """
     message_parts = [
         "🏆 <b>Новое достижение!</b>\n",
-        f"🎉 <b>{achievement['name']}</b>",
-        f"📝 {achievement['description']}",
+        f"🎉 <b>{achievement['name']}: {achievement['reward_points']} балла за {achievement['description']}</b>\n",
     ]
-
-    if achievement.get("reward_points"):
-        message_parts.append(f"💰 Награда: {achievement['reward_points']} баллов")
 
     # Показываем KPI показатели
     if achievement.get("kpi_values"):
         formatted_kpi = _format_kpi_values(achievement["kpi_values"])
         if formatted_kpi:
-            message_parts.append(f"📊 Твои показатели: {formatted_kpi}")
+            message_parts.append(f"Твои показатели: {formatted_kpi}")
 
     if new_balance is not None:
-        message_parts.append(f"💎 Текущий баланс: {new_balance} баллов")
+        message_parts.append(f"Новый баланс: {new_balance} баллов")
 
-    message_parts.append("\n✨ Поздравляем с новым достижением!")
+    message_parts.append("\n✨  Поздравляем с новым достижением!")
 
     return "\n".join(message_parts)
 
