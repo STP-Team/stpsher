@@ -15,6 +15,7 @@ from tgbot.services.schedulers.hr import HRScheduler
 config = load_config(".env")
 logger = logging.getLogger(__name__)
 
+
 class SchedulerManager:
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
@@ -65,7 +66,9 @@ class SchedulerManager:
         self.hr.setup_jobs(self.scheduler, session_pool, bot)
 
         # Задачи достижений
-        self.achievements.setup_jobs(self.scheduler, session_pool, bot, kpi_session_pool)
+        self.achievements.setup_jobs(
+            self.scheduler, session_pool, bot, kpi_session_pool
+        )
 
         logger.info("[Scheduler] Все задачи настроены")
 
@@ -80,6 +83,7 @@ class SchedulerManager:
         if self.scheduler.running:
             self.scheduler.shutdown()
             logger.info("[Scheduler] Планировщик остановлен")
+
 
 # Глобальный экземпляр менеджера планировщика
 scheduler_manager = SchedulerManager()
