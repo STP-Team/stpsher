@@ -29,44 +29,34 @@ def upgrade() -> None:
             "type",
             sa.Enum("earn", "spend"),
             nullable=False,
-            comment="Тип операции: начисление или списание"
+            comment="Тип операции: начисление или списание",
         ),
         sa.Column(
             "source_id",
             sa.Integer,
             nullable=True,
-            comment="Идентификатор достижения или предмета. Для manual — NULL"
+            comment="Идентификатор достижения или предмета. Для manual — NULL",
         ),
         sa.Column(
             "source_type",
             sa.Enum("achievement", "product", "manual", "casino"),
             nullable=False,
-            comment="Источник транзакции"
+            comment="Источник транзакции",
         ),
-        sa.Column(
-            "amount",
-            sa.Integer,
-            nullable=False,
-            comment="Количество баллов"
-        ),
-        sa.Column(
-            "comment",
-            sa.String(255),
-            nullable=True,
-            comment="Комментарий"
-        ),
+        sa.Column("amount", sa.Integer, nullable=False, comment="Количество баллов"),
+        sa.Column("comment", sa.String(255), nullable=True, comment="Комментарий"),
         sa.Column(
             "created_by",
             sa.BIGINT,
             nullable=True,
-            comment="ID администратора, создавшего транзакцию"
+            comment="ID администратора, создавшего транзакцию",
         ),
         sa.Column(
             "created_at",
             sa.TIMESTAMP,
             nullable=True,
             default=sa.func.current_timestamp(),
-            comment="Дата создания транзакции"
+            comment="Дата создания транзакции",
         ),
     )
 

@@ -28,11 +28,18 @@ def upgrade() -> None:
         sa.Column("user_id", sa.BIGINT, nullable=True),
         sa.Column("product_id", mysql.VARCHAR(255), nullable=False),
         sa.Column("comment", mysql.VARCHAR, nullable=True),
-        sa.Column("usage_count", sa.Integer, nullable=False, server_default=sa.text("0")),
+        sa.Column(
+            "usage_count", sa.Integer, nullable=False, server_default=sa.text("0")
+        ),
         sa.Column("bought_at", sa.DateTime, nullable=False),
         sa.Column("updated_at", sa.DateTime, nullable=True),
         sa.Column("updated_by_user_id", sa.BIGINT, nullable=True),
-        sa.Column("status", mysql.VARCHAR(10), nullable=False, server_default=sa.text("'stored'")),
+        sa.Column(
+            "status",
+            mysql.VARCHAR(10),
+            nullable=False,
+            server_default=sa.text("'stored'"),
+        ),
     )
 
     # Grant privileges

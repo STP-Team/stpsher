@@ -28,37 +28,32 @@ def upgrade() -> None:
             "user_id",
             sa.BIGINT,
             nullable=False,
-            comment="Идентификатор владельца рассылки"
+            comment="Идентификатор владельца рассылки",
         ),
         sa.Column(
             "type",
             sa.Enum("division", "group"),
             nullable=False,
-            comment="Тип рассылки: division или group"
+            comment="Тип рассылки: division или group",
         ),
         sa.Column(
             "target",
             sa.String(255),
             nullable=False,
-            comment="Конкретная цель рассылки: подразделение (НЦК, НТП1, НТП2) или выбранная группа"
+            comment="Конкретная цель рассылки: подразделение (НЦК, НТП1, НТП2) или выбранная группа",
         ),
-        sa.Column(
-            "text",
-            sa.Text,
-            nullable=False,
-            comment="Текст рассылки"
-        ),
+        sa.Column("text", sa.Text, nullable=False, comment="Текст рассылки"),
         sa.Column(
             "recipients",
             sa.JSON,
             nullable=True,
-            comment="Список user_id, получивших рассылку"
+            comment="Список user_id, получивших рассылку",
         ),
         sa.Column(
             "created_at",
             sa.TIMESTAMP,
             nullable=False,
-            server_default=sa.func.current_timestamp()
+            server_default=sa.func.current_timestamp(),
         ),
     )
 

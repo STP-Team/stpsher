@@ -207,7 +207,8 @@ def product_confirmation_kb(product_id: int, current_page: int) -> InlineKeyboar
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад", callback_data=ShopMenu(menu="available", page=current_page).pack()
+                text="↩️ Назад",
+                callback_data=ShopMenu(menu="available", page=current_page).pack(),
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class BroadcastParams(TypedDict, total=False):
     """Доступные параметры для обновления рассылки в таблице broadcasts."""
-    
+
     user_id: int
     type: str
     target: str
@@ -52,7 +52,9 @@ class BroadcastRepo(BaseRepo):
             filters.append(Broadcast.target == target)
 
         if not filters:
-            raise ValueError("At least one parameter must be provided to get_broadcast()")
+            raise ValueError(
+                "At least one parameter must be provided to get_broadcast()"
+            )
 
         query = select(Broadcast).where(*filters)
 
@@ -92,7 +94,7 @@ class BroadcastRepo(BaseRepo):
         query = select(Broadcast)
         if filters:
             query = query.where(*filters)
-        
+
         query = query.order_by(Broadcast.created_at.desc())
 
         try:
@@ -160,7 +162,7 @@ class BroadcastRepo(BaseRepo):
             else:
                 logger.warning(f"[БД] Рассылка с ID {broadcast_id} не найдена")
                 return False
-                
+
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка удаления рассылки {broadcast_id}: {e}")
             await self.session.rollback()
@@ -195,12 +197,12 @@ class BroadcastRepo(BaseRepo):
                 text=text,
                 recipients=recipients,
             )
-            
+
             self.session.add(broadcast)
             await self.session.commit()
             logger.info(f"[БД] Создана новая рассылка ID: {broadcast.id}")
             return broadcast
-            
+
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка создания рассылки: {e}")
             await self.session.rollback()

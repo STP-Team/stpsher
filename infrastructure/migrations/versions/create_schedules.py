@@ -28,26 +28,23 @@ def upgrade() -> None:
             "file_id",
             sa.Text,
             nullable=False,
-            comment="Идентификатор Telegram загруженного файла"
+            comment="Идентификатор Telegram загруженного файла",
         ),
         sa.Column(
             "file_name",
             sa.String(255),
             nullable=True,
-            comment="Название загруженного файла"
+            comment="Название загруженного файла",
         ),
         sa.Column(
-            "file_size",
-            sa.BIGINT,
-            nullable=True,
-            comment="Размер файла в байтах"
+            "file_size", sa.BIGINT, nullable=True, comment="Размер файла в байтах"
         ),
         sa.Column("uploaded_by_user_id", sa.BIGINT, nullable=False),
         sa.Column(
             "uploaded_at",
             sa.TIMESTAMP,
             nullable=False,
-            server_default=sa.func.current_timestamp()
+            server_default=sa.func.current_timestamp(),
         ),
     )
 

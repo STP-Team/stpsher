@@ -30,5 +30,7 @@ class SpecWeekKPIRepo(BaseRepo):
             result = await self.session.execute(query)
             return result.scalar_one_or_none()
         except SQLAlchemyError as e:
-            logger.error(f"[БД] Ошибка получения недельных показателей специалиста: {e}")
+            logger.error(
+                f"[БД] Ошибка получения недельных показателей специалиста: {e}"
+            )
             return None

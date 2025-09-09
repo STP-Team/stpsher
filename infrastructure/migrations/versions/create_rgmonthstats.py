@@ -21,65 +21,22 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "RgMonthStats",
+        sa.Column("FULLNAME", sa.Unicode(250), primary_key=True, nullable=False),
+        sa.Column("TC", sa.Integer, nullable=False, comment="Общее кол-во контактов"),
+        sa.Column("GOK", sa.Float, nullable=False, comment="ГОК группы"),
+        sa.Column("AHT", sa.Integer, nullable=False, comment="AHT группы"),
+        sa.Column("FLR", sa.Float, nullable=False, comment="FLR группы"),
+        sa.Column("CSI", sa.Float, nullable=False, comment="Оценка группы"),
+        sa.Column("POK", sa.Float, nullable=False, comment="Отклик группы"),
+        sa.Column("DELAY", sa.Float, nullable=False, comment="Задержка группы"),
         sa.Column(
-            "FULLNAME",
-            sa.Unicode(250),
-            primary_key=True,
-            nullable=False
-        ),
-        sa.Column(
-            "TC",
-            sa.Integer,
-            nullable=False,
-            comment="Общее кол-во контактов"
-        ),
-        sa.Column(
-            "GOK",
-            sa.Float,
-            nullable=False,
-            comment="ГОК группы"
-        ),
-        sa.Column(
-            "AHT",
-            sa.Integer,
-            nullable=False,
-            comment="AHT группы"
-        ),
-        sa.Column(
-            "FLR",
-            sa.Float,
-            nullable=False,
-            comment="FLR группы"
-        ),
-        sa.Column(
-            "CSI",
-            sa.Float,
-            nullable=False,
-            comment="Оценка группы"
-        ),
-        sa.Column(
-            "POK",
-            sa.Float,
-            nullable=False,
-            comment="Отклик группы"
-        ),
-        sa.Column(
-            "DELAY",
-            sa.Float,
-            nullable=False,
-            comment="Задержка группы"
-        ),
-        sa.Column(
-            "SalesCount",
-            sa.Integer,
-            nullable=False,
-            comment="Кол-во продаж группы"
+            "SalesCount", sa.Integer, nullable=False, comment="Кол-во продаж группы"
         ),
         sa.Column(
             "UpdateData",
             sa.DateTime,
             nullable=False,
-            comment="Дата обновления показателей"
+            comment="Дата обновления показателей",
         ),
     )
 

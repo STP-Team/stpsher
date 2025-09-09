@@ -63,7 +63,9 @@ class HeadMemberGameHistoryMenu(CallbackData, prefix="head_member_game_history")
     page: int = 1
 
 
-class HeadMemberTransactionDetailMenu(CallbackData, prefix="head_member_transaction_detail"):
+class HeadMemberTransactionDetailMenu(
+    CallbackData, prefix="head_member_transaction_detail"
+):
     member_id: int
     transaction_id: int
     history_page: int = 1

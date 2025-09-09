@@ -21,65 +21,27 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "KpiDay",
+        sa.Column("FULLNAME", sa.Unicode(250), primary_key=True, nullable=False),
+        sa.Column("TC", sa.Integer, nullable=True, comment="Общее кол-во контактов"),
+        sa.Column("AHT", sa.Integer, nullable=True, comment="AHT специалиста"),
+        sa.Column("FLR", sa.Float, nullable=True, comment="FLR специалиста"),
+        sa.Column("CSI", sa.Float, nullable=True, comment="OK специалиста"),
+        sa.Column("POK", sa.Float, nullable=True, comment="Отклик специалиста"),
+        sa.Column("DELAY", sa.Float, nullable=True, comment="Задержка специалиста"),
         sa.Column(
-            "FULLNAME",
-            sa.Unicode(250),
-            primary_key=True,
-            nullable=False
-        ),
-        sa.Column(
-            "TC",
-            sa.Integer,
-            nullable=True,
-            comment="Общее кол-во контактов"
-        ),
-        sa.Column(
-            "AHT",
-            sa.Integer,
-            nullable=True,
-            comment="AHT специалиста"
-        ),
-        sa.Column(
-            "FLR",
-            sa.Float,
-            nullable=True,
-            comment="FLR специалиста"
-        ),
-        sa.Column(
-            "CSI",
-            sa.Float,
-            nullable=True,
-            comment="OK специалиста"
-        ),
-        sa.Column(
-            "POK",
-            sa.Float,
-            nullable=True,
-            comment="Отклик специалиста"
-        ),
-        sa.Column(
-            "DELAY",
-            sa.Float,
-            nullable=True,
-            comment="Задержка специалиста"
-        ),
-        sa.Column(
-            "SalesCount",
-            sa.Integer,
-            nullable=True,
-            comment="Кол-во продаж специалиста"
+            "SalesCount", sa.Integer, nullable=True, comment="Кол-во продаж специалиста"
         ),
         sa.Column(
             "SalesPotential",
             sa.Integer,
             nullable=True,
-            comment="Кол-во потенциальных продаж специалиста"
+            comment="Кол-во потенциальных продаж специалиста",
         ),
         sa.Column(
             "UpdateData",
             sa.DateTime,
             nullable=True,
-            comment="Дата обновления показателей"
+            comment="Дата обновления показателей",
         ),
     )
 

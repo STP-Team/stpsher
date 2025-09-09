@@ -116,7 +116,7 @@ class ScheduleFormatter:
                 if day_number not in day_groups:
                     day_groups[day_number] = []
                 day_groups[day_number].append((day_info, day_type))
-        
+
         # For each day number, pick the best entry (one with proper formatting)
         deduplicated_days = []
         for day_number in sorted(day_groups.keys()):
@@ -125,14 +125,14 @@ class ScheduleFormatter:
             best_entry = None
             for entry in entries:
                 day_info, day_type = entry
-                if '(' in day_info.day and ')' in day_info.day:
+                if "(" in day_info.day and ")" in day_info.day:
                     best_entry = entry
                     break
             if best_entry is None:
                 # If no properly formatted entry, take the first one
                 best_entry = entries[0]
             deduplicated_days.append(best_entry)
-        
+
         all_days = deduplicated_days
 
         lines.append("📅 <b>График по дням:</b>")
@@ -328,7 +328,7 @@ class ScheduleFormatter:
                 if day_number not in day_groups:
                     day_groups[day_number] = []
                 day_groups[day_number].append((day_info, day_type))
-        
+
         # For each day number, pick the best entry (one with proper formatting)
         deduplicated_days = []
         for day_number in sorted(day_groups.keys()):
@@ -337,14 +337,14 @@ class ScheduleFormatter:
             best_entry = None
             for entry in entries:
                 day_info, day_type = entry
-                if '(' in day_info.day and ')' in day_info.day:
+                if "(" in day_info.day and ")" in day_info.day:
                     best_entry = entry
                     break
             if best_entry is None:
                 # If no properly formatted entry, take the first one
                 best_entry = entries[0]
             deduplicated_days.append(best_entry)
-        
+
         all_days = deduplicated_days
 
         lines.append("📅 <b>График по дням:</b>")

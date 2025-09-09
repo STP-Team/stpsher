@@ -128,13 +128,13 @@ async def upload_file(
 
         # Process file and generate status
         status_text = _generate_file_status(document, file_replaced)
-        
+
         # Check if this is a studies file for different processing
         studies_stats = await _process_studies_file(document.file_name)
         if studies_stats:
             # For studies files, only show studies stats (no detailed file stats)
             status_text += _generate_studies_stats_text(studies_stats)
-            
+
             # Step 5a: Check for upcoming studies and send notifications
             await _update_progress_status(
                 message,
@@ -145,20 +145,23 @@ async def upload_file(
                 f"Тип: {_get_file_type_display(document.file_name)}\n\n"
                 "📤 Проверяем предстоящие обучения и отправляем уведомления...",
             )
-            
+
             # Check for upcoming studies and notify participants
             from tgbot.services.schedulers.studies import check_upcoming_studies
+
             notification_results = await check_upcoming_studies(main_db, message.bot)
-            
+
             # Add notification results to status
             if notification_results.get("status") == "success":
                 sessions_count = notification_results.get("sessions", 0)
                 notifications_count = notification_results.get("notifications", 0)
-                
+
                 if sessions_count > 0:
                     status_text += "\n\n📤 <b>Уведомления об обучениях</b>\n"
                     status_text += f"• Найдено предстоящих обучений (в течение недели): {sessions_count}\n"
-                    status_text += f"• Отправлено уведомлений участникам: {notifications_count}"
+                    status_text += (
+                        f"• Отправлено уведомлений участникам: {notifications_count}"
+                    )
                 else:
                     status_text += "\n\n📤 <b>Уведомления об обучениях</b>\n"
                     status_text += "• Предстоящих обучений в течение недели не найдено"
@@ -169,7 +172,7 @@ async def upload_file(
         else:
             # For non-studies files, show detailed stats and user processing
             status_text += _generate_detailed_file_stats_text(file_stats)
-            
+
             user_stats = await _process_file(document.file_name, main_db)
             if user_stats:
                 status_text += _generate_stats_text(user_stats)
@@ -252,9 +255,7 @@ async def upload_file(
                 )
             else:
                 status_text += "\n\n📤 <b>Изменения графика</b>\n"
-                status_text += (
-                    "Нет изменений в графике. Уведомления об изменении отправлены не будут"
-                )
+                status_text += "Нет изменений в графике. Уведомления об изменении отправлены не будут"
 
         # Step 6: Final status - completed
         await _update_status_message(message, state, status_text)
@@ -683,24 +684,24 @@ async def _process_studies_file(file_name: str) -> dict | None:
 
     try:
         from tgbot.services.schedule.studies_parser import StudiesScheduleParser
-        
+
         file_path = UPLOADS_DIR / file_name
         parser = StudiesScheduleParser()
         sessions = parser.parse_studies_file(file_path)
-        
+
         # Calculate statistics
         total_sessions = len(sessions)
         total_participants = 0
         unique_participants = set()
         present_participants = 0
-        
+
         for session in sessions:
             total_participants += len(session.participants)
             for area, name, rg, attendance, reason in session.participants:
                 unique_participants.add(name)
                 if attendance == "+":
                     present_participants += 1
-        
+
         return {
             "total_sessions": total_sessions,
             "total_participants": total_participants,
@@ -715,14 +716,14 @@ async def _process_studies_file(file_name: str) -> dict | None:
 def _generate_studies_stats_text(stats: dict) -> str:
     """Generate statistics text from studies processing results."""
     text = "\n\n<b>📚 Статистика обучений</b>\n"
-    
-    total_sessions = stats.get('total_sessions', 0)
-    stats.get('total_participants', 0)
-    unique_participants = stats.get('unique_participants', 0)
-    
+
+    total_sessions = stats.get("total_sessions", 0)
+    stats.get("total_participants", 0)
+    unique_participants = stats.get("unique_participants", 0)
+
     text += f"• Всего обучений в файле: {total_sessions}\n"
     text += f"• Всего участников записано: {unique_participants}"
-    
+
     return text
 
 
