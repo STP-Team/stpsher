@@ -40,14 +40,24 @@ class HRScheduler(BaseScheduler):
         self.logger.info("Настройка HR задач...")
 
         # Задача обработки увольнений - каждый день в 9:00
-        self._add_job(
-            scheduler=scheduler,
-            func=lambda: self._process_fired_users_job(session_pool),
+        scheduler.add_job(
+            func=self._process_fired_users_job,
+            args=[session_pool],
             trigger="cron",
-            job_id="process_fired_users",
+            id="hr_process_fired_users",
             name="Обработка увольнений",
             hour=9,
             minute=0,
+        )
+
+        # Запуск обработки увольнений при старте
+        scheduler.add_job(
+            func=self._process_fired_users_job,
+            args=[session_pool],
+            trigger="date",
+            id="hr_startup_process_fired_users",
+            name="Запуск при старте: Обработка увольнений",
+            run_date=None,
         )
 
         # Задача уведомлений о неавторизованных пользователях - каждый день в 10:30

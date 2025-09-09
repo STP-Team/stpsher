@@ -43,12 +43,12 @@ class AchievementScheduler(BaseScheduler):
         """Настройка всех задач достижений"""
         self.logger.info("Настройка задач достижений...")
 
-        # Проверка ежедневных достижений - раз в 12 часов
+        # Проверка ежедневных достижений - раз в 12 часов, запускать при старте
         scheduler.add_job(
             func=self._check_daily_achievements_job,
             args=[session_pool, kpi_session_pool, bot],
             trigger="interval",
-            id="check_daily_achievements",
+            id="achievements_check_daily_achievements",
             name="Проверка ежедневных достижений",
             hours=12,
             coalesce=True,
@@ -56,12 +56,12 @@ class AchievementScheduler(BaseScheduler):
             replace_existing=True,
         )
 
-        # Проверка еженедельных достижений - раз в 12 часов
+        # Проверка еженедельных достижений - раз в 12 часов, запускать при старте
         scheduler.add_job(
             func=self._check_weekly_achievements_job,
             args=[session_pool, kpi_session_pool, bot],
             trigger="interval",
-            id="check_weekly_achievements",
+            id="achievements_check_weekly_achievements",
             name="Проверка еженедельных достижений",
             hours=12,
             coalesce=True,
@@ -69,17 +69,45 @@ class AchievementScheduler(BaseScheduler):
             replace_existing=True,
         )
 
-        # Проверка ежемесячных достижений - раз в 12 часов
+        # Проверка ежемесячных достижений - раз в 12 часов, запускать при старте
         scheduler.add_job(
             func=self._check_monthly_achievements_job,
             args=[session_pool, kpi_session_pool, bot],
             trigger="interval",
-            id="check_monthly_achievements",
+            id="achievements_check_monthly_achievements",
             name="Проверка ежемесячных достижений",
             hours=12,
             coalesce=True,
             misfire_grace_time=300,
             replace_existing=True,
+        )
+
+        # Запуск задач при старте
+        scheduler.add_job(
+            func=self._check_daily_achievements_job,
+            args=[session_pool, kpi_session_pool, bot],
+            trigger="date",
+            id="achievements_startup_daily_achievements",
+            name="Запуск при старте: Проверка ежедневных достижений",
+            run_date=None,
+        )
+
+        scheduler.add_job(
+            func=self._check_weekly_achievements_job,
+            args=[session_pool, kpi_session_pool, bot],
+            trigger="date",
+            id="achievements_startup_weekly_achievements",
+            name="Запуск при старте: Проверка еженедельных достижений",
+            run_date=None,
+        )
+
+        scheduler.add_job(
+            func=self._check_monthly_achievements_job,
+            args=[session_pool, kpi_session_pool, bot],
+            trigger="date",
+            id="achievements_startup_monthly_achievements",
+            name="Запуск при старте: Проверка ежемесячных достижений",
+            run_date=None,
         )
 
         self.logger.info("Задачи достижений настроены успешно")
