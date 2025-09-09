@@ -11,7 +11,7 @@ import pandas as pd
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.employee import EmployeeRepo
-from tgbot.services.scheduler import get_fired_users_from_excel
+from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)
 
