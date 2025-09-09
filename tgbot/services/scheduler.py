@@ -11,6 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from tgbot.config import load_config
 from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.hr import HRScheduler
+from tgbot.services.schedulers.studies import StudiesScheduler
 
 config = load_config(".env")
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class SchedulerManager:
         # Initialize category schedulers
         self.hr = HRScheduler()
         self.achievements = AchievementScheduler()
+        self.studies = StudiesScheduler()
 
     def _configure_scheduler(self):
         job_defaults = {
@@ -69,6 +71,9 @@ class SchedulerManager:
         self.achievements.setup_jobs(
             self.scheduler, session_pool, bot, kpi_session_pool
         )
+
+        # Задачи обучений
+        self.studies.setup_jobs(self.scheduler, session_pool, bot)
 
         logger.info("[Scheduler] Все задачи настроены")
 

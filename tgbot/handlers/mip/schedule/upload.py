@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 # Constants
 UPLOADS_DIR = Path("uploads")
 SCHEDULE_PATTERNS = ["ГРАФИК * I*", "ГРАФИК * II*"]
+DUTIES_PATTERNS = ["Старшинство НТП*", "*Старшинство НТП*", "*старшинство*", "*НТП*"]
+STUDIES_PATTERNS = ["Обучения *", "*обучения*", "*обучение*", "*Обучение*"]
 
 
 @mip_upload_router.callback_query(ScheduleMenu.filter(F.menu == "upload"))
@@ -96,7 +98,7 @@ async def upload_file(
             "⏳ <b>Обработка файла...</b>\n\n"
             f"📄 <b>{document.file_name}</b>\n"
             f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n"
-            f"Тип: {'📅 График' if _is_schedule_file(document.file_name) else '📄 Обычный файл'}\n"
+            f"Тип: {_get_file_type_display(document.file_name)}\n"
             f"Статус: {'🔄 Заменит существующий' if old_file_exists else '✨ Новый файл'}\n\n"
             "📝 Логируем загрузку файла в базу данных...",
         )
@@ -126,12 +128,51 @@ async def upload_file(
 
         # Process file and generate status
         status_text = _generate_file_status(document, file_replaced)
-        status_text += _generate_detailed_file_stats_text(file_stats)
-
-        user_stats = await _process_file(document.file_name, main_db)
-
-        if user_stats:
-            status_text += _generate_stats_text(user_stats)
+        
+        # Check if this is a studies file for different processing
+        studies_stats = await _process_studies_file(document.file_name)
+        if studies_stats:
+            # For studies files, only show studies stats (no detailed file stats)
+            status_text += _generate_studies_stats_text(studies_stats)
+            
+            # Step 5a: Check for upcoming studies and send notifications
+            await _update_progress_status(
+                message,
+                state,
+                "⏳ <b>Обработка файла...</b>\n\n"
+                f"📄 <b>{document.file_name}</b>\n"
+                f"Размер: {round(document.file_size / (1024 * 1024), 2)} МБ\n"
+                f"Тип: {_get_file_type_display(document.file_name)}\n\n"
+                "📤 Проверяем предстоящие обучения и отправляем уведомления...",
+            )
+            
+            # Check for upcoming studies and notify participants
+            from tgbot.services.schedulers.studies import check_upcoming_studies
+            notification_results = await check_upcoming_studies(main_db, message.bot)
+            
+            # Add notification results to status
+            if notification_results.get("status") == "success":
+                sessions_count = notification_results.get("sessions", 0)
+                notifications_count = notification_results.get("notifications", 0)
+                
+                if sessions_count > 0:
+                    status_text += f"\n\n📤 <b>Уведомления об обучениях</b>\n"
+                    status_text += f"• Найдено предстоящих обучений (в течение недели): {sessions_count}\n"
+                    status_text += f"• Отправлено уведомлений участникам: {notifications_count}"
+                else:
+                    status_text += f"\n\n📤 <b>Уведомления об обучениях</b>\n"
+                    status_text += "• Предстоящих обучений в течение недели не найдено"
+            else:
+                error_msg = notification_results.get("message", "Неизвестная ошибка")
+                status_text += f"\n\n📤 <b>Уведомления об обучениях</b>\n"
+                status_text += f"⚠️ Ошибка проверки уведомлений: {error_msg}"
+        else:
+            # For non-studies files, show detailed stats and user processing
+            status_text += _generate_detailed_file_stats_text(file_stats)
+            
+            user_stats = await _process_file(document.file_name, main_db)
+            if user_stats:
+                status_text += _generate_stats_text(user_stats)
 
         # Step 5: Check for schedule changes
         changed_users = []
@@ -183,36 +224,37 @@ async def upload_file(
                 if old_file_path.exists():
                     old_file_path.unlink()
 
-        # Add notification info to status
-        if changed_users:
-            status_text += "\n\n📤 <b>Изменения графика</b>\n"
-            status_text += (
-                f"Пользователей с измененным графиком: {len(changed_users)}\n"
-            )
-            # Extract just the names from the change data
-            user_names = []
-            for user_change in changed_users:
-                if isinstance(user_change, dict) and "fullname" in user_change:
-                    user_names.append(user_change["fullname"])
-                elif isinstance(user_change, str):
-                    user_names.append(user_change)
-                else:
-                    user_names.append(str(user_change))
+        # Add notification info to status (only for schedule files)
+        if _is_schedule_file(document.file_name):
+            if changed_users:
+                status_text += "\n\n📤 <b>Изменения графика</b>\n"
+                status_text += (
+                    f"Пользователей с измененным графиком: {len(changed_users)}\n"
+                )
+                # Extract just the names from the change data
+                user_names = []
+                for user_change in changed_users:
+                    if isinstance(user_change, dict) and "fullname" in user_change:
+                        user_names.append(user_change["fullname"])
+                    elif isinstance(user_change, str):
+                        user_names.append(user_change)
+                    else:
+                        user_names.append(str(user_change))
 
-            status_text += "\n".join(
-                f"• {name}" for name in user_names[:5]
-            )  # Show first 5
-            if len(user_names) > 5:
-                status_text += f"\n... и еще {len(user_names) - 5}"
+                status_text += "\n".join(
+                    f"• {name}" for name in user_names[:5]
+                )  # Show first 5
+                if len(user_names) > 5:
+                    status_text += f"\n... и еще {len(user_names) - 5}"
 
-            status_text += (
-                f"\n\nВсего удалось отправить {len(notified_users)} уведомлений"
-            )
-        else:
-            status_text += "\n\n📤 <b>Изменения графика</b>\n"
-            status_text += (
-                "Нет изменений в графике. Уведомления об изменении отправлены не будут"
-            )
+                status_text += (
+                    f"\n\nВсего удалось отправить {len(notified_users)} уведомлений"
+                )
+            else:
+                status_text += "\n\n📤 <b>Изменения графика</b>\n"
+                status_text += (
+                    "Нет изменений в графике. Уведомления об изменении отправлены не будут"
+                )
 
         # Step 6: Final status - completed
         await _update_status_message(message, state, status_text)
@@ -255,6 +297,32 @@ def _is_schedule_file(file_name: str) -> bool:
     import fnmatch
 
     return any(fnmatch.fnmatch(file_name, pattern) for pattern in SCHEDULE_PATTERNS)
+
+
+def _is_studies_file(file_name: str) -> bool:
+    """Check if file is a studies file based on patterns."""
+    import fnmatch
+
+    return any(fnmatch.fnmatch(file_name, pattern) for pattern in STUDIES_PATTERNS)
+
+
+def _is_duties_file(file_name: str) -> bool:
+    """Check if file is a duties file based on patterns."""
+    import fnmatch
+
+    return any(fnmatch.fnmatch(file_name, pattern) for pattern in DUTIES_PATTERNS)
+
+
+def _get_file_type_display(file_name: str) -> str:
+    """Get file type display text based on file name patterns."""
+    if _is_schedule_file(file_name):
+        return "📅 График"
+    elif _is_duties_file(file_name):
+        return "⚔️ Старшинство НТП"
+    elif _is_studies_file(file_name):
+        return "📚 Обучения"
+    else:
+        return "📄 Обычный файл"
 
 
 async def _save_file(message: Message, document) -> Path:
@@ -605,6 +673,57 @@ def _generate_detailed_file_stats_text(stats: dict) -> str:
                 text += f"• {schedule_diff} с графиком\n"
 
     return text + "</blockquote>"
+
+
+async def _process_studies_file(file_name: str) -> dict | None:
+    """Process studies file if it matches studies patterns."""
+    # Check if file matches studies patterns
+    if not _is_studies_file(file_name):
+        return None
+
+    try:
+        from tgbot.services.schedule.studies_parser import StudiesScheduleParser
+        
+        file_path = UPLOADS_DIR / file_name
+        parser = StudiesScheduleParser()
+        sessions = parser.parse_studies_file(file_path)
+        
+        # Calculate statistics
+        total_sessions = len(sessions)
+        total_participants = 0
+        unique_participants = set()
+        present_participants = 0
+        
+        for session in sessions:
+            total_participants += len(session.participants)
+            for area, name, rg, attendance, reason in session.participants:
+                unique_participants.add(name)
+                if attendance == "+":
+                    present_participants += 1
+        
+        return {
+            "total_sessions": total_sessions,
+            "total_participants": total_participants,
+            "unique_participants": len(unique_participants),
+            "present_participants": present_participants,
+        }
+    except Exception as e:
+        logger.error(f"Studies file processing failed: {e}")
+        return None
+
+
+def _generate_studies_stats_text(stats: dict) -> str:
+    """Generate statistics text from studies processing results."""
+    text = "\n\n<b>📚 Статистика обучений</b>\n"
+    
+    total_sessions = stats.get('total_sessions', 0)
+    total_participants = stats.get('total_participants', 0)
+    unique_participants = stats.get('unique_participants', 0)
+    
+    text += f"• Всего обучений в файле: {total_sessions}\n"
+    text += f"• Всего участников записано: {unique_participants}"
+    
+    return text
 
 
 async def _cleanup_old_temp_files(new_filename: str):
