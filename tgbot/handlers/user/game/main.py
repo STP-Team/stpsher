@@ -3,13 +3,16 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.role import SpecialistFilter
 from tgbot.keyboards.user.game.main import game_kb
 from tgbot.keyboards.user.main import MainMenu, auth_kb
 from tgbot.services.leveling import LevelingSystem
 
 user_game_router = Router()
-user_game_router.message.filter(F.chat.type == "private")
-user_game_router.callback_query.filter(F.message.chat.type == "private")
+user_game_router.message.filter(F.chat.type == "private", SpecialistFilter())
+user_game_router.callback_query.filter(
+    F.message.chat.type == "private", SpecialistFilter()
+)
 
 
 @user_game_router.callback_query(MainMenu.filter(F.menu == "game"))
