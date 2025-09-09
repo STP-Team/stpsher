@@ -108,6 +108,33 @@ class ScheduleFormatter:
 
         all_days.sort(key=lambda x: extract_day_number(x[0].day))
 
+        # Remove duplicates - prioritize entries with proper day formatting
+        day_groups = {}
+        for day_info, day_type in all_days:
+            day_number = extract_day_number(day_info.day)
+            if day_number > 0:  # Only process valid day numbers
+                if day_number not in day_groups:
+                    day_groups[day_number] = []
+                day_groups[day_number].append((day_info, day_type))
+        
+        # For each day number, pick the best entry (one with proper formatting)
+        deduplicated_days = []
+        for day_number in sorted(day_groups.keys()):
+            entries = day_groups[day_number]
+            # Prioritize entries that have day name (contain parentheses and day abbreviation)
+            best_entry = None
+            for entry in entries:
+                day_info, day_type = entry
+                if '(' in day_info.day and ')' in day_info.day:
+                    best_entry = entry
+                    break
+            if best_entry is None:
+                # If no properly formatted entry, take the first one
+                best_entry = entries[0]
+            deduplicated_days.append(best_entry)
+        
+        all_days = deduplicated_days
+
         lines.append("📅 <b>График по дням:</b>")
 
         total_work_hours = 0
@@ -292,6 +319,33 @@ class ScheduleFormatter:
                 return 0
 
         all_days.sort(key=lambda x: extract_day_number(x[0].day))
+
+        # Remove duplicates - prioritize entries with proper day formatting
+        day_groups = {}
+        for day_info, day_type in all_days:
+            day_number = extract_day_number(day_info.day)
+            if day_number > 0:  # Only process valid day numbers
+                if day_number not in day_groups:
+                    day_groups[day_number] = []
+                day_groups[day_number].append((day_info, day_type))
+        
+        # For each day number, pick the best entry (one with proper formatting)
+        deduplicated_days = []
+        for day_number in sorted(day_groups.keys()):
+            entries = day_groups[day_number]
+            # Prioritize entries that have day name (contain parentheses and day abbreviation)
+            best_entry = None
+            for entry in entries:
+                day_info, day_type = entry
+                if '(' in day_info.day and ')' in day_info.day:
+                    best_entry = entry
+                    break
+            if best_entry is None:
+                # If no properly formatted entry, take the first one
+                best_entry = entries[0]
+            deduplicated_days.append(best_entry)
+        
+        all_days = deduplicated_days
 
         lines.append("📅 <b>График по дням:</b>")
 

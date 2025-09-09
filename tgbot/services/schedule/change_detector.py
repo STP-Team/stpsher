@@ -425,7 +425,7 @@ class ScheduleChangeDetector:
     @staticmethod
     def _normalize_value(value: str) -> str:
         """Нормализует значение расписания для сравнения."""
-        if not value or value.strip().lower() in ["", "nan", "none", "не указано"]:
+        if not value or value.strip().lower() in ["", "nan", "none", "не указано", "0"]:
             return ""
 
         return value.strip()
