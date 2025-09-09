@@ -18,7 +18,7 @@ from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.services.logger import setup_logging
-from tgbot.services.scheduler import scheduler_manager
+from tgbot.services.scheduler import SchedulerManager
 
 bot_config = load_config(".env")
 
@@ -145,6 +145,7 @@ async def main():
     register_middlewares(dp, bot_config, bot, main_db, kpi_db)
 
     # Setup all scheduled jobs using the new scheduler manager
+    scheduler_manager = SchedulerManager()
     scheduler_manager.setup_jobs(main_db, bot, kpi_db)
     scheduler_manager.start()
 

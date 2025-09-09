@@ -83,13 +83,3 @@ class SchedulerManager:
         if self.scheduler.running:
             self.scheduler.shutdown()
             logger.info("[Scheduler] Планировщик остановлен")
-
-
-# Глобальный экземпляр менеджера планировщика
-scheduler_manager = SchedulerManager()
-
-# Для обратной совместимости
-scheduler = scheduler_manager.scheduler
-
-
-# Для обратной совместимости импортируем функции из HR scheduler
