@@ -136,11 +136,11 @@ async def transaction_detail_view(
         achievement = await stp_repo.achievement.get_achievement(transaction.source_id)
         match achievement.period:
             case "d":
-                source_name = "🏆 Ежедневное достижение"
+                source_name = "🏆 Ежедневное достижение: " + achievement.name
             case "w":
-                source_name = "🏆 Еженедельное достижение"
+                source_name = "🏆 Еженедельное достижение: " + achievement.name
             case "m":
-                source_name = "🏆 Ежемесячное достижение"
+                source_name = "🏆 Ежемесячное достижение: " + achievement.name
 
     # Формируем сообщение с подробной информацией
     message_text = f"""<b>📊 Детали транзакции</b>
@@ -158,9 +158,6 @@ async def transaction_detail_view(
 
     if transaction.comment:
         message_text += f"\n\n<b>💬 Комментарий</b>\n<blockquote expandable>{transaction.comment}</blockquote>"
-
-    if transaction.source_id:
-        message_text += f"\n\n<b>🔗 ID источника</b>\n└ {transaction.source_id}"
 
     await callback.message.edit_text(
         message_text, reply_markup=transaction_detail_kb(page)
