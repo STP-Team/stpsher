@@ -18,11 +18,7 @@ from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.services.logger import setup_logging
-from tgbot.services.scheduler import (
-    notify_to_unauthorized_users,
-    process_fired_users,
-    scheduler,
-)
+from tgbot.services.scheduler import scheduler_manager
 
 bot_config = load_config(".env")
 
@@ -148,24 +144,9 @@ async def main():
 
     register_middlewares(dp, bot_config, bot, main_db, kpi_db)
 
-    scheduler.add_job(
-        process_fired_users,
-        "cron",
-        hour=9,
-        minute=0,
-        args=[main_db],
-        id="check_fired_users",
-    )
-    scheduler.add_job(
-        notify_to_unauthorized_users,
-        "cron",
-        hour=10,
-        minute=30,
-        args=[main_db, bot],
-        id="notify_to_unauthorized_users",
-    )
-
-    scheduler.start()
+    # Setup all scheduled jobs using the new scheduler manager
+    scheduler_manager.setup_jobs(main_db, bot, kpi_db)
+    scheduler_manager.start()
 
     # await on_startup(bot)
     try:

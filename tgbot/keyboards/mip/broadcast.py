@@ -54,7 +54,7 @@ def broadcast_type_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="❌ Отмена", callback_data=BroadcastMenu(action="cancel").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]

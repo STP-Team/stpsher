@@ -67,8 +67,32 @@ class EmployeeRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения пользователя: {e}")
             return None
 
-    async def get_users(self) -> Sequence[Employee] | None:
-        query = select(Employee)
+    async def get_users(
+        self, roles: Optional[int | list[int]] = None
+    ) -> Sequence[Employee] | None:
+        """
+        Получить пользователей по роли/ролям
+
+        Args:
+            roles: Роль (int) или список ролей (list[int]) для фильтрации.
+                  Если None - возвращает всех пользователей
+
+        Returns:
+            Список пользователей или None при ошибке
+        """
+        if roles is not None:
+            if isinstance(roles, int):
+                # Одна роль
+                query = select(Employee).where(Employee.role == roles)
+            elif isinstance(roles, list) and roles:
+                # Список ролей
+                query = select(Employee).where(Employee.role.in_(roles))
+            else:
+                # Пустой список или некорректный тип
+                query = select(Employee)
+        else:
+            # Все пользователи
+            query = select(Employee)
 
         try:
             result = await self.session.execute(query)
