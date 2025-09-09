@@ -207,7 +207,7 @@ async def show_file_detail(
 
     try:
         logs = await stp_repo.upload.get_files_history()
-        file_log = next((l for l in logs if l.id == file_id), None)
+        file_log = next((log for log in logs if log.id == file_id), None)
 
         if not file_log:
             await callback.message.edit_text(
@@ -275,7 +275,7 @@ async def handle_file_action(
     if action == "restore":
         try:
             logs = await stp_repo.upload.get_files_history()
-            file_log = next((l for l in logs if l.id == file_id), None)
+            file_log = next((log for log in logs if log.id == file_id), None)
 
             if not file_log:
                 await callback.answer("Файл не найден", show_alert=True)
@@ -319,7 +319,7 @@ async def download_db_file(callback: CallbackQuery, stp_repo: MainRequestsRepo):
 
     try:
         logs = await stp_repo.upload.get_files_history()
-        log = next((l for l in logs if l.id == log_id), None)
+        log = next((log for log in logs if log.id == log_id), None)
 
         if not log:
             await callback.answer("Файл не найден", show_alert=True)
@@ -682,7 +682,7 @@ async def handle_version_selection(
     try:
         # Get version info
         logs = await stp_repo.upload.get_files_history()
-        selected_version = next((l for l in logs if l.id == file_id), None)
+        selected_version = next((log for log in logs if log.id == file_id), None)
 
         if not selected_version:
             await callback.answer("Версия файла не найдена", show_alert=True)
@@ -727,7 +727,6 @@ async def handle_restore_confirmation(
     file_id = callback_data.file_id
     filename = callback_data.filename
     action = callback_data.action
-    page = callback_data.page
 
     if action == "cancel":
         # Return to local files list (page 1)
@@ -740,7 +739,7 @@ async def handle_restore_confirmation(
         try:
             # Get version info
             logs = await stp_repo.upload.get_files_history()
-            selected_version = next((l for l in logs if l.id == file_id), None)
+            selected_version = next((log for log in logs if log.id == file_id), None)
 
             if not selected_version:
                 await callback.answer("Версия файла не найдена", show_alert=True)

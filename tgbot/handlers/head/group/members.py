@@ -397,7 +397,6 @@ async def change_member_role(
 ):
     """Обработчик смены роли участника группы"""
     member_id = callback_data.member_id
-    page = callback_data.page
 
     try:
         # Поиск участника по ID

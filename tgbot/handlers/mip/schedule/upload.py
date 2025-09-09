@@ -156,15 +156,15 @@ async def upload_file(
                 notifications_count = notification_results.get("notifications", 0)
                 
                 if sessions_count > 0:
-                    status_text += f"\n\n📤 <b>Уведомления об обучениях</b>\n"
+                    status_text += "\n\n📤 <b>Уведомления об обучениях</b>\n"
                     status_text += f"• Найдено предстоящих обучений (в течение недели): {sessions_count}\n"
                     status_text += f"• Отправлено уведомлений участникам: {notifications_count}"
                 else:
-                    status_text += f"\n\n📤 <b>Уведомления об обучениях</b>\n"
+                    status_text += "\n\n📤 <b>Уведомления об обучениях</b>\n"
                     status_text += "• Предстоящих обучений в течение недели не найдено"
             else:
                 error_msg = notification_results.get("message", "Неизвестная ошибка")
-                status_text += f"\n\n📤 <b>Уведомления об обучениях</b>\n"
+                status_text += "\n\n📤 <b>Уведомления об обучениях</b>\n"
                 status_text += f"⚠️ Ошибка проверки уведомлений: {error_msg}"
         else:
             # For non-studies files, show detailed stats and user processing
@@ -717,7 +717,7 @@ def _generate_studies_stats_text(stats: dict) -> str:
     text = "\n\n<b>📚 Статистика обучений</b>\n"
     
     total_sessions = stats.get('total_sessions', 0)
-    total_participants = stats.get('total_participants', 0)
+    stats.get('total_participants', 0)
     unique_participants = stats.get('unique_participants', 0)
     
     text += f"• Всего обучений в файле: {total_sessions}\n"

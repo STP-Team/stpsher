@@ -1,7 +1,6 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from tgbot.keyboards.mip.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 
 

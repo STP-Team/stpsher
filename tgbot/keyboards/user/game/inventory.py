@@ -2,10 +2,8 @@ from typing import List
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from sqlalchemy import Sequence
 
 from infrastructure.database.repo.STP.purchase import PurchaseDetailedParams
-from infrastructure.database.models.STP.transactions import Transaction
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 

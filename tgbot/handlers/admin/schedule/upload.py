@@ -720,7 +720,7 @@ def _generate_studies_stats_text(stats: dict) -> str:
     text = "\n\n<b>📚 Статистика обучений</b>\n"
 
     total_sessions = stats.get("total_sessions", 0)
-    total_participants = stats.get("total_participants", 0)
+    stats.get("total_participants", 0)
     unique_participants = stats.get("unique_participants", 0)
 
     text += f"• Всего обучений в файле: {total_sessions}\n"

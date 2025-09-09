@@ -5,7 +5,6 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, InlineQuery, Message
 
 from infrastructure.database.models import Employee
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.services.logger import setup_logging
 
@@ -27,20 +26,9 @@ class UsersMiddleware(BaseMiddleware):
         event: Union[Message, CallbackQuery, InlineQuery],
         data: Dict[str, Any],
     ) -> Any:
-        # Get chat from event (different for Message vs CallbackQuery vs InlineQuery)
-        chat = None
-        if isinstance(event, Message):
-            chat = event.chat
-        elif isinstance(event, CallbackQuery) and event.message:
-            chat = event.message.chat
-        elif isinstance(event, InlineQuery):
-            # InlineQuery doesn't have a chat, but we can get from_user
-            chat = None
-
         # Get user and repos from previous middleware (DatabaseMiddleware)
         user: Employee = data.get("user")
         stp_repo: MainRequestsRepo = data.get("stp_repo")
-        kpi_repo: KPIRequestsRepo = data.get("kpi_repo")
 
         if user:
             await self._update_username(user, event, stp_repo)

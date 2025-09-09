@@ -295,7 +295,6 @@ async def sell_product_from_shop(
     Обработчик продажи предмета из экрана успешной покупки
     """
     user_product_id = callback_data.user_product_id
-    source_menu = callback_data.source_menu
 
     # Получаем информацию о предмете
     user_product_detail = await stp_repo.purchase.get_purchase_details(user_product_id)

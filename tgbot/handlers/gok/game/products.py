@@ -340,7 +340,7 @@ async def gok_purchase_action(
             )
 
         # Возвращаемся к списку покупок для активации
-        await gok_product_activation(
+        await gok_purchases_activation(
             callback=callback,
             callback_data=GokGameMenu(menu="purchases_activation", page=current_page),
             stp_repo=stp_repo,

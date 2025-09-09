@@ -375,7 +375,7 @@ async def start_broadcast(
     data = await state.get_data()
 
     message_text = data.get("message_text", "")
-    message_type = data.get("message_type", "text")
+    data.get("message_type", "text")
     original_message_id = data.get("original_message_id")
     original_chat_id = data.get("original_chat_id")
     recipient_ids = data.get("recipient_ids", [])

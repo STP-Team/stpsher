@@ -1,3 +1,2 @@
-from .base import Base
-from infrastructure.database.models.STP.employee import Employee
-from infrastructure.database.models.STP.product import Product
+from infrastructure.database.models.STP.employee import Employee as Employee
+from infrastructure.database.models.STP.product import Product as Product

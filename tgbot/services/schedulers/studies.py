@@ -262,11 +262,9 @@ async def create_study_notification_message(
     if abs(time_diff - timedelta(days=7)) <= timedelta(hours=1):
         # 7 days before notification
         time_text = "через 7 дней"
-        notification_type = "advance"
     elif abs(time_diff - timedelta(hours=1)) <= timedelta(minutes=10):
         # 1 hour before notification
         time_text = "через 1 час"
-        notification_type = "urgent"
     else:
         # Fallback (shouldn't happen with new logic)
         days_until = (session.date.date() - datetime.now().date()).days
@@ -276,7 +274,6 @@ async def create_study_notification_message(
             time_text = "завтра"
         else:
             time_text = f"через {days_until} дн."
-        notification_type = "general"
 
     # Get trainer information from database
     trainer_text = session.trainer

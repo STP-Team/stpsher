@@ -1099,19 +1099,13 @@ class DutyScheduleParser(BaseDutyParser):
 
         # Check if we need to start/end blockquote
         in_blockquote = False
-        
+
         # Count current slots for spacing logic
         current_slots_count = len(current_time_slots)
 
         for i, time_schedule in enumerate(sorted_times):
             group = time_groups[time_schedule]
             is_current_slot = time_schedule in current_time_slots
-
-            # Check if previous slot was current
-            prev_was_current = False
-            if i > 0:
-                prev_time_schedule = sorted_times[i - 1]
-                prev_was_current = prev_time_schedule in current_time_slots
 
             # Start blockquote if this is first current slot
             if is_current_slot and not in_blockquote:
