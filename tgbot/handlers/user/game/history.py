@@ -5,10 +5,10 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.game.history import (
-    transaction_history_kb,
-    TransactionHistoryMenu,
     TransactionDetailMenu,
+    TransactionHistoryMenu,
     transaction_detail_kb,
+    transaction_history_kb,
 )
 from tgbot.keyboards.user.game.main import GameMenu
 
@@ -132,6 +132,15 @@ async def transaction_detail_view(
         "casino": "🎰 Казино",
     }
     source_name = source_names.get(transaction.source_type, "❓ Неизвестно")
+    if transaction.source_type == "achievement" and transaction.source_id:
+        achievement = await stp_repo.achievement.get_achievement(transaction.source_id)
+        match achievement.period:
+            case "d":
+                source_name = "🏆 Ежедневное достижение"
+            case "w":
+                source_name = "🏆 Еженедельное достижение"
+            case "m":
+                source_name = "🏆 Ежемесячное достижение"
 
     # Формируем сообщение с подробной информацией
     message_text = f"""<b>📊 Детали транзакции</b>
