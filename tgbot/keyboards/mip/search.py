@@ -277,6 +277,271 @@ def head_group_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def short_name(full_name: str) -> str:
+    """Extract short name from full name."""
+    # Remove date info in parentheses if present
+    clean_name = full_name.split("(")[0].strip()
+    parts = clean_name.split()
+
+    if len(parts) >= 2:
+        return " ".join(parts[:2])
+    return clean_name
+
+
+class HeadGroupMembersMenuForSearch(CallbackData, prefix="head_group_members_search"):
+    head_id: int
+    page: int = 1
+
+
+class HeadMemberDetailMenuForSearch(CallbackData, prefix="head_member_detail_search"):
+    member_id: int
+    head_id: int
+    page: int = 1
+
+
+def head_group_members_kb_for_search(
+    members,
+    current_page: int = 1,
+    members_per_page: int = 8,
+    head_id: int = 0,
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для отображения участников группы с пагинацией для поиска MIP.
+    Отображает 2 участника в ряд, по умолчанию 8 участников на страницу (4 ряда).
+    """
+    buttons = []
+
+    if not members:
+        # Если нет участников, показываем только кнопки навигации
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад",
+                    callback_data=MainMenu(menu="search").pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
+            ]
+        )
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    # Рассчитываем пагинацию
+    total_members = len(members)
+    total_pages = (total_members + members_per_page - 1) // members_per_page
+
+    # Рассчитываем диапазон участников для текущей страницы
+    start_idx = (current_page - 1) * members_per_page
+    end_idx = start_idx + members_per_page
+    page_members = members[start_idx:end_idx]
+
+    # Создаем кнопки для участников (2 в ряд)
+    for i in range(0, len(page_members), 2):
+        row = []
+
+        # Первый участник в ряду
+        member = page_members[i]
+        member_short_name = short_name(member.fullname)
+
+        # Добавляем эмодзи для неавторизованных пользователей
+        status_emoji = "🔒 " if not member.user_id else ""
+        role_emoji = {3: "👮 ", 10: "🔨 "}.get(member.role, "")
+        button_text = f"{status_emoji}{role_emoji}{member_short_name}"
+
+        row.append(
+            InlineKeyboardButton(
+                text=button_text,
+                callback_data=HeadMemberDetailMenuForSearch(
+                    member_id=member.id, head_id=head_id, page=current_page
+                ).pack(),
+            )
+        )
+
+        # Второй участник в ряду (если есть)
+        if i + 1 < len(page_members):
+            member = page_members[i + 1]
+            member_short_name = short_name(member.fullname)
+            status_emoji = "🔒 " if not member.user_id else ""
+            role_emoji = {3: "👮 ", 10: "🔨 "}.get(member.role, "")
+            button_text = f"{status_emoji}{role_emoji}{member_short_name}"
+
+            row.append(
+                InlineKeyboardButton(
+                    text=button_text,
+                    callback_data=HeadMemberDetailMenuForSearch(
+                        member_id=member.id, head_id=head_id, page=current_page
+                    ).pack(),
+                )
+            )
+
+        buttons.append(row)
+
+    # Добавляем пагинацию (только если больше одной страницы)
+    if total_pages > 1:
+        pagination_row = []
+
+        # Клавиатура пагинации: [⏪] [⬅️] [страница] [➡️] [⏭️]
+
+        # Первая кнопка (⏪ или пусто)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=HeadGroupMembersMenuForSearch(
+                        head_id=head_id, page=1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Вторая кнопка (⬅️ или пусто)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=HeadGroupMembersMenuForSearch(
+                        head_id=head_id, page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Центральная кнопка - Индикатор страницы (всегда видна)
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Четвертая кнопка (➡️ или пусто)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=HeadGroupMembersMenuForSearch(
+                        head_id=head_id, page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Пятая кнопка (⏭️ или пусто)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=HeadGroupMembersMenuForSearch(
+                        head_id=head_id, page=total_pages
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Добавляем кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=MainMenu(menu="search").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def head_member_detail_kb_for_search(
+    member_id: int, head_id: int, page: int = 1, member_role: int = None
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для детального просмотра участника группы из поиска
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="📅 График",
+                callback_data=HeadMemberActionMenuForSearch(
+                    member_id=member_id, head_id=head_id, action="schedule", page=page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🌟 Показатели",
+                callback_data=HeadMemberActionMenuForSearch(
+                    member_id=member_id, head_id=head_id, action="kpi", page=page
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🏮 Игровой профиль",
+                callback_data=HeadMemberActionMenuForSearch(
+                    member_id=member_id,
+                    head_id=head_id,
+                    action="game_profile",
+                    page=page,
+                ).pack(),
+            ),
+        ],
+    ]
+
+    # Добавляем кнопку смены роли только для специалистов (роль 1) и дежурных (роль 3)
+    if member_role in [1, 3]:
+        role_button_text = (
+            "👮 Сделать дежурным" if member_role == 1 else "👤 Сделать спецом"
+        )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=role_button_text,
+                    callback_data=HeadMemberRoleChangeForSearch(
+                        member_id=member_id, head_id=head_id, page=page
+                    ).pack(),
+                ),
+            ]
+        )
+
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=HeadGroupMembersMenuForSearch(
+                    head_id=head_id, page=page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+class HeadMemberActionMenuForSearch(CallbackData, prefix="head_member_action_search"):
+    member_id: int
+    head_id: int
+    action: str  # "schedule", "kpi", or "game_profile"
+    page: int = 1
+
+
+class HeadMemberRoleChangeForSearch(CallbackData, prefix="head_member_role_search"):
+    member_id: int
+    head_id: int
+    page: int = 1
+
+
 def edit_user_back_kb(user_id: int) -> InlineKeyboardMarkup:
     """
     Клавиатура возврата при редактировании пользователя

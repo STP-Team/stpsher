@@ -12,7 +12,11 @@ from tgbot.filters.role import MipFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
+    HeadGroupMembersMenuForSearch,
     HeadGroupMenu,
+    HeadMemberActionMenuForSearch,
+    HeadMemberDetailMenuForSearch,
+    HeadMemberRoleChangeForSearch,
     MipScheduleNavigation,
     SearchMenu,
     SearchUserResult,
@@ -20,7 +24,8 @@ from tgbot.keyboards.mip.search import (
     ViewUserSchedule,
     edit_user_back_kb,
     get_month_name_by_index,
-    head_group_kb,
+    head_group_members_kb_for_search,
+    head_member_detail_kb_for_search,
     role_selection_kb,
     search_back_kb,
     search_main_kb,
@@ -447,54 +452,52 @@ async def show_user_details(
 async def show_head_group(
     callback: CallbackQuery, callback_data: HeadGroupMenu, stp_repo: MainRequestsRepo
 ):
-    """Показать группу руководителя (список его сотрудников)"""
-    head_name = callback_data.head_name
+    """Показать группу руководителя (список его сотрудников) с использованием функциональности head group members"""
+    head_id = callback_data.head_id
     page = callback_data.page
 
     try:
-        # Получаем сотрудников группы
-        group_users = await stp_repo.employee.get_users_by_head(head_name)
-
-        if not group_users:
-            await callback.answer("❌ Сотрудники не найдены", show_alert=True)
+        # Получаем информацию о руководителе по user_id
+        head_user = await stp_repo.employee.get_user(user_id=head_id)
+        if not head_user:
+            await callback.answer("❌ Руководитель не найден", show_alert=True)
             return
 
-        # Сортируем по ФИО
-        sorted_users = sorted(group_users, key=lambda u: u.fullname)
+        # Получаем всех сотрудников этого руководителя
+        group_members = await stp_repo.employee.get_users_by_head(head_user.fullname)
 
-        # Пагинация
-        total_users = len(sorted_users)
-        total_pages = (total_users + USERS_PER_PAGE - 1) // USERS_PER_PAGE
+        if not group_members:
+            await callback.message.edit_text(
+                f"""👥 <b>Группа: {head_user.fullname}</b>
 
-        start_idx = (page - 1) * USERS_PER_PAGE
-        end_idx = start_idx + USERS_PER_PAGE
-        page_users = sorted_users[start_idx:end_idx]
+У этого руководителя пока нет подчиненных в системе
+            
+<i>Если это ошибка, обратись к администратору.</i>""",
+                reply_markup=head_group_members_kb_for_search([], current_page=1, head_id=head_id),
+            )
+            return
 
-        # Получаем статистику группы
-        group_stats = await get_group_statistics(head_name, stp_repo)
+        # Показываем группу с использованием того же стиля, что и в head group members
+        total_members = len(group_members)
 
-        group_achievement_text = "Нет данных"
-        if group_stats["most_popular_achievement"]:
-            group_achievement_text = f"{group_stats['most_popular_achievement'][0]} ({group_stats['most_popular_achievement'][1]}x)"
+        message_text = f"""👥 <b>Группа: {head_user.fullname}</b>
 
-        group_product_text = "Нет данных"
-        if group_stats["most_popular_product"]:
-            group_product_text = f"{group_stats['most_popular_product'][0]} ({group_stats['most_popular_product'][1]}x)"
+Участники группы: <b>{total_members}</b>
+
+<blockquote><b>Обозначения</b>
+🔒 - не авторизован в боте
+👮 - дежурный
+🔨 - администратор</blockquote>
+
+<i>Нажми на участника для просмотра подробной информации</i>"""
 
         await callback.message.edit_text(
-            f"""<b>❤️ Группа: {head_name}</b>
-
-<b>Сотрудников:</b> {total_users}
-<b>Общие очки:</b> {group_stats["total_points"]} баллов
-<b>Популярное достижение:</b> {group_achievement_text}
-<b>Популярный предмет:</b> {group_product_text}
-
-<b>Страница {page} из {total_pages}</b>""",
-            reply_markup=head_group_kb(page_users, head_name, page, total_pages),
+            message_text,
+            reply_markup=head_group_members_kb_for_search(group_members, current_page=page, head_id=head_id),
         )
 
     except Exception as e:
-        logger.error(f"Ошибка при получении группы руководителя {head_name}: {e}")
+        logger.error(f"Ошибка при получении группы руководителя {head_id}: {e}")
         await callback.answer("❌ Ошибка при получении данных группы", show_alert=True)
 
 
@@ -848,3 +851,306 @@ async def process_role_change(
     except Exception as e:
         logger.error(f"Ошибка при изменении роли пользователя {user_id}: {e}")
         await callback.answer("❌ Ошибка при сохранении роли", show_alert=True)
+
+
+# Обработчики для search-специфичных callback data (для интеграции с head group members)
+
+@mip_search_router.callback_query(HeadGroupMembersMenuForSearch.filter())
+async def group_members_pagination_cb_search(
+    callback: CallbackQuery,
+    callback_data: HeadGroupMembersMenuForSearch,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик пагинации списка участников группы из поиска"""
+    head_id = callback_data.head_id
+    page = callback_data.page
+
+    try:
+        # Получаем информацию о руководителе
+        head_user = await stp_repo.employee.get_user(user_id=head_id)
+        if not head_user:
+            await callback.answer("❌ Руководитель не найден", show_alert=True)
+            return
+
+        # Получаем всех сотрудников этого руководителя
+        group_members = await stp_repo.employee.get_users_by_head(head_user.fullname)
+
+        if not group_members:
+            await callback.answer("❌ Участники не найдены", show_alert=True)
+            return
+
+        total_members = len(group_members)
+        
+        message_text = f"""👥 <b>Группа: {head_user.fullname}</b>
+
+Участники группы: <b>{total_members}</b>
+
+<blockquote><b>Обозначения</b>
+🔒 - не авторизован в боте
+👮 - дежурный
+🔨 - администратор</blockquote>
+
+<i>Нажми на участника для просмотра подробной информации</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_group_members_kb_for_search(group_members, current_page=page, head_id=head_id),
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при пагинации группы руководителя {head_id}: {e}")
+        await callback.answer("❌ Ошибка при получении данных", show_alert=True)
+
+
+@mip_search_router.callback_query(HeadMemberDetailMenuForSearch.filter())
+async def member_detail_cb_search(
+    callback: CallbackQuery,
+    callback_data: HeadMemberDetailMenuForSearch,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик детального просмотра участника группы из поиска"""
+    member_id = callback_data.member_id
+    head_id = callback_data.head_id
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Импортируем get_role_info из группового модуля
+        from tgbot.handlers.group.whois import get_role_info
+
+        # Формируем информацию об участнике
+        message_text = f"""👤 <b>Информация об участнике</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
+<b>Email:</b> {member.email or "Не указано"}
+
+🛡️ <b>Уровень доступа:</b> <code>{get_role_info(member.role)["text"]}</code>"""
+
+        # Добавляем статус только для неавторизованных пользователей
+        if not member.user_id:
+            message_text += "\n<b>Статус:</b> 🔒 Не авторизован в боте"
+
+        message_text += "\n\n<i>Выбери действие:</i>"
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+            parse_mode="HTML",
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при просмотре участника {member_id}: {e}")
+        await callback.answer("❌ Ошибка при получении данных участника", show_alert=True)
+
+
+@mip_search_router.callback_query(HeadMemberActionMenuForSearch.filter())
+async def member_action_cb_search(
+    callback: CallbackQuery,
+    callback_data: HeadMemberActionMenuForSearch,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик действий с участником (расписание/KPI/игра) из поиска"""
+    member_id = callback_data.member_id
+    head_id = callback_data.head_id
+    action = callback_data.action
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        if action == "schedule":
+            # Используем существующую логику из head group members для расписания
+            try:
+                current_month = schedule_service.get_current_month()
+                schedule_response = await schedule_service.get_user_schedule_response(
+                    user=member, month=current_month, compact=True, stp_repo=stp_repo
+                )
+
+                await callback.message.edit_text(
+                    f"""📅 <b>График участника</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
+
+<blockquote>{schedule_response}</blockquote>""",
+                    reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                )
+            except Exception as schedule_error:
+                error_message = "❌ График для данного сотрудника не найдено"
+                if "не найден" in str(schedule_error).lower():
+                    error_message = f"❌ Сотрудник {member.fullname} не найден в графике"
+                elif "файл" in str(schedule_error).lower():
+                    error_message = "❌ Файл графика недоступен"
+
+                await callback.message.edit_text(
+                    f"""📅 <b>График участника</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
+
+{error_message}
+
+<i>Возможно, сотрудник не включен в текущий график или файл недоступен.</i>""",
+                    reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                )
+            return
+
+        elif action == "kpi":
+            message_text = f"""📊 <b>KPI: {member.fullname}</b>
+
+<i>Функция в разработке</i>
+
+Здесь будут отображены показатели эффективности выбранного сотрудника."""
+
+            await callback.message.edit_text(
+                message_text,
+                reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+            )
+            return
+
+        elif action == "game_profile":
+            # Проверяем, что у участника есть user_id (авторизован в боте)
+            if not member.user_id:
+                await callback.message.edit_text(
+                    f"""🏮 <b>Игровой профиль</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+
+❌ <b>Пользователь не авторизован в боте</b>
+
+<i>Игровой профиль доступен только для авторизованных пользователей</i>""",
+                    reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                    parse_mode="HTML",
+                )
+                return
+
+            # Получаем игровую статистику пользователя
+            from tgbot.services.leveling import LevelingSystem
+            
+            user_balance = await stp_repo.transaction.get_user_balance(user_id=member.user_id)
+            achievements_sum = await stp_repo.transaction.get_user_achievements_sum(user_id=member.user_id)
+            purchases_sum = await stp_repo.purchase.get_user_purchases_sum(user_id=member.user_id)
+            level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
+
+            # Формируем сообщение с игровым профилем
+            message_text = f"""🏮 <b>Игровой профиль</b>
+
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
+
+{level_info_text}
+
+<blockquote expandable><b>✨ Баланс</b>
+Всего заработано: {achievements_sum} баллов
+Всего потрачено: {purchases_sum} баллов</blockquote>"""
+
+            await callback.message.edit_text(
+                message_text,
+                reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                parse_mode="HTML",
+            )
+            return
+
+        else:
+            await callback.answer("❌ Неизвестное действие", show_alert=True)
+            return
+
+    except Exception as e:
+        logger.error(f"Ошибка при выполнении действия {action} для участника {member_id}: {e}")
+        await callback.answer("❌ Ошибка при выполнении действия", show_alert=True)
+
+
+@mip_search_router.callback_query(HeadMemberRoleChangeForSearch.filter())
+async def change_member_role_search(
+    callback: CallbackQuery,
+    callback_data: HeadMemberRoleChangeForSearch,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик смены роли участника группы из поиска"""
+    member_id = callback_data.member_id
+    head_id = callback_data.head_id
+    page = callback_data.page
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Проверяем, что роль может быть изменена
+        if member.role not in [1, 3]:
+            await callback.answer(
+                "❌ Уровень доступа этого пользователя нельзя изменить", show_alert=True
+            )
+            return
+
+        # Определяем новый уровень доступа
+        new_role = 3 if member.role == 1 else 1
+        old_role_name = "Специалист" if member.role == 1 else "Дежурный"
+        new_role_name = "Дежурный" if new_role == 3 else "Специалист"
+
+        # Обновляем уровень в базе данных
+        await stp_repo.employee.update_user(user_id=member.user_id, role=new_role)
+
+        # Отправляем уведомление пользователю о смене роли (только если он авторизован)
+        if member.user_id:
+            try:
+                await callback.bot.send_message(
+                    chat_id=member.user_id,
+                    text=f"""<b>🔔 Изменение роли</b>
+
+Уровень был изменен: {old_role_name} → {new_role_name}
+
+<i>Изменения могут повлиять на доступные функции бота</i>""",
+                )
+                await callback.answer(
+                    "Отправили специалисту уведомление об изменении роли"
+                )
+            except Exception as e:
+                await callback.answer("Не удалось отправить уведомление специалисту :(")
+                logger.error(
+                    f"Не удалось отправить уведомление пользователю {member.user_id}: {e}"
+                )
+                
+        logger.info(
+            f"[МИП] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль участника {member_id}: {old_role_name} → {new_role_name}"
+        )
+
+        # Возвращаемся к детальной информации участника
+        member_detail_callback_data = HeadMemberDetailMenuForSearch(
+            member_id=member_id, head_id=head_id, page=page
+        )
+        await member_detail_cb_search(callback, member_detail_callback_data, stp_repo)
+
+    except Exception as e:
+        logger.error(f"Ошибка при изменении роли участника {member_id}: {e}")
+        await callback.answer("❌ Ошибка при изменении роли", show_alert=True)
