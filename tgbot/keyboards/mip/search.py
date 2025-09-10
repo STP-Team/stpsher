@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu
+from tgbot.services.schedule.parsers import CommonUtils
 
 
 class SearchMenu(CallbackData, prefix="search"):
@@ -188,7 +189,8 @@ def head_group_kb(
 
     # Кнопки сотрудников
     for user in users:
-        button_text = f"👤 {user.fullname} | {user.division}"
+        gender_emoji = CommonUtils.get_gender_emoji(user.fullname)
+        button_text = f"{gender_emoji} {user.fullname} | {user.division}"
         callback_data = SearchUserResult(
             user_id=user.user_id, return_to="head_group", head_id=head_id
         ).pack()
@@ -317,7 +319,8 @@ def search_results_kb(
         if not user.user_id:
             continue
 
-        button_text = f"👤 {user.fullname} | {user.division}"
+        gender_emoji = CommonUtils.get_gender_emoji(user.fullname)
+        button_text = f"{gender_emoji} {user.fullname} | {user.division}"
         callback_data = SearchUserResult(
             user_id=user.user_id, return_to=search_type, head_id=0
         ).pack()
