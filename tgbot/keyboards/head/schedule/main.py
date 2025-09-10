@@ -31,7 +31,7 @@ def schedule_kb_head() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="👥 Моя группа",
+                text="❤️ Моя группа",
                 callback_data=ScheduleMenu(menu="group").pack(),
             ),
         ],

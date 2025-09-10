@@ -103,7 +103,7 @@ def user_detail_kb(
     buttons = [
         [
             InlineKeyboardButton(
-                text="📅 Посмотреть график",
+                text="📅 График",
                 callback_data=ViewUserSchedule(
                     user_id=user_id, return_to=return_to, head_id=head_id
                 ).pack(),
@@ -116,7 +116,7 @@ def user_detail_kb(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="👥 Показать группу",
+                    text="❤️ Группа",
                     callback_data=HeadGroupMenu(head_id=head_user_id, page=1).pack(),
                 )
             ]

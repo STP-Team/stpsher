@@ -1372,7 +1372,7 @@ class GroupScheduleParser(BaseExcelParser):
     def format_schedule(self, members: List[GroupMemberInfo], date: datetime) -> str:
         """Format group schedule for display."""
         if not members:
-            return f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы"
+            return f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы"
 
         # Group by start time
         grouped_by_start_time = self._group_members_by_start_time(members)
@@ -1542,7 +1542,7 @@ class GroupScheduleParser(BaseExcelParser):
         """Format group schedule for head with pagination."""
         if not group_members:
             return (
-                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы",
+                f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы",
                 1,
                 False,
                 False,
@@ -1563,7 +1563,7 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
         # Build message
-        lines = [f"👥 <b>Твоя группа • {date.strftime('%d.%m.%Y')}</b>"]
+        lines = [f"❤️ <b>Твоя группа • {date.strftime('%d.%m.%Y')}</b>"]
 
         # Add pagination info
         if total_pages > 1:
@@ -1599,7 +1599,7 @@ class GroupScheduleParser(BaseExcelParser):
         """Format group schedule for regular user with pagination."""
         if not group_members:
             return (
-                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
+                f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
                 1,
                 False,
                 False,
@@ -1614,7 +1614,7 @@ class GroupScheduleParser(BaseExcelParser):
 
         if not colleagues:
             return (
-                f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
+                f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
                 1,
                 False,
                 False,
@@ -1637,7 +1637,7 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
         # Build message
-        lines = [f"👥 <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>"]
+        lines = [f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>"]
 
         # Add pagination info
         if total_pages > 1:
