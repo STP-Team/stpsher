@@ -473,7 +473,9 @@ async def show_head_group(
 У этого руководителя пока нет подчиненных в системе
             
 <i>Если это ошибка, обратись к администратору.</i>""",
-                reply_markup=head_group_members_kb_for_search([], current_page=1, head_id=head_id),
+                reply_markup=head_group_members_kb_for_search(
+                    [], current_page=1, head_id=head_id
+                ),
             )
             return
 
@@ -493,7 +495,9 @@ async def show_head_group(
 
         await callback.message.edit_text(
             message_text,
-            reply_markup=head_group_members_kb_for_search(group_members, current_page=page, head_id=head_id),
+            reply_markup=head_group_members_kb_for_search(
+                group_members, current_page=page, head_id=head_id
+            ),
         )
 
     except Exception as e:
@@ -855,6 +859,7 @@ async def process_role_change(
 
 # Обработчики для search-специфичных callback data (для интеграции с head group members)
 
+
 @mip_search_router.callback_query(HeadGroupMembersMenuForSearch.filter())
 async def group_members_pagination_cb_search(
     callback: CallbackQuery,
@@ -880,7 +885,7 @@ async def group_members_pagination_cb_search(
             return
 
         total_members = len(group_members)
-        
+
         message_text = f"""👥 <b>Группа: {head_user.fullname}</b>
 
 Участники группы: <b>{total_members}</b>
@@ -894,7 +899,9 @@ async def group_members_pagination_cb_search(
 
         await callback.message.edit_text(
             message_text,
-            reply_markup=head_group_members_kb_for_search(group_members, current_page=page, head_id=head_id),
+            reply_markup=head_group_members_kb_for_search(
+                group_members, current_page=page, head_id=head_id
+            ),
         )
 
     except Exception as e:
@@ -946,13 +953,17 @@ async def member_detail_cb_search(
 
         await callback.message.edit_text(
             message_text,
-            reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+            reply_markup=head_member_detail_kb_for_search(
+                member_id, head_id, page, member.role
+            ),
             parse_mode="HTML",
         )
 
     except Exception as e:
         logger.error(f"Ошибка при просмотре участника {member_id}: {e}")
-        await callback.answer("❌ Ошибка при получении данных участника", show_alert=True)
+        await callback.answer(
+            "❌ Ошибка при получении данных участника", show_alert=True
+        )
 
 
 @mip_search_router.callback_query(HeadMemberActionMenuForSearch.filter())
@@ -995,12 +1006,16 @@ async def member_action_cb_search(
 <b>Должность:</b> {member.position or "Не указано"} {member.division or "Не указано"}
 
 <blockquote>{schedule_response}</blockquote>""",
-                    reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                    reply_markup=head_member_detail_kb_for_search(
+                        member_id, head_id, page, member.role
+                    ),
                 )
             except Exception as schedule_error:
                 error_message = "❌ График для данного сотрудника не найдено"
                 if "не найден" in str(schedule_error).lower():
-                    error_message = f"❌ Сотрудник {member.fullname} не найден в графике"
+                    error_message = (
+                        f"❌ Сотрудник {member.fullname} не найден в графике"
+                    )
                 elif "файл" in str(schedule_error).lower():
                     error_message = "❌ Файл графика недоступен"
 
@@ -1013,7 +1028,9 @@ async def member_action_cb_search(
 {error_message}
 
 <i>Возможно, сотрудник не включен в текущий график или файл недоступен.</i>""",
-                    reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                    reply_markup=head_member_detail_kb_for_search(
+                        member_id, head_id, page, member.role
+                    ),
                 )
             return
 
@@ -1026,7 +1043,9 @@ async def member_action_cb_search(
 
             await callback.message.edit_text(
                 message_text,
-                reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                reply_markup=head_member_detail_kb_for_search(
+                    member_id, head_id, page, member.role
+                ),
             )
             return
 
@@ -1041,18 +1060,28 @@ async def member_action_cb_search(
 ❌ <b>Пользователь не авторизован в боте</b>
 
 <i>Игровой профиль доступен только для авторизованных пользователей</i>""",
-                    reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                    reply_markup=head_member_detail_kb_for_search(
+                        member_id, head_id, page, member.role
+                    ),
                     parse_mode="HTML",
                 )
                 return
 
             # Получаем игровую статистику пользователя
             from tgbot.services.leveling import LevelingSystem
-            
-            user_balance = await stp_repo.transaction.get_user_balance(user_id=member.user_id)
-            achievements_sum = await stp_repo.transaction.get_user_achievements_sum(user_id=member.user_id)
-            purchases_sum = await stp_repo.purchase.get_user_purchases_sum(user_id=member.user_id)
-            level_info_text = LevelingSystem.get_level_info_text(achievements_sum, user_balance)
+
+            user_balance = await stp_repo.transaction.get_user_balance(
+                user_id=member.user_id
+            )
+            achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
+                user_id=member.user_id
+            )
+            purchases_sum = await stp_repo.purchase.get_user_purchases_sum(
+                user_id=member.user_id
+            )
+            level_info_text = LevelingSystem.get_level_info_text(
+                achievements_sum, user_balance
+            )
 
             # Формируем сообщение с игровым профилем
             message_text = f"""🏮 <b>Игровой профиль</b>
@@ -1068,7 +1097,9 @@ async def member_action_cb_search(
 
             await callback.message.edit_text(
                 message_text,
-                reply_markup=head_member_detail_kb_for_search(member_id, head_id, page, member.role),
+                reply_markup=head_member_detail_kb_for_search(
+                    member_id, head_id, page, member.role
+                ),
                 parse_mode="HTML",
             )
             return
@@ -1078,7 +1109,9 @@ async def member_action_cb_search(
             return
 
     except Exception as e:
-        logger.error(f"Ошибка при выполнении действия {action} для участника {member_id}: {e}")
+        logger.error(
+            f"Ошибка при выполнении действия {action} для участника {member_id}: {e}"
+        )
         await callback.answer("❌ Ошибка при выполнении действия", show_alert=True)
 
 
@@ -1140,7 +1173,7 @@ async def change_member_role_search(
                 logger.error(
                     f"Не удалось отправить уведомление пользователю {member.user_id}: {e}"
                 )
-                
+
         logger.info(
             f"[МИП] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль участника {member_id}: {old_role_name} → {new_role_name}"
         )
