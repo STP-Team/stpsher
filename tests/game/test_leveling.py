@@ -52,19 +52,6 @@ class TestLevelingSystem:
 
     def test_calculate_level_milestone_boundaries(self):
         """Test level calculation at milestone boundaries"""
-        # These are the actual results from the system
-        milestones = [
-            (1000, 10),  # End of first milestone
-            (2500, 20),  # End of second milestone
-            (4500, 30),  # End of third milestone
-            (7500, 40),  # End of fourth milestone
-            (12500, 52),  # Actual result from system
-            (18500, 63),  # Need to verify actual result
-            (25500, 73),  # Need to verify actual result
-            (33500, 82),  # Need to verify actual result
-            (42500, 90),  # Need to verify actual result
-        ]
-
         # Test only the confirmed milestone boundaries
         confirmed_milestones = [
             (1000, 10),
