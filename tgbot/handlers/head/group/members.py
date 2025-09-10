@@ -79,7 +79,7 @@ async def group_mgmt_members_cb(callback: CallbackQuery, stp_repo: MainRequestsR
 <blockquote><b>Обозначения</b>
 🔒 - не авторизован в боте
 👮 - дежурный
-🔨 - администратор</blockquote>
+🔨 - root</blockquote>
 
 <i>Нажми на участника для просмотра подробной информации</i>"""
 
@@ -120,7 +120,7 @@ async def group_members_pagination_cb(
 <blockquote><b>Обозначения</b>
 🔒 - не авторизован в боте
 👮 - дежурный
-🔨 - администратор</blockquote>
+🔨 - root</blockquote>
 
 <i>Нажми на участника для просмотра подробной информации</i>"""
 
