@@ -74,7 +74,7 @@ def gok_purchases_paginated_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def gok_purchases_activation_kb(
+def gok_products_activation_kb(
     page: int, total_pages: int, page_products: List
 ) -> InlineKeyboardMarkup:
     """
@@ -116,7 +116,7 @@ def gok_purchases_activation_kb(
                 InlineKeyboardButton(
                     text="↩️ Назад",
                     callback_data=GokGameMenu(
-                        menu="purchases_activation", page=page - 1
+                        menu="products_activation", page=page - 1
                     ).pack(),
                 )
             )
@@ -133,7 +133,7 @@ def gok_purchases_activation_kb(
                 InlineKeyboardButton(
                     text="Вперёд ➡️",
                     callback_data=GokGameMenu(
-                        menu="purchases_activation", page=page + 1
+                        menu="products_activation", page=page + 1
                     ).pack(),
                 )
             )
@@ -181,7 +181,7 @@ def gok_purchases_detail_kb(
             InlineKeyboardButton(
                 text="↩️ Назад",
                 callback_data=GokGameMenu(
-                    menu="purchases_activation", page=current_page
+                    menu="products_activation", page=current_page
                 ).pack(),
             ),
         ],

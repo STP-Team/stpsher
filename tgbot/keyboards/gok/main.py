@@ -121,8 +121,8 @@ def gok_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="✍️ Покупки для активации",
-                callback_data=GokGameMenu(menu="purchases_activation").pack(),
+                text="✍️ Активация предметов",
+                callback_data=GokGameMenu(menu="products_activation").pack(),
             ),
         ],
         [

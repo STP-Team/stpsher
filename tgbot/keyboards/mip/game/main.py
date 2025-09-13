@@ -123,8 +123,8 @@ def game_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="✍️ Покупки для активации",
-                callback_data=GameMenu(menu="purchases_activation").pack(),
+                text="✍️ Активация предметов",
+                callback_data=GameMenu(menu="products_activation").pack(),
             ),
         ],
         [

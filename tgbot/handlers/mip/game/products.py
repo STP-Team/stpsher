@@ -107,7 +107,7 @@ async def products_all(
 
 
 @mip_game_products_router.callback_query(
-    GameMenu.filter(F.menu == "purchases_activation")
+    GameMenu.filter(F.menu == "products_activation")
 )
 async def purchase_activation(
     callback: CallbackQuery, callback_data: GameMenu, stp_repo: MainRequestsRepo
@@ -127,7 +127,7 @@ async def purchase_activation(
 
     if not review_purchases:
         await callback.message.edit_text(
-            """<b>✍️ Покупки для активации</b>
+            """<b>✍️ Активация предметов</b>
 
 Нет покупок, ожидающих активации 😊""",
             reply_markup=purchase_activation_kb(page, 0, []),
@@ -170,7 +170,7 @@ async def purchase_activation(
 {product.description}</blockquote>""")
         purchases_list.append("")
 
-    message_text = f"""<b>✍️ Покупки для активации</b>
+    message_text = f"""<b>✍️ Активация предметов</b>
 <i>Страница {page} из {total_pages}</i>
 
 {chr(10).join(purchases_list)}"""
@@ -351,7 +351,7 @@ async def purchase_action(
         # Возвращаемся к списку покупок для активации
         await purchase_activation(
             callback=callback,
-            callback_data=GameMenu(menu="purchases_activation", page=current_page),
+            callback_data=GameMenu(menu="products_activation", page=current_page),
             stp_repo=stp_repo,
         )
 

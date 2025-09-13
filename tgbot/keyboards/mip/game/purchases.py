@@ -68,7 +68,7 @@ def purchase_activation_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏪",
-                    callback_data=GameMenu(menu="purchases_activation", page=1).pack(),
+                    callback_data=GameMenu(menu="products_activation", page=1).pack(),
                 )
             )
         else:
@@ -80,7 +80,7 @@ def purchase_activation_kb(
                 InlineKeyboardButton(
                     text="⬅️",
                     callback_data=GameMenu(
-                        menu="purchases_activation", page=current_page - 1
+                        menu="products_activation", page=current_page - 1
                     ).pack(),
                 )
             )
@@ -101,7 +101,7 @@ def purchase_activation_kb(
                 InlineKeyboardButton(
                     text="➡️",
                     callback_data=GameMenu(
-                        menu="purchases_activation", page=current_page + 1
+                        menu="products_activation", page=current_page + 1
                     ).pack(),
                 )
             )
@@ -114,7 +114,7 @@ def purchase_activation_kb(
                 InlineKeyboardButton(
                     text="⏭️",
                     callback_data=GameMenu(
-                        menu="purchases_activation", page=total_pages
+                        menu="products_activation", page=total_pages
                     ).pack(),
                 )
             )
@@ -160,7 +160,7 @@ def purchase_detail_kb(purchase_id: int, current_page: int) -> InlineKeyboardMar
             InlineKeyboardButton(
                 text="↩️ Назад",
                 callback_data=GameMenu(
-                    menu="purchases_activation", page=current_page
+                    menu="products_activation", page=current_page
                 ).pack(),
             ),
             InlineKeyboardButton(
@@ -271,8 +271,8 @@ def purchase_notify_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="✍️ Покупки для активации",
-                callback_data=GameMenu(menu="purchases_activation").pack(),
+                text="✍️ Активация предметов",
+                callback_data=GameMenu(menu="products_activation").pack(),
             ),
         ],
         [

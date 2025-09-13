@@ -8,7 +8,7 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import GokFilter
 from tgbot.handlers.gok.game.main import filter_items_by_division
 from tgbot.keyboards.gok.game.products import (
-    gok_purchases_activation_kb,
+    gok_products_activation_kb,
     gok_purchases_detail_kb,
     gok_purchases_paginated_kb,
 )
@@ -100,9 +100,9 @@ async def gok_products_all(
 
 
 @gok_game_products_router.callback_query(
-    GokGameMenu.filter(F.menu == "purchases_activation")
+    GokGameMenu.filter(F.menu == "products_activation")
 )
-async def gok_purchases_activation(
+async def gok_products_activation(
     callback: CallbackQuery, callback_data: GokGameMenu, stp_repo: MainRequestsRepo
 ):
     """
@@ -120,10 +120,10 @@ async def gok_purchases_activation(
 
     if not review_purchases:
         await callback.message.edit_text(
-            """<b>✍️ Покупки для активации</b>
+            """<b>✍️ Активация предметов</b>
 
 Нет покупок, ожидающих активации 😊""",
-            reply_markup=gok_purchases_activation_kb(page, 0, []),
+            reply_markup=gok_products_activation_kb(page, 0, []),
         )
         return
 
@@ -163,14 +163,14 @@ async def gok_purchases_activation(
 {product.description}</blockquote>""")
         purchases_list.append("")
 
-    message_text = f"""<b>✍️ Покупки для активации</b>
+    message_text = f"""<b>✍️ Активация предметов</b>
 <i>Страница {page} из {total_pages}</i>
 
 {chr(10).join(purchases_list)}"""
 
     await callback.message.edit_text(
         message_text,
-        reply_markup=gok_purchases_activation_kb(page, total_pages, page_purchases),
+        reply_markup=gok_products_activation_kb(page, total_pages, page_purchases),
     )
 
 
@@ -340,9 +340,9 @@ async def gok_purchase_action(
             )
 
         # Возвращаемся к списку покупок для активации
-        await gok_purchases_activation(
+        await gok_products_activation(
             callback=callback,
-            callback_data=GokGameMenu(menu="purchases_activation", page=current_page),
+            callback_data=GokGameMenu(menu="products_activation", page=current_page),
             stp_repo=stp_repo,
         )
 
