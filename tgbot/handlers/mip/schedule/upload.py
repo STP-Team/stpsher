@@ -18,6 +18,7 @@ from tgbot.services.schedule.user_processor import (
     process_fired_users_with_stats,
     process_user_changes,
 )
+from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 # Router setup
 mip_upload_router = Router()
@@ -492,8 +493,6 @@ def _extract_file_stats(file_path: Path) -> dict:
             # So we'll skip this for now and just show 0
             stats["fired_people"] = 0
         else:
-            from tgbot.services.scheduler import get_fired_users_from_excel
-
             fired_users = get_fired_users_from_excel([str(file_path)])
             stats["fired_people"] = len(fired_users)
 
