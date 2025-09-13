@@ -36,6 +36,7 @@ from tgbot.handlers.user.game.casino import user_game_casino_router
 from tgbot.handlers.user.game.history import user_game_history_router
 from tgbot.handlers.user.game.inventory import user_game_inventory_router
 from tgbot.handlers.user.game.main import user_game_router
+from tgbot.handlers.user.game.products import duty_game_products_router
 from tgbot.handlers.user.game.shop import user_game_shop_router
 from tgbot.handlers.user.inline import user_inline_router
 from tgbot.handlers.user.kpi import user_kpi_router
@@ -85,6 +86,7 @@ routers_list = [
     user_schedule_group_router,
     user_kpi_router,
     user_game_router,
+    duty_game_products_router,
     user_game_shop_router,
     user_game_inventory_router,
     user_game_achievements_router,

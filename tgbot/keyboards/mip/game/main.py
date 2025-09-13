@@ -19,7 +19,7 @@ class FilterToggleMenu(CallbackData, prefix="filter_toggle"):
     current_filters: str = "НЦК,НТП"  # текущие активные фильтры
 
 
-class ProductsMenu(CallbackData, prefix="products"):
+class ProductsMenu(CallbackData, prefix="products_activation"):
     menu: str
     page: int = 1
     product_id: int = 0

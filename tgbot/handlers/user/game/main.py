@@ -42,5 +42,5 @@ async def game_main(
 <blockquote expandable><b>✨ Баланс</b>
 Всего заработано: {achievements_sum} баллов
 Всего потрачено: {purchases_sum} баллов</blockquote>""",
-        reply_markup=game_kb(),
+        reply_markup=game_kb(user),
     )
