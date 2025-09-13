@@ -15,7 +15,8 @@ from tgbot.filters.role import (
     MipFilter,
     MultiRoleFilter,
     RootFilter,
-    SpecialistFilter, DutyFilter,
+    SpecialistFilter,
+    DutyFilter,
 )
 from tgbot.handlers.user.schedule.main import schedule_service
 
@@ -24,7 +25,11 @@ logger = logging.getLogger(__name__)
 user_inline_router = Router()
 user_inline_router.inline_query.filter(
     MultiRoleFilter(
-        SpecialistFilter(), AdministratorFilter(), MipFilter(), RootFilter(), DutyFilter()
+        SpecialistFilter(),
+        AdministratorFilter(),
+        MipFilter(),
+        RootFilter(),
+        DutyFilter(),
     )
 )
 

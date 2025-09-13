@@ -6,7 +6,6 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import DutyFilter
-from tgbot.handlers.gok.game.main import filter_items_by_division
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.products import (
     duty_products_activation_kb,
@@ -24,7 +23,9 @@ duty_game_products_router.callback_query.filter(
 logger = logging.getLogger(__name__)
 
 
-@duty_game_products_router.callback_query(GameMenu.filter(F.menu == "products_activation"))
+@duty_game_products_router.callback_query(
+    GameMenu.filter(F.menu == "products_activation")
+)
 async def duty_products_activation(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -86,7 +87,9 @@ async def duty_products_activation(
 
         # Получаем информацию о пользователе
         purchase_user = await stp_repo.employee.get_user(user_id=purchase.user_id)
-        user_name = purchase_user.fullname if purchase_user else f"ID: {purchase.user_id}"
+        user_name = (
+            purchase_user.fullname if purchase_user else f"ID: {purchase.user_id}"
+        )
 
         if purchase_user and purchase_user.username:
             purchases_list.append(f"""{counter}. <b>{product.name}</b> - {purchase.bought_at.strftime("%d.%m.%Y в %H:%M")}
@@ -156,7 +159,9 @@ async def duty_purchase_activation_detail(
     head_info = (
         f"<a href='t.me/{user_head.username}'>{purchase_user.head}</a>"
         if user_head and user_head.username
-        else purchase_user.head if purchase_user else "-"
+        else purchase_user.head
+        if purchase_user
+        else "-"
     )
 
     message_text = f"""
@@ -185,7 +190,7 @@ async def duty_purchase_activation_detail(
 {user_info}
 
 <b>Должность</b>
-{purchase_user.position if purchase_user else '-'} {purchase_user.division if purchase_user else '-'}
+{purchase_user.position if purchase_user else "-"} {purchase_user.division if purchase_user else "-"}
 
 <b>Руководитель</b>
 {head_info}</blockquote>
@@ -209,7 +214,6 @@ async def duty_purchase_action(
     """Обработка подтверждения/отклонения активации дежурными"""
     purchase_id = callback_data.purchase_id
     action = callback_data.action
-    current_page = callback_data.page
 
     try:
         # Получаем информацию о покупке
@@ -229,7 +233,7 @@ async def duty_purchase_action(
         if product.division != user.division:
             await callback.answer(
                 f"❌ Вы можете активировать только предметы из направления {user.division}",
-                show_alert=True
+                show_alert=True,
             )
             return
 

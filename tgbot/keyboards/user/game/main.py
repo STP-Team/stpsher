@@ -17,51 +17,55 @@ def game_kb(user: Employee = None) -> InlineKeyboardMarkup:
     :return: Объект встроенной клавиатуры для возврата главного меню
     """
     buttons = []
-    
+
     # Add products activation button for duties (role 3) as first row
     if user and user.role == executed_codes["Дежурный"]:
-        buttons.append([
-            InlineKeyboardButton(
-                text="✍️ Активация предметов",
-                callback_data=GameMenu(menu="products_activation").pack(),
-            ),
-        ])
-    
-    buttons.extend([
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="✍️ Активация предметов",
+                    callback_data=GameMenu(menu="products_activation").pack(),
+                ),
+            ]
+        )
+
+    buttons.extend(
         [
-            InlineKeyboardButton(
-                text="💎 Магазин",
-                callback_data=GameMenu(menu="shop").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="🎒 Инвентарь",
-                callback_data=GameMenu(menu="inventory").pack(),
-            ),
-            InlineKeyboardButton(
-                text="🎲 Казино",
-                callback_data=GameMenu(menu="casino").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="🎯 Достижения",
-                callback_data=GameMenu(menu="achievements").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="📜 История баланса",
-                callback_data=GameMenu(menu="history").pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
-            ),
-        ],
-    ])
+            [
+                InlineKeyboardButton(
+                    text="💎 Магазин",
+                    callback_data=GameMenu(menu="shop").pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🎒 Инвентарь",
+                    callback_data=GameMenu(menu="inventory").pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🎲 Казино",
+                    callback_data=GameMenu(menu="casino").pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🎯 Достижения",
+                    callback_data=GameMenu(menu="achievements").pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="📜 История баланса",
+                    callback_data=GameMenu(menu="history").pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
+                ),
+            ],
+        ]
+    )
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=buttons,

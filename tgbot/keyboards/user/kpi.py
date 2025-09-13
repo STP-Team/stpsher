@@ -12,9 +12,14 @@ def kpi_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
+                text="🔄 Обновить", callback_data=MainMenu(menu="kpi").pack()
+            ),
+        ],
+        [
+            InlineKeyboardButton(
                 text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
             ),
-        ]
+        ],
     ]
 
     keyboard = InlineKeyboardMarkup(

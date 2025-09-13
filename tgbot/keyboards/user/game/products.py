@@ -28,15 +28,17 @@ def duty_products_activation_kb(
     for i, purchase_details in enumerate(purchases, start=1):
         purchase = purchase_details.user_purchase
         product = purchase_details.product_info
-        
-        buttons.append([
-            InlineKeyboardButton(
-                text=f"{i}. {product.name[:20]}{'...' if len(product.name) > 20 else ''}",
-                callback_data=DutyPurchaseActivationMenu(
-                    purchase_id=purchase.id, page=page
-                ).pack(),
-            )
-        ])
+
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{i}. {product.name[:20]}{'...' if len(product.name) > 20 else ''}",
+                    callback_data=DutyPurchaseActivationMenu(
+                        purchase_id=purchase.id, page=page
+                    ).pack(),
+                )
+            ]
+        )
 
     # Навигация по страницам
     nav_buttons = []
@@ -44,15 +46,15 @@ def duty_products_activation_kb(
         if page > 1:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="◀️ Назад", 
-                    callback_data=GameMenu(menu="products_activation").pack()
+                    text="◀️ Назад",
+                    callback_data=GameMenu(menu="products_activation").pack(),
                 )
             )
         if page < total_pages:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="Вперёд ▶️", 
-                    callback_data=GameMenu(menu="products_activation").pack()
+                    text="Вперёд ▶️",
+                    callback_data=GameMenu(menu="products_activation").pack(),
                 )
             )
 
@@ -60,16 +62,17 @@ def duty_products_activation_kb(
         buttons.append(nav_buttons)
 
     # Кнопка возврата
-    buttons.append([
-        InlineKeyboardButton(
-            text="↩️ Назад",
-            callback_data=MainMenu(menu="game").pack(),
-        ),
-        InlineKeyboardButton(
-            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
-        ),
-    ])
-
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=MainMenu(menu="game").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            ),
+        ]
+    )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

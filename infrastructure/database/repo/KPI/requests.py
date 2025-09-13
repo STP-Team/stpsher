@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.database.repo.KPI.head_month_kpi import HeadMonthKPIRepo
 from infrastructure.database.repo.KPI.spec_day_kpi import SpecDayKPIRepo
+from infrastructure.database.repo.KPI.spec_premium import SpecPremiumRepo
 from infrastructure.database.repo.KPI.spec_week_kpi import SpecWeekKPIRepo
 from infrastructure.database.repo.KPI.spec_month_kpi import SpecMonthKPIRepo
 
@@ -45,3 +46,10 @@ class KPIRequestsRepo:
         The SpecMonthKPIRepo repository sessions are required to manage specialist monthly kpi operations.
         """
         return SpecMonthKPIRepo(self.session)
+
+    @property
+    def spec_premium(self) -> SpecPremiumRepo:
+        """
+        The SpecPremiumRepo repository sessions are required to manage specialist premium operations.
+        """
+        return SpecPremiumRepo(self.session)
