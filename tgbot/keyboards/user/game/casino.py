@@ -190,27 +190,27 @@ def betting_kb(
     special_row = []
 
     # Половина баланса
-    half_balance = user_balance // 2
-    if half_balance >= 10 and half_balance != current_rate:
-        special_row.append(
-            InlineKeyboardButton(
-                text=f"⚖️ Половина ({half_balance})",
-                callback_data=CasinoMenu(
-                    menu="rate", current_rate=half_balance, game_type=game_type
-                ).pack(),
-            )
-        )
-
-    # All-in в том же ряду
-    if user_balance > current_rate and user_balance >= 10:
-        special_row.append(
-            InlineKeyboardButton(
-                text=f"🔥 All-in ({user_balance})",
-                callback_data=CasinoMenu(
-                    menu="rate", current_rate=user_balance, game_type=game_type
-                ).pack(),
-            )
-        )
+    # half_balance = user_balance // 2
+    # if half_balance >= 10 and half_balance != current_rate:
+    #     special_row.append(
+    #         InlineKeyboardButton(
+    #             text=f"⚖️ Половина ({half_balance})",
+    #             callback_data=CasinoMenu(
+    #                 menu="rate", current_rate=half_balance, game_type=game_type
+    #             ).pack(),
+    #         )
+    #     )
+    #
+    # # All-in в том же ряду
+    # if user_balance > current_rate and user_balance >= 10:
+    #     special_row.append(
+    #         InlineKeyboardButton(
+    #             text=f"🔥 All-in ({user_balance})",
+    #             callback_data=CasinoMenu(
+    #                 menu="rate", current_rate=user_balance, game_type=game_type
+    #             ).pack(),
+    #         )
+    #     )
 
     if special_row:
         buttons.append(special_row)
