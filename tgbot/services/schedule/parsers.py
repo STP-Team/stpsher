@@ -411,18 +411,18 @@ class ScheduleParser(MonthlyScheduleParser):
         try:
             schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
-                raise FileNotFoundError(f"Schedule file for {division} not found")
+                raise FileNotFoundError(f"Файл графика для {division} не найден")
 
             df = self.read_excel_file(schedule_file)
             if df is None:
-                raise ValueError("Failed to read schedule file")
+                raise ValueError("Не удалось прочитать файл графика")
 
             start_column, end_column = self.find_month_columns(df, month)
             day_headers = self.find_day_headers(df, start_column, end_column)
 
             user_row_idx = self.find_user_row(df, fullname)
             if user_row_idx is None:
-                raise ValueError(f"User {fullname} not found in schedule")
+                raise ValueError(f"Сотрудник {fullname} не найден в графике")
 
             schedule = {}
             for col_idx in range(start_column, end_column + 1):
@@ -555,7 +555,7 @@ class ScheduleParser(MonthlyScheduleParser):
 
         except Exception as e:
             logger.error(f"Schedule formatting error: {e}")
-            return f"❌ <b>Schedule check error:</b>\n<code>{e}</code>"
+            return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
 
     async def get_user_schedule_formatted_with_duties(
         self,
@@ -591,7 +591,7 @@ class ScheduleParser(MonthlyScheduleParser):
 
         except Exception as e:
             logger.error(f"Schedule formatting error: {e}")
-            return f"❌ <b>Schedule check error:</b>\n<code>{e}</code>"
+            return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
 
     def format_schedule(self, data: List, date: datetime) -> str:
         """Format schedule data for display."""
