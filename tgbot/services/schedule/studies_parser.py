@@ -220,7 +220,7 @@ class StudiesScheduleParser(BaseExcelParser):
         try:
             file_path = self.file_manager.uploads_folder / file_name
             if not file_path.exists():
-                logger.warning(f"Studies file not found: {file_path}")
+                logger.warning(f"Файл обучений не найден: {file_path}")
                 return []
 
             all_sessions = self.parse_studies_file(file_path)
@@ -249,7 +249,7 @@ class StudiesScheduleParser(BaseExcelParser):
         try:
             file_path = self.file_manager.uploads_folder / file_name
             if not file_path.exists():
-                logger.warning(f"Studies file not found: {file_path}")
+                logger.warning(f"Файл обучений не найден: {file_path}")
                 return []
 
             all_sessions = self.parse_studies_file(file_path)

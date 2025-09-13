@@ -88,8 +88,8 @@ async def check_upcoming_studies(session_pool, bot: Bot):
         file_path = Path("uploads/Обучения.xlsx")
 
         if not file_path.exists():
-            logger.warning("[Обучения] Studies file not found: Обучения.xlsx")
-            return {"status": "error", "message": "Studies file not found"}
+            logger.warning("[Обучения] Файл обучений не найден: Обучения.xlsx")
+            return {"status": "error", "message": "Файл обучений не найден"}
 
         all_sessions = studies_parser.parse_studies_file(file_path)
 
