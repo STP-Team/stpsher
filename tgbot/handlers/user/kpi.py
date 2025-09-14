@@ -775,16 +775,16 @@ async def user_kpi_salary_cb(
                 [
                     line
                     for line in [
-                        f"Обычные доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f}₽ = {round(regular_additional_shift_hours * additional_shift_rate)}₽"
+                        f"Обычные доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f}₽ = {round(regular_additional_shift_hours * additional_shift_rate)} ₽"
                         if regular_additional_shift_hours > 0
                         else None,
-                        f"Ночные доп. смены: {round(additional_shift_night_hours)}ч × {additional_shift_night_rate:.2f}₽ = {round(additional_shift_night_hours * additional_shift_night_rate)}₽"
+                        f"Ночные доп. смены: {round(additional_shift_night_hours)}ч × {additional_shift_night_rate:.2f}₽ = {round(additional_shift_night_hours * additional_shift_night_rate)} ₽"
                         if additional_shift_night_hours > 0
                         else None,
-                        f"Праздничные доп. смены: {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f}₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)}₽"
+                        f"Праздничные доп. смены: {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f}₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)} ₽"
                         if additional_shift_holiday_hours > 0
                         else None,
-                        f"Ночные праздничные доп. смены: {round(additional_shift_night_holiday_hours)}ч × {additional_shift_night_holiday_rate:.2f}₽ = {round(additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)}₽"
+                        f"Ночные праздничные доп. смены: {round(additional_shift_night_holiday_hours)}ч × {additional_shift_night_holiday_rate:.2f}₽ = {round(additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)} ₽"
                         if additional_shift_night_holiday_hours > 0
                         else None,
                     ]
