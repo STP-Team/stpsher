@@ -239,7 +239,7 @@ class TransactionRepo(BaseRepo):
             query = select(Transaction).where(
                 Transaction.user_id == user_id,
                 Transaction.source_type.in_(["achievement", "manual"]),
-                Transaction.type == "earn"
+                Transaction.type == "earn",
             )
             result = await self.session.execute(query)
             transactions = result.scalars().all()
