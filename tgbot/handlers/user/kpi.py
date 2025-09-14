@@ -698,11 +698,25 @@ async def user_kpi_salary_cb(
         + (additional_shift_night_hours * additional_shift_night_rate)
         + (additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)
     )
-    base_salary += additional_shift_salary
+
+    # Calculate individual KPI premium amounts (based only on base salary, not additional shifts)
+    csi_premium_amount = base_salary * ((user_premium.csi_premium or 0) / 100)
+    flr_premium_amount = base_salary * ((user_premium.flr_premium or 0) / 100)
+    gok_premium_amount = base_salary * ((user_premium.gok_premium or 0) / 100)
+    target_premium_amount = base_salary * ((user_premium.target_premium or 0) / 100)
+    discipline_premium_amount = base_salary * (
+        (user_premium.discipline_premium or 0) / 100
+    )
+    tests_premium_amount = base_salary * ((user_premium.tests_premium or 0) / 100)
+    thanks_premium_amount = base_salary * ((user_premium.thanks_premium or 0) / 100)
+    tutors_premium_amount = base_salary * ((user_premium.tutors_premium or 0) / 100)
+    head_adjust_premium_amount = base_salary * (
+        (user_premium.head_adjust_premium or 0) / 100
+    )
 
     premium_multiplier = (user_premium.total_premium or 0) / 100
     premium_amount = base_salary * premium_multiplier
-    total_salary = base_salary + premium_amount
+    total_salary = base_salary + premium_amount + additional_shift_salary
 
     message_text = f"""💰 <b>Расчет зарплаты</b>
 
@@ -746,36 +760,79 @@ async def user_kpi_salary_cb(
                     f"Ночные праздничные часы: {round(night_holiday_hours)}ч × {round(pay_rate * 2.4, 2)}₽ = {round(night_holiday_hours * pay_rate * 2.4)}₽"
                     if night_holiday_hours > 0
                     else None,
-                    f"Доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f}₽ = {round(regular_additional_shift_hours * additional_shift_rate)}₽"
-                    if regular_additional_shift_hours > 0
-                    else None,
-                    f"Доп. смены (ночные): {round(additional_shift_night_hours)}ч × {additional_shift_night_rate:.2f}₽ = {round(additional_shift_night_hours * additional_shift_night_rate)}₽"
-                    if additional_shift_night_hours > 0
-                    else None,
-                    f"Доп. смены (в праздники): {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f}₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)}₽"
-                    if additional_shift_holiday_hours > 0
-                    else None,
-                    f"Доп. смены (ночные праздничные): {round(additional_shift_night_holiday_hours)}ч × {additional_shift_night_holiday_rate:.2f}₽ = {round(additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)}₽"
-                    if additional_shift_night_holiday_hours > 0
-                    else None,
                 ]
                 if line is not None
             ]
         )
     }
 
-Сумма оклада: {format_value(round(base_salary), " ₽")}</blockquote>
+Сумма оклада: {format_value(round(base_salary), " ₽")}</blockquote>{
+        f'''
+
+⭐ <b>Доп. смены:</b>
+<blockquote>{
+            chr(10).join([
+                line for line in [
+                    f"Обычные доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f}₽ = {round(regular_additional_shift_hours * additional_shift_rate)}₽"
+                    if regular_additional_shift_hours > 0 else None,
+                    f"Ночные доп. смены: {round(additional_shift_night_hours)}ч × {additional_shift_night_rate:.2f}₽ = {round(additional_shift_night_hours * additional_shift_night_rate)}₽"
+                    if additional_shift_night_hours > 0 else None,
+                    f"Праздничные доп. смены: {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f}₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)}₽"
+                    if additional_shift_holiday_hours > 0 else None,
+                    f"Ночные праздничные доп. смены: {round(additional_shift_night_holiday_hours)}ч × {additional_shift_night_holiday_rate:.2f}₽ = {round(additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)}₽"
+                    if additional_shift_night_holiday_hours > 0 else None
+                ] if line is not None
+            ])
+        }
+
+Сумма доп. смен: {format_value(round(additional_shift_salary), " ₽")}</blockquote>'''
+        if additional_shift_salary > 0 else ""
+    }
 
 🎁 <b>Премия:</b>
-<blockquote>Процент премии: {format_percentage(user_premium.total_premium)}
-Сумма премии: {format_value(round(premium_amount), " ₽")}
-
+<blockquote expandable>Общий процент премии: {
+        format_percentage(user_premium.total_premium)
+    }
+Общая сумма премии: {format_value(round(premium_amount), " ₽")}
 Стоимость 1% премии: ~{
         round(premium_amount / user_premium.total_premium)
-    } ₽</blockquote>
+        if user_premium.total_premium and user_premium.total_premium > 0
+        else 0
+    } ₽
+
+🌟 Показатели:
+Оценка: {format_percentage(user_premium.csi_premium)} = {
+        format_value(round(csi_premium_amount), " ₽")
+    }
+FLR: {format_percentage(user_premium.flr_premium)} = {
+        format_value(round(flr_premium_amount), " ₽")
+    }
+ГОК: {format_percentage(user_premium.gok_premium)} = {
+        format_value(round(gok_premium_amount), " ₽")
+    }
+Цель: {format_percentage(user_premium.target_premium)} = {
+        format_value(round(target_premium_amount), " ₽")
+    }
+
+💼 Дополнительно:
+Дисциплина: {format_percentage(user_premium.discipline_premium)} = {
+        format_value(round(discipline_premium_amount), " ₽")
+    }
+Тестирование: {format_percentage(user_premium.tests_premium)} = {
+        format_value(round(tests_premium_amount), " ₽")
+    }
+Благодарности: {format_percentage(user_premium.thanks_premium)} = {
+        format_value(round(thanks_premium_amount), " ₽")
+    }
+Наставничество: {format_percentage(user_premium.tutors_premium)} = {
+        format_value(round(tutors_premium_amount), " ₽")
+    }
+Ручная правка: {format_percentage(user_premium.head_adjust_premium)} = {
+        format_value(round(head_adjust_premium_amount), " ₽")
+    }</blockquote>
 
 💰 <b>Итого к выплате:</b>
-<b>{format_value(round(total_salary), " ₽")}</b>
+~<b>{format_value(round(total_salary, 1), " ₽")}</b>
 
 <blockquote expandable>⚠️ <b>Важное</b>
 
