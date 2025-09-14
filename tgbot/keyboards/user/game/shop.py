@@ -1,6 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.user.game.inventory import UseProductMenu
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 
@@ -226,9 +227,7 @@ def product_purchase_success_kb(user_product_id: int) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="🎯 Использовать",
-                callback_data=ProductDetailsShop(
-                    user_product_id=user_product_id
-                ).pack(),
+                callback_data=UseProductMenu(user_product_id=user_product_id).pack(),
             ),
             InlineKeyboardButton(
                 text="💸 Вернуть",

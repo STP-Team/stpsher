@@ -16,8 +16,8 @@ from tgbot.keyboards.user.game.inventory import (
     product_detail_kb,
     to_game_kb,
 )
-from tgbot.keyboards.user.game.shop import ProductDetailsShop
 from tgbot.keyboards.user.game.main import GameMenu
+from tgbot.keyboards.user.game.shop import ProductDetailsShop
 from tgbot.misc.dicts import executed_codes
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.mailing import (
@@ -342,6 +342,11 @@ async def use_product_handler(
 
     success = await stp_repo.purchase.use_purchase(user_product_id)
 
+    # Refresh the product detail view
+    await product_detail_view(
+        callback, ProductDetailMenu(user_product_id=user_product_id), stp_repo
+    )
+
     if success:
         product_name = user_product_detail.product_info.name
         role_lookup = {v: k for k, v in executed_codes.items()}
@@ -412,11 +417,6 @@ async def use_product_handler(
             )
     else:
         await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
-
-    # Refresh the product detail view
-    await product_detail_view(
-        callback, ProductDetailMenu(user_product_id=user_product_id), stp_repo
-    )
 
 
 @user_game_inventory_router.callback_query(SellProductMenu.filter())
@@ -533,6 +533,11 @@ async def cancel_activation_handler(
                 f"✅ Активация предмета '{product_info.name}' отменена!"
             )
 
+            # Refresh the product detail view
+            await product_detail_view(
+                callback, ProductDetailMenu(user_product_id=user_product_id), stp_repo
+            )
+
             user_head: Employee | None = await stp_repo.employee.get_user(
                 fullname=user.head
             )
@@ -549,11 +554,6 @@ async def cancel_activation_handler(
 
             logger.info(
                 f"[Отмена активации] {user.username} ({user.user_id}) отменил активацию '{product_info.name}'"
-            )
-
-            # Refresh the product detail view
-            await product_detail_view(
-                callback, ProductDetailMenu(user_product_id=user_product_id), stp_repo
             )
         else:
             await callback.answer("❌ Ошибка при отмене активации", show_alert=True)
