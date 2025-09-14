@@ -30,6 +30,7 @@ from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
 from tgbot.handlers.mip.schedule.upload import mip_upload_router
 from tgbot.handlers.mip.search import mip_search_router
+from tgbot.handlers.root.main import root_router
 from tgbot.handlers.user.auth.main import user_auth_router
 from tgbot.handlers.user.game.achievements import user_game_achievements_router
 from tgbot.handlers.user.game.casino import user_game_casino_router
@@ -49,6 +50,7 @@ from tgbot.handlers.user.schedule.main import user_schedule_router
 from tgbot.handlers.user.schedule.my import user_schedule_my_router
 
 routers_list = [
+    root_router,
     admin_router,
     admin_schedule_router,
     admin_upload_router,
