@@ -227,24 +227,24 @@ class TransactionRepo(BaseRepo):
 
     async def get_user_achievements_sum(self, user_id: int) -> int:
         """
-        Вычислить сумму баллов за достижения пользователя
+        Вычислить сумму баллов за достижения пользователя (включая ручные транзакции)
 
         Args:
             user_id: Идентификатор пользователя
 
         Returns:
-            Сумма баллов за достижения
+            Сумма баллов за достижения и ручные транзакции
         """
         try:
-            achievements = await self.get_user_transactions(
-                user_id, only_achievements=True
+            query = select(Transaction).where(
+                Transaction.user_id == user_id,
+                Transaction.source_type.in_(["achievement", "manual"]),
+                Transaction.type == "earn"
             )
-            achievements_sum = 0
+            result = await self.session.execute(query)
+            transactions = result.scalars().all()
 
-            for achievement in achievements:
-                if achievement.type == "earn":
-                    achievements_sum += achievement.amount
-
+            achievements_sum = sum(transaction.amount for transaction in transactions)
             return achievements_sum
         except Exception as e:
             logger.error(
@@ -537,11 +537,11 @@ class TransactionRepo(BaseRepo):
                         }
                     )
 
-            # Вычисляем средний уровень группы на основе общей суммы очков за достижения
+            # Вычисляем средний уровень группы на основе общей суммы очков за достижения и ручные транзакции
             achievements_sum_query = select(func.sum(Transaction.amount)).where(
                 Transaction.user_id.in_(member_user_ids),
                 Transaction.type == "earn",
-                Transaction.source_type == "achievement",
+                Transaction.source_type.in_(["achievement", "manual"]),
             )
             achievements_sum_result = await self.session.execute(achievements_sum_query)
             achievements_sum = achievements_sum_result.scalar() or 0
