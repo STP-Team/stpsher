@@ -39,14 +39,17 @@ async def bot_got_admin_rights(event: ChatMemberUpdated, stp_repo: MainRequestsR
         if not existing_group:
             # Добавляем группу в БД
             group = await stp_repo.group.add_group(
-                group_id=event.chat.id,
-                invited_by=event.from_user.id
+                group_id=event.chat.id, invited_by=event.from_user.id
             )
 
             if group:
-                logger.info(f"[БД] Группа {event.chat.id} добавлена в базу данных пользователем {event.from_user.id}")
+                logger.info(
+                    f"[БД] Группа {event.chat.id} добавлена в базу данных пользователем {event.from_user.id}"
+                )
             else:
-                logger.error(f"[БД] Ошибка добавления группы {event.chat.id} в базу данных")
+                logger.error(
+                    f"[БД] Ошибка добавления группы {event.chat.id} в базу данных"
+                )
         else:
             logger.info(f"[БД] Группа {event.chat.id} уже существует в базе данных")
 
