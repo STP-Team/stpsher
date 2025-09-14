@@ -15,7 +15,8 @@ def kpi_kb() -> InlineKeyboardMarkup:
                 text="🔄 Обновить", callback_data=MainMenu(menu="kpi").pack()
             ),
             InlineKeyboardButton(
-                text="🧮 Калькулятор", callback_data=MainMenu(menu="kpi_calculator").pack()
+                text="🧮 Калькулятор",
+                callback_data=MainMenu(menu="kpi_calculator").pack(),
             ),
         ],
         [
