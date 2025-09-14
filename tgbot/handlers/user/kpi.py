@@ -768,7 +768,11 @@ async def user_kpi_salary_cb(
 
 🎁 <b>Премия:</b>
 <blockquote>Процент премии: {format_percentage(user_premium.total_premium)}
-Сумма премии: {format_value(round(premium_amount), " ₽")}</blockquote>
+Сумма премии: {format_value(round(premium_amount), " ₽")}
+
+Стоимость 1% премии: ~{
+        round(premium_amount / user_premium.total_premium)
+    } ₽</blockquote>
 
 💰 <b>Итого к выплате:</b>
 <b>{format_value(round(total_salary), " ₽")}</b>
@@ -798,6 +802,8 @@ async def user_kpi_salary_cb(
     }</i>"""
 
     try:
-        await callback.message.edit_text(message_text, reply_markup=kpi_salary_kb(), disable_web_page_preview=True)
+        await callback.message.edit_text(
+            message_text, reply_markup=kpi_salary_kb(), disable_web_page_preview=True
+        )
     except TelegramBadRequest:
         await callback.answer("Обновлений нет")
