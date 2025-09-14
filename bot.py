@@ -11,11 +11,13 @@ from aiogram.types import (
     BotCommandScopeAllPrivateChats,
 )
 
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
+from tgbot.middlewares.GroupsMiddleware import GroupsMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.services.logger import setup_logging
 from tgbot.services.scheduler import SchedulerManager
@@ -72,12 +74,19 @@ def register_middlewares(
         kpi_session_pool=kpi_session_pool,
     )
     users_middleware = UsersMiddleware()
+    groups_middleware = GroupsMiddleware()
 
-    for middleware in [config_middleware, database_middleware, users_middleware]:
+    for middleware in [
+        config_middleware,
+        database_middleware,
+        users_middleware,
+        groups_middleware,
+    ]:
         dp.message.outer_middleware(middleware)
         dp.callback_query.outer_middleware(middleware)
         dp.inline_query.outer_middleware(middleware)
         dp.my_chat_member.outer_middleware(middleware)
+        dp.chat_member.outer_middleware(middleware)
 
 
 def get_storage(config):
@@ -150,9 +159,37 @@ async def main():
     scheduler_manager.setup_jobs(main_db, bot, kpi_db)
     scheduler_manager.start()
 
-    # await on_startup(bot)
+    async def on_startup(bot: Bot, session_pool):
+        """Функция запуска бота - проверяет и синхронизирует группы"""
+        logger.info("[STARTUP] Запуск бота - проверка групп")
+
+        try:
+            async with session_pool() as session:
+                repo = MainRequestsRepo(session)
+                added_groups = await repo.group.sync_groups_with_bot_chats(bot)
+
+                if added_groups > 0:
+                    logger.info(
+                        f"[STARTUP] При запуске добавлено {added_groups} отсутствующих групп"
+                    )
+                else:
+                    logger.info("[STARTUP] Все группы уже синхронизированы")
+
+        except Exception as e:
+            logger.error(f"[STARTUP] Ошибка при синхронизации групп: {e}")
+
+    await on_startup(bot, main_db)
     try:
-        await dp.start_polling(bot)
+        await dp.start_polling(
+            bot,
+            allowed_updates=[
+                "message",
+                "callback_query",
+                "inline_query",
+                "my_chat_member",
+                "chat_member"
+            ]
+        )
     finally:
         await main_db_engine.dispose()
 

@@ -3,12 +3,14 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.database.repo.STP.achievement import AchievementsRepo
-from infrastructure.database.repo.STP.product import ProductsRepo
 from infrastructure.database.repo.STP.broadcast import BroadcastRepo
+from infrastructure.database.repo.STP.employee import EmployeeRepo
+from infrastructure.database.repo.STP.group import GroupRepo
+from infrastructure.database.repo.STP.group_member import GroupMemberRepo
+from infrastructure.database.repo.STP.product import ProductsRepo
+from infrastructure.database.repo.STP.purchase import PurchaseRepo
 from infrastructure.database.repo.STP.schedule_log import ScheduleLogRepo
 from infrastructure.database.repo.STP.transactions import TransactionRepo
-from infrastructure.database.repo.STP.employee import EmployeeRepo
-from infrastructure.database.repo.STP.purchase import PurchaseRepo
 
 
 @dataclass
@@ -69,3 +71,17 @@ class MainRequestsRepo:
         The BroadcastRepo repository sessions are required to manage broadcasts.
         """
         return BroadcastRepo(self.session)
+
+    @property
+    def group(self) -> GroupRepo:
+        """
+        The GroupRepo repository sessions are required to manage groups.
+        """
+        return GroupRepo(self.session)
+
+    @property
+    def group_member(self) -> GroupMemberRepo:
+        """
+        The GroupMemberRepo repository sessions are required to manage group members.
+        """
+        return GroupMemberRepo(self.session)
