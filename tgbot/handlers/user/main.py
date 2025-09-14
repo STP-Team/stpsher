@@ -77,12 +77,103 @@ async def private_whois_command(
 
     # Проверяем, есть ли пересланное сообщение или это ответ на пересланное сообщение
     forwarded_user_id = None
+    forward_info = {}
+    privacy_error = False
+
+    # Проверяем пересланное сообщение в самой команде
     if message.forward_from:
-        # Если сама команда является пересланным сообщением
         forwarded_user_id = message.forward_from.id
-    elif message.reply_to_message and message.reply_to_message.forward_from:
-        # Если команда является ответом на пересланное сообщение
-        forwarded_user_id = message.reply_to_message.forward_from.id
+        forward_info = {
+            'user_id': message.forward_from.id,
+            'first_name': message.forward_from.first_name,
+            'last_name': message.forward_from.last_name,
+            'username': message.forward_from.username,
+            'is_bot': message.forward_from.is_bot
+        }
+    elif message.forward_sender_name:
+        # Пользователь включил режим конфиденциальности - forward_from недоступен
+        privacy_error = True
+        forward_info = {
+            'sender_name': message.forward_sender_name,
+            'forward_date': message.forward_date
+        }
+    elif message.forward_from_chat:
+        # Сообщение переслано из чата/канала
+        forward_info = {
+            'from_chat': True,
+            'chat_id': message.forward_from_chat.id,
+            'chat_title': message.forward_from_chat.title,
+            'chat_type': message.forward_from_chat.type
+        }
+    # Проверяем ответ на пересланное сообщение
+    elif message.reply_to_message:
+        if message.reply_to_message.forward_from:
+            forwarded_user_id = message.reply_to_message.forward_from.id
+            forward_info = {
+                'user_id': message.reply_to_message.forward_from.id,
+                'first_name': message.reply_to_message.forward_from.first_name,
+                'last_name': message.reply_to_message.forward_from.last_name,
+                'username': message.reply_to_message.forward_from.username,
+                'is_bot': message.reply_to_message.forward_from.is_bot
+            }
+        elif message.reply_to_message.forward_sender_name:
+            privacy_error = True
+            forward_info = {
+                'sender_name': message.reply_to_message.forward_sender_name,
+                'forward_date': message.reply_to_message.forward_date
+            }
+        elif message.reply_to_message.forward_from_chat:
+            forward_info = {
+                'from_chat': True,
+                'chat_id': message.reply_to_message.forward_from_chat.id,
+                'chat_title': message.reply_to_message.forward_from_chat.title,
+                'chat_type': message.reply_to_message.forward_from_chat.type
+            }
+
+    # Если есть информация о пересланном сообщении, но пользователь скрыл свой ID из-за настроек приватности
+    if privacy_error:
+        await message.reply(
+            f"""<b>🔒 Информация недоступна</b>
+
+Пользователь <b>{forward_info.get('sender_name', 'Неизвестно')}</b> включил режим конфиденциальности в настройках Telegram.
+
+<b>Из-за настроек приватности недоступно:</b>
+• Telegram ID пользователя
+• Username пользователя
+• Поиск в базе данных сотрудников
+
+<b>💡 Доступная информация:</b>
+• Имя отправителя: <code>{forward_info.get('sender_name', 'Скрыто')}</code>
+• Дата пересылки: <code>{forward_info.get('forward_date', 'Неизвестно')}</code>
+
+<b>Что можно сделать:</b>
+• Попросить пользователя отключить "Forwarding Privacy" в настройках Telegram
+• Использовать поиск по имени: <code>/whois {forward_info.get('sender_name', '').split()[0] if forward_info.get('sender_name') else 'имя'}</code>""",
+            parse_mode="HTML"
+        )
+        return
+
+    # Если переслано из чата/канала
+    if forward_info.get('from_chat'):
+        chat_type_name = {
+            'channel': 'канала',
+            'supergroup': 'супергруппы',
+            'group': 'группы'
+        }.get(forward_info.get('chat_type'), 'чата')
+
+        await message.reply(
+            f"""<b>📢 Сообщение из {chat_type_name}</b>
+
+<b>Информация о источнике:</b>
+• Название: <code>{forward_info.get('chat_title', 'Неизвестно')}</code>
+• ID чата: <code>{forward_info.get('chat_id')}</code>
+• Тип: <code>{forward_info.get('chat_type')}</code>
+
+<b>ℹ️ Примечание:</b>
+Команда /whois работает только с пересланными сообщениями от пользователей, а не из чатов или каналов.""",
+            parse_mode="HTML"
+        )
+        return
 
     if forwarded_user_id:
         try:
@@ -370,3 +461,88 @@ async def handle_forwarded_message(
         await message.reply(
             "❌ Произошла ошибка при получении информации о пользователе. Попробуйте позже."
         )
+
+
+@user_router.message(F.forward_sender_name)
+async def handle_forwarded_message_privacy(
+        message: Message, user: Employee, stp_repo: MainRequestsRepo
+):
+    """Обрабатывает пересланные сообщения с включенным режимом конфиденциальности"""
+
+    # Проверяем авторизацию пользователя
+    if not user:
+        await message.reply(
+            "❌ Для просмотра информации о пользователе необходимо авторизоваться в боте"
+        )
+        return
+
+    await message.reply(
+        f"""<b>🔒 Информация недоступна</b>
+
+Пользователь <b>{message.forward_sender_name}</b> включил режим конфиденциальности в настройках Telegram.
+
+<b>Из-за настроек приватности недоступно:</b>
+• Telegram ID пользователя
+• Username пользователя
+• Поиск в базе данных сотрудников
+
+<b>💡 Доступная информация:</b>
+• Имя отправителя: <code>{message.forward_sender_name}</code>
+• Дата пересылки: <code>{message.forward_date}</code>
+
+<b>Что можно сделать:</b>
+• Попросить пользователя отключить "Forwarding Privacy" в настройках Telegram
+• Использовать поиск по имени: <code>/whois {message.forward_sender_name.split()[0] if message.forward_sender_name else 'имя'}</code>
+
+<b>💡 Подсказка:</b>
+Попробуйте найти пользователя по имени с помощью команды /whois""",
+        parse_mode="HTML"
+    )
+
+    # Логируем обращение
+    logger.info(
+        f"[FORWARDED MESSAGE PRIVACY] {user.fullname} ({message.from_user.id}) получил сообщение с конфиденциальностью от {message.forward_sender_name}"
+    )
+
+
+@user_router.message(F.forward_from_chat)
+async def handle_forwarded_message_from_chat(
+        message: Message, user: Employee, stp_repo: MainRequestsRepo
+):
+    """Обрабатывает сообщения, пересланные из чатов/каналов"""
+
+    # Проверяем авторизацию пользователя
+    if not user:
+        await message.reply(
+            "❌ Для просмотра информации о пользователе необходимо авторизоваться в боте"
+        )
+        return
+
+    chat_type_name = {
+        'channel': 'канала',
+        'supergroup': 'супергруппы',
+        'group': 'группы'
+    }.get(message.forward_from_chat.type, 'чата')
+
+    await message.reply(
+        f"""<b>📢 Сообщение из {chat_type_name}</b>
+
+<b>Информация о источнике:</b>
+• Название: <code>{message.forward_from_chat.title}</code>
+• ID чата: <code>{message.forward_from_chat.id}</code>
+• Тип: <code>{message.forward_from_chat.type}</code>
+
+<b>ℹ️ Примечание:</b>
+Команда /whois работает только с пересланными сообщениями от пользователей, а не из чатов или каналов.
+
+<b>💡 Для поиска пользователей используйте:</b>
+• <code>/whois имя_пользователя</code>
+• <code>/whois @username</code>
+• <code>/whois 123456789</code> (Telegram ID)""",
+        parse_mode="HTML"
+    )
+
+    # Логируем обращение
+    logger.info(
+        f"[FORWARDED FROM CHAT] {user.fullname} ({message.from_user.id}) получил сообщение из чата {message.forward_from_chat.title} ({message.forward_from_chat.id})"
+    )
