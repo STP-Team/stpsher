@@ -748,16 +748,16 @@ async def user_kpi_salary_cb(
             [
                 line
                 for line in [
-                    f"Обычные часы: {round(regular_hours)}ч × {pay_rate}₽ = {round(regular_hours * pay_rate)}₽"
+                    f"Обычные часы: {round(regular_hours)}ч × {pay_rate} ₽ = {round(regular_hours * pay_rate)} ₽"
                     if regular_hours > 0
                     else None,
-                    f"Ночные часы: {round(night_hours)}ч × {round(pay_rate * 1.2, 2)}₽ = {round(night_hours * pay_rate * 1.2)}₽"
+                    f"Ночные часы: {round(night_hours)}ч × {round(pay_rate * 1.2, 2)} ₽ = {round(night_hours * pay_rate * 1.2)} ₽"
                     if night_hours > 0
                     else None,
-                    f"Праздничные часы: {round(holiday_hours)}ч × {pay_rate * 2}₽ = {round(holiday_hours * pay_rate * 2)}₽"
+                    f"Праздничные часы: {round(holiday_hours)}ч × {pay_rate * 2} ₽ = {round(holiday_hours * pay_rate * 2)} ₽"
                     if holiday_hours > 0
                     else None,
-                    f"Ночные праздничные часы: {round(night_holiday_hours)}ч × {round(pay_rate * 2.4, 2)}₽ = {round(night_holiday_hours * pay_rate * 2.4)}₽"
+                    f"Ночные праздничные часы: {round(night_holiday_hours)}ч × {round(pay_rate * 2.4, 2)} ₽ = {round(night_holiday_hours * pay_rate * 2.4)} ₽"
                     if night_holiday_hours > 0
                     else None,
                 ]
@@ -775,16 +775,16 @@ async def user_kpi_salary_cb(
                 [
                     line
                     for line in [
-                        f"Обычные доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f}₽ = {round(regular_additional_shift_hours * additional_shift_rate)} ₽"
+                        f"Обычные доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f} ₽ = {round(regular_additional_shift_hours * additional_shift_rate)} ₽"
                         if regular_additional_shift_hours > 0
                         else None,
-                        f"Ночные доп. смены: {round(additional_shift_night_hours)}ч × {additional_shift_night_rate:.2f}₽ = {round(additional_shift_night_hours * additional_shift_night_rate)} ₽"
+                        f"Ночные доп. смены: {round(additional_shift_night_hours)}ч × {additional_shift_night_rate:.2f} ₽ = {round(additional_shift_night_hours * additional_shift_night_rate)} ₽"
                         if additional_shift_night_hours > 0
                         else None,
-                        f"Праздничные доп. смены: {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f}₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)} ₽"
+                        f"Праздничные доп. смены: {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f} ₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)} ₽"
                         if additional_shift_holiday_hours > 0
                         else None,
-                        f"Ночные праздничные доп. смены: {round(additional_shift_night_holiday_hours)}ч × {additional_shift_night_holiday_rate:.2f}₽ = {round(additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)} ₽"
+                        f"Ночные праздничные доп. смены: {round(additional_shift_night_holiday_hours)}ч × {additional_shift_night_holiday_rate:.2f} ₽ = {round(additional_shift_night_holiday_hours * additional_shift_night_holiday_rate)} ₽"
                         if additional_shift_night_holiday_hours > 0
                         else None,
                     ]
