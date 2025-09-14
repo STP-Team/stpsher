@@ -14,16 +14,16 @@ group_admin_router = Router()
 group_admin_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 
-@group_admin_router.message(Command("adminlist"))
+@group_admin_router.message(Command("admins"))
 async def adminlist_command(
     message: Message, user: Employee, stp_repo: MainRequestsRepo
 ):
-    """Команда /adminlist для получения списка администраторов группы"""
+    """Команда /admins для получения списка администраторов группы"""
 
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(
-            "❌ Для использования команды /adminlist необходимо авторизоваться в боте"
+            "❌ Для использования команды /admins необходимо авторизоваться в боте"
         )
         return
 
@@ -83,7 +83,7 @@ async def adminlist_command(
 
         # Логируем использование команды
         logger.info(
-            f"[ADMINLIST] {user.fullname} ({message.from_user.id}) запросил список администраторов группы {message.chat.id}"
+            f"[/admins] {user.fullname} ({message.from_user.id}) запросил список администраторов группы {message.chat.id}"
         )
 
     except Exception as e:
