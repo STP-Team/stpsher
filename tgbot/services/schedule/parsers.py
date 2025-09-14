@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+from openpyxl import load_workbook
 from pandas import DataFrame
 
 from infrastructure.database.models import Employee
@@ -443,6 +444,93 @@ class ScheduleParser(MonthlyScheduleParser):
         except Exception as e:
             logger.error(f"Error getting schedule: {e}")
             raise
+
+    def get_user_schedule_with_additional_shifts(
+        self, fullname: str, month: str, division: str
+    ) -> Tuple[Dict[str, str], Dict[str, str]]:
+        """Get user's schedule with additional shifts detected by color #cc99ff."""
+        try:
+            schedule_file = self.file_manager.find_schedule_file(division)
+            if not schedule_file:
+                raise FileNotFoundError(f"Файл графика для {division} не найден")
+
+            # Load with openpyxl to access cell formatting
+            wb = load_workbook(schedule_file, data_only=False)
+            ws = wb["ГРАФИК"] if "ГРАФИК" in wb.sheetnames else wb.active
+
+            # Also load with pandas for easier data access
+            df = self.read_excel_file(schedule_file)
+            if df is None:
+                raise ValueError("Не удалось прочитать файл графика")
+
+            start_column, end_column = self.find_month_columns(df, month)
+            day_headers = self.find_day_headers(df, start_column, end_column)
+
+            user_row_idx = self.find_user_row(df, fullname)
+            if user_row_idx is None:
+                raise ValueError(f"Сотрудник {fullname} не найден в графике")
+
+            schedule = {}
+            additional_shifts = {}
+
+            for col_idx in range(start_column, end_column + 1):
+                if col_idx in day_headers:
+                    day = day_headers[col_idx]
+                    schedule_value = self.utils.get_cell_value(
+                        df, user_row_idx, col_idx
+                    ).strip()
+
+                    if schedule_value.lower() in ["nan", "none", ""]:
+                        schedule_value = "Не указано"
+
+                    # Check cell color in openpyxl (1-indexed)
+                    cell = ws.cell(row=user_row_idx + 1, column=col_idx + 1)
+                    is_additional_shift = self._is_additional_shift_color(cell)
+
+                    if is_additional_shift and schedule_value not in [
+                        "Не указано",
+                        "В",
+                        "О",
+                    ]:
+                        additional_shifts[day] = schedule_value
+                    else:
+                        schedule[day] = schedule_value
+
+            logger.info(
+                f"Found {len(schedule)} regular days and {len(additional_shifts)} additional shifts for {fullname} in {month}"
+            )
+            return schedule, additional_shifts
+
+        except Exception as e:
+            logger.error(f"Error getting schedule with additional shifts: {e}")
+            raise
+
+    def _is_additional_shift_color(self, cell) -> bool:
+        """Check if cell has the additional shift color #cc99ff."""
+        try:
+            if cell.fill and cell.fill.start_color:
+                color = cell.fill.start_color
+
+                # Convert color to hex if it's a Color object
+                if hasattr(color, "rgb") and color.rgb:
+                    hex_color = color.rgb
+                    if isinstance(hex_color, str) and len(hex_color) >= 6:
+                        # Remove alpha channel if present (ARGB -> RGB)
+                        if len(hex_color) == 8:
+                            hex_color = hex_color[2:]
+                        # Check if it matches #cc99ff (case insensitive)
+                        return hex_color.lower() == "cc99ff"
+
+                # Also check indexed colors if available
+                if hasattr(color, "indexed") and color.indexed is not None:
+                    # This would require a color palette lookup
+                    # For now, we'll rely on RGB values
+                    pass
+
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking cell color: {e}")
+            return False
 
     async def get_user_schedule_with_duties(
         self, fullname: str, month: str, division: str, stp_repo=None

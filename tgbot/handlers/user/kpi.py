@@ -478,10 +478,10 @@ async def user_kpi_salary_cb(
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5)))
     current_month_name = russian_months[now.month]
 
-    # Get actual schedule data
+    # Get actual schedule data with additional shifts detection
     schedule_parser = ScheduleParser()
     try:
-        schedule_data = schedule_parser.get_user_schedule(
+        schedule_data, additional_shifts_data = schedule_parser.get_user_schedule_with_additional_shifts(
             user.fullname, current_month_name, user.division
         )
 
@@ -491,6 +491,12 @@ async def user_kpi_salary_cb(
         holiday_hours = 0
         holiday_days_worked = []
 
+        # Additional shift tracking
+        additional_shift_hours = 0
+        additional_shift_holiday_hours = 0
+        additional_shift_days_worked = []
+
+        # Process regular schedule
         for day, schedule_time in schedule_data.items():
             if schedule_time and schedule_time not in ["Не указано", "В", "О"]:
                 # Parse time format like "08:00-17:00"
@@ -536,13 +542,73 @@ async def user_kpi_salary_cb(
                     total_working_hours += day_hours
                     working_days += 1
 
+        # Process additional shifts
+        for day, schedule_time in additional_shifts_data.items():
+            if schedule_time and schedule_time not in ["Не указано", "В", "О"]:
+                # Parse time format like "08:00-17:00"
+                import re
+                time_match = re.search(
+                    r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})", schedule_time
+                )
+                if time_match:
+                    start_hour, start_min, end_hour, end_min = map(
+                        int, time_match.groups()
+                    )
+                    start_minutes = start_hour * 60 + start_min
+                    end_minutes = end_hour * 60 + end_min
+
+                    # Handle overnight shifts
+                    if end_minutes < start_minutes:
+                        end_minutes += 24 * 60
+
+                    day_hours = (end_minutes - start_minutes) / 60
+
+                    # For 12-hour shifts, subtract 1 hour for lunch break
+                    if day_hours == 12:
+                        day_hours = 11
+
+                    # Check if this day is a holiday
+                    try:
+                        work_date = datetime.date(now.year, now.month, int(day))
+                        is_holiday = await production_calendar.is_holiday(work_date)
+                        holiday_name = await production_calendar.get_holiday_name(
+                            work_date
+                        )
+
+                        if is_holiday and holiday_name:
+                            additional_shift_holiday_hours += day_hours
+                            additional_shift_days_worked.append(
+                                f"{day} - {holiday_name} (+{day_hours:.0f}ч доп.)"
+                            )
+                        else:
+                            additional_shift_days_worked.append(
+                                f"{day} - Доп. смена (+{day_hours:.0f}ч)"
+                            )
+                    except (ValueError, Exception):
+                        # Ignore date parsing errors or API failures
+                        additional_shift_days_worked.append(
+                            f"{day} - Доп. смена (+{day_hours:.0f}ч)"
+                        )
+
+                    additional_shift_hours += day_hours
+
     except Exception as e:
         raise Exception(f"Произошла ошибка при расчете: {e}")
 
-    # Calculate salary components with holiday x2 multiplier
-    # Base salary = regular hours + holiday hours * 2
+    # Calculate salary components with holiday x2 multiplier and additional shifts
+    # Base salary = regular hours + holiday hours * 2 + additional shifts special rate
     regular_hours = total_working_hours - holiday_hours
+    regular_additional_shift_hours = additional_shift_hours - additional_shift_holiday_hours
+
+    # Base salary calculation
     base_salary = (regular_hours * pay_rate) + (holiday_hours * pay_rate * 2)
+
+    # Additional shifts calculation: (pay_rate * 2) + (pay_rate * 0.63) per hour
+    additional_shift_rate = (pay_rate * 2) + (pay_rate * 0.63)
+    additional_shift_holiday_rate = additional_shift_rate * 2  # Double for holidays
+
+    additional_shift_salary = (regular_additional_shift_hours * additional_shift_rate) + (additional_shift_holiday_hours * additional_shift_holiday_rate)
+    base_salary += additional_shift_salary
 
     premium_multiplier = (user_premium.total_premium or 0) / 100
     premium_amount = base_salary * premium_multiplier
@@ -556,9 +622,17 @@ async def user_kpi_salary_cb(
 <blockquote>Рабочих дней: {working_days}
 Всего часов: {round(total_working_hours)}{
         f'''
+
 🎉 Праздничные дни (x2): {round(holiday_hours)}ч
 {chr(10).join(holiday_days_worked)}'''
         if holiday_days_worked
+        else ""
+    }{
+        f'''
+
+⭐ Доп. смены: {round(additional_shift_hours)}ч
+{chr(10).join(additional_shift_days_worked)}'''
+        if additional_shift_days_worked
         else ""
     }</blockquote>
 
@@ -574,6 +648,16 @@ async def user_kpi_salary_cb(
         if holiday_hours > 0
         else ""
     }
+{
+        f"Доп. смены: {round(regular_additional_shift_hours)}ч × {additional_shift_rate:.2f}₽ = {round(regular_additional_shift_hours * additional_shift_rate)}₽"
+        if regular_additional_shift_hours > 0
+        else ""
+    }
+{
+        f"Доп. смены (в праздники): {round(additional_shift_holiday_hours)}ч × {additional_shift_holiday_rate:.2f}₽ = {round(additional_shift_holiday_hours * additional_shift_holiday_rate)}₽"
+        if additional_shift_holiday_hours > 0
+        else ""
+    }
 Сумма оклада: {format_value(round(base_salary), " ₽")}</blockquote>
 
 🎁 <b>Премия:</b>
@@ -583,7 +667,16 @@ async def user_kpi_salary_cb(
 💰 <b>Итого к выплате:</b>
 <b>{format_value(round(total_salary), " ₽")}</b>
 
-<blockquote expandable>Это <b>примерная</b> сумма после вычета НДФЛ
+<blockquote expandable>⚠️ <b>Важное</b>
+
+Я считаю:
+- Твои ЧТС и премию
+- Праздничные часы
+- Допки
+- Ночные часы
+- Доп. смены
+
+Расчет представляет <b>примерную</b> сумму после вычета НДФЛ
 Районный коэффициент <b>не участвует в расчете</b>, т.к. примерно покрывает НДФЛ</blockquote>
 
 <i>Расчет от: {now.strftime("%d.%m.%y %H:%M")}</i>
