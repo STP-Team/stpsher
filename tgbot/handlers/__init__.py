@@ -8,8 +8,10 @@ from tgbot.handlers.admin.search import admin_search_router
 from tgbot.handlers.gok.game.achievements import gok_game_achievements_router
 from tgbot.handlers.gok.game.main import gok_game_router
 from tgbot.handlers.gok.main import gok_router
+from tgbot.handlers.group.admin import group_admin_router
 from tgbot.handlers.group.casino import group_casino_router
 from tgbot.handlers.group.group_join import chat_member
+from tgbot.handlers.group.settings import group_settings_router
 from tgbot.handlers.group.whois import whois_router
 from tgbot.handlers.head.game.achievements import head_game_achievements_router
 from tgbot.handlers.head.game.filters import head_game_filters_router
@@ -98,7 +100,9 @@ routers_list = [
     user_links_router,
     user_inline_router,
     whois_router,
+    group_admin_router,
     group_casino_router,
+    group_settings_router,
     chat_member,
 ]
 
