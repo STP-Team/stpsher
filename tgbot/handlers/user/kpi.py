@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from tgbot.keyboards.user.kpi import kpi_kb, kpi_calculator_kb
+from tgbot.keyboards.user.kpi import kpi_calculator_kb, kpi_kb
 from tgbot.keyboards.user.main import MainMenu
 
 user_kpi_router = Router()
@@ -37,25 +37,25 @@ async def user_kpi_cb(
     message_text = f"""🌟 <b>Показатели</b>
 
 📊 <b>Оценка клиента - {format_percentage(premium.csi_premium)}</b>
-<blockquote>Текущий: {format_value(premium.csi)}
-Норматив: {format_value(premium.csi_normative)}  </blockquote>
+<blockquote>Факт: {format_value(premium.csi)}
+План: {format_value(premium.csi_normative)}  </blockquote>
 
 🎯 <b>Отклик</b>
-<blockquote>Текущий: {format_value(premium.csi_response)}
-Норматив: {format_value(premium.csi_response_normative)}</blockquote>
+<blockquote>Факт: {format_value(premium.csi_response)}
+План: {format_value(round(premium.csi_response_normative))}</blockquote>
 
 🔧 <b>FLR - {format_percentage(premium.flr_premium)}</b>
-<blockquote>Текущий: {format_value(premium.flr)}
-Норматив: {format_value(premium.flr_normative)}</blockquote>
+<blockquote>Факт: {format_value(premium.flr)}
+План: {format_value(premium.flr_normative)}</blockquote>
 
 ⚖️ <b>ГОК - {format_percentage(premium.gok_premium)}</b>
-<blockquote>Текущий: {format_value(premium.gok)}
-Норматив: {format_value(premium.gok_normative)}</blockquote>
+<blockquote>Факт: {format_value(premium.gok)}
+План: {format_value(premium.gok_normative)}</blockquote>
 
 🎯 <b>Цель - {format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {format_value(premium.target)}
-План: {format_value(premium.target_goal_first)} / {format_value(premium.target_goal_second)}</blockquote>
+План: {format_value(round(premium.target_goal_first))} / {format_value(round(premium.target_goal_second))}</blockquote>
 
 💼 <b>Дополнительно</b>
 <blockquote>Дисциплина: {format_percentage(premium.discipline_premium)}
@@ -272,43 +272,43 @@ async def user_kpi_calculator_cb(
                 target_rate = (current_target / normative * 100) if normative > 0 else 0
 
             if target_rate > 100.01:
-                results.append("28%: ✅ (≥ 100,01% - норматив 2 и более)")
+                results.append("28%: ✅ (≥ 100,01% - план 2 и более)")
             else:
                 if is_aht_target:
                     # For AHT, we need to be lower than the target
                     needed_for_28 = normative / (100.01 / 100)
                     difference = current_target - needed_for_28
                     results.append(
-                        f"28%: {needed_for_28:.2f} [-{difference:.2f}] (≥ 100,01% - норматив 2 и более)"
+                        f"28%: {needed_for_28:.2f} [-{difference:.2f}] (≥ 100,01% - план 2 и более)"
                     )
                 else:
                     # For sales, we need to be higher than the target
                     needed_for_28 = (100.01 / 100) * normative
                     difference = needed_for_28 - current_target
                     results.append(
-                        f"28%: {needed_for_28:.2f} [+{difference:.2f}] (≥ 100,01% - норматив 2 и более)"
+                        f"28%: {needed_for_28:.2f} [+{difference:.2f}] (≥ 100,01% - план 2 и более)"
                     )
 
             if target_rate >= 100.00:
-                results.append("18%: ✅ (≥ 100,00% - норматив 1 и менее норматива 2)")
+                results.append("18%: ✅ (≥ 100,00% - план 1 и менее плана 2)")
             else:
                 if is_aht_target:
                     needed_for_18 = normative / (100.00 / 100)
                     difference = current_target - needed_for_18
                     results.append(
-                        f"18%: {needed_for_18:.2f} [-{difference:.2f}] (= 100,00% - норматив 1 и менее норматива 2)"
+                        f"18%: {needed_for_18:.2f} [-{difference:.2f}] (= 100,00% - план 1 и менее плана 2)"
                     )
                 else:
                     needed_for_18 = (100.00 / 100) * normative
                     difference = needed_for_18 - current_target
                     results.append(
-                        f"18%: {needed_for_18:.2f} [+{difference:.2f}] (= 100,00% - норматив 1 и менее норматива 2)"
+                        f"18%: {needed_for_18:.2f} [+{difference:.2f}] (= 100,00% - план 1 и менее плана 2)"
                     )
 
             if target_rate < 99.99:
-                results.append("0%: — (&lt; 99,99% - менее норматива 1)")
+                results.append("0%: — (&lt; 99,99% - менее плана 1)")
             else:
-                results.append("0%: ✅ (&lt; 99,99% - менее норматива 1)")
+                results.append("0%: ✅ (&lt; 99,99% - менее плана 1)")
 
         elif target_goal_first and target_goal_first > 0:
             # When there's only first goal, use it as normative
@@ -327,41 +327,41 @@ async def user_kpi_calculator_cb(
                 target_rate = (current_target / normative * 100) if normative > 0 else 0
 
             if target_rate > 100.01:
-                results.append("28%: ✅ (≥ 100,01% - норматив 2 и более)")
+                results.append("28%: ✅ (≥ 100,01% - план 2 и более)")
             else:
                 if is_aht_target:
                     needed_for_28 = normative / (100.01 / 100)
                     difference = current_target - needed_for_28
                     results.append(
-                        f"28%: {needed_for_28:.2f} [-{difference:.2f}] (≥ 100,01% - норматив 2 и более)"
+                        f"28%: {needed_for_28:.2f} [-{difference:.2f}] (≥ 100,01% - план 2 и более)"
                     )
                 else:
                     needed_for_28 = (100.01 / 100) * normative
                     difference = needed_for_28 - current_target
                     results.append(
-                        f"28%: {needed_for_28:.2f} [+{difference:.2f}] (≥ 100,01% - норматив 2 и более)"
+                        f"28%: {needed_for_28:.2f} [+{difference:.2f}] (≥ 100,01% - план 2 и более)"
                     )
 
             if target_rate >= 100.00:
-                results.append("18%: ✅ (≥ 100,00% - норматив 1 и менее норматива 2)")
+                results.append("18%: ✅ (≥ 100,00% - план 1 и менее плана 2)")
             else:
                 if is_aht_target:
                     needed_for_18 = normative / (100.00 / 100)
                     difference = current_target - needed_for_18
                     results.append(
-                        f"18%: {needed_for_18:.2f} [-{difference:.2f}] (≥ 100,00% - норматив 1 и менее норматива 2)"
+                        f"18%: {needed_for_18:.2f} [-{difference:.2f}] (≥ 100,00% - план 1 и менее плана 2)"
                     )
                 else:
                     needed_for_18 = (100.00 / 100) * normative
                     difference = needed_for_18 - current_target
                     results.append(
-                        f"18%: {needed_for_18:.2f} [+{difference:.2f}] (≥ 100,00% - норматив 1 и менее норматива 2)"
+                        f"18%: {needed_for_18:.2f} [+{difference:.2f}] (≥ 100,00% - план 1 и менее плана 2)"
                     )
 
             if target_rate < 99.99:
-                results.append("0%: — (&lt; 99,99% - менее норматива 1)")
+                results.append("0%: — (&lt; 99,99% - менее плана 1)")
             else:
-                results.append("0%: ✅ (&lt; 99,99% - менее норматива 1)")
+                results.append("0%: ✅ (&lt; 99,99% - менее плана 1)")
 
         return "\n".join(results)
 
@@ -391,27 +391,27 @@ async def user_kpi_calculator_cb(
 
 📊 <b>Оценка клиента</b>
 <blockquote>Текущий: {format_value(user_premium.csi)} ({format_percentage(user_premium.csi_normative_rate)})
-Норматив: {format_value(user_premium.csi_normative)}
+План: {format_value(user_premium.csi_normative)}
 
 <b>Для премии:</b>
 {csi_calculation}</blockquote>
 
 🔧 <b>FLR</b>
 <blockquote>Текущий: {format_value(user_premium.flr)} ({format_percentage(user_premium.flr_normative_rate)})
-Норматив: {format_value(user_premium.flr_normative)}
+План: {format_value(user_premium.flr_normative)}
 
 <b>Для премии:</b>
 {flr_calculation}</blockquote>
 
 ⚖️ <b>ГОК</b>
 <blockquote>Текущий: {format_value(round(user_premium.gok))} ({format_percentage(user_premium.gok_normative_rate)})
-Норматив: {format_value(user_premium.gok_normative)}
+План: {format_value(round(user_premium.gok_normative))}
 
 <b>Для премии:</b>
 {gok_calculation}</blockquote>
 
 🎯 <b>Цель</b>
-<blockquote>Факт: {format_value(user_premium.target)}
+<blockquote>Факт: {format_value(user_premium.target)} ({format_percentage(round((user_premium.target_goal_first / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_first else (user_premium.target / user_premium.target_goal_first * 100) if user_premium.target_goal_first and user_premium.target_goal_first > 0 else 0))} / {format_percentage(round((user_premium.target_goal_second / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_second else (user_premium.target / user_premium.target_goal_second * 100) if user_premium.target_goal_second and user_premium.target_goal_second > 0 else 0))})
 План: {format_value(round(user_premium.target_goal_first))} / {format_value(round(user_premium.target_goal_second))}
 
 Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель

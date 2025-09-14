@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from tgbot.keyboards.user.main import MainMenu
 
@@ -12,11 +12,11 @@ def kpi_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="🔄 Обновить", callback_data=MainMenu(menu="kpi").pack()
-            ),
-            InlineKeyboardButton(
                 text="🧮 Калькулятор",
                 callback_data=MainMenu(menu="kpi_calculator").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🔄 Обновить", callback_data=MainMenu(menu="kpi").pack()
             ),
         ],
         [
@@ -41,10 +41,10 @@ def kpi_calculator_kb() -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="🔄 Обновить", callback_data=MainMenu(menu="kpi_calculator").pack()
+                text="🌟 Показатели", callback_data=MainMenu(menu="kpi").pack()
             ),
             InlineKeyboardButton(
-                text="🌟 Показатели", callback_data=MainMenu(menu="kpi").pack()
+                text="🔄 Обновить", callback_data=MainMenu(menu="kpi_calculator").pack()
             ),
         ],
         [
