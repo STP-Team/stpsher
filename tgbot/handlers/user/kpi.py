@@ -16,7 +16,7 @@ user_kpi_router.callback_query.filter(F.message.chat.type == "private")
 
 @user_kpi_router.callback_query(MainMenu.filter(F.menu == "kpi"))
 async def user_kpi_cb(
-        callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
+    callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
 ):
     premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
     if premium is None:
@@ -80,7 +80,7 @@ async def user_kpi_cb(
 
 @user_kpi_router.callback_query(MainMenu.filter(F.menu == "kpi_calculator"))
 async def user_kpi_calculator_cb(
-        callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
+    callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
 ):
     user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
 
@@ -238,10 +238,10 @@ async def user_kpi_calculator_cb(
         return "\n".join(results)
 
     def calculate_target_needed(
-            current_target,
-            target_goal_first,
-            target_goal_second,
-            target_type=None,
+        current_target,
+        target_goal_first,
+        target_goal_second,
+        target_type=None,
     ):
         if target_goal_first is None and target_goal_second is None:
             return "—"
