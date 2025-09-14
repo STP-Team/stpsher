@@ -122,7 +122,7 @@ async def gok_products_activation(
         await callback.message.edit_text(
             """<b>✍️ Активация предметов</b>
 
-Нет покупок, ожидающих активации 😊""",
+Нет предметов, ожидающих активации 😊""",
             reply_markup=gok_products_activation_kb(page, 0, []),
         )
         return

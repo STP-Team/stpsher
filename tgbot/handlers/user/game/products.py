@@ -8,10 +8,10 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import DutyFilter
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.products import (
+    DutyPurchaseActionMenu,
+    DutyPurchaseActivationMenu,
     duty_products_activation_kb,
     duty_purchases_detail_kb,
-    DutyPurchaseActivationMenu,
-    DutyPurchaseActionMenu,
 )
 
 duty_game_products_router = Router()
@@ -47,7 +47,7 @@ async def duty_products_activation(
         await callback.message.edit_text(
             """<b>✍️ Активация предметов</b>
 
-Нет покупок, ожидающих активации 😊""",
+Нет предметов, ожидающих активации 😊""",
             reply_markup=duty_products_activation_kb(page, 0, []),
         )
         return
@@ -64,7 +64,7 @@ async def duty_products_activation(
         await callback.message.edit_text(
             f"""<b>✍️ Активация предметов</b>
 
-Нет покупок из направления {user.division}, ожидающих активации 😊""",
+Нет предметов из направления {user.division}, ожидающих активации 😊""",
             reply_markup=duty_products_activation_kb(page, 0, []),
         )
         return
