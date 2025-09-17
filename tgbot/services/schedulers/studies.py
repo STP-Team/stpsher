@@ -85,7 +85,7 @@ async def check_upcoming_studies(session_pool, bot: Bot):
             logger.info("[Обучения] No study sessions found in file")
             return {"status": "success", "message": "No study sessions found"}
 
-        # Filter sessions for notifications: 1 hour before OR 7 days before
+        # Filter sessions for notifications: 2 hours before OR 1 hour before
         now = datetime.now()
 
         upcoming_sessions = []
@@ -93,9 +93,9 @@ async def check_upcoming_studies(session_pool, bot: Bot):
             # Calculate time difference
             time_diff = session.date - now
 
-            # Check if it's exactly 7 days before (within 1 hour window)
-            seven_days_before = timedelta(days=7)
-            if abs(time_diff - seven_days_before) <= timedelta(hours=1):
+            # Check if it's exactly 2 hours before (within 10 minutes window)
+            two_hours_before = timedelta(hours=2)
+            if abs(time_diff - two_hours_before) <= timedelta(minutes=10):
                 upcoming_sessions.append(session)
                 continue
 
@@ -106,7 +106,7 @@ async def check_upcoming_studies(session_pool, bot: Bot):
 
         if not upcoming_sessions:
             logger.debug(
-                "[Обучения] Нет обучений, требуемых уведомления (за 1 час или 7 дней)"
+                "[Обучения] Нет обучений, требуемых уведомления (за 2 часа или 1 час)"
             )
             return {"status": "success", "message": "No studies requiring notification"}
 
@@ -247,9 +247,9 @@ async def create_study_notification_message(
         Formatted notification message
     """
     # Determine notification type based on time difference
-    if abs(time_diff - timedelta(days=7)) <= timedelta(hours=1):
-        # 7 days before notification
-        time_text = "через 7 дней"
+    if abs(time_diff - timedelta(hours=2)) <= timedelta(minutes=10):
+        # 2 hours before notification
+        time_text = "через 2 часа"
     elif abs(time_diff - timedelta(hours=1)) <= timedelta(minutes=10):
         # 1 hour before notification
         time_text = "через 1 час"
