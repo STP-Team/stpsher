@@ -443,15 +443,26 @@ async def casino_game(
     if multiplier > 0:
         # Выигрыш
         winnings = int(bet_amount * multiplier)
+        net_result = winnings - bet_amount
 
-        # Записываем транзакцию выигрыша
-        transaction, new_balance = await stp_repo.transaction.add_transaction(
-            user_id=user.user_id,
-            type="earn",
-            source_type="casino",
-            amount=winnings - bet_amount,
-            comment=f"Выигрыш в {game_name}: {result_text} (x{multiplier})",
-        )
+        if net_result > 0:
+            # Чистый выигрыш - записываем earn транзакцию
+            transaction, new_balance = await stp_repo.transaction.add_transaction(
+                user_id=user.user_id,
+                type="earn",
+                source_type="casino",
+                amount=net_result,
+                comment=f"Выигрыш в {game_name}: {result_text} (x{multiplier})",
+            )
+        else:
+            # Утешительный приз меньше ставки - записываем spend транзакцию
+            transaction, new_balance = await stp_repo.transaction.add_transaction(
+                user_id=user.user_id,
+                type="spend",
+                source_type="casino",
+                amount=abs(net_result),
+                comment=f"Утешительный приз в {game_name}: {result_text} (x{multiplier})",
+            )
 
         final_result = f"""🎉 <b>Победа</b> 🎉
 
