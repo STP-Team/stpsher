@@ -63,7 +63,8 @@ class HRScheduler(BaseScheduler):
         # Задача уведомлений о неавторизованных пользователях - каждый день в 10:30
         self._add_job(
             scheduler=scheduler,
-            func=lambda: self._notify_unauthorized_users_job(session_pool, bot),
+            func=self._notify_unauthorized_users_job,
+            args=[session_pool, bot],
             trigger="cron",
             job_id="notify_unauthorized_users",
             name="Уведомления о неавторизованных пользователях",
