@@ -374,7 +374,7 @@ async def show_user_details(
 
         if not user_head:
             await callback.answer(
-                "❌ Не найдена информация о руководителя пользователя", show_alert=True
+                "❌ Не найдена информация о руководителе пользователя", show_alert=True
             )
             return
 

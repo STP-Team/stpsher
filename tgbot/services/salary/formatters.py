@@ -4,24 +4,24 @@ from .calculator import SalaryCalculationResult
 
 
 class SalaryFormatter:
-    """Utility for formatting salary calculation results into messages"""
+    """Утилита для форматирования результатов расчета заработной платы в сообщения"""
 
     @staticmethod
     def format_value(value, suffix=""):
-        """Format value with suffix, return '—' if None"""
+        """Форматирует значение с суффиксом, вернет — если None"""
         return f"{value}{suffix}" if value is not None else "—"
 
     @staticmethod
     def format_percentage(value):
-        """Format percentage value, return '—' if None"""
+        """Форматирует процентное значение, вернет '—' если None"""
         return f"{value}%" if value is not None else "—"
 
     @classmethod
     def format_salary_message(
-            cls, result: SalaryCalculationResult, premium_data
+        cls, result: SalaryCalculationResult, premium_data
     ) -> str:
-        """Format complete salary calculation message"""
-        # Format working hours section
+        """Форматирует полное сообщение о расчете зарплаты"""
+        # Форматирование блока рабочих часов
         hours_details = []
         if result.regular_hours > 0:
             hours_details.append(
@@ -40,13 +40,13 @@ class SalaryFormatter:
                 f"Ночные праздничные часы: {round(result.night_holiday_hours)}ч × {round(result.pay_rate * 2.4, 2)} ₽ = {round(result.night_holiday_hours * result.pay_rate * 2.4)} ₽"
             )
 
-        # Format additional shifts section
+        # Форматирование блока дополнительных смен
         additional_shifts_details = []
         regular_additional_shift_hours = (
-                result.additional_shift_hours
-                - result.additional_shift_holiday_hours
-                - result.additional_shift_night_hours
-                - result.additional_shift_night_holiday_hours
+            result.additional_shift_hours
+            - result.additional_shift_holiday_hours
+            - result.additional_shift_night_hours
+            - result.additional_shift_night_holiday_hours
         )
 
         if regular_additional_shift_hours > 0:
@@ -73,19 +73,19 @@ class SalaryFormatter:
 ⏰ <b>Рабочие часы:</b>
 <blockquote>Рабочих дней: {result.working_days}
 Всего часов: {round(result.total_working_hours)}{
-        f'''
+            f'''
 
 🎉 Праздничные дни (x2): {round(result.holiday_hours)}ч
 {chr(10).join(result.holiday_days_worked)}'''
-        if result.holiday_days_worked
-        else ""
+            if result.holiday_days_worked
+            else ""
         }{
-        f'''
+            f'''
 
 ⭐ Доп. смены: {round(result.additional_shift_hours)}ч
 {chr(10).join(result.additional_shift_days_worked)}'''
-        if result.additional_shift_days_worked
-        else ""
+            if result.additional_shift_days_worked
+            else ""
         }</blockquote>
 
 💵 <b>Оклад:</b>
@@ -94,56 +94,56 @@ class SalaryFormatter:
 {chr(10).join(hours_details)}
 
 Сумма оклада: {cls.format_value(round(result.base_salary), " ₽")}</blockquote>{
-        f'''
+            f'''
 
 ⭐ <b>Доп. смены:</b>
 <blockquote>{chr(10).join(additional_shifts_details)}
 
 Сумма доп. смен: {cls.format_value(round(result.additional_shift_salary), " ₽")}</blockquote>'''
-        if result.additional_shift_salary > 0
-        else ""
+            if result.additional_shift_salary > 0
+            else ""
         }
 
 🎁 <b>Премия:</b>
 <blockquote expandable>Общий процент премии: {
-        cls.format_percentage(premium_data.total_premium)
+            cls.format_percentage(premium_data.total_premium)
         }
 Общая сумма премии: {cls.format_value(round(result.premium_amount), " ₽")}
 Стоимость 1% премии: ~{
-        round(result.premium_amount / premium_data.total_premium)
-        if premium_data.total_premium and premium_data.total_premium > 0
-        else 0
+            round(result.premium_amount / premium_data.total_premium)
+            if premium_data.total_premium and premium_data.total_premium > 0
+            else 0
         } ₽
 
 🌟 Показатели:
 Оценка: {cls.format_percentage(premium_data.csi_premium)} = {
-        cls.format_value(round(result.csi_premium_amount), " ₽")
+            cls.format_value(round(result.csi_premium_amount), " ₽")
         }
 FLR: {cls.format_percentage(premium_data.flr_premium)} = {
-        cls.format_value(round(result.flr_premium_amount), " ₽")
+            cls.format_value(round(result.flr_premium_amount), " ₽")
         }
 ГОК: {cls.format_percentage(premium_data.gok_premium)} = {
-        cls.format_value(round(result.gok_premium_amount), " ₽")
+            cls.format_value(round(result.gok_premium_amount), " ₽")
         }
 Цель: {cls.format_percentage(premium_data.target_premium)} = {
-        cls.format_value(round(result.target_premium_amount), " ₽")
+            cls.format_value(round(result.target_premium_amount), " ₽")
         }
 
 💼 Дополнительно:
 Дисциплина: {cls.format_percentage(premium_data.discipline_premium)} = {
-        cls.format_value(round(result.discipline_premium_amount), " ₽")
+            cls.format_value(round(result.discipline_premium_amount), " ₽")
         }
 Тестирование: {cls.format_percentage(premium_data.tests_premium)} = {
-        cls.format_value(round(result.tests_premium_amount), " ₽")
+            cls.format_value(round(result.tests_premium_amount), " ₽")
         }
 Благодарности: {cls.format_percentage(premium_data.thanks_premium)} = {
-        cls.format_value(round(result.thanks_premium_amount), " ₽")
+            cls.format_value(round(result.thanks_premium_amount), " ₽")
         }
 Наставничество: {cls.format_percentage(premium_data.tutors_premium)} = {
-        cls.format_value(round(result.tutors_premium_amount), " ₽")
+            cls.format_value(round(result.tutors_premium_amount), " ₽")
         }
 Ручная правка: {cls.format_percentage(premium_data.head_adjust_premium)} = {
-        cls.format_value(round(result.head_adjust_premium_amount), " ₽")
+            cls.format_value(round(result.head_adjust_premium_amount), " ₽")
         }</blockquote>
 
 💰 <b>Итого к выплате:</b>
@@ -166,11 +166,11 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 
 <i>Расчет от: {result.calculation_time.strftime("%d.%m.%y %H:%M")}</i>
 <i>Данные премии от: {
-        result.premium_updated_at.replace(tzinfo=datetime.timezone.utc)
-        .astimezone(datetime.timezone(datetime.timedelta(hours=5)))
-        .strftime("%d.%m.%y %H:%M")
-        if result.premium_updated_at
-        else "—"
+            result.premium_updated_at.replace(tzinfo=datetime.timezone.utc)
+            .astimezone(datetime.timezone(datetime.timedelta(hours=5)))
+            .strftime("%d.%m.%y %H:%M")
+            if result.premium_updated_at
+            else "—"
         }</i>"""
 
         return message_text
