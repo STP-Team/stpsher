@@ -732,6 +732,7 @@ async def search_user_kpi_menu(
 <i>Выгружено: {premium.updated_at.strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>"""
 
             elif action == "calculator":
+
                 def calculate_csi_needed(division: str, current_csi, normative):
                     if normative == 0 or normative is None:
                         return "—"
