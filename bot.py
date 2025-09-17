@@ -187,8 +187,8 @@ async def main():
                 "callback_query",
                 "inline_query",
                 "my_chat_member",
-                "chat_member"
-            ]
+                "chat_member",
+            ],
         )
     finally:
         await main_db_engine.dispose()

@@ -496,9 +496,10 @@ class ScheduleChangeDetector:
                 old_val = self.format_schedule_value(change["old_value"])
                 new_val = self.format_schedule_value(change["new_value"])
 
-                message += (
-                    f"<b>{day}</b>\n<code>{old_val}</code> → <code>{new_val}</code>\n\n"
-                )
+                # Format day in compact style: "1.08 ПТ"
+                formatted_day = self.format_compact_day(day)
+
+                message += f"{formatted_day} {old_val} => {new_val}\n"
 
             # Send notification
             success = await send_message(
@@ -523,6 +524,49 @@ class ScheduleChangeDetector:
         except Exception as e:
             logger.error(f"[График] Ошибка отправки уведомления: {e}")
             return False
+
+    @staticmethod
+    def format_compact_day(day_str):
+        """Format day string to compact format like '1.08 ПТ'"""
+        import re
+
+        # Month name to number mapping
+        month_map = {
+            "ЯНВАРЬ": "01",
+            "ФЕВРАЛЬ": "02",
+            "МАРТ": "03",
+            "АПРЕЛЬ": "04",
+            "МАЙ": "05",
+            "ИЮНЬ": "06",
+            "ИЮЛЬ": "07",
+            "АВГУСТ": "08",
+            "СЕНТЯБРЬ": "09",
+            "ОКТЯБРЬ": "10",
+            "НОЯБРЬ": "11",
+            "ДЕКАБРЬ": "12",
+        }
+
+        # Weekday mapping
+        weekday_map = {
+            "Пн": "ПН",
+            "Вт": "ВТ",
+            "Ср": "СР",
+            "Чт": "ЧТ",
+            "Пт": "ПТ",
+            "Сб": "СБ",
+            "Вс": "ВС",
+        }
+
+        # Parse day string like "АВГУСТ 24 (Вс)" or "ИЮЛЬ 3 (Чт)"
+        match = re.search(r"(\w+)\s+(\d+)\s*\((\w+)\)", day_str)
+        if match:
+            month_name, day_num, weekday = match.groups()
+            month_num = month_map.get(month_name, "01")
+            formatted_weekday = weekday_map.get(weekday, weekday.upper())
+            return f"{day_num}.{month_num} {formatted_weekday}"
+
+        # Fallback to original format if parsing fails
+        return day_str
 
     @staticmethod
     def format_schedule_value(value):
