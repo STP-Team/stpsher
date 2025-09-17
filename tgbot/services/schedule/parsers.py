@@ -433,7 +433,7 @@ class ScheduleParser(MonthlyScheduleParser):
                         df, user_row_idx, col_idx
                     ).strip()
 
-                    if schedule_value.lower() in ["nan", "none", ""]:
+                    if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
                         schedule_value = "Не указано"
 
                     schedule[day] = schedule_value
@@ -480,7 +480,7 @@ class ScheduleParser(MonthlyScheduleParser):
                         df, user_row_idx, col_idx
                     ).strip()
 
-                    if schedule_value.lower() in ["nan", "none", ""]:
+                    if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
                         schedule_value = "Не указано"
 
                     # Check cell color in openpyxl (1-indexed)
@@ -491,6 +491,8 @@ class ScheduleParser(MonthlyScheduleParser):
                         "Не указано",
                         "В",
                         "О",
+                        "0",
+                        "0.0",
                     ]:
                         additional_shifts[day] = schedule_value
                     else:
@@ -954,7 +956,7 @@ class DutyScheduleParser(BaseDutyParser):
                     if date_col < len(df.columns):
                         duty_cell = self.utils.get_cell_value(df, row_idx, date_col)
 
-                        if duty_cell and duty_cell.strip() not in ["", "nan", "None"]:
+                        if duty_cell and duty_cell.strip() not in ["", "nan", "None", "0", "0.0"]:
                             shift_type, schedule = self.parse_duty_entry(duty_cell)
 
                             if shift_type in ["С", "П"] and self.utils.is_time_format(
@@ -1092,7 +1094,7 @@ class DutyScheduleParser(BaseDutyParser):
                 if date_col < len(df.columns):
                     duty_cell = self.utils.get_cell_value(df, row_idx, date_col)
 
-                    if duty_cell and duty_cell.strip() not in ["", "nan", "None"]:
+                    if duty_cell and duty_cell.strip() not in ["", "nan", "None", "0", "0.0"]:
                         shift_type, schedule = self.parse_duty_entry(duty_cell)
 
                         if shift_type in ["С", "П"] and self.utils.is_time_format(
