@@ -79,7 +79,7 @@ async def adminlist_command(
 
         response_text = "\n".join(message_parts)
 
-        await message.reply(response_text, parse_mode="HTML")
+        await message.reply(response_text)
 
         # Логируем использование команды
         logger.info(

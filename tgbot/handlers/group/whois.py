@@ -128,7 +128,7 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
         # Формируем и отправляем ответ с информацией о пользователе
         user_info_message = create_user_info_message(target_user, user_head)
 
-        await message.reply(user_info_message, parse_mode="HTML")
+        await message.reply(user_info_message)
 
         # Логируем использование команды
         logger.info(
@@ -189,7 +189,7 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
                 user_head = await stp_repo.employee.get_user(fullname=target_user.head)
 
             user_info_message = create_user_info_message(target_user, user_head)
-            await message.reply(user_info_message, parse_mode="HTML")
+            await message.reply(user_info_message)
 
             # Логируем использование команды
             logger.info(
@@ -232,8 +232,7 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
 
 <b>💡 Для получения подробной информации:</b>
 • Ответьте командой <code>/whois</code> на сообщение нужного пользователя
-• Используйте inline-поиск: <code>@stpsher_bot {search_query}</code>""",
-            parse_mode="HTML",
+• Используйте inline-поиск: <code>@stpsher_bot {search_query}</code>"""
         )
 
         # Логируем использование команды

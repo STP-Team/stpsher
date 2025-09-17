@@ -54,7 +54,6 @@ async def play_casino_game(
 💸 Ставка: {bet_amount} баллов
 
 Получай достижения @stpsher_bot для заработка баллов!""",
-            parse_mode="HTML",
         )
         return
 
@@ -64,7 +63,6 @@ async def play_casino_game(
             """❌ <b>Минимальная ставка - 10 баллов!</b>
             
 Попробуй еще раз с большей ставкой""",
-            parse_mode="HTML",
         )
         return
 
@@ -105,7 +103,6 @@ async def play_casino_game(
 👤 Игрок: {user.fullname}
 💰 Ставка: {bet_amount} баллов
 ⏰ Ждем результат...""",
-        parse_mode="HTML",
     )
 
     # Отправляем анимированную игру
@@ -174,7 +171,7 @@ async def play_casino_game(
 
     # Удаляем сообщение загрузки и показываем финальный результат
     await loading_msg.delete()
-    await message.reply(final_result, parse_mode="HTML")
+    await message.reply(final_result)
 
 
 @group_casino_router.message(Command("slots"))
@@ -187,7 +184,6 @@ async def slots_command(message: Message, user: Employee, stp_repo: MainRequests
             """❌ <b>Не авторизован!</b>
             
 Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-            parse_mode="HTML",
         )
         return
 
@@ -210,7 +206,6 @@ async def slots_command(message: Message, user: Employee, stp_repo: MainRequests
 ✨ Две семерки → x2.5
 
 <b>Минимальная ставка:</b> 10 баллов""",
-            parse_mode="HTML",
         )
         return
 
@@ -227,7 +222,6 @@ async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsR
             """❌ <b>Не авторизован!</b>
 
 Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-            parse_mode="HTML",
         )
         return
 
@@ -250,7 +244,6 @@ async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsR
 · Выпало 4 → 0.75x (утешительный приз)
 
 <b>Минимальная ставка:</b> 10 баллов""",
-            parse_mode="HTML",
         )
         return
 
@@ -267,7 +260,6 @@ async def darts_command(message: Message, user: Employee, stp_repo: MainRequests
             """❌ <b>Не авторизован!</b>
             
 Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-            parse_mode="HTML",
         )
         return
 
@@ -290,7 +282,6 @@ async def darts_command(message: Message, user: Employee, stp_repo: MainRequests
 · 2 кольцо от центра → 0.75x (утешительный приз)
 
 <b>Минимальная ставка:</b> 10 баллов""",
-            parse_mode="HTML",
         )
         return
 
@@ -307,7 +298,6 @@ async def bowling_command(message: Message, user: Employee, stp_repo: MainReques
             """❌ <b>Не авторизован!</b>
             
 Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-            parse_mode="HTML",
         )
         return
 
@@ -330,7 +320,6 @@ async def bowling_command(message: Message, user: Employee, stp_repo: MainReques
 · 4 кегли → 0.75x (утешительный приз)
 
 <b>Минимальная ставка:</b> 10 баллов""",
-            parse_mode="HTML",
         )
         return
 

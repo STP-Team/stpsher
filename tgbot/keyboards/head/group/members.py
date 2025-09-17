@@ -52,6 +52,12 @@ class HeadMemberRoleChange(CallbackData, prefix="head_member_role"):
     page: int = 1
 
 
+class HeadMemberKPIMenu(CallbackData, prefix="head_member_kpi"):
+    member_id: int
+    action: str  # "main", "calculator", "salary"
+    page: int = 1
+
+
 class HeadMemberGameProfileMenu(CallbackData, prefix="head_member_game_profile"):
     member_id: int
     page: int = 1
@@ -247,8 +253,8 @@ def head_member_detail_kb(
             ),
             InlineKeyboardButton(
                 text="🌟 Показатели",
-                callback_data=HeadMemberActionMenu(
-                    member_id=member_id, action="kpi", page=page
+                callback_data=HeadMemberKPIMenu(
+                    member_id=member_id, action="main", page=page
                 ).pack(),
             ),
         ],

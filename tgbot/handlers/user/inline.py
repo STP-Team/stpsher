@@ -12,11 +12,11 @@ from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import (
     AdministratorFilter,
+    DutyFilter,
     MipFilter,
     MultiRoleFilter,
     RootFilter,
     SpecialistFilter,
-    DutyFilter,
 )
 from tgbot.handlers.user.schedule.main import schedule_service
 
@@ -353,7 +353,7 @@ def create_error_item(error: Exception) -> InlineQueryResultArticle:
         title="❌ Ошибка поиска",
         description="Произошла ошибка при поиске пользователей",
         input_message_content=InputTextMessageContent(
-            message_text=f"❌ <b>Ошибка при поиске пользователей</b>\n\nПопробуйте еще раз или обратитесь к администратору.\n\n<i>Код ошибки: {type(error).__name__}</i>"
+            message_text=f"❌ <b>Ошибка при поиске пользователей</b>\n\nПопробуй еще раз или обратись к администратору для проверки данных\n\n<i>Код ошибки: {type(error).__name__}</i>"
         ),
     )
 

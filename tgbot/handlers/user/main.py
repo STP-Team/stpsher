@@ -149,7 +149,6 @@ async def private_whois_command(
 <b>Что можно сделать:</b>
 • Попросить пользователя отключить "Forwarding Privacy" в настройках Telegram
 • Использовать поиск по имени: <code>/whois {forward_info.get("sender_name", "").split()[0] if forward_info.get("sender_name") else "имя"}</code>""",
-            parse_mode="HTML",
         )
         return
 
@@ -171,7 +170,6 @@ async def private_whois_command(
 
 <b>ℹ️ Примечание:</b>
 Команда /whois работает только с пересланными сообщениями от пользователей, а не из чатов или каналов.""",
-            parse_mode="HTML",
         )
         return
 
@@ -360,7 +358,6 @@ async def private_whois_command(
 • По имени: <code>/whois Полное Имя</code>
 • Inline-поиск: <code>@stpsher_bot {search_query}</code>
 • Пересланное сообщение + <code>/whois</code>""",
-                parse_mode="HTML",
             )
 
             # Логируем использование команды
@@ -401,7 +398,6 @@ async def private_whois_command(
 
 <b>💡 Альтернатива:</b>
 Используйте inline-поиск: <code>@stpsher_bot имя</code>""",
-        parse_mode="HTML",
     )
 
 
@@ -437,7 +433,6 @@ async def handle_forwarded_message(
 
 <b>💡 Подсказка:</b>
 Для получения данных искомому пользователю необходимо авторизоваться в @stpsher_bot""",
-                parse_mode="HTML",
             )
             return
 
@@ -496,7 +491,6 @@ async def handle_forwarded_message_privacy(
 
 <b>💡 Подсказка:</b>
 Попробуйте найти пользователя по имени с помощью команды /whois""",
-        parse_mode="HTML",
     )
 
     # Логируем обращение
@@ -539,7 +533,6 @@ async def handle_forwarded_message_from_chat(
 • <code>/whois имя_пользователя</code>
 • <code>/whois @username</code>
 • <code>/whois 123456789</code> (Telegram ID)""",
-        parse_mode="HTML",
     )
 
     # Логируем обращение

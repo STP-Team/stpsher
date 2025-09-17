@@ -2,6 +2,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import Employee
+from tgbot.keyboards.mip.search_kpi import SearchMemberKPIMenu, SearchUserKPIMenu
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.services.schedule.parsers import CommonUtils
 
@@ -37,6 +38,12 @@ class ViewUserSchedule(CallbackData, prefix="view_schedule"):
     return_to: str = "search"  # Откуда пришли (search, head_group)
     head_id: int = 0  # ID руководителя
     month_idx: int = 0  # Индекс месяца для просмотра (0 = текущий)
+
+
+class ViewUserKPI(CallbackData, prefix="view_kpi"):
+    user_id: int
+    return_to: str = "search"  # Откуда пришли (search, head_group)
+    head_id: int = 0  # ID руководителя
 
 
 class MipScheduleNavigation(CallbackData, prefix="mip_sched"):
@@ -108,7 +115,13 @@ def user_detail_kb(
                 callback_data=ViewUserSchedule(
                     user_id=user_id, return_to=return_to, head_id=head_id
                 ).pack(),
-            )
+            ),
+            InlineKeyboardButton(
+                text="🌟 Показатели",
+                callback_data=SearchUserKPIMenu(
+                    user_id=user_id, action="main", return_to=return_to, head_id=head_id
+                ).pack(),
+            ),
         ]
     ]
 
@@ -477,8 +490,8 @@ def head_member_detail_kb_for_search(
             ),
             InlineKeyboardButton(
                 text="🌟 Показатели",
-                callback_data=HeadMemberActionMenuForSearch(
-                    member_id=member_id, head_id=head_id, action="kpi", page=page
+                callback_data=SearchMemberKPIMenu(
+                    member_id=member_id, head_id=head_id, action="main", page=page
                 ).pack(),
             ),
         ],
@@ -540,6 +553,124 @@ class HeadMemberRoleChangeForSearch(CallbackData, prefix="head_member_role_searc
     member_id: int
     head_id: int
     page: int = 1
+
+
+class SearchMemberScheduleMenu(CallbackData, prefix="search_member_schedule"):
+    member_id: int
+    head_id: int
+    month_idx: int = 0  # 0 = current month
+    page: int = 1
+
+
+class SearchMemberScheduleNavigation(CallbackData, prefix="search_member_sched_nav"):
+    member_id: int
+    head_id: int
+    action: str  # "prev_month", "next_month", "detailed", "compact"
+    month_idx: int
+    page: int = 1
+
+
+def search_member_schedule_kb(
+    member_id: int,
+    head_id: int,
+    current_month: str,
+    page: int = 1,
+    is_detailed: bool = False,
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для просмотра расписания участника группы из поиска с навигацией по месяцам
+    """
+    from tgbot.misc.dicts import russian_months
+
+    # Получаем индекс текущего месяца
+    current_month_idx = 1
+    for month_idx, month_name in russian_months.items():
+        if month_name == current_month:
+            current_month_idx = month_idx
+            break
+
+    buttons = []
+
+    # Навигация по месяцам
+    month_nav_row = []
+
+    # Предыдущий месяц
+    prev_month_idx = current_month_idx - 1 if current_month_idx > 1 else 12
+    month_nav_row.append(
+        InlineKeyboardButton(
+            text="⬅️",
+            callback_data=SearchMemberScheduleNavigation(
+                member_id=member_id,
+                head_id=head_id,
+                action="prev_month",
+                month_idx=prev_month_idx,
+                page=page,
+            ).pack(),
+        )
+    )
+
+    # Текущий месяц (индикатор) - нормализуем название с заглавной буквы
+    month_display = current_month.capitalize()
+    month_nav_row.append(
+        InlineKeyboardButton(
+            text=f"📅 {month_display}",
+            callback_data="noop",
+        )
+    )
+
+    # Следующий месяц
+    next_month_idx = current_month_idx + 1 if current_month_idx < 12 else 1
+    month_nav_row.append(
+        InlineKeyboardButton(
+            text="➡️",
+            callback_data=SearchMemberScheduleNavigation(
+                member_id=member_id,
+                head_id=head_id,
+                action="next_month",
+                month_idx=next_month_idx,
+                page=page,
+            ).pack(),
+        )
+    )
+
+    buttons.append(month_nav_row)
+
+    # Переключение детального/компактного вида
+    view_toggle_text = "📋 Компактно" if is_detailed else "📄 Подробно"
+    view_action = "compact" if is_detailed else "detailed"
+
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text=view_toggle_text,
+                callback_data=SearchMemberScheduleNavigation(
+                    member_id=member_id,
+                    head_id=head_id,
+                    action=view_action,
+                    month_idx=current_month_idx,
+                    page=page,
+                ).pack(),
+            )
+        ]
+    )
+
+    # Кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=HeadMemberDetailMenuForSearch(
+                    member_id=member_id, head_id=head_id, page=page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def edit_user_back_kb(user_id: int) -> InlineKeyboardMarkup:
@@ -751,10 +882,12 @@ MONTH_EMOJIS = {
 
 
 def get_month_name_by_index(month_idx: int) -> str:
-    """Получает название месяца по индексу (1-12)"""
+    """Получить название месяца по индексу"""
+    from tgbot.misc.dicts import russian_months
+
     if 1 <= month_idx <= 12:
-        return MONTHS_RU[month_idx - 1]
-    return "январь"
+        return russian_months[month_idx]
+    return "Текущий месяц"
 
 
 def get_month_index_by_name(month_name: str) -> int:
