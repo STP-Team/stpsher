@@ -29,34 +29,22 @@ class StudiesScheduler(BaseScheduler):
     """
 
     def __init__(self):
-        super().__init__("Studies")
+        super().__init__("Обучения")
         self.studies_parser = StudiesScheduleParser()
 
     def setup_jobs(self, scheduler: AsyncIOScheduler, session_pool, bot: Bot):
         """Setup all studies-related jobs"""
         self.logger.info("Настройка задач уведомлений об обучениях...")
 
-        # Daily check for upcoming studies - every day at 10:00
-        # self._add_job(
-        #     scheduler=scheduler,
-        #     func=lambda: self._check_upcoming_studies_job(session_pool, bot),
-        #     trigger="cron",
-        #     job_id="check_upcoming_studies",
-        #     name="Проверка предстоящих обучений",
-        #     hour=10,
-        #     minute=0,
-        # )
-
+        # Проверка приближающихся обучений
         scheduler.add_job(
             func=self._check_upcoming_studies_job,
             args=[session_pool, bot],
             trigger="interval",
             id=f"{self.category_name}_check_upcoming_studies",
             name="Проверка предстоящих обучений",
-            minutes=5,  # Check every 5 minutes for precise timing
+            minutes=30,
         )
-
-        self.logger.info("Задачи уведомлений об обучениях настроены успешно")
 
     async def _check_upcoming_studies_job(self, session_pool, bot: Bot):
         """Wrapper for checking upcoming studies"""

@@ -71,8 +71,6 @@ class HRScheduler(BaseScheduler):
             minute=30,
         )
 
-        self.logger.info("HR задачи настроены успешно")
-
     async def _process_fired_users_job(self, session_pool):
         """Обёртка для задачи обработки увольнений"""
         self._log_job_execution_start("Обработка увольнений")

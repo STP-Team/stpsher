@@ -35,7 +35,7 @@ class AchievementScheduler(BaseScheduler):
     """
 
     def __init__(self):
-        super().__init__("Achievements")
+        super().__init__("Достижения")
 
     def setup_jobs(
         self, scheduler: AsyncIOScheduler, session_pool, bot: Bot, kpi_session_pool=None
@@ -109,8 +109,6 @@ class AchievementScheduler(BaseScheduler):
             name="Запуск при старте: Проверка ежемесячных достижений",
             run_date=None,
         )
-
-        self.logger.info("Задачи достижений настроены успешно")
 
     async def _check_daily_achievements_job(
         self, session_pool, kpi_session_pool, bot: Bot
