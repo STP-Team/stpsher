@@ -4,10 +4,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.repo.STP.purchase import PurchaseDetailedParams
 from tgbot.keyboards.mip.game.main import (
+    GameMenu,
+    ProductsMenu,
     PurchaseActionMenu,
     PurchaseActivationMenu,
-    ProductsMenu,
-    GameMenu,
     create_filters_row,
 )
 from tgbot.keyboards.user.main import MainMenu
@@ -126,10 +126,7 @@ def purchase_activation_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="↩️ Назад", callback_data=MainMenu(menu="game").pack()
-        ),
-        InlineKeyboardButton(
-            text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="main").pack()
         ),
     ]
     buttons.append(navigation_row)

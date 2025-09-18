@@ -62,9 +62,9 @@ async def duty_products_activation(
 
     if not division_filtered_purchases:
         await callback.message.edit_text(
-            f"""<b>✍️ Активация предметов</b>
+            """<b>✍️ Активация предметов</b>
 
-Нет предметов из направления {user.division}, ожидающих активации 😊""",
+Нет предметов, ожидающих активации 😊""",
             reply_markup=duty_products_activation_kb(page, 0, []),
         )
         return
@@ -107,7 +107,7 @@ async def duty_products_activation(
 {product.description}</blockquote>""")
         purchases_list.append("")
 
-    message_text = f"""<b>✍️ Активация предметов ({user.division})</b>
+    message_text = f"""<b>✍️ Активация предметов</b>
 <i>Страница {page} из {total_pages}</i>
 
 {chr(10).join(purchases_list)}"""

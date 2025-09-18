@@ -26,6 +26,12 @@ def main_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
+                text="✍️ Активация предметов",
+                callback_data=MainMenu(menu="products_activation").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
                 text="🔍 Поиск сотрудников",
                 callback_data=MainMenu(menu="head_search").pack(),
             ),
