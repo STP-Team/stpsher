@@ -23,11 +23,12 @@ def search_user_kpi_kb(
     return_to: str = "search",
     head_id: int = 0,
     current_action: str = "main",
+    context: str = "mip",
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для KPI пользователя из поиска
     """
-    from tgbot.keyboards.mip.search import SearchUserResult
+    from tgbot.keyboards.common.search import SearchUserResult
 
     buttons = []
 
@@ -114,7 +115,10 @@ def search_user_kpi_kb(
             InlineKeyboardButton(
                 text="↩️ К сотруднику",
                 callback_data=SearchUserResult(
-                    user_id=user_id, return_to=return_to, head_id=head_id
+                    user_id=user_id,
+                    return_to=return_to,
+                    head_id=head_id,
+                    context=context,
                 ).pack(),
             ),
             InlineKeyboardButton(

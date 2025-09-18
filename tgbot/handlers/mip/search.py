@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import Sequence
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -9,11 +8,19 @@ from aiogram.types import (
     Message,
 )
 
-from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.handlers.user.schedule.main import schedule_service
+from tgbot.keyboards.common.search import (
+    ScheduleNavigation,
+    SearchUserResult,
+    ViewUserSchedule,
+    search_back_kb,
+    search_results_kb,
+    user_detail_kb,
+    user_schedule_with_month_kb,
+)
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
     HeadGroupMembersMenuForSearch,
@@ -21,24 +28,17 @@ from tgbot.keyboards.mip.search import (
     HeadMemberActionMenuForSearch,
     HeadMemberDetailMenuForSearch,
     HeadMemberRoleChangeForSearch,
-    MipScheduleNavigation,
     SearchMemberScheduleMenu,
     SearchMemberScheduleNavigation,
     SearchMenu,
-    SearchUserResult,
     SelectUserRole,
-    ViewUserSchedule,
     edit_user_back_kb,
     get_month_name_by_index,
     head_group_members_kb_for_search,
     head_member_detail_kb_for_search,
     role_selection_kb,
-    search_back_kb,
     search_main_kb,
     search_member_schedule_kb,
-    search_results_kb,
-    user_detail_kb,
-    user_schedule_with_month_kb,
 )
 from tgbot.keyboards.mip.search_kpi import (
     SearchMemberKPIMenu,
@@ -51,6 +51,7 @@ from tgbot.misc.dicts import role_names
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
+from tgbot.services.search import SearchService
 
 mip_search_router = Router()
 mip_search_router.message.filter(F.chat.type == "private", MipFilter())
@@ -60,122 +61,6 @@ logger = logging.getLogger(__name__)
 
 # Константы для пагинации
 USERS_PER_PAGE = 10
-
-
-def filter_users_by_type(users: Sequence[Employee], search_type: str) -> list[Employee]:
-    """
-    Фильтрация пользователей по типу поиска
-
-    :param users: Список пользователей
-    :param search_type: Тип поиска (specialists, heads, all)
-    :return: Отфильтрованный список пользователей
-    """
-    if search_type == "specialists":
-        # Специалисты - роль 1 (обычные пользователи)
-        return [user for user in users if user.role == 1]
-    elif search_type == "heads":
-        # Руководители - роль 2 (головы)
-        return [user for user in users if user.role == 2]
-    else:
-        # Все пользователи
-        return list(users)
-
-
-async def get_user_statistics(user_id: int, stp_repo: MainRequestsRepo) -> dict:
-    """Получить статистику пользователя (уровень, очки, достижения, покупки)"""
-    try:
-        # Получаем базовые данные
-        user_purchases = await stp_repo.purchase.get_user_purchases(user_id)
-        achievements_sum = await stp_repo.transaction.get_user_achievements_sum(user_id)
-        purchases_sum = await stp_repo.purchase.get_user_purchases_sum(user_id)
-
-        # Рассчитываем уровень
-        user_balance = await stp_repo.transaction.get_user_balance(user_id)
-        current_level = LevelingSystem.calculate_level(achievements_sum)
-
-        return {
-            "level": current_level,
-            "balance": user_balance,
-            "total_earned": achievements_sum,
-            "total_spent": purchases_sum,
-            "purchases_count": len(user_purchases),
-        }
-    except Exception as e:
-        logger.error(f"Ошибка получения статистики пользователя {user_id}: {e}")
-        return {
-            "level": 0,
-            "balance": 0,
-            "total_earned": 0,
-            "total_spent": 0,
-            "purchases_count": 0,
-        }
-
-
-async def get_group_statistics(head_name: str, stp_repo: MainRequestsRepo) -> dict:
-    """Получить общую статистику группы руководителя"""
-    try:
-        # Получаем сотрудников группы
-        group_users = await stp_repo.employee.get_users_by_head(head_name)
-
-        total_points = 0
-        group_purchases = {}
-
-        for user in group_users:
-            if user.user_id:  # Только авторизованные пользователи
-                # Суммируем очки
-                achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
-                    user.user_id
-                )
-                total_points += achievements_sum
-
-                # Собираем статистику предметов
-                most_bought_product = await stp_repo.purchase.get_most_bought_product(
-                    user.user_id
-                )
-                if most_bought_product:
-                    product_name = most_bought_product[0]
-                    product_count = most_bought_product[1]
-                    group_purchases[product_name] = (
-                        group_purchases.get(product_name, 0) + product_count
-                    )
-
-        return {
-            "total_users": len(group_users),
-            "total_points": total_points,
-        }
-    except Exception as e:
-        logger.error(f"Ошибка получения статистики группы {head_name}: {e}")
-        return {
-            "total_users": 0,
-            "total_points": 0,
-        }
-
-
-async def get_group_statistics_by_id(
-    head_user_id: int, stp_repo: MainRequestsRepo
-) -> dict:
-    """Получить общую статистику группы руководителя по его ID"""
-    try:
-        # Получаем руководителя по ID
-        head_user = await stp_repo.employee.get_user(user_id=head_user_id)
-        if not head_user:
-            return {
-                "total_users": 0,
-                "total_points": 0,
-                "most_popular_achievement": None,
-                "most_popular_product": None,
-            }
-
-        # Используем существующую функцию
-        return await get_group_statistics(head_user.fullname, stp_repo)
-    except Exception as e:
-        logger.error(f"Ошибка получения статистики группы по ID {head_user_id}: {e}")
-        return {
-            "total_users": 0,
-            "total_points": 0,
-            "most_popular_achievement": None,
-            "most_popular_product": None,
-        }
 
 
 @mip_search_router.callback_query(MainMenu.filter(F.menu == "search"))
@@ -203,7 +88,7 @@ async def show_specialists(
         await callback.answer("❌ Пользователи не найдены", show_alert=True)
         return
 
-    specialists = filter_users_by_type(all_users, "specialists")
+    specialists = SearchService.filter_users_by_type(all_users, "specialists")
 
     if not specialists:
         await callback.answer("❌ Специалисты не найдены", show_alert=True)
@@ -222,7 +107,14 @@ async def show_specialists(
 
 Найдено специалистов: {total_users}
 Страница {page} из {total_pages}""",
-        reply_markup=search_results_kb(page_users, page, total_pages, "specialists"),
+        reply_markup=search_results_kb(
+            page_users,
+            page,
+            total_pages,
+            "specialists",
+            context="mip",
+            back_callback="search",
+        ),
     )
 
 
@@ -239,7 +131,7 @@ async def show_heads(
         await callback.answer("❌ Пользователи не найдены", show_alert=True)
         return
 
-    heads = filter_users_by_type(all_users, "heads")
+    heads = SearchService.filter_users_by_type(all_users, "heads")
 
     if not heads:
         await callback.answer("❌ Руководители не найдены", show_alert=True)
@@ -260,7 +152,14 @@ async def show_heads(
 Страница {page} из {total_pages}
 
 <i>💡 Нажми на руководителя, чтобы увидеть его группу</i>""",
-        reply_markup=search_results_kb(page_users, page, total_pages, "heads"),
+        reply_markup=search_results_kb(
+            page_users,
+            page,
+            total_pages,
+            "heads",
+            context="mip",
+            back_callback="search",
+        ),
     )
 
 
@@ -273,7 +172,7 @@ async def start_search(callback: CallbackQuery, state: FSMContext):
 Введи часть имени, фамилии или полное ФИО сотрудника:
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-        reply_markup=search_back_kb(),
+        reply_markup=search_back_kb(context="mip"),
     )
 
     await state.update_data(bot_message_id=bot_message.message_id)
@@ -303,7 +202,7 @@ async def process_search_query(
 Введи часть имени, фамилии или полное ФИО сотрудника:
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-            reply_markup=search_back_kb(),
+            reply_markup=search_back_kb(context="mip"),
         )
         return
 
@@ -324,7 +223,7 @@ async def process_search_query(
 Попробуй другой запрос или проверь правильность написания
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-                reply_markup=search_back_kb(),
+                reply_markup=search_back_kb(context="mip"),
             )
             return
 
@@ -352,7 +251,12 @@ async def process_search_query(
 По запросу "<code>{search_query}</code>" найдено: {total_found} сотрудников
 Страница 1 из {total_pages}""",
             reply_markup=search_results_kb(
-                page_users, 1, total_pages, "search_results"
+                page_users,
+                1,
+                total_pages,
+                "search_results",
+                context="mip",
+                back_callback="search",
             ),
         )
 
@@ -368,11 +272,11 @@ async def process_search_query(
 ❌ Произошла ошибка при поиске. Попробуй позже
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-            reply_markup=search_back_kb(),
+            reply_markup=search_back_kb(context="mip"),
         )
 
 
-@mip_search_router.callback_query(SearchUserResult.filter())
+@mip_search_router.callback_query(SearchUserResult.filter(F.context == "mip"))
 async def show_user_details(
     callback: CallbackQuery, callback_data: SearchUserResult, stp_repo: MainRequestsRepo
 ):
@@ -395,45 +299,18 @@ async def show_user_details(
             )
             return
 
-        # Определение роли
-        role_name = role_names.get(user.role, "Неизвестная роль")
-
         # Получаем статистику пользователя
-        stats = await get_user_statistics(user_id, stp_repo)
+        stats = await SearchService.get_user_statistics(user_id, stp_repo)
 
         # Формирование информации о пользователе
-        user_info = f"""<b>👤 Информация о сотруднике</b>
-
-<b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Должность:</b> {user.position} {user.division}
-<b>Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>
-
-🛡️<b>Уровень доступа:</b> {role_name} ({user.role})"""
-
-        if user.email:
-            user_info += f"\n<b>Рабочая почта:</b> {user.email}"
-
-        # Добавляем статистику уровня (только для специалистов и дежурных)
-        if user.user_id and user.role in [1, 3]:
-            user_info += f"""
-
-<blockquote expandable><b>📊 Статистика игрока</b>
-<b>⚔️ Уровень:</b> {stats["level"]}
-<b>✨ Баланс:</b> {stats["balance"]} баллов
-<b>📈 Всего заработано:</b> {stats["total_earned"]} баллов
-<b>💸 Всего потрачено:</b> {stats["total_spent"]} баллов</blockquote>"""
+        user_info = SearchService.format_user_info_base(user, user_head, stats)
 
         # Дополнительная информация для руководителей
         if user.role == 2:  # Руководитель
-            group_stats = await get_group_statistics(user.fullname, stp_repo)
-
-            user_info += f"""
-
-<blockquote expandable><b>👥 Статистика группы</b>
-<b>Сотрудников в группе:</b> {group_stats["total_users"]}
-<b>Общие очки группы:</b> {group_stats["total_points"]} баллов</blockquote>
-
-<i>💡 Нажми кнопку ниже чтобы увидеть список группы</i>"""
+            group_stats = await SearchService.get_group_statistics(
+                user.fullname, stp_repo
+            )
+            user_info += SearchService.format_head_group_info(user, group_stats)
 
         # Определяем возможность редактирования и параметры клавиатуры
         can_edit = user.role in [1, 2, 3]  # Специалисты, дежурные и руководители
@@ -443,7 +320,13 @@ async def show_user_details(
         await callback.message.edit_text(
             user_info,
             reply_markup=user_detail_kb(
-                user_id, return_to, head_id, can_edit, is_head, head_user_id
+                user_id,
+                return_to,
+                head_id,
+                context="mip",
+                show_edit_buttons=can_edit,
+                is_head=is_head,
+                head_user_id=head_user_id,
             ),
         )
 
@@ -675,7 +558,7 @@ async def search_user_kpi_menu(
                 await callback.message.edit_text(
                     message_text,
                     reply_markup=search_user_kpi_kb(
-                        user_id, return_to, head_id, action
+                        user_id, return_to, head_id, action, context="mip"
                     ),
                 )
                 return
@@ -812,7 +695,9 @@ async def search_user_kpi_menu(
 
         await callback.message.edit_text(
             message_text,
-            reply_markup=search_user_kpi_kb(user_id, return_to, head_id, action),
+            reply_markup=search_user_kpi_kb(
+                user_id, return_to, head_id, action, context="mip"
+            ),
         )
 
     except Exception as e:
@@ -1006,7 +891,7 @@ async def search_member_kpi_menu(
         await callback.answer("❌ Ошибка при получении KPI", show_alert=True)
 
 
-@mip_search_router.callback_query(ViewUserSchedule.filter())
+@mip_search_router.callback_query(ViewUserSchedule.filter(F.context == "mip"))
 async def view_user_schedule(
     callback: CallbackQuery,
     callback_data: ViewUserSchedule,
@@ -1050,6 +935,7 @@ async def view_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=False,
+                    context="mip",
                 ),
             )
 
@@ -1076,6 +962,7 @@ async def view_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=False,
+                    context="mip",
                 ),
             )
 
@@ -1084,10 +971,10 @@ async def view_user_schedule(
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
-@mip_search_router.callback_query(MipScheduleNavigation.filter())
+@mip_search_router.callback_query(ScheduleNavigation.filter(F.context == "mip"))
 async def navigate_user_schedule(
     callback: CallbackQuery,
-    callback_data: MipScheduleNavigation,
+    callback_data: ScheduleNavigation,
     stp_repo: MainRequestsRepo,
 ):
     """Навигация по месяцам в расписании пользователя"""
@@ -1129,6 +1016,7 @@ async def navigate_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=not compact,
+                    context="mip",
                 ),
             )
 
@@ -1155,6 +1043,7 @@ async def navigate_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=not compact,
+                    context="mip",
                 ),
             )
 

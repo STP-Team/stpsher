@@ -25,6 +25,7 @@ from tgbot.handlers.head.group.schedule import head_group_schedule_router
 from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.head.schedule.group import head_schedule_group_router
+from tgbot.handlers.head.search import head_search_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
 from tgbot.handlers.mip.game.achievements import mip_game_achievements_router
 from tgbot.handlers.mip.game.main import mip_game_router
@@ -71,6 +72,7 @@ routers_list = [
     head_game_filters_router,
     head_kpi_router,
     head_schedule_group_router,
+    head_search_router,
     head_group_router,
     head_group_members_router,
     head_group_rating_router,
