@@ -2,11 +2,11 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.database.repo.KPI.head_month_kpi import HeadMonthKPIRepo
+from infrastructure.database.repo.KPI.head_premium import HeadPremiumRepo
 from infrastructure.database.repo.KPI.spec_day_kpi import SpecDayKPIRepo
+from infrastructure.database.repo.KPI.spec_month_kpi import SpecMonthKPIRepo
 from infrastructure.database.repo.KPI.spec_premium import SpecPremiumRepo
 from infrastructure.database.repo.KPI.spec_week_kpi import SpecWeekKPIRepo
-from infrastructure.database.repo.KPI.spec_month_kpi import SpecMonthKPIRepo
 
 
 @dataclass
@@ -20,11 +20,11 @@ class KPIRequestsRepo:
     session: AsyncSession
 
     @property
-    def head_month_kpi(self) -> HeadMonthKPIRepo:
+    def head_premium(self) -> HeadPremiumRepo:
         """
-        The HeadMonthKPIRepo repository sessions are required to manage head kpi operations.
+        The HeadPremiumRepo repository sessions are required to manage head premium operations.
         """
-        return HeadMonthKPIRepo(self.session)
+        return HeadPremiumRepo(self.session)
 
     @property
     def spec_day_kpi(self) -> SpecDayKPIRepo:
