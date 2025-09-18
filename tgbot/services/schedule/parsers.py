@@ -498,7 +498,7 @@ class ScheduleParser(MonthlyScheduleParser):
                     else:
                         schedule[day] = schedule_value
 
-            logger.info(
+            logger.debug(
                 f"Found {len(schedule)} regular days and {len(additional_shifts)} additional shifts for {fullname} in {month}"
             )
             return schedule, additional_shifts
@@ -1133,7 +1133,7 @@ class DutyScheduleParser(BaseDutyParser):
             return duties
 
         except Exception as e:
-            logger.warning(f"[Дежурные] Не удалось найти график дежурных:  {e}")
+            logger.debug(f"[Дежурные] Не удалось найти график дежурных:  {e}")
             return []
 
     async def format_schedule(
