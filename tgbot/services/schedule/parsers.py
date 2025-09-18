@@ -834,14 +834,14 @@ class DutyScheduleParser(BaseDutyParser):
                 duty_file = self.file_manager.uploads_folder / "Старшинство_НТП.xlsx"
                 if not duty_file.exists():
                     raise FileNotFoundError(
-                        f"Duty file 'Старшинство_НТП.xlsx' not found for {division}"
+                        "Файл графика дежурных 'Старшинство_НТП.xlsx' не найден"
                     )
                 schedule_file = duty_file
             else:
                 schedule_file = self.file_manager.find_schedule_file(division)
                 if not schedule_file:
                     raise FileNotFoundError(
-                        f"Duty schedule file for {division} not found"
+                        f"Файл графика дежурных для {division} не найден"
                     )
 
             sheet_name = self.get_duty_sheet_name(date)
@@ -989,7 +989,7 @@ class DutyScheduleParser(BaseDutyParser):
             return month_duties
 
         except Exception as e:
-            logger.error(f"Error getting duty officers for month: {e}")
+            logger.debug(f"[Дежурные] Не удалось найти график дежурных: {e}")
             return {}
 
     async def get_duties_for_date(
@@ -1002,7 +1002,7 @@ class DutyScheduleParser(BaseDutyParser):
                 duty_file = self.file_manager.uploads_folder / "Старшинство_НТП.xlsx"
                 if not duty_file.exists():
                     raise FileNotFoundError(
-                        f"Duty file 'Старшинство_НТП.xlsx' not found for {division}"
+                        "Файл графика дежурных 'Старшинство_НТП.xlsx' не найден"
                     )
                 schedule_file = duty_file
             else:
@@ -1133,7 +1133,7 @@ class DutyScheduleParser(BaseDutyParser):
             return duties
 
         except Exception as e:
-            logger.warning(f"Error getting duty officers: {e}")
+            logger.warning(f"[Дежурные] Не удалось найти график дежурных:  {e}")
             return []
 
     async def format_schedule(

@@ -77,11 +77,13 @@ class ScheduleChangeDetector:
             new_file_path = self.uploads_folder / new_file_name
 
             if not old_file_path.exists():
-                logger.warning(f"Old file {old_file_name} not found for comparison")
+                logger.warning(
+                    f"[Графики] Старый файл {old_file_name} не найден для сравнения"
+                )
                 return []
 
             if not new_file_path.exists():
-                logger.warning(f"New file {new_file_name} not found")
+                logger.warning(f"[Графики] Новый файл {new_file_name} не найден")
                 return []
 
             logger.info("[График] Читаем старый файл...")
