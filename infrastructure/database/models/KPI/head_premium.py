@@ -108,4 +108,4 @@ class HeadPremium(Base, TableNameMixin):
     )
 
     def __repr__(self):
-        return f"<HeadPremium {self.fullname} {self.tc} {self.gok} {self.flr} {self.sales_count} {self.total_premium} {self.updated_at}>"
+        return f"<HeadPremium {self.fullname} {self.contacts_count} {self.gok} {self.flr} {self.sales_count} {self.total_premium} {self.updated_at}>"

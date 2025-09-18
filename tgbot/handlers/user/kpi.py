@@ -160,7 +160,6 @@ async def user_kpi_salary_cb(
         return
 
     try:
-        # Use centralized salary calculation service
         salary_result = await SalaryCalculator.calculate_salary(
             user=user, premium_data=user_premium
         )

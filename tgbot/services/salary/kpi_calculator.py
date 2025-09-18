@@ -53,7 +53,9 @@ class KPICalculator:
         return "\n".join(results)
 
     @staticmethod
-    def calculate_flr_needed(division: str, current_flr, normative):
+    def calculate_flr_needed(
+        division: str, current_flr, normative, is_head: bool = False
+    ):
         """Расчет FLR, необходимой для достижения уровней премии"""
         if normative == 0 or normative is None:
             return "—"
@@ -62,33 +64,55 @@ class KPICalculator:
 
         results = []
 
-        if division == "НЦК":
-            thresholds = [
-                (103, 30, "≥ 103%"),
-                (102, 25, "≥ 102%"),
-                (101, 21, "≥ 101%"),
-                (100, 18, "≥ 100%"),
-                (95, 13, "≥ 95%"),
-                (0, 8, "&lt; 95%"),
-            ]
-        elif division == "НТП1":
-            thresholds = [
-                (109, 30, "≥ 109%"),
-                (106, 25, "≥ 106%"),
-                (103, 21, "≥ 103%"),
-                (100, 18, "≥ 100%"),
-                (90, 13, "≥ 90%"),
-                (0, 8, "&lt; 90%"),
-            ]
+        if is_head:
+            # Пороги для руководителей
+            if division == "НЦК":
+                thresholds = [
+                    (102, 25, "≥ 102%"),
+                    (101.4, 23, "≥ 101,40%"),
+                    (100.7, 18, "≥ 100,70%"),
+                    (100, 16, "≥ 100%"),
+                    (96, 14, "≥ 96%"),
+                    (0, 10, "&lt; 96%"),
+                ]
+            elif division in ["НТП1", "НТП2"]:
+                thresholds = [
+                    (104, 25, "≥ 104%"),
+                    (102, 22, "≥ 102%"),
+                    (101, 20, "≥ 101%"),
+                    (100, 16, "≥ 100%"),
+                    (98, 14, "≥ 98%"),
+                    (0, 10, "&lt; 98%"),
+                ]
         else:
-            thresholds = [
-                (107, 30, "≥ 107%"),
-                (104, 25, "≥ 104%"),
-                (102, 21, "≥ 102%"),
-                (100, 18, "≥ 100%"),
-                (97, 13, "≥ 97%"),
-                (0, 8, "&lt; 97%"),
-            ]
+            # Пороги для специалистов
+            if division == "НЦК":
+                thresholds = [
+                    (103, 30, "≥ 103%"),
+                    (102, 25, "≥ 102%"),
+                    (101, 21, "≥ 101%"),
+                    (100, 18, "≥ 100%"),
+                    (95, 13, "≥ 95%"),
+                    (0, 8, "&lt; 95%"),
+                ]
+            elif division == "НТП1":
+                thresholds = [
+                    (109, 30, "≥ 109%"),
+                    (106, 25, "≥ 106%"),
+                    (103, 21, "≥ 103%"),
+                    (100, 18, "≥ 100%"),
+                    (90, 13, "≥ 90%"),
+                    (0, 8, "&lt; 90%"),
+                ]
+            elif division == "НТП2":
+                thresholds = [
+                    (107, 30, "≥ 107%"),
+                    (104, 25, "≥ 104%"),
+                    (102, 21, "≥ 102%"),
+                    (100, 18, "≥ 100%"),
+                    (97, 13, "≥ 97%"),
+                    (0, 8, "&lt; 97%"),
+                ]
 
         for threshold, premium_percent, description in thresholds:
             needed_flr = (threshold / 100) * normative
@@ -104,7 +128,9 @@ class KPICalculator:
         return "\n".join(results)
 
     @staticmethod
-    def calculate_gok_needed(division: str, current_gok, normative):
+    def calculate_gok_needed(
+        division: str, current_gok, normative, is_head: bool = False
+    ):
         """Расчет ГОК, необходимой для достижения уровней премии"""
         if normative == 0 or normative is None:
             return "—"
@@ -113,33 +139,57 @@ class KPICalculator:
 
         results = []
 
-        if division == "НЦК":
-            thresholds = [
-                (100, 17, "≥ 100%"),
-                (95, 15, "≥ 95%"),
-                (90, 12, "≥ 90%"),
-                (85, 9, "≥ 85%"),
-                (80, 5, "≥ 80%"),
-                (0, 0, "&lt; 80%"),
-            ]
-        elif division == "НТП1":
-            thresholds = [
-                (100, 17, "≥ 100%"),
-                (95, 15, "≥ 95%"),
-                (90, 12, "≥ 90%"),
-                (85, 9, "≥ 85%"),
-                (80, 5, "≥ 80%"),
-                (0, 0, "&lt; 80%"),
-            ]
+        if is_head:
+            # Пороги для руководителей
+            if division == "НЦК":
+                thresholds = [
+                    (104, 20, "≥ 104%"),
+                    (102, 18, "≥ 102%"),
+                    (100, 16, "≥ 100%"),
+                    (96, 14, "≥ 96%"),
+                    (91, 12, "≥ 91%"),
+                    (80, 10, "≥ 80%"),
+                    (0, 0, "&lt; 80%"),
+                ]
+            elif division in ["НТП1", "НТП2"]:
+                thresholds = [
+                    (104, 20, "≥ 104%"),
+                    (102, 18, "≥ 102%"),
+                    (100, 16, "≥ 100%"),
+                    (96, 14, "≥ 96%"),
+                    (91, 12, "≥ 91%"),
+                    (80, 10, "≥ 80%"),
+                    (0, 0, "&lt; 80%"),
+                ]
         else:
-            thresholds = [
-                (100, 17, "≥ 100%"),
-                (95, 15, "≥ 95%"),
-                (90, 12, "≥ 90%"),
-                (84, 9, "≥ 84%"),
-                (70, 5, "≥ 70%"),
-                (0, 0, "&lt; 70%"),
-            ]
+            # Пороги для специалистов
+            if division == "НЦК":
+                thresholds = [
+                    (100, 17, "≥ 100%"),
+                    (95, 15, "≥ 95%"),
+                    (90, 12, "≥ 90%"),
+                    (85, 9, "≥ 85%"),
+                    (80, 5, "≥ 80%"),
+                    (0, 0, "&lt; 80%"),
+                ]
+            elif division == "НТП1":
+                thresholds = [
+                    (100, 17, "≥ 100%"),
+                    (95, 15, "≥ 95%"),
+                    (90, 12, "≥ 90%"),
+                    (85, 9, "≥ 85%"),
+                    (80, 5, "≥ 80%"),
+                    (0, 0, "&lt; 80%"),
+                ]
+            elif division == "НТП2":
+                thresholds = [
+                    (100, 17, "≥ 100%"),
+                    (95, 15, "≥ 95%"),
+                    (90, 12, "≥ 90%"),
+                    (84, 9, "≥ 84%"),
+                    (70, 5, "≥ 70%"),
+                    (0, 0, "&lt; 70%"),
+                ]
 
         for threshold, premium_percent, description in thresholds:
             needed_gok = (threshold / 100) * normative
@@ -160,6 +210,7 @@ class KPICalculator:
         target_goal_first,
         target_goal_second,
         target_type: Optional[str] = None,
+        is_head: bool = False,
     ):
         """Расчет цели, необходимой для достижения уровней премии"""
         if target_goal_first is None and target_goal_second is None:
@@ -173,7 +224,71 @@ class KPICalculator:
 
         results = []
 
-        # Все подразделения имеют одинаковые целевые пороги премии
+        # Для руководителей используем упрощенную систему премий
+        if is_head:
+            # Определяем основной норматив (приоритет - target_goal_second, если есть)
+            normative = (
+                target_goal_second
+                if target_goal_second and target_goal_second > 0
+                else target_goal_first
+            )
+
+            if not normative:
+                return "—"
+
+            if is_aht_target:
+                # Для AHT, чем ниже, тем лучше
+                target_rate = (
+                    (normative / current_target * 100) if current_target > 0 else 0
+                )
+            elif is_sales_target:
+                # Для продаж, чем выше, тем лучше
+                target_rate = (current_target / normative * 100) if normative > 0 else 0
+            else:
+                # Поведение по умолчанию (чем выше, тем лучше)
+                target_rate = (current_target / normative * 100) if normative > 0 else 0
+
+            # Упрощенные пороги для руководителей (НЦК и НТП1/НТП2 одинаковые)
+            if target_rate > 100.01:
+                results.append("25%: ✅ (> 100,01% - норматив 2 и более)")
+            else:
+                if is_aht_target:
+                    needed_for_25 = normative / (100.01 / 100)
+                    difference = current_target - needed_for_25
+                    results.append(
+                        f"25%: {needed_for_25:.2f} [-{difference:.2f}] (> 100,01% - норматив 2 и более)"
+                    )
+                else:
+                    needed_for_25 = (100.01 / 100) * normative
+                    difference = needed_for_25 - current_target
+                    results.append(
+                        f"25%: {needed_for_25:.2f} [+{difference:.2f}] (> 100,01% - норматив 2 и более)"
+                    )
+
+            if target_rate >= 100.00:
+                results.append("16%: ✅ (= 100,00% - норматив 1 и менее норматива 2)")
+            else:
+                if is_aht_target:
+                    needed_for_16 = normative / (100.00 / 100)
+                    difference = current_target - needed_for_16
+                    results.append(
+                        f"16%: {needed_for_16:.2f} [-{difference:.2f}] (= 100,00% - норматив 1 и менее норматива 2)"
+                    )
+                else:
+                    needed_for_16 = (100.00 / 100) * normative
+                    difference = needed_for_16 - current_target
+                    results.append(
+                        f"16%: {needed_for_16:.2f} [+{difference:.2f}] (= 100,00% - норматив 1 и менее норматива 2)"
+                    )
+
+            if target_rate < 99.99:
+                results.append("0%: — (&lt; 99,99% - менее норматива 1)")
+            else:
+                results.append("0%: ✅ (&lt; 99,99% - менее норматива 1)")
+
+            return "\n".join(results)
+
+        # Для специалистов
         if target_goal_second and target_goal_second > 0:
             # Когда есть вторая цель, используем ее как основной план
             normative = target_goal_second

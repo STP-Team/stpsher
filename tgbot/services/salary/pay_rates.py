@@ -13,10 +13,14 @@ class PayRateService:
                         pay_rate = 164.2
                     case "Эксперт":
                         pay_rate = 195.9
+                    case "Руководитель группы":
+                        pay_rate = 225.3
             case "НТП1":
                 match position:
                     case "Специалист первой линии":
                         pay_rate = 143.6
+                    case "Руководитель группы":
+                        pay_rate = 256.1
             case "НТП2":
                 match position:
                     case "Специалист второй линии":
@@ -25,6 +29,8 @@ class PayRateService:
                         pay_rate = 181
                     case "Эксперт второй линии":
                         pay_rate = 195.9
+                    case "Руководитель группы":
+                        pay_rate = 256.1
 
         return pay_rate
 

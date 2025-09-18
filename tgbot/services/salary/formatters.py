@@ -115,36 +115,64 @@ class SalaryFormatter:
             else 0
         } ₽
 
-🌟 Показатели:
-Оценка: {cls.format_percentage(premium_data.csi_premium)} = {
-            cls.format_value(round(result.csi_premium_amount), " ₽")
-        }
+🌟 Показатели:"""
+
+        # Определяем тип премиум данных (HeadPremium vs SpecPremium)
+        is_head_premium = hasattr(premium_data, "head_adjust") and not hasattr(
+            premium_data, "csi_premium"
+        )
+
+        if is_head_premium:
+            # Для руководителей - только FLR, GOK, цель и корректировка руководителя
+            message_text += f"""
 FLR: {cls.format_percentage(premium_data.flr_premium)} = {
-            cls.format_value(round(result.flr_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.flr_premium_amount), " ₽")
+            }
 ГОК: {cls.format_percentage(premium_data.gok_premium)} = {
-            cls.format_value(round(result.gok_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.gok_premium_amount), " ₽")
+            }
 Цель: {cls.format_percentage(premium_data.target_premium)} = {
-            cls.format_value(round(result.target_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.target_premium_amount), " ₽")
+            }
+
+💼 Дополнительно:
+Корректировка руководителя: {cls.format_percentage(premium_data.head_adjust)} = {
+                cls.format_value(round(result.head_adjust_premium_amount), " ₽")
+            }"""
+        else:
+            # Для специалистов - все показатели
+            message_text += f"""
+Оценка: {cls.format_percentage(premium_data.csi_premium)} = {
+                cls.format_value(round(result.csi_premium_amount), " ₽")
+            }
+FLR: {cls.format_percentage(premium_data.flr_premium)} = {
+                cls.format_value(round(result.flr_premium_amount), " ₽")
+            }
+ГОК: {cls.format_percentage(premium_data.gok_premium)} = {
+                cls.format_value(round(result.gok_premium_amount), " ₽")
+            }
+Цель: {cls.format_percentage(premium_data.target_premium)} = {
+                cls.format_value(round(result.target_premium_amount), " ₽")
+            }
 
 💼 Дополнительно:
 Дисциплина: {cls.format_percentage(premium_data.discipline_premium)} = {
-            cls.format_value(round(result.discipline_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.discipline_premium_amount), " ₽")
+            }
 Тестирование: {cls.format_percentage(premium_data.tests_premium)} = {
-            cls.format_value(round(result.tests_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.tests_premium_amount), " ₽")
+            }
 Благодарности: {cls.format_percentage(premium_data.thanks_premium)} = {
-            cls.format_value(round(result.thanks_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.thanks_premium_amount), " ₽")
+            }
 Наставничество: {cls.format_percentage(premium_data.tutors_premium)} = {
-            cls.format_value(round(result.tutors_premium_amount), " ₽")
-        }
+                cls.format_value(round(result.tutors_premium_amount), " ₽")
+            }
 Ручная правка: {cls.format_percentage(premium_data.head_adjust_premium)} = {
-            cls.format_value(round(result.head_adjust_premium_amount), " ₽")
-        }</blockquote>
+                cls.format_value(round(result.head_adjust_premium_amount), " ₽")
+            }"""
+
+        message_text += f"""</blockquote>
 
 💰 <b>Итого к выплате:</b>
 ~<b>{cls.format_value(round(result.total_salary, 1), " ₽")}</b>

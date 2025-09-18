@@ -298,19 +298,49 @@ class SalaryCalculator:
         )
 
         # Считаем индивидуальную сумму для каждого показателя премии (основываясь на базовой зарплате)
-        csi_premium_amount = base_salary * ((premium_data.csi_premium or 0) / 100)
-        flr_premium_amount = base_salary * ((premium_data.flr_premium or 0) / 100)
-        gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
-        target_premium_amount = base_salary * ((premium_data.target_premium or 0) / 100)
-        discipline_premium_amount = base_salary * (
-            (premium_data.discipline_premium or 0) / 100
+        # Проверяем тип премиум данных (HeadPremium vs SpecPremium)
+        is_head_premium = hasattr(premium_data, "head_adjust") and not hasattr(
+            premium_data, "csi_premium"
         )
-        tests_premium_amount = base_salary * ((premium_data.tests_premium or 0) / 100)
-        thanks_premium_amount = base_salary * ((premium_data.thanks_premium or 0) / 100)
-        tutors_premium_amount = base_salary * ((premium_data.tutors_premium or 0) / 100)
-        head_adjust_premium_amount = base_salary * (
-            (premium_data.head_adjust_premium or 0) / 100
-        )
+
+        if is_head_premium:
+            # Для руководителей - только FLR, GOK, цель и корректировка руководителя
+            csi_premium_amount = 0
+            flr_premium_amount = base_salary * ((premium_data.flr_premium or 0) / 100)
+            gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
+            target_premium_amount = base_salary * (
+                (premium_data.target_premium or 0) / 100
+            )
+            discipline_premium_amount = 0
+            tests_premium_amount = 0
+            thanks_premium_amount = 0
+            tutors_premium_amount = 0
+            head_adjust_premium_amount = base_salary * (
+                (premium_data.head_adjust or 0) / 100
+            )
+        else:
+            # Для специалистов - все показатели
+            csi_premium_amount = base_salary * ((premium_data.csi_premium or 0) / 100)
+            flr_premium_amount = base_salary * ((premium_data.flr_premium or 0) / 100)
+            gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
+            target_premium_amount = base_salary * (
+                (premium_data.target_premium or 0) / 100
+            )
+            discipline_premium_amount = base_salary * (
+                (premium_data.discipline_premium or 0) / 100
+            )
+            tests_premium_amount = base_salary * (
+                (premium_data.tests_premium or 0) / 100
+            )
+            thanks_premium_amount = base_salary * (
+                (premium_data.thanks_premium or 0) / 100
+            )
+            tutors_premium_amount = base_salary * (
+                (premium_data.tutors_premium or 0) / 100
+            )
+            head_adjust_premium_amount = base_salary * (
+                (premium_data.head_adjust_premium or 0) / 100
+            )
 
         # Считаем общую сумму премии
         premium_multiplier = (premium_data.total_premium or 0) / 100
