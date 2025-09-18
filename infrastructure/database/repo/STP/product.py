@@ -35,14 +35,18 @@ class ProductsRepo(BaseRepo):
 
         return result.scalar_one()
 
-    async def get_available_products(self, user_balance: int, division: str) -> List[Product]:
+    async def get_available_products(
+        self, user_balance: int, division: str
+    ) -> List[Product]:
         """
         Получаем список предметов, у которых:
         - стоимость предмета меньше или равна кол-ву баллов пользователя
         """
 
         # Получаем список предметов, подходящих под критерии
-        select_stmt = select(Product).where(and_(Product.cost <= user_balance), Product.division == division)
+        select_stmt = select(Product).where(
+            and_(Product.cost <= user_balance), Product.division == division
+        )
 
         result = await self.session.execute(select_stmt)
         products = result.scalars().all()
