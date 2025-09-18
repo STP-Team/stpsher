@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
@@ -8,14 +7,11 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.history import (
     HeadGroupHistoryMenu,
-    HeadRankingMenu,
     HeadTransactionDetailMenu,
     head_group_history_kb,
-    head_ranking_kb,
     head_transaction_detail_kb,
 )
 from tgbot.keyboards.head.group.game.main import HeadGameMenu
-from tgbot.keyboards.head.group.members import short_name
 
 head_game_history_router = Router()
 head_game_history_router.callback_query.filter(
@@ -119,7 +115,6 @@ async def head_transaction_detail_view(
 
     # Получаем информацию о сотруднике
     employee = await stp_repo.employee.get_user(user_id=transaction.user_id)
-    employee_name = employee.fullname if employee else "Неизвестный сотрудник"
 
     # Определяем эмодзи и текст типа операции
     type_emoji = "➕" if transaction.type == "earn" else "➖"
@@ -147,7 +142,7 @@ async def head_transaction_detail_view(
     message_text = f"""<b>📊 Детали транзакции группы</b>
 
 <b>👤 Сотрудник</b>
-{employee_name}
+<a href='t.me/{employee.username}'>{employee.fullname}</a>
 
 <b>📈 Операция</b>
 {type_emoji} {type_text} <b>{transaction.amount}</b> баллов
@@ -165,105 +160,4 @@ async def head_transaction_detail_view(
 
     await callback.message.edit_text(
         message_text, reply_markup=head_transaction_detail_kb(page)
-    )
-
-
-@head_game_history_router.callback_query(HeadRankingMenu.filter(F.menu == "ranking"))
-async def head_ranking_view(callback: CallbackQuery, stp_repo: MainRequestsRepo):
-    """Показывает рейтинг руководителей по дивизиону"""
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
-        await callback.message.edit_text(
-            "❌ <b>Ошибка</b>\n\nНе удалось найти вашу информацию в базе данных."
-        )
-        return
-
-    if not current_user.division:
-        await callback.message.edit_text(
-            "❌ <b>Ошибка</b>\n\nУ вас не указан дивизион в базе данных.",
-            reply_markup=head_ranking_kb(),
-        )
-        return
-
-    # Получаем рейтинг руководителей по дивизиону
-    ranking = await stp_repo.transaction.get_heads_ranking_by_division(
-        current_user.division
-    )
-
-    if not ranking:
-        await callback.message.edit_text(
-            f"""📊 <b>Рейтинг {current_user.division}</b>
-
-В твоем направлении пока нет данных о других руководителях или активности за текущий месяц
-
-<i>Рейтинг обновляется в реальном времени на основе суммы баллов групп за текущий месяц</i>""",
-            reply_markup=head_ranking_kb(),
-        )
-        return
-
-    # Формируем текст с рейтингом
-    months_ru = {
-        1: "январь",
-        2: "февраль",
-        3: "март",
-        4: "апрель",
-        5: "май",
-        6: "июнь",
-        7: "июль",
-        8: "август",
-        9: "сентябрь",
-        10: "октябрь",
-        11: "ноябрь",
-        12: "декабрь",
-    }
-    current_month_name = f"{months_ru[datetime.now().month]} {datetime.now().year}"
-
-    message_text = f"""📊 <b>Рейтинг ({current_user.division})</b>
-
-<b>🏆 Места за {current_month_name}:</b>
-
-"""
-
-    # Определяем место текущего пользователя
-    current_user_place = None
-    for head_data in ranking:
-        if head_data["head_name"] == current_user.fullname:
-            current_user_place = head_data["place"]
-            break
-
-    # Показываем топ-10
-    display_ranking = ranking[:10]
-
-    for i, head_data in enumerate(display_ranking):
-        place_emoji = ["🥇", "🥈", "🥉"][i] if i < 3 else f"{head_data['place']}."
-
-        # Форматируем имя
-        name_display = short_name(head_data["head_name"])
-        if len(name_display) > 25:
-            name_display = name_display[:22] + "..."
-
-        message_text += (
-            f"{place_emoji} <a href='t.me/{head_data['username']}'>{name_display}</a>\n"
-        )
-        message_text += (
-            f"Группа: {head_data['group_size']} чел. • {head_data['points']} баллов\n\n"
-        )
-
-    if current_user_place:
-        if current_user_place > 10:
-            message_text += (
-                f"...\n\n<b>Твое место: {current_user_place} из {len(ranking)}</b>"
-            )
-        else:
-            message_text += f"<b>Всего руководителей: {len(ranking)}</b>"
-    else:
-        message_text += f"<b>Всего руководителей: {len(ranking)}</b>"
-
-    await callback.message.edit_text(
-        message_text, reply_markup=head_ranking_kb(), parse_mode="HTML"
-    )
-
-    logger.info(
-        f"[Руководитель] - [Рейтинг] {callback.from_user.username} ({callback.from_user.id}): Просмотр рейтинга руководителей {current_user.division}"
     )

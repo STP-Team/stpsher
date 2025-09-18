@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -32,3 +32,30 @@ class SpecPremiumRepo(BaseRepo):
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения показателей премиума специалиста: {e}")
             return None
+
+    async def get_kpi_by_names(
+        self,
+        fullnames: list[str],
+    ) -> Sequence[SpecPremium]:
+        """
+        Поиск показателей премиума специалистов в БД по списку ФИО
+
+        Args:
+            fullnames: Список ФИО специалистов в БД
+
+        Returns:
+            Список объектов SpecPremium
+        """
+        if not fullnames:
+            return []
+
+        query = select(SpecPremium).where(SpecPremium.fullname.in_(fullnames))
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(
+                f"[БД] Ошибка получения показателей премиума специалистов: {e}"
+            )
+            return []

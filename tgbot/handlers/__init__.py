@@ -20,6 +20,7 @@ from tgbot.handlers.head.game.main import head_game_router
 from tgbot.handlers.head.game.products import head_game_products_router
 from tgbot.handlers.head.group.main import head_group_router
 from tgbot.handlers.head.group.members import head_group_members_router
+from tgbot.handlers.head.group.rating import head_group_rating_router
 from tgbot.handlers.head.group.schedule import head_group_schedule_router
 from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
@@ -72,6 +73,7 @@ routers_list = [
     head_schedule_group_router,
     head_group_router,
     head_group_members_router,
+    head_group_rating_router,
     head_group_schedule_router,
     mip_router,
     mip_game_router,

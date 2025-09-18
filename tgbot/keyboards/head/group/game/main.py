@@ -34,10 +34,6 @@ def head_game_kb() -> InlineKeyboardMarkup:
                 text="📜 История группы",
                 callback_data=HeadGameMenu(menu="history").pack(),
             ),
-            InlineKeyboardButton(
-                text="📊 Рейтинг",
-                callback_data=HeadGameMenu(menu="ranking").pack(),
-            ),
         ],
         [
             InlineKeyboardButton(

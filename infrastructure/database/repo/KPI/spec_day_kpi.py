@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -32,3 +32,28 @@ class SpecDayKPIRepo(BaseRepo):
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения дневных показателей специалиста: {e}")
             return None
+
+    async def get_kpi_by_names(
+        self,
+        fullnames: list[str],
+    ) -> Sequence[SpecDayKPI]:
+        """
+        Поиск показателей специалистов за день в БД по списку ФИО
+
+        Args:
+            fullnames: Список ФИО специалистов в БД
+
+        Returns:
+            Список объектов SpecDayKPI
+        """
+        if not fullnames:
+            return []
+
+        query = select(SpecDayKPI).where(SpecDayKPI.fullname.in_(fullnames))
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения дневных показателей специалистов: {e}")
+            return []
