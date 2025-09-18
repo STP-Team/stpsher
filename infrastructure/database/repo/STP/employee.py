@@ -21,6 +21,7 @@ class EmployeeParams(TypedDict, total=False):
     head: str | None
     email: str | None
     role: int
+    is_trainee: bool
 
 
 class EmployeeRepo(BaseRepo):

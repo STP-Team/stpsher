@@ -24,15 +24,17 @@ from tgbot.keyboards.head.group.members import (
     HeadMemberActionMenu,
     HeadMemberDetailMenu,
     HeadMemberKPIMenu,
-    HeadMemberRoleChange,
     HeadMemberScheduleMenu,
     HeadMemberScheduleNavigation,
+    HeadMemberStatusChange,
+    HeadMemberStatusSelect,
     get_month_name_by_index,
     head_group_members_kb,
     head_member_detail_kb,
     head_member_schedule_kb,
 )
 from tgbot.keyboards.head.group.members_kpi import head_member_kpi_kb
+from tgbot.keyboards.head.group.members_status import head_member_status_select_kb
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 head_group_members_router = Router()
@@ -84,6 +86,7 @@ async def group_mgmt_members_cb(callback: CallbackQuery, stp_repo: MainRequestsR
 <blockquote><b>Обозначения</b>
 🔒 - не авторизован в боте
 👮 - дежурный
+👶🏻 - стажер
 🔨 - root</blockquote>
 
 <i>Нажми на участника для просмотра подробной информации</i>"""
@@ -125,6 +128,7 @@ async def group_members_pagination_cb(
 <blockquote><b>Обозначения</b>
 🔒 - не авторизован в боте
 👮 - дежурный
+👶🏻 - стажер
 🔨 - root</blockquote>
 
 <i>Нажми на участника для просмотра подробной информации</i>"""
@@ -564,14 +568,15 @@ async def view_member_kpi(
         await callback.answer("❌ Ошибка при получении KPI", show_alert=True)
 
 
-@head_group_members_router.callback_query(HeadMemberRoleChange.filter())
-async def change_member_role(
+@head_group_members_router.callback_query(HeadMemberStatusSelect.filter())
+async def show_member_status_select(
     callback: CallbackQuery,
-    callback_data: HeadMemberRoleChange,
+    callback_data: HeadMemberStatusSelect,
     stp_repo: MainRequestsRepo,
 ):
-    """Обработчик смены роли участника группы"""
+    """Обработчик показа меню выбора статуса участника группы"""
     member_id = callback_data.member_id
+    page = callback_data.page
 
     try:
         # Поиск участника по ID
@@ -593,44 +598,125 @@ async def change_member_role(
             )
             return
 
-        # Определяем новый уровень доступа
-        new_role = 3 if member.role == 1 else 1
-        old_role_name = "Специалист" if member.role == 1 else "Дежурный"
-        new_role_name = "Дежурный" if new_role == 3 else "Специалист"
+        # Формируем информацию об участнике
+        message_text = f"""⚙️ <b>Изменение статуса</b>
 
-        # Обновляем уровень в базе данных
-        await stp_repo.employee.update_user(user_id=member.user_id, role=new_role)
+<b>ФИО:</b> <a href="https://t.me/{member.username}">{member.fullname}</a>
+<b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
 
-        # Отправляем уведомление пользователю о смене роли (только если он авторизован)
-        if member.user_id:
-            try:
-                await callback.bot.send_message(
-                    chat_id=member.user_id,
-                    text=f"""<b>🔔 Изменение роли</b>
+<i>Выбери новый статус для участника:</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=head_member_status_select_kb(
+                member_id=member_id,
+                page=page,
+                current_role=member.role,
+                is_trainee=member.is_trainee,
+            ),
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при отображении выбора статуса участника {member_id}: {e}"
+        )
+        await callback.answer("❌ Ошибка при отображении меню", show_alert=True)
+
+
+@head_group_members_router.callback_query(HeadMemberStatusChange.filter())
+async def change_member_status(
+    callback: CallbackQuery,
+    callback_data: HeadMemberStatusChange,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик изменения статуса участника группы (стажер/дежурный)"""
+    member_id = callback_data.member_id
+    status_type = callback_data.status_type
+
+    try:
+        # Поиск участника по ID
+        all_users = await stp_repo.employee.get_users()
+        member = None
+        for user in all_users:
+            if user.id == member_id:
+                member = user
+                break
+
+        if not member:
+            await callback.answer("❌ Участник не найден", show_alert=True)
+            return
+
+        # Проверяем, что роль может быть изменена
+        if member.role not in [1, 3] and status_type == "duty":
+            await callback.answer(
+                "❌ Уровень доступа этого пользователя нельзя изменить", show_alert=True
+            )
+            return
+
+        notification_text = ""
+        changes_made = False
+
+        if status_type == "trainee":
+            # Переключаем статус стажера
+            new_trainee_status = not member.is_trainee
+            await stp_repo.employee.update_user(
+                user_id=member.user_id, is_trainee=new_trainee_status
+            )
+
+            status_text = "стажер" if new_trainee_status else "не стажер"
+            notification_text = f"Статус стажера изменен: {status_text}"
+            changes_made = True
+
+            logger.info(
+                f"[Руководитель] - [Изменение статуса стажера] {callback.from_user.username} ({callback.from_user.id}) изменил статус стажера участника {member_id}: {member.is_trainee}"
+            )
+
+        elif status_type == "duty":
+            # Определяем старую и новую роль ДО изменения
+            old_role_name = "Дежурный" if member.role == 3 else "Специалист"
+            new_role = 1 if member.role == 3 else 3
+            new_role_name = "Специалист" if new_role == 1 else "Дежурный"
+
+            # Переключаем роль дежурного
+            await stp_repo.employee.update_user(user_id=member.user_id, role=new_role)
+
+            notification_text = f"Роль изменена: {old_role_name} → {new_role_name}"
+            changes_made = True
+
+            # Отправляем уведомление пользователю о смене роли (только если он авторизован)
+            if member.user_id:
+                try:
+                    await callback.bot.send_message(
+                        chat_id=member.user_id,
+                        text=f"""<b>🔔 Изменение роли</b>
 
 Уровень был изменен: {old_role_name} → {new_role_name}
 
 <i>Изменения могут повлиять на доступные функции бота</i>""",
-                )
-                await callback.answer(
-                    "Отправили специалисту уведомление об изменении роли"
-                )
-            except TelegramBadRequest as e:
-                await callback.answer("Не удалось отправить уведомление специалисту :(")
-                logger.error(
-                    f"Не удалось отправить уведомление пользователю {member.user_id}: {e}"
-                )
-        logger.info(
-            f"[Руководитель] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль участника {member_id}: {old_role_name} → {new_role_name}"
-        )
+                    )
+                except TelegramBadRequest as e:
+                    logger.error(
+                        f"Не удалось отправить уведомление пользователю {member.user_id}: {e}"
+                    )
 
-        await member_detail_cb(
-            callback, HeadMemberDetailMenu(member_id=member.id), stp_repo
-        )
+            logger.info(
+                f"[Руководитель] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль участника {member_id}: {old_role_name} → {new_role_name}"
+            )
+
+        if changes_made:
+            await callback.answer(notification_text)
+
+            await show_member_status_select(
+                callback,
+                HeadMemberStatusSelect(member_id=member.id),
+                stp_repo,
+            )
+        else:
+            await callback.answer("❌ Неизвестный тип статуса", show_alert=True)
 
     except Exception as e:
-        logger.error(f"Ошибка при изменении роли участника {member_id}: {e}")
-        await callback.answer("❌ Ошибка при изменении роли", show_alert=True)
+        logger.error(f"Ошибка при изменении статуса участника {member_id}: {e}")
+        await callback.answer("❌ Ошибка при изменении статуса", show_alert=True)
 
 
 @head_group_members_router.callback_query(HeadMemberGameProfileMenu.filter())

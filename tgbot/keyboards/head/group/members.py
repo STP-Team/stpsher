@@ -52,6 +52,17 @@ class HeadMemberRoleChange(CallbackData, prefix="head_member_role"):
     page: int = 1
 
 
+class HeadMemberStatusSelect(CallbackData, prefix="head_member_status_select"):
+    member_id: int
+    page: int = 1
+
+
+class HeadMemberStatusChange(CallbackData, prefix="head_member_status_change"):
+    member_id: int
+    status_type: str  # "trainee" or "duty"
+    page: int = 1
+
+
 class HeadMemberKPIMenu(CallbackData, prefix="head_member_kpi"):
     member_id: int
     action: str  # "main", "calculator", "salary"
@@ -124,7 +135,8 @@ def head_group_members_kb(
         # Добавляем эмодзи для неавторизованных пользователей
         status_emoji = "🔒 " if not member.user_id else ""
         role_emoji = {3: "👮 ", 10: "🔨 "}.get(member.role, "")
-        button_text = f"{status_emoji}{role_emoji}{member_short_name}"
+        trainee_emoji = "👶🏻 " if member.is_trainee else ""
+        button_text = f"{status_emoji}{role_emoji}{trainee_emoji}{member_short_name}"
 
         row.append(
             InlineKeyboardButton(
@@ -141,7 +153,10 @@ def head_group_members_kb(
             member_short_name = short_name(member.fullname)
             status_emoji = "🔒 " if not member.user_id else ""
             role_emoji = {3: "👮 ", 10: "🔨 "}.get(member.role, "")
-            button_text = f"{status_emoji}{role_emoji}{member_short_name}"
+            trainee_emoji = "👶🏻 " if member.is_trainee else ""
+            button_text = (
+                f"{status_emoji}{role_emoji}{trainee_emoji}{member_short_name}"
+            )
 
             row.append(
                 InlineKeyboardButton(
@@ -268,16 +283,13 @@ def head_member_detail_kb(
         ],
     ]
 
-    # Добавляем кнопку смены роли только для специалистов (роль 1) и дежурных (роль 3)
+    # Добавляем кнопку смены статуса только для специалистов (роль 1) и дежурных (роль 3)
     if member_role in [1, 3]:
-        role_button_text = (
-            "👮 Сделать дежурным" if member_role == 1 else "👤 Сделать спецом"
-        )
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=role_button_text,
-                    callback_data=HeadMemberRoleChange(
+                    text="⚙️ Изменить",
+                    callback_data=HeadMemberStatusSelect(
                         member_id=member_id, page=page
                     ).pack(),
                 ),
