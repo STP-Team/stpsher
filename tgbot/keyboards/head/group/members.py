@@ -288,7 +288,7 @@ def head_member_detail_kb(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="⚙️ Изменить",
+                    text="⚙️ Изменить статус",
                     callback_data=HeadMemberStatusSelect(
                         member_id=member_id, page=page
                     ).pack(),
