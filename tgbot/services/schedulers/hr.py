@@ -202,7 +202,7 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
                     )
 
                     # Проверяем, что это увольнение
-                    if dismissal_type.strip().lower() != "увольнение":
+                    if dismissal_type.strip().lower() not in ["увольнение", "декрет"]:
                         continue
 
                     # Проверяем ФИО (не пустое и содержит буквы)
