@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 
 from infrastructure.database.models import Product
 from infrastructure.database.repo.base import BaseRepo
@@ -35,14 +35,14 @@ class ProductsRepo(BaseRepo):
 
         return result.scalar_one()
 
-    async def get_available_products(self, user_balance: int) -> List[Product]:
+    async def get_available_products(self, user_balance: int, division: str) -> List[Product]:
         """
         Получаем список предметов, у которых:
         - стоимость предмета меньше или равна кол-ву баллов пользователя
         """
 
         # Получаем список предметов, подходящих под критерии
-        select_stmt = select(Product).where(and_(Product.cost <= user_balance))
+        select_stmt = select(Product).where(and_(Product.cost <= user_balance), Product.division == division)
 
         result = await self.session.execute(select_stmt)
         products = result.scalars().all()

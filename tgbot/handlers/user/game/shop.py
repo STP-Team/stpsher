@@ -63,7 +63,8 @@ async def game_shop(
     # Получаем предметы на основе фильтра
     if filter_type == "available":
         # Получаем только доступные предметы на основе баланса пользователя
-        products = await stp_repo.product.get_available_products(user_balance)
+        division = "НТП" if "НТП" in user.division else "НЦК"
+        products = await stp_repo.product.get_available_products(user_balance, division)
         filter_title = "Доступные предметы"
     else:  # filter_type == "all"
         # Получаем все предметы для направления пользователя
