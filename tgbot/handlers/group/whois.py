@@ -10,7 +10,7 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 logger = logging.getLogger(__name__)
 
 whois_router = Router()
-whois_router.message.filter(F.chat.type == "group")
+whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 
 def get_role_info(role: int) -> dict:

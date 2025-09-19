@@ -9,7 +9,11 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import AdministratorFilter, MultiRoleFilter, SpecialistFilter
+from tgbot.filters.role import (
+    DutyFilter,
+    MultiRoleFilter,
+    SpecialistFilter,
+)
 from tgbot.handlers.user.game.casino import (
     get_bowling_result_multiplier,
     get_darts_result_multiplier,
@@ -21,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 group_casino_router = Router()
 group_casino_router.message.filter(
-    F.chat.type == "group", MultiRoleFilter(SpecialistFilter(), AdministratorFilter())
+    F.chat.type.in_(("group", "supergroup")),
+    MultiRoleFilter(SpecialistFilter(), DutyFilter()),
 )
 
 
