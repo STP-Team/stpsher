@@ -158,9 +158,9 @@ async def head_purchase_activation(
     # Определяем направление пользователя для фильтрации
     user_division = "НЦК" if "НЦК" in user.division else "НТП"
 
-    # Получаем покупки, ожидающие активации с manager_role == 7
+    # Получаем покупки, ожидающие активации с manager_role == 3
     review_purchases = await stp_repo.purchase.get_review_purchases_for_activation(
-        manager_role=7
+        manager_role=3
     )
 
     # Фильтруем покупки по направлению руководителя
