@@ -499,7 +499,8 @@ async def show_head_user_status_select(
         # Проверяем, что руководитель может изменять статус этого пользователя
         if user.role not in [1, 3]:
             await callback.answer(
-                "❌ Ты можешь изменять статус только специалистов и дежурных", show_alert=True
+                "❌ Ты можешь изменять статус только специалистов и дежурных",
+                show_alert=True,
             )
             return
 
@@ -553,7 +554,8 @@ async def change_head_user_status(
         # Проверяем, что руководитель может изменять статус этого пользователя
         if user.role not in [1, 3]:
             await callback.answer(
-                "❌ Ты можешь изменять статус только специалистов и дежурных", show_alert=True
+                "❌ Ты можешь изменять статус только специалистов и дежурных",
+                show_alert=True,
             )
             return
 
@@ -653,7 +655,8 @@ async def toggle_head_user_casino(
         # Проверяем, что руководитель может изменять доступ к казино
         if user.role not in [1, 3]:
             await callback.answer(
-                "❌ Доступ к казино можно изменять только для специалистов и дежурных", show_alert=True
+                "❌ Доступ к казино можно изменять только для специалистов и дежурных",
+                show_alert=True,
             )
             return
 
@@ -683,5 +686,7 @@ async def toggle_head_user_casino(
         )
 
     except Exception as e:
-        logger.error(f"Ошибка при изменении доступа к казино пользователя {user_id}: {e}")
+        logger.error(
+            f"Ошибка при изменении доступа к казино пользователя {user_id}: {e}"
+        )
         await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
