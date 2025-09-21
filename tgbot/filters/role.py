@@ -10,7 +10,7 @@ class RootFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="root")
+        return user.role == get_role(role_name="root", return_id=True)
 
 
 class MipFilter(BaseFilter):
@@ -18,7 +18,7 @@ class MipFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="МИП")
+        return user.role == get_role(role_name="МИП", return_id=True)
 
 
 class DutyFilter(BaseFilter):
@@ -26,7 +26,7 @@ class DutyFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="Дежурный")
+        return user.role == get_role(role_name="Дежурный", return_id=True)
 
 
 class GokFilter(BaseFilter):
@@ -34,7 +34,7 @@ class GokFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="ГОК")
+        return user.role == get_role(role_name="ГОК", return_id=True)
 
 
 class HeadFilter(BaseFilter):
@@ -42,7 +42,7 @@ class HeadFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="Руководитель")
+        return user.role == get_role(role_name="Руководитель", return_id=True)
 
 
 class AdministratorFilter(BaseFilter):
@@ -50,7 +50,7 @@ class AdministratorFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="Администратор")
+        return user.role == get_role(role_name="Администратор", return_id=True)
 
 
 class SpecialistFilter(BaseFilter):
@@ -58,7 +58,7 @@ class SpecialistFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == get_role(role_name="Специалист")
+        return user.role == get_role(role_name="Специалист", return_id=True)
 
 
 class MultiRoleFilter(BaseFilter):

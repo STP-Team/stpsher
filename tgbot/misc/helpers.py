@@ -9,11 +9,13 @@ def generate_auth_code(length=6):
     return "".join(random.choice(chars) for _ in range(length))
 
 
-def get_role(role_id: int = None, role_name: str = None):
+def get_role(role_id: int = None, role_name: str = None, return_id: bool = False):
     if role_id is not None:
-        return roles.get(role_id)
-    elif role_name is not None:
+        return role_id if return_id else roles.get(role_id)
+
+    if role_name is not None:
         for r_id, data in roles.items():
             if data["name"] == role_name:
-                return {r_id: data}
+                return r_id if return_id else data
+
     return None
