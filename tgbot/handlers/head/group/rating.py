@@ -43,11 +43,11 @@ def get_period_display_text(period: str) -> str:
         return f"за {yesterday.strftime('%d.%m')}"
 
     elif period == "week":
-        # Показываем прошлую неделю (пн-вс)
+        # Показываем текущую неделю (пн-вс)
         days_since_monday = now.weekday()
-        last_monday = now - timedelta(days=days_since_monday + 7)
-        last_sunday = last_monday + timedelta(days=6)
-        return f"за {last_monday.strftime('%d.%m')} - {last_sunday.strftime('%d.%m')}"
+        current_monday = now - timedelta(days=days_since_monday)
+        current_sunday = current_monday + timedelta(days=6)
+        return f"за {current_monday.strftime('%d.%m')} - {current_sunday.strftime('%d.%m')}"
 
     elif period == "month":
         # Показываем прошлый месяц
@@ -85,12 +85,12 @@ def get_latest_update_date(kpi_data: list) -> str:
     if not kpi_data:
         return "нет данных"
 
-    # Находим последнюю дату обновления
+    # Находим последнюю дату извлечения KPI
     latest_date = None
     for kpi in kpi_data:
-        if hasattr(kpi, "updated_at") and kpi.updated_at:
-            if latest_date is None or kpi.updated_at > latest_date:
-                latest_date = kpi.updated_at
+        if hasattr(kpi, "kpi_extract_date") and kpi.kpi_extract_date:
+            if latest_date is None or kpi.kpi_extract_date > latest_date:
+                latest_date = kpi.kpi_extract_date
 
     if latest_date:
         return latest_date.strftime("%d.%m.%Y %H:%M")
