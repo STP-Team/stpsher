@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import Sequence
 
 from infrastructure.database.models.STP.transactions import Transaction
+from tgbot.keyboards.head.group.game.main import HeadGameMenu
 from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.user.main import MainMenu
 
@@ -143,8 +144,7 @@ def head_group_history_kb(
         if current_page > 2:
             pagination_row.append(
                 InlineKeyboardButton(
-                    text="⏪",
-                    callback_data=HeadGroupHistoryMenu(menu="history", page=1).pack(),
+                    text="⏪", callback_data=HeadGameMenu(menu="history", page=1).pack()
                 )
             )
         else:
@@ -155,7 +155,7 @@ def head_group_history_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⬅️",
-                    callback_data=HeadGroupHistoryMenu(
+                    callback_data=HeadGameMenu(
                         menu="history", page=current_page - 1
                     ).pack(),
                 )
@@ -176,7 +176,7 @@ def head_group_history_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="➡️",
-                    callback_data=HeadGroupHistoryMenu(
+                    callback_data=HeadGameMenu(
                         menu="history", page=current_page + 1
                     ).pack(),
                 )
@@ -189,9 +189,7 @@ def head_group_history_kb(
             pagination_row.append(
                 InlineKeyboardButton(
                     text="⏭️",
-                    callback_data=HeadGroupHistoryMenu(
-                        menu="history", page=total_pages
-                    ).pack(),
+                    callback_data=HeadGameMenu(menu="history", page=total_pages).pack(),
                 )
             )
         else:
@@ -223,27 +221,7 @@ def head_transaction_detail_kb(page: int = 1) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="↩️ Назад",
-                callback_data=HeadGroupHistoryMenu(menu="history", page=page).pack(),
-            ),
-            InlineKeyboardButton(
-                text="🏠 Домой",
-                callback_data=MainMenu(menu="main").pack(),
-            ),
-        ]
-    ]
-
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-def head_ranking_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура для рейтинга руководителей
-    """
-    buttons = [
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=GroupManagementMenu(menu="game").pack(),
+                callback_data=HeadGameMenu(menu="history", page=page).pack(),
             ),
             InlineKeyboardButton(
                 text="🏠 Домой",

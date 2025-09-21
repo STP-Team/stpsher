@@ -8,7 +8,6 @@ from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.history import (
-    HeadGroupHistoryMenu,
     HeadTransactionDetailMenu,
     head_group_history_kb,
     head_transaction_detail_kb,
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 @head_game_history_router.callback_query(HeadGameMenu.filter(F.menu == "history"))
 async def head_group_history(
     callback: CallbackQuery,
-    callback_data: HeadGroupHistoryMenu,
+    callback_data: HeadGameMenu,
     user: Employee,
     stp_repo: MainRequestsRepo,
 ):
@@ -53,9 +52,9 @@ async def head_group_history(
 
     if not group_transactions:
         await callback.message.edit_text(
-            """📜 <b>История баланса группы</b>
+            """📜 <b>История группы</b>
 
-Здесь отображается вся история операций с баллами всех участников вашей группы
+Здесь отображается вся история операций с баллами всех участников твоей группы
 
 У группы пока нет транзакций 🙂
 
@@ -68,9 +67,9 @@ async def head_group_history(
 
     total_transactions = len(group_transactions)
 
-    message_text = f"""📜 <b>История баланса группы</b>
+    message_text = f"""📜 <b>История группы</b>
 
-Здесь отображается вся история операций с баллами всех участников вашей группы
+Здесь отображается вся история операций с баллами всех участников твоей группы
 
 <i>Всего транзакций: {total_transactions}</i>"""
 

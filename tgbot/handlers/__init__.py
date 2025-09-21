@@ -13,11 +13,11 @@ from tgbot.handlers.group.casino import group_casino_router
 from tgbot.handlers.group.group_join import chat_member
 from tgbot.handlers.group.settings import group_settings_router
 from tgbot.handlers.group.whois import whois_router
-from tgbot.handlers.head.game.achievements import head_game_achievements_router
-from tgbot.handlers.head.game.filters import head_game_filters_router
-from tgbot.handlers.head.game.history import head_game_history_router
-from tgbot.handlers.head.game.main import head_game_router
-from tgbot.handlers.head.game.products import head_game_products_router
+from tgbot.handlers.head.group.game.achievements import head_game_achievements_router
+from tgbot.handlers.head.group.game.filters import head_game_filters_router
+from tgbot.handlers.head.group.game.history import head_game_history_router
+from tgbot.handlers.head.group.game.main import head_game_router
+from tgbot.handlers.head.group.game.products import head_game_products_router
 from tgbot.handlers.head.group.main import head_group_router
 from tgbot.handlers.head.group.members import head_group_members_router
 from tgbot.handlers.head.group.rating import head_group_rating_router
