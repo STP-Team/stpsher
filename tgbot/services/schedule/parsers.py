@@ -902,10 +902,10 @@ class DutyScheduleParser(BaseDutyParser):
                     df = self.read_excel_file(schedule_file, alt_sheet_name)
 
             if df is None:
-                logger.warning(
+                logger.debug(
                     f"[График дежурных] Не удалось найти график дежурных на {date} для {division}"
                 )
-                raise ValueError("Failed to read duty schedule")
+                raise ValueError("Не удалось найти график дежурных")
 
             # Find all date columns for the month
             month_duties = {}
@@ -1070,10 +1070,10 @@ class DutyScheduleParser(BaseDutyParser):
                     df = self.read_excel_file(schedule_file, alt_sheet_name)
 
             if df is None:
-                logger.warning(
+                logger.debug(
                     f"[График дежурных] Не удалось найти график дежурных на {date} для {division}"
                 )
-                raise ValueError("Failed to read duty schedule")
+                raise ValueError("Не удалось найти график дежурных")
 
             date_col = self.date_finder.find_date_column(df, date, search_rows=3)
             if date_col is None:
