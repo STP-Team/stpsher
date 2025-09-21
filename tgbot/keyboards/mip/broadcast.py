@@ -3,6 +3,7 @@ from typing import List, Tuple
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.mip.search import short_name
 from tgbot.keyboards.user.main import MainMenu
 
 
@@ -116,14 +117,9 @@ def heads_selection_kb(
         is_selected = head_id in selected_heads
         emoji = "✅" if is_selected else "☑️"
 
-        # Укорачиваем длинные имена
-        display_name = head_name
-        if len(display_name) > 20:
-            display_name = display_name[:17] + "..."
-
         row.append(
             InlineKeyboardButton(
-                text=f"{emoji} {display_name}",
+                text=f"{emoji} {short_name(head_name)}",
                 callback_data=BroadcastMenu(action=f"toggle_head_{head_id}").pack(),
             )
         )
@@ -134,14 +130,9 @@ def heads_selection_kb(
             is_selected2 = head_id2 in selected_heads
             emoji2 = "✅" if is_selected2 else "☑️"
 
-            # Укорачиваем длинные имена
-            display_name2 = head_name2
-            if len(display_name2) > 20:
-                display_name2 = display_name2[:17] + "..."
-
             row.append(
                 InlineKeyboardButton(
-                    text=f"{emoji2} {display_name2}",
+                    text=f"{emoji2} {short_name(head_name2)}",
                     callback_data=BroadcastMenu(
                         action=f"toggle_head_{head_id2}"
                     ).pack(),
