@@ -41,7 +41,7 @@ class GroupScheduleService:
 
             # Форматируем расписание с пагинацией
             return self.group_parser.format_group_schedule_for_user(
-                date, group_members, user.fullname, page
+                date, group_members, page
             )
 
         except Exception as e:

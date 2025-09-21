@@ -1540,22 +1540,19 @@ class GroupScheduleParser(BaseExcelParser):
                 if not self.utils.is_valid_name(name_cell):
                     continue
 
-                # Get working hours
+                # Get working hours for the specific date
                 working_hours = "Не указано"
                 if date_column is not None:
                     hours_cell = self.utils.get_cell_value(df, row_idx, date_column)
-                    if hours_cell and self.utils.is_time_format(hours_cell):
-                        working_hours = hours_cell
-
-                # If no working hours found for the specific date, look for default schedule
-                if working_hours == "Не указано":
-                    for col_idx in range(
-                        len(df.columns) - 1, max(header_info.get("head_col", 5), 0), -1
-                    ):
-                        cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
-                        if self.utils.is_time_format(cell_value):
-                            working_hours = cell_value
-                            break
+                    if hours_cell and hours_cell.strip():
+                        if self.utils.is_time_format(hours_cell):
+                            working_hours = hours_cell
+                        else:
+                            # Non-time value (vacation, day off, etc.) - skip this person
+                            continue
+                    else:
+                        # Empty cell means day off - skip this person
+                        continue
 
                 # Get user from database
                 user = None
@@ -1619,6 +1616,7 @@ class GroupScheduleParser(BaseExcelParser):
             all_members = await self.get_group_members_for_head(
                 user.head, date, division, stp_repo
             )
+            logger.info(all_members)
 
             return self._sort_members_by_time(all_members)
 
@@ -1697,7 +1695,6 @@ class GroupScheduleParser(BaseExcelParser):
         self,
         date: datetime,
         group_members: List[GroupMemberInfo],
-        user_name: str,
         page: int = 1,
         members_per_page: int = 20,
     ) -> tuple[str, int, bool, bool]:
@@ -1710,12 +1707,7 @@ class GroupScheduleParser(BaseExcelParser):
                 False,
             )
 
-        # Exclude the user themselves
-        colleagues = [
-            member
-            for member in group_members
-            if not self.utils.names_match(user_name, member.name)
-        ]
+        colleagues = [member for member in group_members]
 
         if not colleagues:
             return (
@@ -1726,7 +1718,7 @@ class GroupScheduleParser(BaseExcelParser):
             )
 
         # Apply pagination
-        total_colleagues = len(colleagues)
+        total_colleagues = len(group_members)
         total_pages = max(
             1, (total_colleagues + members_per_page - 1) // members_per_page
         )
@@ -1754,7 +1746,7 @@ class GroupScheduleParser(BaseExcelParser):
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
-            lines.append(f"🕒 <b>{start_time}</b>")
+            lines.append(f"<b>{start_time}</b>")
 
             for member in members:
                 lines.append(self._format_member_with_link(member))
