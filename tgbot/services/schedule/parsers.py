@@ -1616,7 +1616,6 @@ class GroupScheduleParser(BaseExcelParser):
             all_members = await self.get_group_members_for_head(
                 user.head, date, division, stp_repo
             )
-            logger.info(all_members)
 
             return self._sort_members_by_time(all_members)
 
