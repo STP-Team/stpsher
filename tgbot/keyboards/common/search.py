@@ -395,6 +395,7 @@ def user_schedule_with_month_kb(
     except ValueError:
         # Если не найден в title case, попробуем найти по lowercase в русских месяцах
         from tgbot.misc.dicts import russian_months
+
         try:
             for idx, month_name in russian_months.items():
                 if month_name.lower() == current_month.lower():
