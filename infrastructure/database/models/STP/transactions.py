@@ -1,9 +1,10 @@
-from sqlalchemy import Integer, Enum, String, TIMESTAMP
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import TIMESTAMP, Enum, Integer, String
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
-from typing import Optional
-from datetime import datetime
 
 from infrastructure.database.models.base import Base, TableNameMixin
 
@@ -61,6 +62,12 @@ class Transaction(Base, TableNameMixin):
     )
     created_by: Mapped[Optional[int]] = mapped_column(
         BIGINT, nullable=True, comment="ID администратора, создавшего транзакцию"
+    )
+    kpi_extracted_at: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP,
+        nullable=True,
+        default=func.current_timestamp(),
+        comment="Начальная дата выгружаемых показателей",
     )
     created_at: Mapped[Optional[datetime]] = mapped_column(
         TIMESTAMP,

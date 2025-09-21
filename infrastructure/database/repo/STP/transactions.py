@@ -1,3 +1,4 @@
+import datetime
 import logging
 from typing import Optional, Sequence, TypedDict, Unpack
 
@@ -20,6 +21,7 @@ class TransactionParams(TypedDict, total=False):
     amount: int
     comment: Optional[str]
     created_by: Optional[int]
+    kpi_extracted_at: Optional[datetime]
 
 
 class TransactionRepo(BaseRepo):
@@ -32,6 +34,7 @@ class TransactionRepo(BaseRepo):
         source_id: Optional[int] = None,
         comment: Optional[str] = None,
         created_by: Optional[int] = None,
+        kpi_extracted_at: Optional[datetime] = None,
     ) -> tuple[Transaction, int] | None:
         """
         Добавить новую транзакцию в БД
@@ -57,6 +60,7 @@ class TransactionRepo(BaseRepo):
                 source_id=source_id,
                 comment=comment,
                 created_by=created_by,
+                kpi_extracted_at=kpi_extracted_at,
             )
 
             self.session.add(transaction)

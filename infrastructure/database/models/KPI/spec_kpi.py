@@ -53,9 +53,15 @@ class SpecDayKPI(Base, TableNameMixin):
         name="UpdateData",
         default=datetime.now,
     )
+    kpi_extract_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Начальная дата выгружаемых показателей",
+        name="KpiExtractDate",
+    )
 
     def __repr__(self):
-        return f"<SpecDayKPI {self.fullname} {self.contacts_count} {self.aht} {self.flr} {self.csi} {self.pok} {self.delay} {self.sales_count} {self.sales_potential} {self.updated_at}>"
+        return f"<SpecDayKPI {self.fullname} {self.contacts_count}>"
 
 
 class SpecWeekKPI(Base, TableNameMixin):
@@ -105,9 +111,15 @@ class SpecWeekKPI(Base, TableNameMixin):
         name="UpdateData",
         default=datetime.now,
     )
+    kpi_extract_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Начальная дата выгружаемых показателей",
+        name="KpiExtractDate",
+    )
 
     def __repr__(self):
-        return f"<SpecWeekKPI {self.fullname} {self.contacts_count} {self.aht} {self.flr} {self.csi} {self.pok} {self.delay} {self.sales_count} {self.sales_potential} {self.updated_at}>"
+        return f"<SpecWeekKPI {self.fullname} {self.contacts_count}>"
 
 
 class SpecMonthKPI(Base, TableNameMixin):
@@ -161,6 +173,12 @@ class SpecMonthKPI(Base, TableNameMixin):
         name="UpdateData",
         default=datetime.now,
     )
+    kpi_extract_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="Начальная дата выгружаемых показателей",
+        name="KpiExtractDate",
+    )
 
     def __repr__(self):
-        return f"<SpecMonthKPI {self.fullname} {self.contacts_count} {self.aht} {self.flr} {self.csi} {self.pok} {self.delay} {self.sales_count} {self.sales_potential} {self.updated_at}>"
+        return f"<SpecMonthKPI {self.fullname} {self.contacts_count}>"
