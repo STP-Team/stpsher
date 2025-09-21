@@ -55,17 +55,14 @@ def betting_kb(
     if current_rate is None:
         current_rate = max(10, user_balance // 10)
 
-    buttons = []
-
-    # Первый ряд: текущая ставка крупно
-    buttons.append(
+    buttons = [
         [
             InlineKeyboardButton(
                 text=f"💎 СТАВКА: {current_rate} 💎",
                 callback_data="noop",
             )
         ]
-    )
+    ]
 
     # Второй ряд: главная кнопка игры
     game_texts = {

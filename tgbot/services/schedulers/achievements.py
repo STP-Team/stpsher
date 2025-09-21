@@ -605,7 +605,7 @@ async def _award_achievements(
 
             transaction, new_balance = await stp_repo.transaction.add_transaction(
                 user_id=user.user_id,
-                type="earn",
+                transaction_type="earn",
                 source_type="achievement",
                 amount=achievement["reward_points"],
                 source_id=achievement["id"],

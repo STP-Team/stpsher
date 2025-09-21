@@ -37,7 +37,7 @@ class SchedulerManager:
         jobstores: Dict[str, BaseJobStore] = {"default": MemoryJobStore()}
 
         if config.tg_bot.use_redis:
-            REDIS = {
+            redis = {
                 "host": config.redis.redis_host,
                 "port": config.redis.redis_port,
                 "password": config.redis.redis_pass,
@@ -45,7 +45,7 @@ class SchedulerManager:
                 "ssl": False,
                 "decode_responses": False,
             }
-            jobstores["redis"] = RedisJobStore(**REDIS)
+            jobstores["redis"] = RedisJobStore(**redis)
 
         self.scheduler.configure(
             jobstores=jobstores,

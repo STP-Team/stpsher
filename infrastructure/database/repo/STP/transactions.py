@@ -26,7 +26,7 @@ class TransactionRepo(BaseRepo):
     async def add_transaction(
         self,
         user_id: int,
-        type: str,
+        transaction_type: str,
         source_type: str,
         amount: int,
         source_id: Optional[int] = None,
@@ -38,7 +38,7 @@ class TransactionRepo(BaseRepo):
 
         Args:
             user_id: Идентификатор пользователя
-            type: Тип операции: 'earn' или 'spend'
+            transaction_type: Тип операции: 'earn' или 'spend'
             source_type: Источник транзакции: 'achievement', 'product', 'casino', 'manual'
             amount: Количество баллов
             source_id: Идентификатор достижения или предмета (опционально)
@@ -51,7 +51,7 @@ class TransactionRepo(BaseRepo):
         try:
             transaction = Transaction(
                 user_id=user_id,
-                type=type,
+                type=transaction_type,
                 source_type=source_type,
                 amount=amount,
                 source_id=source_id,
@@ -263,7 +263,7 @@ class TransactionRepo(BaseRepo):
             Список транзакций всех участников группы
         """
         try:
-            from infrastructure.database.models.STP.employee import Employee
+            from infrastructure.database.models import Employee
 
             # Получаем всех участников группы
             group_members = await self.session.execute(
@@ -307,7 +307,7 @@ class TransactionRepo(BaseRepo):
 
             from sqlalchemy import and_, func
 
-            from infrastructure.database.models.STP.employee import Employee
+            from infrastructure.database.models import Employee
 
             # Получаем начало текущего месяца (1-е число)
             current_date = datetime.now()
@@ -387,7 +387,7 @@ class TransactionRepo(BaseRepo):
         try:
             from sqlalchemy import func
 
-            from infrastructure.database.models.STP.employee import Employee
+            from infrastructure.database.models import Employee
 
             # Получаем всех участников группы
             group_members = await self.session.execute(
@@ -462,7 +462,7 @@ class TransactionRepo(BaseRepo):
 
             from sqlalchemy import func
 
-            from infrastructure.database.models.STP.employee import Employee
+            from infrastructure.database.models import Employee
 
             # Получаем всех участников группы
             group_members = await self.session.execute(

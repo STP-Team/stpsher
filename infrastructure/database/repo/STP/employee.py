@@ -4,7 +4,7 @@ from typing import Optional, Sequence, TypedDict, Unpack
 from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from infrastructure.database.models.STP.employee import Employee
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ class EmployeeParams(TypedDict, total=False):
 class EmployeeRepo(BaseRepo):
     async def get_user(
         self,
+        main_id: Optional[int] = None,
         user_id: Optional[int] = None,
         username: Optional[str] = None,
         fullname: Optional[str] = None,
@@ -36,6 +37,7 @@ class EmployeeRepo(BaseRepo):
         Поиск пользователя в БД по фильтрам
 
         Args:
+            main_id: Primary Key
             user_id: Уникальный идентификатор пользователя Telegram
             username: Никнейм пользователя Telegram
             fullname: ФИО пользователя в БД
@@ -46,6 +48,8 @@ class EmployeeRepo(BaseRepo):
         """
         filters = []
 
+        if main_id:
+            filters.append(Employee.id == main_id)
         if user_id:
             filters.append(Employee.user_id == user_id)
         if username:

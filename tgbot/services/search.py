@@ -152,10 +152,10 @@ class SearchService:
         :param stats: Статистика игрока (опционально)
         :return: Отформатированная строка с информацией
         """
-        from tgbot.misc.dicts import role_names
+        from tgbot.misc.dicts import roles
 
         # Определение роли
-        role_name = role_names.get(user.role, "Неизвестная роль")
+        role_name = roles.get(user.role, "Неизвестная роль")
 
         # Формирование основной информации о пользователе
         user_info = f"""<b>👤 Информация о сотруднике</b>
@@ -184,11 +184,10 @@ class SearchService:
         return user_info
 
     @staticmethod
-    def format_head_group_info(user: Employee, group_stats: dict) -> str:
+    def format_head_group_info(group_stats: dict) -> str:
         """
         Формирует информацию о группе руководителя
 
-        :param user: Руководитель
         :param group_stats: Статистика группы
         :return: Дополнительная информация для руководителей
         """

@@ -230,9 +230,11 @@ class ScheduleChangeDetector:
             "ДЕКАБРЬ",
         ]
 
-        def find_month_column(target_month: str, start_col: int = 0) -> Optional[int]:
+        def find_month_column(
+            target_month: str, target_first_col: int = 0
+        ) -> Optional[int]:
             """Находит колонку с указанным месяцем."""
-            for col_idx in range(start_col, len(df.columns)):
+            for col_idx in range(target_first_col, len(df.columns)):
                 # Проверяем заголовки колонок
                 col_name = (
                     str(df.columns[col_idx]).upper() if df.columns[col_idx] else ""

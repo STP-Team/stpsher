@@ -2,7 +2,9 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from sqlalchemy import select
 
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.history import (
@@ -25,29 +27,22 @@ logger = logging.getLogger(__name__)
 async def head_group_history(
     callback: CallbackQuery,
     callback_data: HeadGroupHistoryMenu,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
-    """Показывает историю транзакций группы для руководителя"""
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
+    if not user:
         await callback.message.edit_text(
-            "❌ <b>Ошибка</b>\n\nНе удалось найти вашу информацию в базе данных."
+            "❌ <b>Ошибка</b>\n\nНе удалось найти информацию в базе данных."
         )
         return
 
     # Получаем транзакции группы
     group_transactions = await stp_repo.transaction.get_group_transactions(
-        current_user.fullname
+        user.fullname
     )
 
-    # Получаем информацию о сотрудниках для отображения их имен
-    from sqlalchemy import select
-
-    from infrastructure.database.models.STP.employee import Employee
-
     group_members_result = await stp_repo.session.execute(
-        select(Employee).where(Employee.head == current_user.fullname)
+        select(Employee).where(Employee.head == user.fullname)
     )
     members = group_members_result.scalars().all()
     employee_names = {

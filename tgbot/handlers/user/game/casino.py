@@ -449,7 +449,7 @@ async def casino_game(
             # Чистый выигрыш - записываем earn транзакцию
             transaction, new_balance = await stp_repo.transaction.add_transaction(
                 user_id=user.user_id,
-                type="earn",
+                transaction_type="earn",
                 source_type="casino",
                 amount=net_result,
                 comment=f"Выигрыш в {game_name}: {result_text} (x{multiplier})",
@@ -458,7 +458,7 @@ async def casino_game(
             # Утешительный приз меньше ставки - записываем spend транзакцию
             transaction, new_balance = await stp_repo.transaction.add_transaction(
                 user_id=user.user_id,
-                type="spend",
+                transaction_type="spend",
                 source_type="casino",
                 amount=abs(net_result),
                 comment=f"Утешительный приз в {game_name}: {result_text} (x{multiplier})",
@@ -480,7 +480,7 @@ async def casino_game(
         # Списываем ставку
         transaction, new_balance = await stp_repo.transaction.add_transaction(
             user_id=user.user_id,
-            type="spend",
+            transaction_type="spend",
             source_type="casino",
             amount=bet_amount,
             comment=f"Проигрыш в {game_name}: {result_text}",

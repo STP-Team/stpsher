@@ -29,7 +29,7 @@ from tgbot.keyboards.mip.search import (
     user_schedule_with_month_kb,
 )
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.misc.dicts import role_names
+from tgbot.misc.dicts import roles
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
 
@@ -378,18 +378,7 @@ async def show_user_details(
             )
             return
 
-        # Определение роли
-        role_names = {
-            0: "Не авторизован",
-            1: "Специалист",
-            2: "Руководитель",
-            3: "Дежурный",
-            4: "Администратор",
-            5: "ГОК",
-            6: "МИП",
-            10: "root",
-        }
-        role_name = role_names.get(user.role, "Неизвестная роль")
+        role_name = roles.get(user.role, "Неизвестная роль")
 
         # Получаем статистику пользователя
         stats = await get_user_statistics(user_id, stp_repo)
@@ -545,8 +534,8 @@ async def start_edit_user(
 
         # Получаем название текущей роли
         current_role_name = (
-            role_names[user.role]
-            if user.role < len(role_names)
+            roles[user.role]
+            if user.role < len(roles)
             else f"Неизвестная роль ({user.role})"
         )
 
@@ -810,13 +799,13 @@ async def process_role_change(
 
         # Получаем названия ролей
         old_role_name = (
-            role_names[user.role]
-            if user.role < len(role_names)
+            roles[user.role]
+            if user.role < len(roles)
             else f"Неизвестный уровень ({user.role})"
         )
         new_role_name = (
-            role_names[new_role]
-            if new_role < len(role_names)
+            roles[new_role]
+            if new_role < len(roles)
             else f"Неизвестный уровень ({new_role})"
         )
 

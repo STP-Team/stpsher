@@ -18,7 +18,7 @@ from tgbot.keyboards.user.game.inventory import (
 )
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.shop import ProductDetailsShop
-from tgbot.misc.dicts import executed_codes
+from tgbot.misc.dicts import roles
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.mailing import (
     send_activation_product_email,
@@ -349,7 +349,7 @@ async def use_product_handler(
 
     if success:
         product_name = user_product_detail.product_info.name
-        role_lookup = {v: k for k, v in executed_codes.items()}
+        role_lookup = {v: k for k, v in roles.items()}
         confirmer = role_lookup.get(
             user_product_detail.product_info.manager_role, "Неизвестно"
         )
@@ -452,7 +452,7 @@ async def sell_product_handler(
         success = await stp_repo.purchase.delete_user_purchase(user_product_id)
         await stp_repo.transaction.add_transaction(
             user_id=user_product.user_id,
-            type="earn",
+            transaction_type="earn",
             source_type="product",
             source_id=product_info.id,
             amount=product_info.cost,

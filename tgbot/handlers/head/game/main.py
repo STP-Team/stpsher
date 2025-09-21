@@ -4,6 +4,7 @@ from datetime import datetime
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.main import head_game_kb
@@ -17,27 +18,23 @@ logger = logging.getLogger(__name__)
 
 
 @head_game_router.callback_query(GroupManagementMenu.filter(F.menu == "game"))
-async def head_game_menu(callback: CallbackQuery, stp_repo: MainRequestsRepo):
+async def head_game_menu(
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
+):
     """
     Обработчик игрового меню для руководителей
     """
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
+    if not user:
         await callback.message.edit_text(
-            "❌ <b>Ошибка</b>\n\nНе удалось найти вашу информацию в базе данных."
+            "❌ <b>Ошибка</b>\n\nНе удалось найти информацию в базе данных."
         )
         return
 
     # Получаем статистику группы
-    group_stats = await stp_repo.transaction.get_group_stats_by_head(
-        current_user.fullname
-    )
+    group_stats = await stp_repo.transaction.get_group_stats_by_head(user.fullname)
 
     # Получаем ТОП-3 за все время
-    all_time_top_3 = await stp_repo.transaction.get_group_all_time_top_3(
-        current_user.fullname
-    )
+    all_time_top_3 = await stp_repo.transaction.get_group_all_time_top_3(user.fullname)
 
     # Формируем текст с информацией о группе
     months_ru = {

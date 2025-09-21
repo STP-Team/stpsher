@@ -1,8 +1,8 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from infrastructure.database.models.STP.employee import Employee
-from tgbot.misc.dicts import executed_codes
+from infrastructure.database.models import Employee
+from tgbot.misc.helpers import get_role
 
 
 class RootFilter(BaseFilter):
@@ -10,7 +10,7 @@ class RootFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["root"]
+        return user.role == get_role(role_name="root")
 
 
 class MipFilter(BaseFilter):
@@ -18,7 +18,7 @@ class MipFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["МИП"]
+        return user.role == get_role(role_name="МИП")
 
 
 class DutyFilter(BaseFilter):
@@ -26,7 +26,7 @@ class DutyFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["Дежурный"]
+        return user.role == get_role(role_name="Дежурный")
 
 
 class GokFilter(BaseFilter):
@@ -34,7 +34,7 @@ class GokFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["ГОК"]
+        return user.role == get_role(role_name="ГОК")
 
 
 class HeadFilter(BaseFilter):
@@ -42,7 +42,7 @@ class HeadFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["Руководитель"]
+        return user.role == get_role(role_name="Руководитель")
 
 
 class AdministratorFilter(BaseFilter):
@@ -50,7 +50,7 @@ class AdministratorFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["Администратор"]
+        return user.role == get_role(role_name="Администратор")
 
 
 class SpecialistFilter(BaseFilter):
@@ -58,7 +58,7 @@ class SpecialistFilter(BaseFilter):
         if user is None:
             return False
 
-        return user.role == executed_codes["Специалист"]
+        return user.role == get_role(role_name="Специалист")
 
 
 class MultiRoleFilter(BaseFilter):

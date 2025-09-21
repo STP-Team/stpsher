@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
+from sqlalchemy import Sequence
 
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
@@ -166,7 +168,6 @@ def format_target_rating_message(
 
         for i, data in enumerate(top_members, 1):
             member = data["member"]
-            premium = data["premium"]
             period_kpi = data["period_kpi"]
 
             # Эмодзи для позиций
@@ -208,7 +209,7 @@ def format_target_rating_message(
 
 
 def format_rating_message(
-    group_members: list, kpi_data: list, metric: str, period: str = "day"
+    group_members: Sequence[Employee], kpi_data: list, metric: str, period: str = "day"
 ) -> str:
     """Форматирует сообщение с рейтингом группы по выбранной метрике и периоду"""
 
@@ -296,22 +297,22 @@ def format_rating_message(
 
 @head_group_rating_router.callback_query(GroupManagementMenu.filter(F.menu == "rating"))
 async def group_rating_cb(
-    callback: CallbackQuery, stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo
+    callback: CallbackQuery,
+    user: Employee,
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
 ):
     """Обработчик рейтинга группы - показывает меню выбора метрики"""
-    # Получаем информацию о текущем пользователе (руководителе)
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
+    if not user:
         await callback.message.edit_text(
             """❌ <b>Ошибка</b>
 
-Не удалось найти вашу информацию в базе данных."""
+Не удалось найти информацию в базе данных."""
         )
         return
 
     # Получаем всех сотрудников этого руководителя
-    group_members = await stp_repo.employee.get_users_by_head(current_user.fullname)
+    group_members = await stp_repo.employee.get_users_by_head(user.fullname)
 
     if not group_members:
         await callback.message.edit_text(
@@ -340,6 +341,7 @@ async def group_rating_cb(
 async def rating_metric_cb(
     callback: CallbackQuery,
     callback_data: RatingMenu,
+    user: Employee,
     stp_repo: MainRequestsRepo,
     kpi_repo: KPIRequestsRepo,
 ):
@@ -347,15 +349,12 @@ async def rating_metric_cb(
     metric = callback_data.metric
     period = callback_data.period
 
-    # Получаем информацию о текущем пользователе (руководителе)
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
+    if not user:
         await callback.answer("❌ Ошибка получения данных", show_alert=True)
         return
 
     # Получаем всех сотрудников этого руководителя
-    group_members = await stp_repo.employee.get_users_by_head(current_user.fullname)
+    group_members = await stp_repo.employee.get_users_by_head(user.fullname)
 
     if not group_members:
         await callback.answer("❌ Участники не найдены", show_alert=True)

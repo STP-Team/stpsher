@@ -19,6 +19,7 @@ from tgbot.filters.role import (
     SpecialistFilter,
 )
 from tgbot.handlers.user.schedule.main import schedule_service
+from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +207,7 @@ def create_user_result_item(
 ) -> InlineQueryResultArticle:
     """Создание элемента результата для найденного пользователя"""
     # Определяем роль и эмодзи
-    role_info = get_role_info(user.role)
+    role_info = get_role(user.role)
 
     # Подготавливаем описание
     description_parts = []
@@ -216,7 +217,7 @@ def create_user_result_item(
         description_parts.append(user.position)
 
     description = (
-        " • ".join(description_parts) if description_parts else role_info["text"]
+        " • ".join(description_parts) if description_parts else role_info["name"]
     )
 
     # Формируем контент сообщения
@@ -240,7 +241,7 @@ def create_user_result_item(
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(f"\n🛡️ <b>Уровень доступа:</b> {role_info['text']}")
+    message_parts.append(f"\n🛡️ <b>Уровень доступа:</b> {role_info['name']}")
 
     # Добавляем информацию о том, по какому фильтру найден пользователь
     match_info = []
@@ -257,7 +258,7 @@ def create_user_result_item(
     ):
         match_info.append(f"должность: {user.position}")
     if search_filters["role"] is not None and user.role == search_filters["role"]:
-        match_info.append(f"роль: {role_info['text'].lower()}")
+        match_info.append(f"роль: {role_info['name'].lower()}")
 
     if match_info:
         message_parts.append("")
@@ -457,29 +458,6 @@ def create_search_help_item() -> InlineQueryResultArticle:
             message_text=help_text, parse_mode="HTML"
         ),
     )
-
-
-def get_role_info(role: int) -> dict:
-    """Получение информации о роли пользователя"""
-    roles = {
-        1: {
-            "emoji": "👤",
-            "text": "Сотрудник",
-        },
-        2: {
-            "emoji": "👑",
-            "text": "Руководитель",
-        },
-        3: {
-            "emoji": "👮‍♂️",
-            "text": "Дежурный",
-        },
-        10: {
-            "emoji": "⚡",
-            "text": "Администратор",
-        },
-    }
-    return roles.get(role, roles[1])
 
 
 def get_cache_time(query_text: str, results: list) -> int:

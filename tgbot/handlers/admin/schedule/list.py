@@ -471,7 +471,7 @@ async def handle_local_file_action(
 
     if action == "recover":
         # Start the file recovery process
-        await show_file_versions(callback, filename, page, stp_repo, 1)
+        await show_file_versions(callback, filename, stp_repo, 1)
         return
 
     elif action == "delete":
@@ -590,7 +590,6 @@ async def process_new_filename(message: Message, state: FSMContext):
 async def show_file_versions(
     callback: CallbackQuery,
     filename: str,
-    page: int,
     stp_repo: MainRequestsRepo,
     versions_page: int = 1,
 ):
@@ -665,7 +664,7 @@ async def handle_file_versions_pagination(
     filename = callback_data.filename
     versions_page = callback_data.page
 
-    await show_file_versions(callback, filename, 1, stp_repo, versions_page)
+    await show_file_versions(callback, filename, stp_repo, versions_page)
 
 
 @admin_list_router.callback_query(FileVersionSelectMenu.filter())

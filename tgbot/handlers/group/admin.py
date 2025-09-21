@@ -31,9 +31,6 @@ async def adminlist_command(
         # Получаем список администраторов чата
         chat_administrators = await message.bot.get_chat_administrators(message.chat.id)
 
-        admin_list = []
-        owner = None
-
         # Обрабатываем каждого администратора и проверяем их в базе данных
         admin_list = []
         owner = None

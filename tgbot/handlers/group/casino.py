@@ -131,7 +131,7 @@ async def play_casino_game(
         # Записываем транзакцию выигрыша
         transaction, new_balance = await stp_repo.transaction.add_transaction(
             user_id=user.user_id,
-            type="earn",
+            transaction_type="earn",
             source_type="casino",
             amount=winnings - bet_amount,
             comment=f"Выигрыш в {game_name} (группа): {result_text} (x{multiplier})",
@@ -154,7 +154,7 @@ async def play_casino_game(
         # Списываем ставку
         transaction, new_balance = await stp_repo.transaction.add_transaction(
             user_id=user.user_id,
-            type="spend",
+            transaction_type="spend",
             source_type="casino",
             amount=bet_amount,
             comment=f"Проигрыш в {game_name} (группа): {result_text}",
@@ -182,15 +182,6 @@ async def play_casino_game(
 @group_casino_router.message(Command("slots"))
 async def slots_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /slots для игры в слоты в группе"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            """❌ <b>Не авторизован!</b>
-            
-Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-        )
-        return
 
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
@@ -221,15 +212,6 @@ async def slots_command(message: Message, user: Employee, stp_repo: MainRequests
 async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /dice для игры в кости в группе"""
 
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            """❌ <b>Не авторизован!</b>
-
-Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-        )
-        return
-
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
 
@@ -259,15 +241,6 @@ async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsR
 async def darts_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /darts для игры в дартс в группе"""
 
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            """❌ <b>Не авторизован!</b>
-            
-Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-        )
-        return
-
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
 
@@ -296,15 +269,6 @@ async def darts_command(message: Message, user: Employee, stp_repo: MainRequests
 @group_casino_router.message(Command("bowling"))
 async def bowling_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /bowling для игры в боулинг в группе"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            """❌ <b>Не авторизован!</b>
-            
-Для использования казино необходимо авторизоваться в боте @stpsher_bot""",
-        )
-        return
 
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)

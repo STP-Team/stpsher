@@ -6,6 +6,7 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)
 
@@ -13,34 +14,11 @@ whois_router = Router()
 whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 
-def get_role_info(role: int) -> dict:
-    """Получение информации о роли пользователя"""
-    roles = {
-        1: {
-            "emoji": "👤",
-            "text": "Сотрудник",
-        },
-        2: {
-            "emoji": "👑",
-            "text": "Руководитель",
-        },
-        3: {
-            "emoji": "👮‍♂️",
-            "text": "Дежурный",
-        },
-        10: {
-            "emoji": "⚡",
-            "text": "Администратор",
-        },
-    }
-    return roles.get(role, roles[1])
-
-
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     """Создание сообщения с информацией о пользователе (аналогично inline search)"""
 
     # Определяем уровень доступа и эмодзи
-    role_info = get_role_info(user.role)
+    role_info = get_role(user.role)
 
     # Формируем контент сообщения
     message_parts = [f"<b>{role_info['emoji']} {user.fullname}</b>", ""]
@@ -63,7 +41,7 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(f"\n🛡️ <b> Уровень доступа:</b> {role_info['text']}")
+    message_parts.append(f"\n🛡️ <b> Уровень доступа:</b> {role_info['name']}")
 
     return "\n".join(message_parts)
 
@@ -210,7 +188,7 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
         # Формируем список найденных пользователей
         user_list = []
         for idx, found_user in enumerate(sorted_users, 1):
-            role_info = get_role_info(found_user.role)
+            role_info = get_role(found_user.role)
             user_entry = f"{idx}. <b>{role_info['emoji']} {found_user.fullname}</b>"
 
             if found_user.position and found_user.division:

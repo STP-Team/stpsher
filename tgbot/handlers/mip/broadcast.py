@@ -405,7 +405,7 @@ async def start_broadcast(
     try:
         saved_broadcast = await stp_repo.broadcast.create_broadcast(
             user_id=callback.from_user.id,
-            type=broadcast_type,
+            broadcast_type=broadcast_type,
             target=broadcast_target,
             text=message_text,
             recipients=recipient_ids,

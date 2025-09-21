@@ -118,9 +118,8 @@ class StudiesScheduleParser(BaseExcelParser):
             )
             return []
 
-    def _parse_session_details(
-        self, df: DataFrame, start_row: int
-    ) -> Tuple[str, str, str]:
+    @staticmethod
+    def _parse_session_details(df: DataFrame, start_row: int) -> Tuple[str, str, str]:
         """Parse session title, experience level, and trainer from rows after date."""
         title = ""
         experience_level = ""
@@ -149,7 +148,8 @@ class StudiesScheduleParser(BaseExcelParser):
 
         return title, experience_level, trainer
 
-    def _find_participants_start(self, df: DataFrame, start_row: int) -> int:
+    @staticmethod
+    def _find_participants_start(df: DataFrame, start_row: int) -> int:
         """Find the row where participant list starts (after header row)."""
         # Look for the header row with "Площадка", "ФИО", "РГ", etc.
         for i in range(start_row, min(start_row + 10, len(df))):
@@ -168,7 +168,8 @@ class StudiesScheduleParser(BaseExcelParser):
 
         return start_row + 5  # Default fallback
 
-    def _is_participant_row(self, row) -> bool:
+    @staticmethod
+    def _is_participant_row(row) -> bool:
         """Check if row contains participant data."""
         first_col = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""
 
@@ -187,7 +188,8 @@ class StudiesScheduleParser(BaseExcelParser):
         non_empty_cols = sum(1 for cell in row if pd.notna(cell) and str(cell).strip())
         return non_empty_cols >= 2
 
-    def _parse_participant_row(self, row) -> Optional[Tuple[str, str, str, str, str]]:
+    @staticmethod
+    def _parse_participant_row(row) -> Optional[Tuple[str, str, str, str, str]]:
         """Parse participant data from row."""
         try:
             # Extract data from columns
@@ -207,7 +209,7 @@ class StudiesScheduleParser(BaseExcelParser):
             if any(keyword in name for keyword in ["ФИО", "Присутствие", "nan"]):
                 return None
 
-            return (area, name, rg, attendance, reason)
+            return area, name, rg, attendance, reason
 
         except Exception as e:
             logger.debug(f"Error parsing participant row: {e}")
@@ -271,8 +273,9 @@ class StudiesScheduleParser(BaseExcelParser):
             logger.error(f"Error getting studies for user {user_fullname}: {e}")
             return []
 
+    @staticmethod
     def format_studies_schedule(
-        self, sessions: List[StudySession], title: str = "📚 Обучения"
+        sessions: List[StudySession], title: str = "📚 Обучения"
     ) -> str:
         """Format study sessions for display."""
         if not sessions:

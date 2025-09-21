@@ -62,6 +62,7 @@ class KPICalculator:
 
         current_flr = current_flr or 0
 
+        thresholds = []
         results = []
 
         if is_head:
@@ -137,6 +138,7 @@ class KPICalculator:
 
         current_gok = current_gok or 0
 
+        thresholds = []
         results = []
 
         if is_head:

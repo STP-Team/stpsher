@@ -588,7 +588,6 @@ async def process_new_filename(message: Message, state: FSMContext):
 async def show_file_versions(
     callback: CallbackQuery,
     filename: str,
-    page: int,
     stp_repo: MainRequestsRepo,
     versions_page: int = 1,
 ):

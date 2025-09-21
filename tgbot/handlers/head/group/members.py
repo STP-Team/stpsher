@@ -8,7 +8,6 @@ from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
-from tgbot.handlers.group.whois import get_role_info
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.head.group.game_profile import (
     HeadMemberGameHistoryMenu,
@@ -35,6 +34,7 @@ from tgbot.keyboards.head.group.members import (
 )
 from tgbot.keyboards.head.group.members_kpi import head_member_kpi_kb
 from tgbot.keyboards.head.group.members_status import head_member_status_select_kb
+from tgbot.misc.helpers import get_role
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 head_group_members_router = Router()
@@ -49,21 +49,20 @@ logger = logging.getLogger(__name__)
 @head_group_members_router.callback_query(
     GroupManagementMenu.filter(F.menu == "members")
 )
-async def group_mgmt_members_cb(callback: CallbackQuery, stp_repo: MainRequestsRepo):
+async def group_mgmt_members_cb(
+    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
+):
     """Обработчик состава группы"""
-    # Получаем информацию о текущем пользователе (руководителе)
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
+    if not user:
         await callback.message.edit_text(
             """❌ <b>Ошибка</b>
             
-Не удалось найти вашу информацию в базе данных."""
+Не удалось найти информацию в базе данных."""
         )
         return
 
     # Получаем всех сотрудников этого руководителя
-    group_members = await stp_repo.employee.get_users_by_head(current_user.fullname)
+    group_members = await stp_repo.employee.get_users_by_head(user.fullname)
 
     if not group_members:
         await callback.message.edit_text(
@@ -101,18 +100,16 @@ async def group_mgmt_members_cb(callback: CallbackQuery, stp_repo: MainRequestsR
 async def group_members_pagination_cb(
     callback: CallbackQuery,
     callback_data: HeadGroupMembersMenu,
+    user: Employee,
     stp_repo: MainRequestsRepo,
 ):
     """Обработчик пагинации списка участников группы"""
-    # Получаем информацию о текущем пользователе (руководителе)
-    current_user = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
-    if not current_user:
+    if not user:
         await callback.answer("❌ Ошибка получения данных", show_alert=True)
         return
 
     # Получаем всех сотрудников этого руководителя
-    group_members = await stp_repo.employee.get_users_by_head(current_user.fullname)
+    group_members = await stp_repo.employee.get_users_by_head(user.fullname)
 
     if not group_members:
         await callback.answer("❌ Участники не найдены", show_alert=True)
@@ -146,13 +143,7 @@ async def member_detail_cb(
     stp_repo: MainRequestsRepo,
 ):
     """Обработчик детального просмотра участника группы"""
-    # Поиск участника по ID
-    all_users = await stp_repo.employee.get_users()
-    member = None
-    for user in all_users:
-        if user.id == callback_data.member_id:
-            member = user
-            break
+    member = await stp_repo.employee.get_user(main_id=callback_data.member_id)
 
     if not member:
         await callback.answer("❌ Участник не найден", show_alert=True)
@@ -165,7 +156,7 @@ async def member_detail_cb(
 <b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
 <b>Email:</b> {member.email or "Не указано"}
 
-🛡️ <b>Уровень доступа:</b> <code>{get_role_info(member.role)["text"]}</code>"""
+🛡️ <b>Уровень доступа:</b> <code>{get_role(member.role)["name"]}</code>"""
 
     # Добавляем статус только для неавторизованных пользователей
     if not member.user_id:
@@ -184,16 +175,9 @@ async def member_action_cb(
     callback: CallbackQuery,
     callback_data: HeadMemberActionMenu,
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
 ):
     """Обработчик действий с участником (расписание/KPI)"""
-    # Поиск участника по ID
-    all_users = await stp_repo.employee.get_users()
-    member = None
-    for user in all_users:
-        if user.id == callback_data.member_id:
-            member = user
-            break
+    member = await stp_repo.employee.get_user(main_id=callback_data.member_id)
 
     if not member:
         await callback.answer("❌ Участник не найден", show_alert=True)
@@ -232,13 +216,7 @@ async def view_member_schedule(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -314,13 +292,7 @@ async def navigate_member_schedule(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -387,6 +359,7 @@ async def navigate_member_schedule(
 async def view_member_kpi(
     callback: CallbackQuery,
     callback_data: HeadMemberKPIMenu,
+    user: Employee,
     stp_repo: MainRequestsRepo,
     kpi_repo: KPIRequestsRepo,
 ):
@@ -395,14 +368,10 @@ async def view_member_kpi(
     action = callback_data.action
     page = callback_data.page
 
+    message_text = ""
+
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -539,22 +508,11 @@ async def view_member_kpi(
         except Exception as e:
             logger.error(f"Ошибка при получении KPI для {member.fullname}: {e}")
 
-            # Проверяем, является ли ошибка отсутствием таблицы
-            error_str = str(e)
-            if "Table" in error_str and "doesn't exist" in error_str:
-                message_text = f"""📊 <b>KPI: {member.fullname}</b>
-
-⚠️ <b>Система KPI недоступна</b>
-
-Таблица показателей эффективности не найдена в базе данных.
-
-<i>Обратись к администратору для настройки системы KPI.</i>"""
-            else:
-                message_text = f"""📊 <b>KPI: {member.fullname}</b>
+            message_text = f"""📊 <b>KPI: {member.fullname}</b>
 
 ❌ <b>Ошибка загрузки данных</b>
 
-Произошла ошибка при получении показателей эффективности.
+Произошла ошибка при получении показателей
 
 <i>Попробуй позже или обратись к администратору для проверки данных.</i>"""
 
@@ -579,13 +537,7 @@ async def show_member_status_select(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -634,13 +586,7 @@ async def change_member_status(
     status_type = callback_data.status_type
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -732,13 +678,7 @@ async def view_member_game_profile(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member: Employee = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -812,13 +752,7 @@ async def view_member_game_history(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member: Employee = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -899,13 +833,7 @@ async def view_member_transaction_detail(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)

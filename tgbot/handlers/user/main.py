@@ -6,8 +6,9 @@ from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.handlers.group.whois import create_user_info_message, get_role_info
+from tgbot.handlers.group.whois import create_user_info_message
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
+from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)
 
@@ -226,8 +227,6 @@ async def private_whois_command(
             return
 
         try:
-            target_user = None
-
             # Попытка поиска по user_id (если запрос состоит только из цифр)
             if search_query.isdigit():
                 user_id = int(search_query)
@@ -332,7 +331,7 @@ async def private_whois_command(
             # Формируем список найденных пользователей
             user_list = []
             for idx, found_user in enumerate(sorted_users, 1):
-                role_info = get_role_info(found_user.role)
+                role_info = get_role(found_user.role)
                 user_entry = f"{idx}. <b>{role_info['emoji']} {found_user.fullname}</b>"
 
                 if found_user.position and found_user.division:
@@ -459,9 +458,7 @@ async def handle_forwarded_message(
 
 
 @user_router.message(F.forward_sender_name)
-async def handle_forwarded_message_privacy(
-    message: Message, user: Employee, stp_repo: MainRequestsRepo
-):
+async def handle_forwarded_message_privacy(message: Message, user: Employee):
     """Обрабатывает пересланные сообщения с включенным режимом конфиденциальности"""
 
     # Проверяем авторизацию пользователя
@@ -500,9 +497,7 @@ async def handle_forwarded_message_privacy(
 
 
 @user_router.message(F.forward_from_chat)
-async def handle_forwarded_message_from_chat(
-    message: Message, user: Employee, stp_repo: MainRequestsRepo
-):
+async def handle_forwarded_message_from_chat(message: Message, user: Employee):
     """Обрабатывает сообщения, пересланные из чатов/каналов"""
 
     # Проверяем авторизацию пользователя

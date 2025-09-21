@@ -245,7 +245,7 @@ async def game_shop_completed(
             )
             await stp_repo.transaction.add_transaction(
                 user_id=user.user_id,
-                type="spend",
+                transaction_type="spend",
                 source_type="product",
                 source_id=product_id,
                 amount=product_info.cost,
@@ -317,7 +317,7 @@ async def sell_product_from_shop(
         success = await stp_repo.purchase.delete_user_purchase(user_product_id)
         await stp_repo.transaction.add_transaction(
             user_id=user_product.user_id,
-            type="earn",
+            transaction_type="earn",
             source_type="product",
             source_id=product_info.id,
             amount=product_info.cost,

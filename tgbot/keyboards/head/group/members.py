@@ -2,7 +2,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import Sequence
 
-from infrastructure.database.models.STP.employee import Employee
+from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import russian_months
 

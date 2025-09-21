@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Sequence, TypedDict, Unpack, List
+from typing import List, Optional, Sequence, TypedDict, Unpack
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,7 +25,7 @@ class BroadcastRepo(BaseRepo):
         self,
         broadcast_id: Optional[int] = None,
         user_id: Optional[int] = None,
-        type: Optional[str] = None,
+        broadcast_type: Optional[str] = None,
         target: Optional[str] = None,
     ) -> Optional[Broadcast]:
         """
@@ -34,7 +34,7 @@ class BroadcastRepo(BaseRepo):
         Args:
             broadcast_id: Уникальный идентификатор рассылки
             user_id: Идентификатор владельца рассылки
-            type: Тип рассылки (division/group)
+            broadcast_type: Тип рассылки (division/group)
             target: Цель рассылки
 
         Returns:
@@ -46,8 +46,8 @@ class BroadcastRepo(BaseRepo):
             filters.append(Broadcast.id == broadcast_id)
         if user_id:
             filters.append(Broadcast.user_id == user_id)
-        if type:
-            filters.append(Broadcast.type == type)
+        if broadcast_type:
+            filters.append(Broadcast.type == broadcast_type)
         if target:
             filters.append(Broadcast.target == target)
 
@@ -68,7 +68,7 @@ class BroadcastRepo(BaseRepo):
     async def get_broadcasts(
         self,
         user_id: Optional[int] = None,
-        type: Optional[str] = None,
+        broadcast_type: Optional[str] = None,
         target: Optional[str] = None,
     ) -> Sequence[Broadcast] | None:
         """
@@ -76,7 +76,7 @@ class BroadcastRepo(BaseRepo):
 
         Args:
             user_id: Идентификатор владельца рассылки
-            type: Тип рассылки (division/group)
+            broadcast_type: Тип рассылки (division/group)
             target: Цель рассылки
 
         Returns:
@@ -86,8 +86,8 @@ class BroadcastRepo(BaseRepo):
 
         if user_id:
             filters.append(Broadcast.user_id == user_id)
-        if type:
-            filters.append(Broadcast.type == type)
+        if broadcast_type:
+            filters.append(Broadcast.type == broadcast_type)
         if target:
             filters.append(Broadcast.target == target)
 
@@ -171,7 +171,7 @@ class BroadcastRepo(BaseRepo):
     async def create_broadcast(
         self,
         user_id: int,
-        type: str,
+        broadcast_type: str,
         target: str,
         text: str,
         recipients: Optional[List[int]] = None,
@@ -181,7 +181,7 @@ class BroadcastRepo(BaseRepo):
 
         Args:
             user_id: Идентификатор владельца рассылки
-            type: Тип рассылки (division/group)
+            broadcast_type: Тип рассылки (division/group)
             target: Цель рассылки
             text: Текст рассылки
             recipients: Список получателей
@@ -192,7 +192,7 @@ class BroadcastRepo(BaseRepo):
         try:
             broadcast = Broadcast(
                 user_id=user_id,
-                type=type,
+                type=broadcast_type,
                 target=target,
                 text=text,
                 recipients=recipients,

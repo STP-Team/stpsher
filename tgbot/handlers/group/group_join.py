@@ -72,7 +72,7 @@ async def bot_lost_admin_rights(event: ChatMemberUpdated):
 
 
 @chat_member.chat_member()
-async def handle_chat_member_update(event: ChatMemberUpdated):
+async def handle_chat_member_update():
     """Handle when any user joins or leaves a group."""
     # This handler will be processed by the GroupsMiddleware
     # We just need to register it to ensure chat_member updates are captured

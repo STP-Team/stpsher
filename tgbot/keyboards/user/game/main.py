@@ -1,9 +1,9 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from infrastructure.database.models.STP.employee import Employee
+from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.misc.dicts import executed_codes
+from tgbot.misc.helpers import get_role
 
 
 class GameMenu(CallbackData, prefix="game"):
@@ -19,7 +19,7 @@ def game_kb(user: Employee = None) -> InlineKeyboardMarkup:
     buttons = []
 
     # Add products activation button for duties (role 3) as first row
-    if user and user.role == executed_codes["Дежурный"]:
+    if user and user.role == get_role(role_name="Дежурный"):
         buttons.append(
             [
                 InlineKeyboardButton(

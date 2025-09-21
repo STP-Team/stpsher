@@ -338,8 +338,10 @@ class MonthlyScheduleParser(BaseExcelParser, ABC):
         """Find start and end columns for specified month."""
         month = MonthManager.normalize_month(month)
 
-        def find_month_index(target_month: str, start_column: int = 0) -> Optional[int]:
-            for col_idx in range(start_column, len(df.columns)):
+        def find_month_index(
+            target_month: str, target_first_col: int = 0
+        ) -> Optional[int]:
+            for col_idx in range(target_first_col, len(df.columns)):
                 # Check in headers
                 col_name = (
                     str(df.columns[col_idx]).upper() if df.columns[col_idx] else ""
@@ -507,7 +509,8 @@ class ScheduleParser(MonthlyScheduleParser):
             logger.error(f"Error getting schedule with additional shifts: {e}")
             raise
 
-    def _is_additional_shift_color(self, cell) -> bool:
+    @staticmethod
+    def _is_additional_shift_color(cell) -> bool:
         """Check if cell has the additional shift color #cc99ff."""
         try:
             if cell.fill and cell.fill.start_color:

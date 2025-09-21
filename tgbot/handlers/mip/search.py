@@ -8,6 +8,7 @@ from aiogram.types import (
     Message,
 )
 
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
@@ -47,7 +48,7 @@ from tgbot.keyboards.mip.search_kpi import (
     search_user_kpi_kb,
 )
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.misc.dicts import role_names
+from tgbot.misc.dicts import roles
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
@@ -310,7 +311,7 @@ async def show_user_details(
             group_stats = await SearchService.get_group_statistics(
                 user.fullname, stp_repo
             )
-            user_info += SearchService.format_head_group_info(user, group_stats)
+            user_info += SearchService.format_head_group_info(group_stats)
 
         # Определяем возможность редактирования и параметры клавиатуры
         can_edit = user.role in [1, 2, 3]  # Специалисты, дежурные и руководители
@@ -437,8 +438,8 @@ async def start_edit_user(
 
         # Получаем название текущей роли
         current_role_name = (
-            role_names[user.role]
-            if user.role < len(role_names)
+            roles[user.role]
+            if user.role < len(roles)
             else f"Неизвестная роль ({user.role})"
         )
 
@@ -534,6 +535,8 @@ async def search_user_kpi_menu(
     action = callback_data.action
     return_to = callback_data.return_to
     head_id = callback_data.head_id
+
+    message_text = ""
 
     try:
         # Получаем пользователя
@@ -674,18 +677,7 @@ async def search_user_kpi_menu(
         except Exception as e:
             logger.error(f"Ошибка при получении KPI для {user.fullname}: {e}")
 
-            # Проверяем, является ли ошибка отсутствием таблицы
-            error_str = str(e)
-            if "Table" in error_str and "doesn't exist" in error_str:
-                message_text = f"""📊 <b>KPI: {user.fullname}</b>
-
-⚠️ <b>Система KPI недоступна</b>
-
-Таблица показателей эффективности не найдена в базе данных.
-
-<i>Обратись к администратору для настройки системы KPI.</i>"""
-            else:
-                message_text = f"""📊 <b>KPI: {user.fullname}</b>
+            message_text = f"""📊 <b>KPI: {user.fullname}</b>
 
 ❌ <b>Ошибка загрузки данных</b>
 
@@ -709,6 +701,7 @@ async def search_user_kpi_menu(
 async def search_member_kpi_menu(
     callback: CallbackQuery,
     callback_data: SearchMemberKPIMenu,
+    user: Employee,
     stp_repo: MainRequestsRepo,
     kpi_repo: KPIRequestsRepo,
 ):
@@ -718,14 +711,10 @@ async def search_member_kpi_menu(
     action = callback_data.action
     page = callback_data.page
 
+    message_text = ""
+
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -862,18 +851,7 @@ async def search_member_kpi_menu(
         except Exception as e:
             logger.error(f"Ошибка при получении KPI для {member.fullname}: {e}")
 
-            # Проверяем, является ли ошибка отсутствием таблицы
-            error_str = str(e)
-            if "Table" in error_str and "doesn't exist" in error_str:
-                message_text = f"""📊 <b>KPI: {member.fullname}</b>
-
-⚠️ <b>Система KPI недоступна</b>
-
-Таблица показателей эффективности не найдена в базе данных.
-
-<i>Обратись к администратору для настройки системы KPI.</i>"""
-            else:
-                message_text = f"""📊 <b>KPI: {member.fullname}</b>
+            message_text = f"""📊 <b>KPI: {member.fullname}</b>
 
 ❌ <b>Ошибка загрузки данных</b>
 
@@ -1074,13 +1052,13 @@ async def process_role_change(
 
         # Получаем названия ролей
         old_role_name = (
-            role_names[user.role]
-            if user.role < len(role_names)
+            roles[user.role]
+            if user.role < len(roles)
             else f"Неизвестный уровень ({user.role})"
         )
         new_role_name = (
-            role_names[new_role]
-            if new_role < len(role_names)
+            roles[new_role]
+            if new_role < len(roles)
             else f"Неизвестный уровень ({new_role})"
         )
 
@@ -1180,13 +1158,7 @@ async def member_detail_cb_search(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -1199,7 +1171,7 @@ async def member_detail_cb_search(
 <b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
 <b>Email:</b> {member.email or "Не указано"}
 
-🛡️ <b>Уровень доступа:</b> <code>{role_names.get(member.role, "Неизвестно")}</code>"""
+🛡️ <b>Уровень доступа:</b> <code>{roles.get(member.role, "Неизвестно")}</code>"""
 
         # Добавляем статус только для неавторизованных пользователей
         if not member.user_id:
@@ -1226,7 +1198,6 @@ async def member_action_cb_search(
     callback: CallbackQuery,
     callback_data: HeadMemberActionMenuForSearch,
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
 ):
     """Обработчик действий с участником (расписание/KPI/игра) из поиска"""
     member_id = callback_data.member_id
@@ -1235,13 +1206,7 @@ async def member_action_cb_search(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -1330,13 +1295,7 @@ async def change_member_role_search(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -1405,13 +1364,7 @@ async def view_search_member_schedule(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)
@@ -1490,13 +1443,7 @@ async def navigate_search_member_schedule(
     page = callback_data.page
 
     try:
-        # Поиск участника по ID
-        all_users = await stp_repo.employee.get_users()
-        member = None
-        for user in all_users:
-            if user.id == member_id:
-                member = user
-                break
+        member = await stp_repo.employee.get_user(main_id=member_id)
 
         if not member:
             await callback.answer("❌ Участник не найден", show_alert=True)

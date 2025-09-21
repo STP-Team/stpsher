@@ -182,7 +182,7 @@ async def show_head_user_details(
             group_stats = await SearchService.get_group_statistics(
                 user.fullname, stp_repo
             )
-            user_info += SearchService.format_head_group_info(user, group_stats)
+            user_info += SearchService.format_head_group_info(group_stats)
 
         # Определяем параметры клавиатуры для руководителей
         is_head = user.role == 2  # Руководитель
@@ -464,18 +464,7 @@ async def view_head_user_kpi(
         except Exception as e:
             logger.error(f"Ошибка при получении KPI для {user.fullname}: {e}")
 
-            # Проверяем, является ли ошибка отсутствием таблицы
-            error_str = str(e)
-            if "Table" in error_str and "doesn't exist" in error_str:
-                message_text = f"""📊 <b>KPI: {user.fullname}</b>
-
-⚠️ <b>Система KPI недоступна</b>
-
-Таблица показателей эффективности не найдена в базе данных.
-
-<i>Обратись к администратору для настройки системы KPI.</i>"""
-            else:
-                message_text = f"""📊 <b>KPI: {user.fullname}</b>
+            message_text = f"""📊 <b>KPI: {user.fullname}</b>
 
 ❌ <b>Ошибка загрузки данных</b>
 

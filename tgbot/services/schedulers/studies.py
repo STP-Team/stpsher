@@ -201,7 +201,7 @@ async def send_study_notifications(
 
                     # Create notification message
                     message = await create_study_notification_message(
-                        session_obj, participant_name, stp_repo, time_diff
+                        session_obj, stp_repo, time_diff
                     )
 
                     # Send notification
@@ -232,14 +232,13 @@ async def send_study_notifications(
 
 
 async def create_study_notification_message(
-    session: StudySession, participant_name: str, stp_repo, time_diff: timedelta
+    session: StudySession, stp_repo, time_diff: timedelta
 ) -> str:
     """
     Create notification message for study participant
 
     Args:
         session: Study session object
-        participant_name: Name of the participant
         stp_repo: Repository for database operations
         time_diff: Time difference until the session
 
