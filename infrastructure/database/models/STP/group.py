@@ -37,6 +37,18 @@ class Group(Base, TableNameMixin):
         Boolean,
         nullable=False,
         comment="Удалять уволенных сотрудников из группы",
+        default=0,
+    )
+    is_casino_allowed: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        comment="Возможность использовать казино в группе",
+        default=1,
+    )
+    new_user_notify: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        comment="Уведомлять о новых вступивших участниках в группу",
         default=1,
     )
 

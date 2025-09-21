@@ -14,7 +14,7 @@ class GroupMember(Base, TableNameMixin):
     Attributes:
         group_id (Mapped[int]): Идентификатор группы Telegram.
         member_id (Mapped[int]): Идентификатор участника Telegram.
-        joined_at (Mapped[datetime]): Время добавления в группу.
+        added_at (Mapped[datetime]): Время добавления в группу.
 
     Methods:
         __repr__(): Returns a string representation of the GroupMember object.
