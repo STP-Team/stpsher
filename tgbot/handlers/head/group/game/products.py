@@ -306,7 +306,7 @@ async def head_purchase_activation_detail(
 """
     await callback.message.edit_text(
         message_text,
-        reply_markup=purchase_detail_kb(purchase_id, current_page),
+        reply_markup=purchase_detail_kb(purchase_id, current_page, context="head"),
     )
 
 

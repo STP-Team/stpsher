@@ -134,37 +134,66 @@ def purchase_activation_kb(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def purchase_detail_kb(purchase_id: int, current_page: int) -> InlineKeyboardMarkup:
+def purchase_detail_kb(
+    purchase_id: int, current_page: int, context: str = "something"
+) -> InlineKeyboardMarkup:
     """
     Клавиатура детального просмотра покупки для МИП с возможностью подтверждения/отклонения
     """
-    buttons = [
-        [
-            InlineKeyboardButton(
-                text="✅ Подтвердить",
-                callback_data=PurchaseActionMenu(
-                    purchase_id=purchase_id, action="approve", page=current_page
-                ).pack(),
-            ),
-            InlineKeyboardButton(
-                text="❌ Отклонить",
-                callback_data=PurchaseActionMenu(
-                    purchase_id=purchase_id, action="reject", page=current_page
-                ).pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=GameMenu(
-                    menu="products_activation", page=current_page
-                ).pack(),
-            ),
-            InlineKeyboardButton(
-                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
-            ),
-        ],
-    ]
+    if context == "head":
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    text="✅ Подтвердить",
+                    callback_data=PurchaseActionMenu(
+                        purchase_id=purchase_id, action="approve", page=current_page
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="❌ Отклонить",
+                    callback_data=PurchaseActionMenu(
+                        purchase_id=purchase_id, action="reject", page=current_page
+                    ).pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад",
+                    callback_data=MainMenu(menu="products_activation").pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
+            ],
+        ]
+    else:
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    text="✅ Подтвердить",
+                    callback_data=PurchaseActionMenu(
+                        purchase_id=purchase_id, action="approve", page=current_page
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="❌ Отклонить",
+                    callback_data=PurchaseActionMenu(
+                        purchase_id=purchase_id, action="reject", page=current_page
+                    ).pack(),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад",
+                    callback_data=GameMenu(
+                        menu="products_activation", page=current_page
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
+            ],
+        ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
