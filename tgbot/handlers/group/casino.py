@@ -9,7 +9,6 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.casino import IsCasinoAllowed
 from tgbot.filters.role import (
     DutyFilter,
     MultiRoleFilter,
@@ -28,7 +27,6 @@ group_casino_router = Router()
 group_casino_router.message.filter(
     F.chat.type.in_(("group", "supergroup")),
     MultiRoleFilter(SpecialistFilter(), DutyFilter()),
-    IsCasinoAllowed(),
 )
 
 
