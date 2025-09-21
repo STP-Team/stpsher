@@ -199,10 +199,12 @@ def get_available_months() -> List[str]:
     Returns:
         Список доступных месяцев
     """
-    # TODO: Здесь можно добавить логику для автоматического определения
-    # доступных месяцев из Excel файла
-    # Пока возвращаем все месяцы
-    return MONTHS_RU
+    # Возвращаем только текущий месяц, чтобы избежать перехода к последнему доступному месяцу
+    # при навигации. Это исправляет проблему, когда при нажатии "следующий месяц" или
+    # "подробнее" показывается последний доступный месяц вместо логически следующего.
+    current_month_index = get_yekaterinburg_date().month - 1
+    current_month = MONTHS_RU[current_month_index]
+    return [current_month]
 
 
 def get_month_index(month: str) -> int:
@@ -223,44 +225,50 @@ def get_month_index(month: str) -> int:
 
 def get_next_month(current_month: str, available_months: List[str]) -> str:
     """
-    Получает следующий доступный месяц
+    Получает следующий месяц (логически следующий, не зависит от доступности в файлах)
 
     Args:
         current_month: Текущий месяц
-        available_months: Список доступных месяцев
+        available_months: Список доступных месяцев (игнорируется для корректной навигации)
 
     Returns:
-        Следующий месяц или текущий, если следующего нет
+        Следующий месяц
     """
     try:
-        current_index = available_months.index(current_month.lower())
-        if current_index < len(available_months) - 1:
-            return available_months[current_index + 1]
+        current_index = MONTHS_RU.index(current_month.lower())
+        if current_index < len(MONTHS_RU) - 1:
+            return MONTHS_RU[current_index + 1]
         else:
-            return current_month.lower()  # Возвращаем текущий, если следующего нет
+            return MONTHS_RU[0]  # Январь после декабря
     except (ValueError, IndexError):
-        return current_month.lower()
+        # Если месяц не найден, возвращаем следующий от текущего календарного месяца
+        current_month_index = get_yekaterinburg_date().month - 1
+        next_month_index = (current_month_index + 1) % 12
+        return MONTHS_RU[next_month_index]
 
 
 def get_prev_month(current_month: str, available_months: List[str]) -> str:
     """
-    Получает предыдущий доступный месяц
+    Получает предыдущий месяц (логически предыдущий, не зависит от доступности в файлах)
 
     Args:
         current_month: Текущий месяц
-        available_months: Список доступных месяцев
+        available_months: Список доступных месяцев (игнорируется для корректной навигации)
 
     Returns:
-        Предыдущий месяц или текущий, если предыдущего нет
+        Предыдущий месяц
     """
     try:
-        current_index = available_months.index(current_month.lower())
+        current_index = MONTHS_RU.index(current_month.lower())
         if current_index > 0:
-            return available_months[current_index - 1]
+            return MONTHS_RU[current_index - 1]
         else:
-            return current_month.lower()  # Возвращаем текущий, если предыдущего нет
+            return MONTHS_RU[-1]  # Декабрь перед январем
     except (ValueError, IndexError):
-        return current_month.lower()
+        # Если месяц не найден, возвращаем предыдущий от текущего календарного месяца
+        current_month_index = get_yekaterinburg_date().month - 1
+        prev_month_index = (current_month_index - 1) % 12
+        return MONTHS_RU[prev_month_index]
 
 
 def schedule_with_month_kb(
@@ -289,16 +297,15 @@ def schedule_with_month_kb(
     # Создаем ряд навигации по месяцам
     nav_row = []
 
-    # Кнопка "Назад" (только если есть предыдущий месяц)
-    if prev_month != current_month:
-        nav_row.append(
-            InlineKeyboardButton(
-                text="◀️",
-                callback_data=MonthNavigation(
-                    action="prev", current_month=prev_month, schedule_type=schedule_type
-                ).pack(),
-            )
+    # Кнопка "Назад" (всегда показываем для навигации)
+    nav_row.append(
+        InlineKeyboardButton(
+            text="◀️",
+            callback_data=MonthNavigation(
+                action="prev", current_month=prev_month, schedule_type=schedule_type
+            ).pack(),
         )
+    )
 
     # Кнопка текущего месяца (всегда присутствует)
     nav_row.append(
@@ -312,16 +319,15 @@ def schedule_with_month_kb(
         )
     )
 
-    # Кнопка "Вперед" (только если есть следующий месяц)
-    if next_month != current_month:
-        nav_row.append(
-            InlineKeyboardButton(
-                text="▶️",
-                callback_data=MonthNavigation(
-                    action="next", current_month=next_month, schedule_type=schedule_type
-                ).pack(),
-            )
+    # Кнопка "Вперед" (всегда показываем для навигации)
+    nav_row.append(
+        InlineKeyboardButton(
+            text="▶️",
+            callback_data=MonthNavigation(
+                action="next", current_month=next_month, schedule_type=schedule_type
+            ).pack(),
         )
+    )
 
     buttons = [
         nav_row,  # Ряд навигации по месяцам
@@ -368,16 +374,15 @@ def create_detailed_schedule_keyboard(current_month: str, schedule_type: str):
     # Навигация по месяцам (только если есть доступные месяцы)
     nav_row = []
 
-    # Кнопка "Назад" (только если есть предыдущий месяц)
-    if prev_month != current_month_lower:  # Есть предыдущий месяц
-        nav_row.append(
-            InlineKeyboardButton(
-                text="◀️",
-                callback_data=MonthNavigation(
-                    action="prev", current_month=prev_month, schedule_type=schedule_type
-                ).pack(),
-            )
+    # Кнопка "Назад" (всегда показываем для навигации)
+    nav_row.append(
+        InlineKeyboardButton(
+            text="◀️",
+            callback_data=MonthNavigation(
+                action="prev", current_month=prev_month, schedule_type=schedule_type
+            ).pack(),
         )
+    )
 
     # Текущий месяц
     nav_row.append(
@@ -391,16 +396,15 @@ def create_detailed_schedule_keyboard(current_month: str, schedule_type: str):
         )
     )
 
-    # Кнопка "Вперед" (только если есть следующий месяц)
-    if next_month != current_month_lower:  # Есть следующий месяц
-        nav_row.append(
-            InlineKeyboardButton(
-                text="▶️",
-                callback_data=MonthNavigation(
-                    action="next", current_month=next_month, schedule_type=schedule_type
-                ).pack(),
-            )
+    # Кнопка "Вперед" (всегда показываем для навигации)
+    nav_row.append(
+        InlineKeyboardButton(
+            text="▶️",
+            callback_data=MonthNavigation(
+                action="next", current_month=next_month, schedule_type=schedule_type
+            ).pack(),
         )
+    )
 
     buttons.append(nav_row)
 

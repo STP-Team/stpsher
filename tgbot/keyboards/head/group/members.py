@@ -385,7 +385,7 @@ def head_member_schedule_kb(
     buttons.append(month_nav_row)
 
     # Переключение детального/компактного вида
-    view_toggle_text = "📋 Компактно" if is_detailed else "📄 Подробно"
+    view_toggle_text = "📋 Кратко" if is_detailed else "📄 Подробнее"
     view_action = "compact" if is_detailed else "detailed"
 
     buttons.append(

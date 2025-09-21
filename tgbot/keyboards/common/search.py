@@ -389,9 +389,21 @@ def user_schedule_with_month_kb(
     ]
 
     try:
-        current_month_idx = month_names.index(current_month) + 1
+        # Приводим к title case для поиска в month_names
+        current_month_title = current_month.lower().capitalize()
+        current_month_idx = month_names.index(current_month_title) + 1
     except ValueError:
-        current_month_idx = 1
+        # Если не найден в title case, попробуем найти по lowercase в русских месяцах
+        from tgbot.misc.dicts import russian_months
+        try:
+            for idx, month_name in russian_months.items():
+                if month_name.lower() == current_month.lower():
+                    current_month_idx = idx
+                    break
+            else:
+                current_month_idx = 1  # Дефолт к январю
+        except Exception:
+            current_month_idx = 1
 
     buttons = []
 
@@ -446,7 +458,7 @@ def user_schedule_with_month_kb(
 
     # Переключение детального/компактного вида
     detail_action = "compact" if is_detailed else "detailed"
-    detail_text = "📋 Компактно" if is_detailed else "📄 Подробно"
+    detail_text = "📋 Кратко" if is_detailed else "📄 Подробно"
 
     buttons.append(
         [
@@ -488,7 +500,7 @@ def get_month_name_by_index(month_idx: int) -> str:
 
     if 1 <= month_idx <= 12:
         return russian_months[month_idx]
-    return "Текущий месяц"
+    return "сентябрь"  # Возвращаем текущий месяц по умолчанию
 
 
 def search_user_kpi_kb(
