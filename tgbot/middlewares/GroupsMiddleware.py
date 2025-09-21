@@ -62,7 +62,7 @@ class GroupsMiddleware(BaseMiddleware):
         user_id = event.from_user.id
 
         # Добавляем отладочное логирование
-        logger.info(
+        logger.debug(
             f"[Группы] Обработка сообщения от пользователя {user_id} в группе {group_id}: '{event.text or 'не текст'}'"
         )
 
