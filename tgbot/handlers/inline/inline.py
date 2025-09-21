@@ -39,6 +39,38 @@ class InlineSearchFilter:
     """Класс для обработки фильтров поиска в inline запросах"""
 
     @staticmethod
+    def detect_search_type(search_term: str) -> tuple[str, str]:
+        """
+        Определяет тип поискового запроса
+
+        Returns:
+            tuple: (search_type, cleaned_value)
+            search_type: 'user_id', 'username', 'name'
+        """
+        search_term = search_term.strip()
+
+        # Проверяем, является ли запрос числом (user_id)
+        if search_term.isdigit():
+            return "user_id", search_term
+
+        # Проверяем, является ли запрос username
+        # Username должен начинаться с @ ИЛИ содержать только латинские символы/цифры/подчеркивания
+        if search_term.startswith("@"):
+            return "username", search_term.lstrip("@")
+
+        # Проверяем на username: только латинские буквы, цифры, подчеркивания, точки
+        # И НЕ содержит кириллицу или пробелы
+        if (
+            all(c.isascii() and (c.isalnum() or c in ["_", "."]) for c in search_term)
+            and any(c.isalpha() for c in search_term)
+            and " " not in search_term
+        ):
+            return "username", search_term
+
+        # По умолчанию - поиск по имени
+        return "name", search_term
+
+    @staticmethod
     def parse_search_query(query: str) -> dict:
         """
         Парсинг поискового запроса с поддержкой фильтров
@@ -48,8 +80,17 @@ class InlineSearchFilter:
         - "div:НТП Иванов" - поиск по направлению
         - "role:head Петров" - поиск руководителей
         - "pos:инженер" - поиск по должности
+        - "username:ivanov" - поиск по username
+        - "user_id:123" - поиск по ID пользователя
         """
-        filters = {"name": "", "division": None, "role": None, "position": None}
+        filters = {
+            "name": "",
+            "division": None,
+            "role": None,
+            "position": None,
+            "username": None,
+            "user_id": None,
+        }
 
         parts = query.strip().split()
         name_parts = []
@@ -68,6 +109,14 @@ class InlineSearchFilter:
                         filters["role"] = 1
                 elif key == "pos" and value:
                     filters["position"] = value
+                elif key == "username" and value:
+                    filters["username"] = value
+                elif key == "user_id" and value:
+                    try:
+                        filters["user_id"] = int(value)
+                    except ValueError:
+                        # Если не удается преобразовать в int, игнорируем фильтр
+                        pass
             else:
                 name_parts.append(part)
 
@@ -75,16 +124,47 @@ class InlineSearchFilter:
         return filters
 
     @staticmethod
+    async def _search_by_auto_detection(stp_repo, search_term: str) -> List[Employee]:
+        """Выполняет поиск с автоопределением типа запроса"""
+        search_type, cleaned_value = InlineSearchFilter.detect_search_type(search_term)
+
+        if search_type == "user_id":
+            user = await stp_repo.employee.get_user(user_id=int(cleaned_value))
+            return [user] if user else []
+
+        elif search_type == "username":
+            user = await stp_repo.employee.get_user(username=cleaned_value)
+            return [user] if user else []
+
+        else:  # search_type == 'name'
+            users = await stp_repo.employee.get_users_by_fio_parts(
+                cleaned_value, limit=50
+            )
+            return list(users) if users else []
+
+    @staticmethod
     async def search_users_with_filters(
         stp_repo, filters: dict, limit: int = 20
     ) -> List[Employee]:
         """Поиск пользователей с применением фильтров"""
         try:
-            # Базовый поиск по имени
-            if filters["name"]:
-                users = await stp_repo.employee.get_users_by_fio_parts(
-                    filters["name"], limit=50
+            users = []
+
+            # Приоритетный поиск по explicit фильтрам
+            if filters["user_id"] is not None:
+                user = await stp_repo.employee.get_user(user_id=filters["user_id"])
+                users = [user] if user else []
+
+            elif filters["username"]:
+                user = await stp_repo.employee.get_user(username=filters["username"])
+                users = [user] if user else []
+
+            # Поиск по имени с автоопределением типа
+            elif filters["name"]:
+                users = await InlineSearchFilter._search_by_auto_detection(
+                    stp_repo, filters["name"]
                 )
+
             else:
                 users = await stp_repo.employee.get_users()
                 users = list(users) if users else []
@@ -202,6 +282,50 @@ async def advanced_inline_handler(
     await inline_query.answer(results, cache_time=cache_time, is_personal=True)
 
 
+def _get_match_info(user: Employee, search_filters: dict, role_info: dict) -> list[str]:
+    """Определяет по каким критериям найден пользователь"""
+    match_info = []
+
+    # Проверяем автоопределение типа поиска
+    search_term = search_filters.get("name", "")
+    if search_term:
+        search_type, cleaned_value = InlineSearchFilter.detect_search_type(search_term)
+
+        if search_type == "user_id" and str(user.id) == cleaned_value:
+            match_info.append(f"user_id: {user.id}")
+        elif search_type == "username" and user.username == cleaned_value:
+            match_info.append(f"username: @{user.username}")
+
+    # Проверяем explicit фильтры
+    if search_filters.get("username") and user.username == search_filters["username"]:
+        match_info.append(f"username: @{user.username}")
+
+    if (
+        search_filters.get("user_id") is not None
+        and user.id == search_filters["user_id"]
+    ):
+        match_info.append(f"user_id: {user.id}")
+
+    if (
+        search_filters.get("division")
+        and user.division
+        and search_filters["division"].lower() in user.division.lower()
+    ):
+        match_info.append(f"направление: {user.division}")
+
+    if (
+        search_filters.get("position")
+        and user.position
+        and search_filters["position"].lower() in user.position.lower()
+    ):
+        match_info.append(f"должность: {user.position}")
+
+    if search_filters.get("role") is not None and user.role == search_filters["role"]:
+        match_info.append(f"роль: {role_info['name'].lower()}")
+
+    return match_info
+
+
 def create_user_result_item(
     user: Employee, user_head: Employee, search_filters: dict
 ) -> InlineQueryResultArticle:
@@ -244,21 +368,7 @@ def create_user_result_item(
     message_parts.append(f"\n🛡️ <b>Уровень доступа:</b> {get_role(user.role)['name']}")
 
     # Добавляем информацию о том, по какому фильтру найден пользователь
-    match_info = []
-    if (
-        search_filters["division"]
-        and user.division
-        and search_filters["division"].lower() in user.division.lower()
-    ):
-        match_info.append(f"направление: {user.division}")
-    if (
-        search_filters["position"]
-        and user.position
-        and search_filters["position"].lower() in user.position.lower()
-    ):
-        match_info.append(f"должность: {user.position}")
-    if search_filters["role"] is not None and user.role == search_filters["role"]:
-        match_info.append(f"роль: {role_info['name'].lower()}")
+    match_info = _get_match_info(user, search_filters, role_info)
 
     if match_info:
         message_parts.append("")
@@ -284,6 +394,10 @@ def create_no_results_item(
     filter_info = []
     if search_filters["name"]:
         filter_info.append(f"имя: '{search_filters['name']}'")
+    if search_filters["username"]:
+        filter_info.append(f"username: '{search_filters['username']}'")
+    if search_filters["user_id"] is not None:
+        filter_info.append(f"user_id: '{search_filters['user_id']}'")
     if search_filters["division"]:
         filter_info.append(f"направление: '{search_filters['division']}'")
     if search_filters["position"]:
@@ -432,21 +546,29 @@ def create_search_help_item() -> InlineQueryResultArticle:
 
 <b>Основные команды:</b>
 • Просто введите имя или фамилию для поиска
+• Введите число для поиска по ID пользователя
+• Введите username (с @ или без) для поиска по username
 • Можно искать по части имени
 
 <b>Продвинутые фильтры:</b>
+• <code>username:ivanov</code> - поиск по username
+• <code>user_id:123</code> - поиск по ID пользователя
 • <code>role:head</code> - только руководители
-• <code>role:admin</code> - только администраторы  
+• <code>role:admin</code> - только администраторы
 • <code>role:user</code> - только сотрудники
 • <code>div:НТП</code> - поиск в направлении НТП
 • <code>div:НЦК</code> - поиск в направлении НЦК
 • <code>pos:инженер</code> - поиск по должности
 
 <b>Примеры запросов:</b>
-• <code>Иванов</code>
-• <code>Петр role:head</code>
-• <code>div:НТП Сидоров</code>
-• <code>pos:инженер div:НЦК</code>
+• <code>Иванов</code> - поиск по имени
+• <code>1466993337</code> - поиск по ID
+• <code>@ivanov</code> или <code>ivanov</code> - поиск по username
+• <code>username:ivanov</code> - фильтр по username
+• <code>user_id:123</code> - фильтр по ID
+• <code>Петр role:head</code> - комбинированный поиск
+• <code>div:НТП Сидоров</code> - поиск в направлении
+• <code>pos:инженер div:НЦК</code> - поиск по должности и направлению
 
 <b>💡 Совет:</b> Комбинируйте фильтры для точного поиска!</b>"""
 

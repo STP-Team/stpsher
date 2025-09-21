@@ -27,6 +27,7 @@ from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.head.schedule.group import head_schedule_group_router
 from tgbot.handlers.head.search import head_search_router
+from tgbot.handlers.inline.inline import user_inline_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
 from tgbot.handlers.mip.game.achievements import mip_game_achievements_router
 from tgbot.handlers.mip.game.main import mip_game_router
@@ -45,7 +46,6 @@ from tgbot.handlers.user.game.inventory import user_game_inventory_router
 from tgbot.handlers.user.game.main import user_game_router
 from tgbot.handlers.user.game.products import duty_game_products_router
 from tgbot.handlers.user.game.shop import user_game_shop_router
-from tgbot.handlers.user.inline import user_inline_router
 from tgbot.handlers.user.kpi import user_kpi_router
 from tgbot.handlers.user.links import user_links_router
 from tgbot.handlers.user.main import user_router
