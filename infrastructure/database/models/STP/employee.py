@@ -43,6 +43,7 @@ class Employee(Base, TableNameMixin):
     email: Mapped[str] = mapped_column(Unicode, nullable=True)
     role: Mapped[int] = mapped_column(BIGINT, nullable=False)
     is_trainee: Mapped[Boolean] = mapped_column(BOOLEAN, nullable=False)
+    is_casino_allowed: Mapped[Boolean] = mapped_column(BOOLEAN, nullable=False)
 
     def __repr__(self):
         return f"<Employee {self.id} {self.user_id} {self.username} {self.division} {self.position} {self.fullname} {self.head} {self.email} {self.role}>"

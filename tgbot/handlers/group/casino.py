@@ -9,6 +9,7 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.casino import IsCasinoAllowed
 from tgbot.filters.role import (
     DutyFilter,
     MultiRoleFilter,
@@ -27,6 +28,7 @@ group_casino_router = Router()
 group_casino_router.message.filter(
     F.chat.type.in_(("group", "supergroup")),
     MultiRoleFilter(SpecialistFilter(), DutyFilter()),
+    IsCasinoAllowed(),
 )
 
 
@@ -47,6 +49,13 @@ async def play_casino_game(
     bet_amount: int,
 ):
     """Общая функция для игры в казино в группе"""
+    if not user.is_casino_allowed:
+        await message.reply(
+            """❌ <b>Доступ к казино закрыт</b>
+
+<i>Если считаешь, что это ошибка - обратись к своему руководителю</i>""",
+        )
+        return
 
     # Проверяем баланс пользователя
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)

@@ -10,20 +10,21 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.common.search import (
+    HeadUserCasinoToggle,
     HeadUserStatusChange,
     HeadUserStatusSelect,
     ScheduleNavigation,
     SearchUserResult,
     ViewUserKPI,
     ViewUserSchedule,
+    get_month_name_by_index,
     head_user_status_select_kb,
     search_back_kb,
     search_results_kb,
+    search_user_kpi_kb,
     user_detail_kb,
     user_schedule_with_month_kb,
 )
-from tgbot.keyboards.mip.search import get_month_name_by_index
-from tgbot.keyboards.mip.search_kpi import search_user_kpi_kb
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.states.head.search import HeadSearchEmployee
 from tgbot.services.salary import SalaryFormatter
@@ -188,22 +189,14 @@ async def show_head_user_details(
         is_head = user.role == 2  # Руководитель
         head_user_id = user.user_id if is_head else 0
 
-        # Получаем информацию о текущем руководителе
-        current_head = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
         # Определяем, может ли руководитель изменять статус этого пользователя
-        # Руководитель может изменять статус только своих подчиненных
-        can_edit_status = (
-            current_head
-            and user.head
-            and current_head.fullname == user.head
-            and user.role in [1, 3]  # Только специалисты и дежурные
-        )
+        # Руководитель может изменять статус любых специалистов и дежурных
+        can_edit_status = user.role in [1, 3]  # Любые специалисты и дежурные
 
         await callback.message.edit_text(
             user_info,
             reply_markup=user_detail_kb(
-                user_id,
+                user,
                 return_to,
                 head_id,
                 context="head",
@@ -503,18 +496,10 @@ async def show_head_user_status_select(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
-        # Получаем информацию о текущем руководителе
-        current_head = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
         # Проверяем, что руководитель может изменять статус этого пользователя
-        if not (
-            current_head
-            and user.head
-            and current_head.fullname == user.head
-            and user.role in [1, 3]
-        ):
+        if user.role not in [1, 3]:
             await callback.answer(
-                "❌ Ты можешь изменять статус только своих подчиненных", show_alert=True
+                "❌ Ты можешь изменять статус только специалистов и дежурных", show_alert=True
             )
             return
 
@@ -565,22 +550,14 @@ async def change_head_user_status(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
-        # Получаем информацию о текущем руководителе
-        current_head = await stp_repo.employee.get_user(user_id=callback.from_user.id)
-
         # Проверяем, что руководитель может изменять статус этого пользователя
-        if not (current_head and user.head and current_head.fullname == user.head):
+        if user.role not in [1, 3]:
             await callback.answer(
-                "❌ Ты можешь изменять статус только своих подчиненных", show_alert=True
+                "❌ Ты можешь изменять статус только специалистов и дежурных", show_alert=True
             )
             return
 
-        # Проверяем, что роль может быть изменена
-        if user.role not in [1, 3] and status_type == "duty":
-            await callback.answer(
-                "❌ Уровень доступа этого пользователя нельзя изменить", show_alert=True
-            )
-            return
+        # Роль уже проверена выше, можно изменять
 
         notification_text = ""
         changes_made = False
@@ -652,3 +629,59 @@ async def change_head_user_status(
     except Exception as e:
         logger.error(f"Ошибка при изменении статуса пользователя {user_id}: {e}")
         await callback.answer("❌ Ошибка при изменении статуса", show_alert=True)
+
+
+@head_search_router.callback_query(HeadUserCasinoToggle.filter())
+async def toggle_head_user_casino(
+    callback: CallbackQuery,
+    callback_data: HeadUserCasinoToggle,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик переключения доступа к казино для пользователя из поиска"""
+    user_id = callback_data.user_id
+    return_to = callback_data.return_to
+    head_id = callback_data.head_id
+    context = callback_data.context
+
+    try:
+        # Получаем пользователя
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Проверяем, что руководитель может изменять доступ к казино
+        if user.role not in [1, 3]:
+            await callback.answer(
+                "❌ Доступ к казино можно изменять только для специалистов и дежурных", show_alert=True
+            )
+            return
+
+        # Переключаем доступ к казино
+        new_casino_status = not user.is_casino_allowed
+        await stp_repo.employee.update_user(
+            user_id=user.user_id, is_casino_allowed=new_casino_status
+        )
+
+        status_text = "разрешен" if new_casino_status else "запрещен"
+        await callback.answer(f"Доступ к казино {status_text}")
+
+        logger.info(
+            f"[Руководитель] - [Поиск] {callback.from_user.username} ({callback.from_user.id}) изменил доступ к казино пользователя {user_id}: {new_casino_status}"
+        )
+
+        # Обновляем информацию о пользователе
+        await show_head_user_details(
+            callback,
+            SearchUserResult(
+                user_id=user_id,
+                return_to=return_to,
+                head_id=head_id,
+                context=context,
+            ),
+            stp_repo,
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при изменении доступа к казино пользователя {user_id}: {e}")
+        await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)

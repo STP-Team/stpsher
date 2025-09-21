@@ -253,7 +253,7 @@ def head_group_members_kb(
 
 
 def head_member_detail_kb(
-    member_id: int, page: int = 1, member_role: int = None
+    user: Employee, page: int = 1, member_role: int = None
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для детального просмотра участника группы
@@ -263,13 +263,13 @@ def head_member_detail_kb(
             InlineKeyboardButton(
                 text="📅 График",
                 callback_data=HeadMemberActionMenu(
-                    member_id=member_id, action="schedule", page=page
+                    member_id=user.id, action="schedule", page=page
                 ).pack(),
             ),
             InlineKeyboardButton(
                 text="🌟 Показатели",
                 callback_data=HeadMemberKPIMenu(
-                    member_id=member_id, action="main", page=page
+                    member_id=user.id, action="main", page=page
                 ).pack(),
             ),
         ],
@@ -277,7 +277,15 @@ def head_member_detail_kb(
             InlineKeyboardButton(
                 text="🏮 Игровой профиль",
                 callback_data=HeadMemberActionMenu(
-                    member_id=member_id, action="game_profile", page=page
+                    member_id=user.id, action="game_profile", page=page
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🟢 Казино" if user.is_casino_allowed else "🟠 Казино",
+                callback_data=HeadMemberActionMenu(
+                    member_id=user.id, action="casino"
                 ).pack(),
             ),
         ],
@@ -290,7 +298,7 @@ def head_member_detail_kb(
                 InlineKeyboardButton(
                     text="⚙️ Изменить статус",
                     callback_data=HeadMemberStatusSelect(
-                        member_id=member_id, page=page
+                        member_id=user.id, page=page
                     ).pack(),
                 ),
             ]

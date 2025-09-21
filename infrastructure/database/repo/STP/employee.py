@@ -22,6 +22,7 @@ class EmployeeParams(TypedDict, total=False):
     email: str | None
     role: int
     is_trainee: bool
+    is_casino_allowed: bool
 
 
 class EmployeeRepo(BaseRepo):

@@ -49,6 +49,7 @@ from tgbot.keyboards.mip.search_kpi import (
 )
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import roles
+from tgbot.misc.helpers import get_role
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
@@ -321,7 +322,7 @@ async def show_user_details(
         await callback.message.edit_text(
             user_info,
             reply_markup=user_detail_kb(
-                user_id,
+                user,
                 return_to,
                 head_id,
                 context="mip",
@@ -436,18 +437,11 @@ async def start_edit_user(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
-        # Получаем название текущей роли
-        current_role_name = (
-            roles[user.role]
-            if user.role < len(roles)
-            else f"Неизвестная роль ({user.role})"
-        )
-
         await callback.message.edit_text(
             f"""🛡️ <b>Изменение уровня доступа</b>
 
 <b>Сотрудник:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Текущий уровень доступа:</b> {current_role_name}
+<b>Текущий уровень доступа:</b> {get_role(user.role)["name"]}
 
 Выбери новую уровень для пользователя:
 
@@ -1171,7 +1165,7 @@ async def member_detail_cb_search(
 <b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
 <b>Email:</b> {member.email or "Не указано"}
 
-🛡️ <b>Уровень доступа:</b> <code>{roles.get(member.role, "Неизвестно")}</code>"""
+🛡️ <b>Уровень доступа:</b> <code>{get_role(member.role)["name"]}</code>"""
 
         # Добавляем статус только для неавторизованных пользователей
         if not member.user_id:

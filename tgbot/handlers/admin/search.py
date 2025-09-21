@@ -30,6 +30,7 @@ from tgbot.keyboards.mip.search import (
 )
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.misc.dicts import roles
+from tgbot.misc.helpers import get_role
 from tgbot.misc.states.mip.search import EditEmployee, SearchEmployee
 from tgbot.services.leveling import LevelingSystem
 
@@ -378,8 +379,6 @@ async def show_user_details(
             )
             return
 
-        role_name = roles.get(user.role, "Неизвестная роль")
-
         # Получаем статистику пользователя
         stats = await get_user_statistics(user_id, stp_repo)
 
@@ -390,7 +389,7 @@ async def show_user_details(
 <b>Должность:</b> {user.position} {user.division}
 <b>Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>
 
-🛡️<b>Уровень доступа:</b> {role_name} ({user.role})"""
+🛡️<b>Уровень доступа:</b> {get_role(user.role)["name"]} ({user.role})"""
 
         if user.email:
             user_info += f"\n<b>Рабочая почта:</b> {user.email}"
@@ -532,18 +531,11 @@ async def start_edit_user(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
-        # Получаем название текущей роли
-        current_role_name = (
-            roles[user.role]
-            if user.role < len(roles)
-            else f"Неизвестная роль ({user.role})"
-        )
-
         await callback.message.edit_text(
             f"""🛡️ <b>Изменение уровня доступа</b>
 
 <b>Сотрудник:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Текущий уровень доступа:</b> {current_role_name}
+<b>Текущий уровень доступа:</b> {get_role(user.role)["name"]}
 
 Выбери новую уровень для пользователя:
 

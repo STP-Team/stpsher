@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.casino import IsCasinoAllowed
 from tgbot.keyboards.user.game.casino import (
     CasinoMenu,
     back_to_casino_kb,
@@ -21,7 +22,9 @@ user_game_casino_router = Router()
 user_game_casino_router.message.filter(
     F.chat.type == "private",
 )
-user_game_casino_router.callback_query.filter(F.message.chat.type == "private")
+user_game_casino_router.callback_query.filter(
+    F.message.chat.type == "private", IsCasinoAllowed()
+)
 
 logger = logging.getLogger(__name__)
 

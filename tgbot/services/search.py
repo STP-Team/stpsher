@@ -3,6 +3,7 @@ from typing import Sequence
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.misc.helpers import get_role
 from tgbot.services.leveling import LevelingSystem
 
 logger = logging.getLogger(__name__)
@@ -152,11 +153,6 @@ class SearchService:
         :param stats: Статистика игрока (опционально)
         :return: Отформатированная строка с информацией
         """
-        from tgbot.misc.dicts import roles
-
-        # Определение роли
-        role_name = roles.get(user.role, "Неизвестная роль")
-
         # Формирование основной информации о пользователе
         user_info = f"""<b>👤 Информация о сотруднике</b>
 
@@ -166,7 +162,9 @@ class SearchService:
         if user_head:
             user_info += f"\n<b>Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
 
-        user_info += f"\n\n🛡️<b>Уровень доступа:</b> {role_name} ({user.role})"
+        user_info += (
+            f"\n\n🛡️<b>Уровень доступа:</b> {get_role(user.role)['name']} ({user.role})"
+        )
 
         if user.email:
             user_info += f"\n<b>Рабочая почта:</b> {user.email}"

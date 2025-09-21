@@ -14,6 +14,7 @@ from tgbot.handlers.group.group_join import chat_member
 from tgbot.handlers.group.settings import group_settings_router
 from tgbot.handlers.group.whois import whois_router
 from tgbot.handlers.head.group.game.achievements import head_game_achievements_router
+from tgbot.handlers.head.group.game.casino import head_game_casino_router
 from tgbot.handlers.head.group.game.filters import head_game_filters_router
 from tgbot.handlers.head.group.game.history import head_game_history_router
 from tgbot.handlers.head.group.game.main import head_game_router
@@ -76,6 +77,7 @@ routers_list = [
     head_group_router,
     head_group_members_router,
     head_group_rating_router,
+    head_game_casino_router,
     head_group_schedule_router,
     mip_router,
     mip_game_router,

@@ -162,11 +162,9 @@ async def member_detail_cb(
     if not member.user_id:
         message_text += "\n<b>Статус:</b> 🔒 Не авторизован в боте"
 
-    message_text += "\n\n<i>Выбери действие:</i>"
-
     await callback.message.edit_text(
         message_text,
-        reply_markup=head_member_detail_kb(member.id, callback_data.page, member.role),
+        reply_markup=head_member_detail_kb(member, callback_data.page, member.role),
     )
 
 
@@ -198,6 +196,21 @@ async def member_action_cb(
         )
         await view_member_game_profile(callback, game_profile_callback_data, stp_repo)
         return
+
+    elif callback_data.action == "casino":
+        if member.is_casino_allowed:
+            await stp_repo.employee.update_user(
+                user_id=member.user_id, is_casino_allowed=False
+            )
+        else:
+            await stp_repo.employee.update_user(
+                user_id=member.user_id, is_casino_allowed=True
+            )
+        await member_detail_cb(
+            callback,
+            callback_data=HeadMemberDetailMenu(member_id=member.id),
+            stp_repo=stp_repo,
+        )
 
     else:
         await callback.answer("❌ Неизвестное действие", show_alert=True)

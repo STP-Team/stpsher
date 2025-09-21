@@ -42,6 +42,13 @@ class HeadUserStatusChange(CallbackData, prefix="head_user_status_change"):
     context: str = "head"
 
 
+class HeadUserCasinoToggle(CallbackData, prefix="head_user_casino"):
+    user_id: int
+    return_to: str = "search"
+    head_id: int = 0
+    context: str = "head"
+
+
 class ScheduleNavigation(CallbackData, prefix="sched_nav"):
     """Callback data для навигации по месяцам в расписании пользователя"""
 
@@ -133,7 +140,7 @@ def search_results_kb(
 
 
 def user_detail_kb(
-    user_id: int,
+    user: Employee,
     return_to: str = "search",
     head_id: int = 0,
     context: str = "mip",
@@ -144,7 +151,7 @@ def user_detail_kb(
     """
     Клавиатура для детального просмотра пользователя
 
-    :param user_id: ID пользователя
+    :param user: Объект пользователя
     :param return_to: Куда возвращаться
     :param head_id: ID руководителя (если применимо)
     :param context: Контекст использования (mip, head)
@@ -160,13 +167,19 @@ def user_detail_kb(
         InlineKeyboardButton(
             text="📅 Расписание",
             callback_data=ViewUserSchedule(
-                user_id=user_id, return_to=return_to, head_id=head_id, context=context
+                user_id=user.user_id or user.id,
+                return_to=return_to,
+                head_id=head_id,
+                context=context,
             ).pack(),
         ),
         InlineKeyboardButton(
             text="🌟 KPI",
             callback_data=ViewUserKPI(
-                user_id=user_id, return_to=return_to, head_id=head_id, context=context
+                user_id=user.user_id or user.id,
+                return_to=return_to,
+                head_id=head_id,
+                context=context,
             ).pack(),
         ),
     ]
@@ -180,28 +193,44 @@ def user_detail_kb(
             InlineKeyboardButton(
                 text="✏️ ФИО",
                 callback_data=EditUserMenu(
-                    user_id=user_id, action="edit_fullname"
+                    user_id=user.user_id, action="edit_fullname"
                 ).pack(),
             ),
             InlineKeyboardButton(
                 text="🛡️ Роль",
-                callback_data=EditUserMenu(user_id=user_id, action="edit_role").pack(),
+                callback_data=EditUserMenu(
+                    user_id=user.user_id, action="edit_role"
+                ).pack(),
             ),
         ]
         buttons.append(edit_buttons)
     elif show_edit_buttons and context == "head":
-        edit_buttons = [
-            InlineKeyboardButton(
-                text="⚙️ Изменить статус",
-                callback_data=HeadUserStatusSelect(
-                    user_id=user_id,
-                    return_to=return_to,
-                    head_id=head_id,
-                    context=context,
-                ).pack(),
-            )
-        ]
-        buttons.append(edit_buttons)
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🟢 Казино" if user.is_casino_allowed else "🟠 Казино",
+                    callback_data=HeadUserCasinoToggle(
+                        user_id=user.user_id or user.id,
+                        return_to=return_to,
+                        head_id=head_id,
+                        context=context,
+                    ).pack(),
+                ),
+            ]
+        )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="⚙️ Изменить статус",
+                    callback_data=HeadUserStatusSelect(
+                        user_id=user.user_id or user.id,
+                        return_to=return_to,
+                        head_id=head_id,
+                        context=context,
+                    ).pack(),
+                )
+            ]
+        )
 
     # Кнопка группы для руководителей
     if is_head:
@@ -447,6 +476,77 @@ def user_schedule_with_month_kb(
                     context=context,
                 ).pack(),
             )
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_month_name_by_index(month_idx: int) -> str:
+    """Получить название месяца по индексу"""
+    from tgbot.misc.dicts import russian_months
+
+    if 1 <= month_idx <= 12:
+        return russian_months[month_idx]
+    return "Текущий месяц"
+
+
+def search_user_kpi_kb(
+    user_id: int,
+    return_to: str = "search",
+    head_id: int = 0,
+    current_action: str = "main",
+    context: str = "mip",
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для KPI пользователя из поиска
+    """
+    buttons = []
+
+    # Основные кнопки KPI меню
+    if current_action == "main":
+        buttons.extend(
+            [
+                [
+                    InlineKeyboardButton(
+                        text="🧮 Нормативы",
+                        callback_data="noop",
+                    ),
+                    InlineKeyboardButton(
+                        text="💰 Зарплата",
+                        callback_data="noop",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🔄 Обновить",
+                        callback_data=ViewUserKPI(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ],
+            ]
+        )
+
+    # Кнопки навигации
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ К сотруднику",
+                callback_data=SearchUserResult(
+                    user_id=user_id,
+                    return_to=return_to,
+                    head_id=head_id,
+                    context=context,
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
         ]
     )
 

@@ -241,7 +241,7 @@ def create_user_result_item(
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(f"\n🛡️ <b>Уровень доступа:</b> {role_info['name']}")
+    message_parts.append(f"\n🛡️ <b>Уровень доступа:</b> {get_role(user.role)['name']}")
 
     # Добавляем информацию о том, по какому фильтру найден пользователь
     match_info = []

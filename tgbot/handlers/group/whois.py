@@ -41,7 +41,7 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(f"\n🛡️ <b> Уровень доступа:</b> {role_info['name']}")
+    message_parts.append(f"\n🛡️ <b> Уровень доступа:</b> {get_role(user.role)['name']}")
 
     return "\n".join(message_parts)
 
