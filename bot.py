@@ -11,7 +11,6 @@ from aiogram.types import (
     BotCommandScopeAllPrivateChats,
 )
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
 from tgbot.handlers import routers_list
@@ -27,24 +26,9 @@ bot_config = load_config(".env")
 logger = logging.getLogger(__name__)
 
 
-async def on_startup(bot: Bot, session_pool):
-    """Функция запуска бота - проверяет и синхронизирует группы"""
-    logger.info("[STARTUP] Запуск бота - проверка групп")
-
-    try:
-        async with session_pool() as session:
-            repo = MainRequestsRepo(session)
-            added_groups = await repo.group.sync_groups_with_bot_chats(bot)
-
-            if added_groups > 0:
-                logger.info(
-                    f"[STARTUP] При запуске добавлено {added_groups} отсутствующих групп"
-                )
-            else:
-                logger.info("[STARTUP] Все группы уже синхронизированы")
-
-    except Exception as e:
-        logger.error(f"[STARTUP] Ошибка при синхронизации групп: {e}")
+async def on_startup():
+    """Функция запуска бота"""
+    pass
 
 
 def register_middlewares(
@@ -152,7 +136,7 @@ async def main():
     scheduler_manager.setup_jobs(main_db, bot, kpi_db)
     scheduler_manager.start()
 
-    await on_startup(bot, main_db)
+    await on_startup()
     try:
         await dp.start_polling(
             bot,
