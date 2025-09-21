@@ -381,15 +381,45 @@ async def _check_user_daily_achievements(
             )
             return earned_achievements
 
-        # Проверяем, какие достижения пользователь уже получил сегодня
-        today_transactions = await _get_user_achievements_today(stp_repo, user.user_id)
-        earned_today_ids = {t.source_id for t in today_transactions if t.source_id}
+        # Получаем kpi_extract_date из KPI данных
+        kpi_extract_date = user_kpi.kpi_extract_date
+        if not kpi_extract_date:
+            logger.debug(
+                f"[Достижения] Нет kpi_extract_date в KPI данных для пользователя {user.fullname}"
+            )
+            return earned_achievements
+
+        # Проверяем, есть ли уже достижения с этим kpi_extracted_at
+        existing_transactions = await _get_user_achievements_by_kpi_date(
+            stp_repo, user.user_id, kpi_extract_date
+        )
+        existing_achievement_ids = {
+            t.source_id for t in existing_transactions if t.source_id
+        }
+
+        # Также проверяем достижения за последний день (для предотвращения дублирования)
+        recent_transactions = await _get_user_achievements_last_n_days(
+            stp_repo, user.user_id, 1
+        )
+        recent_achievement_ids = {
+            t.source_id for t in recent_transactions if t.source_id
+        }
 
         # Проверяем каждое доступное достижение
         for achievement in achievements_list:
             try:
-                # Пропускаем достижение если уже получено сегодня
-                if achievement.id in earned_today_ids:
+                # Пропускаем достижение если уже получено с этим kpi_extracted_at
+                if achievement.id in existing_achievement_ids:
+                    logger.debug(
+                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
+                    )
+                    continue
+
+                # Пропускаем если достижение было получено за последний день
+                if achievement.id in recent_achievement_ids:
+                    logger.debug(
+                        f"[Достижения] Достижение {achievement.name} уже получено за последний день"
+                    )
                     continue
 
                 # Проверяем соответствие пользователя критериям достижения
@@ -407,6 +437,7 @@ async def _check_user_daily_achievements(
                             "kpi_values": _get_user_kpi_values(
                                 user_kpi, achievement.kpi
                             ),
+                            "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
                         }
                     )
                     logger.info(
@@ -456,17 +487,45 @@ async def _check_user_weekly_achievements(
             )
             return earned_achievements
 
-        # Проверяем, какие достижения пользователь уже получил на этой неделе
-        week_transactions = await _get_user_achievements_this_week(
-            stp_repo, user.user_id
+        # Получаем kpi_extract_date из KPI данных
+        kpi_extract_date = user_kpi.kpi_extract_date
+        if not kpi_extract_date:
+            logger.debug(
+                f"[Достижения] Нет kpi_extract_date в недельных KPI данных для пользователя {user.fullname}"
+            )
+            return earned_achievements
+
+        # Проверяем, есть ли уже достижения с этим kpi_extracted_at
+        existing_transactions = await _get_user_achievements_by_kpi_date(
+            stp_repo, user.user_id, kpi_extract_date
         )
-        earned_this_week_ids = {t.source_id for t in week_transactions if t.source_id}
+        existing_achievement_ids = {
+            t.source_id for t in existing_transactions if t.source_id
+        }
+
+        # Также проверяем достижения за последнюю неделю (для предотвращения дублирования)
+        recent_transactions = await _get_user_achievements_last_n_days(
+            stp_repo, user.user_id, 7
+        )
+        recent_achievement_ids = {
+            t.source_id for t in recent_transactions if t.source_id
+        }
 
         # Проверяем каждое доступное достижение
         for achievement in achievements_list:
             try:
-                # Пропускаем достижение если уже получено на этой неделе
-                if achievement.id in earned_this_week_ids:
+                # Пропускаем достижение если уже получено с этим kpi_extracted_at
+                if achievement.id in existing_achievement_ids:
+                    logger.debug(
+                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
+                    )
+                    continue
+
+                # Пропускаем если достижение было получено за последнюю неделю
+                if achievement.id in recent_achievement_ids:
+                    logger.debug(
+                        f"[Достижения] Достижение {achievement.name} уже получено за последнюю неделю"
+                    )
                     continue
 
                 # Проверяем соответствие пользователя критериям достижения
@@ -484,6 +543,7 @@ async def _check_user_weekly_achievements(
                             "kpi_values": _get_user_kpi_values(
                                 user_kpi, achievement.kpi
                             ),
+                            "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
                         }
                     )
                     logger.info(
@@ -533,17 +593,45 @@ async def _check_user_monthly_achievements(
             )
             return earned_achievements
 
-        # Проверяем, какие достижения пользователь уже получил в этом месяце
-        month_transactions = await _get_user_achievements_this_month(
-            stp_repo, user.user_id
+        # Получаем kpi_extract_date из KPI данных
+        kpi_extract_date = user_kpi.kpi_extract_date
+        if not kpi_extract_date:
+            logger.debug(
+                f"[Достижения] Нет kpi_extract_date в месячных KPI данных для пользователя {user.fullname}"
+            )
+            return earned_achievements
+
+        # Проверяем, есть ли уже достижения с этим kpi_extracted_at
+        existing_transactions = await _get_user_achievements_by_kpi_date(
+            stp_repo, user.user_id, kpi_extract_date
         )
-        earned_this_month_ids = {t.source_id for t in month_transactions if t.source_id}
+        existing_achievement_ids = {
+            t.source_id for t in existing_transactions if t.source_id
+        }
+
+        # Также проверяем достижения за последний месяц (для предотвращения дублирования)
+        recent_transactions = await _get_user_achievements_last_n_days(
+            stp_repo, user.user_id, 30
+        )
+        recent_achievement_ids = {
+            t.source_id for t in recent_transactions if t.source_id
+        }
 
         # Проверяем каждое доступное достижение
         for achievement in achievements_list:
             try:
-                # Пропускаем достижение если уже получено в этом месяце
-                if achievement.id in earned_this_month_ids:
+                # Пропускаем достижение если уже получено с этим kpi_extracted_at
+                if achievement.id in existing_achievement_ids:
+                    logger.debug(
+                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
+                    )
+                    continue
+
+                # Пропускаем если достижение было получено за последний месяц
+                if achievement.id in recent_achievement_ids:
+                    logger.debug(
+                        f"[Достижения] Достижение {achievement.name} уже получено за последний месяц"
+                    )
                     continue
 
                 # Проверяем соответствие пользователя критериям достижения
@@ -561,6 +649,7 @@ async def _check_user_monthly_achievements(
                             "kpi_values": _get_user_kpi_values(
                                 user_kpi, achievement.kpi
                             ),
+                            "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
                         }
                     )
                     logger.info(
@@ -610,6 +699,7 @@ async def _award_achievements(
                 amount=achievement["reward_points"],
                 source_id=achievement["id"],
                 comment=comment,
+                kpi_extracted_at=achievement.get("kpi_extract_date"),
             )
 
             if transaction:
@@ -756,6 +846,77 @@ async def _get_user_achievements_this_month(
     except Exception as e:
         logger.error(
             f"[Достижения] Ошибка получения достижений в этом месяце для пользователя {user_id}: {e}"
+        )
+        return []
+
+
+async def _get_user_achievements_by_kpi_date(
+    stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date
+) -> Sequence[Transaction] | list:
+    """
+    Получает достижения пользователя с определенным kpi_extracted_at
+
+    Args:
+        stp_repo: Репозиторий БД
+        user_id: ID пользователя
+        kpi_extract_date: Дата извлечения KPI
+
+    Returns:
+        Список транзакций-достижений с указанным kpi_extracted_at
+    """
+    try:
+        # Получаем транзакции-достижения с указанным kpi_extracted_at
+        query = select(Transaction).filter(
+            and_(
+                Transaction.user_id == user_id,
+                Transaction.source_type == "achievement",
+                Transaction.kpi_extracted_at == kpi_extract_date,
+            )
+        )
+
+        result = await stp_repo.session.execute(query)
+        return result.scalars().all()
+
+    except Exception as e:
+        logger.error(
+            f"[Достижения] Ошибка получения достижений по kpi_extract_date {kpi_extract_date} для пользователя {user_id}: {e}"
+        )
+        return []
+
+
+async def _get_user_achievements_last_n_days(
+    stp_repo: MainRequestsRepo, user_id: int, n_days: int
+) -> Sequence[Transaction] | list:
+    """
+    Получает достижения пользователя за последние n дней
+
+    Args:
+        stp_repo: Репозиторий БД
+        user_id: ID пользователя
+        n_days: Количество дней назад
+
+    Returns:
+        Список транзакций-достижений за последние n дней
+    """
+    try:
+        # Вычисляем дату n дней назад
+        cutoff_date = date.today() - timedelta(days=n_days)
+
+        # Получаем транзакции-достижения за последние n дней
+        query = select(Transaction).filter(
+            and_(
+                Transaction.user_id == user_id,
+                Transaction.source_type == "achievement",
+                func.date(Transaction.created_at) >= cutoff_date,
+            )
+        )
+
+        result = await stp_repo.session.execute(query)
+        return result.scalars().all()
+
+    except Exception as e:
+        logger.error(
+            f"[Достижения] Ошибка получения достижений за последние {n_days} дней для пользователя {user_id}: {e}"
         )
         return []
 
