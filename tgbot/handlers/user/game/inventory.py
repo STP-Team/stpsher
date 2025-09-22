@@ -18,6 +18,7 @@ from tgbot.keyboards.user.game.inventory import (
 )
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.shop import ProductDetailsShop
+from tgbot.keyboards.user.schedule.main import get_yekaterinburg_date
 from tgbot.misc.helpers import get_role
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.mailing import (
@@ -25,6 +26,7 @@ from tgbot.services.mailing import (
     send_cancel_product_email,
 )
 from tgbot.services.schedule import DutyScheduleParser
+from tgbot.services.schedule.parsers import ScheduleParser
 
 
 def get_status_emoji(status: str) -> str:
@@ -350,28 +352,108 @@ async def use_product_handler(
         product_name = user_product_detail.product_info.name
         confirmer = get_role(user_product_detail.product_info.manager_role)["name"]
 
+        # Check if user has work shift today
+        current_date = get_yekaterinburg_date()
+        schedule_parser = ScheduleParser()
+
+        user_has_work_shift = False
+        try:
+            # Convert month to Russian month name in uppercase
+            month_names = {
+                1: "ЯНВАРЬ",
+                2: "ФЕВРАЛЬ",
+                3: "МАРТ",
+                4: "АПРЕЛЬ",
+                5: "МАЙ",
+                6: "ИЮНЬ",
+                7: "ИЮЛЬ",
+                8: "АВГУСТ",
+                9: "СЕНТЯБРЬ",
+                10: "ОКТЯБРЬ",
+                11: "НОЯБРЬ",
+                12: "ДЕКАБРЬ",
+            }
+            current_month = month_names[current_date.month]
+
+            if user.division in ["НТП1", "НТП2"]:
+                # For НТП1/НТП2, check if user has work shift today
+                user_schedule = schedule_parser.get_user_schedule(
+                    user.fullname,
+                    current_month,
+                    user.division,
+                )
+
+                # Get today's schedule entry
+                day_key = None
+                for day, schedule_value in user_schedule.items():
+                    if str(current_date.day) in day:
+                        day_key = day
+                        break
+
+                if day_key:
+                    schedule_value = user_schedule[day_key]
+                    # Check if it's a valid work shift (contains time format)
+                    user_has_work_shift = schedule_parser.utils.is_time_format(
+                        schedule_value
+                    )
+
+            elif user.division == "НЦК":
+                # For НЦК, just check if user works today (has any schedule entry that's not vacation/day off)
+                user_schedule = schedule_parser.get_user_schedule(
+                    user.fullname,
+                    current_month,
+                    user.division,
+                )
+
+                # Get today's schedule entry
+                day_key = None
+                for day, schedule_value in user_schedule.items():
+                    if str(current_date.day) in day:
+                        day_key = day
+                        break
+
+                if day_key:
+                    schedule_value = user_schedule[day_key]
+                    # For НЦК, consider working if not vacation, day off, or empty
+                    user_has_work_shift = schedule_value not in [
+                        "Не указано",
+                        "В",
+                        "О",
+                        "",
+                        "0",
+                        "0.0",
+                    ]
+
+        except Exception as schedule_error:
+            logger.warning(
+                f"Could not check work schedule for {user.fullname}: {schedule_error}"
+            )
+            # Continue with activation even if schedule check fails
+            user_has_work_shift = True
+
         await callback.answer(
             f"✅ Предмет {product_name} отправлен на рассмотрение!\n\n"
             f"🔔 На проверке у: {confirmer}",
             show_alert=True,
         )
 
-        if user_product_detail.product_info.manager_role == 3:
-            product_managers = await stp_repo.employee.get_users_by_role(
-                role=user_product_detail.product_info.manager_role,
-                division=user_product_detail.product_info.division,
+        # Determine notification recipients based on work shift
+        manager_ids = []
+
+        if user_has_work_shift:
+            # For all divisions with work shift, notify only current duty officers
+            duty_scheduler = DutyScheduleParser()
+            current_senior = await duty_scheduler.get_current_senior_duty(
+                user.division, stp_repo
             )
-        else:
-            product_managers = await stp_repo.employee.get_users_by_role(
-                role=user_product_detail.product_info.manager_role
+            current_helper = await duty_scheduler.get_current_helper_duty(
+                user.division, stp_repo
             )
 
-        manager_ids = [
-            manager.user_id
-            for manager in product_managers
-            if manager.user_id
-            and manager.user_id != user_product_detail.user_purchase.user_id
-        ]
+            if current_senior and current_senior.user_id != user.user_id:
+                manager_ids.append(current_senior.user_id)
+            if current_helper and current_helper.user_id != user.user_id:
+                manager_ids.append(current_helper.user_id)
 
         if manager_ids:
             notification_text = f"""<b>🔔 Новый предмет на активацию</b>
@@ -386,20 +468,23 @@ async def use_product_handler(
                 fullname=user.head
             )
 
-            duty_scheduler = DutyScheduleParser()
-            current_duty = await duty_scheduler.get_current_senior_duty(
-                division=user_head.division, stp_repo=stp_repo
-            )
-            current_duty_user = await stp_repo.employee.get_user(
-                user_id=current_duty.user_id
-            )
-            await send_activation_product_email(
-                user,
-                user_head,
-                current_duty_user,
-                user_product_detail.product_info,
-                user_product_detail.user_purchase,
-            )
+            # Send email notification only if user has work shift
+            if user_has_work_shift and user_head:
+                duty_scheduler = DutyScheduleParser()
+                current_duty = await duty_scheduler.get_current_senior_duty(
+                    division=str(user_head.division), stp_repo=stp_repo
+                )
+                if current_duty:
+                    current_duty_user = await stp_repo.employee.get_user(
+                        user_id=current_duty.user_id
+                    )
+                    await send_activation_product_email(
+                        user,
+                        user_head,
+                        current_duty_user,
+                        user_product_detail.product_info,
+                        user_product_detail.user_purchase,
+                    )
 
             result = await broadcast(
                 bot=callback.bot,
@@ -409,7 +494,7 @@ async def use_product_handler(
             )
 
             logger.info(
-                f"[Использование предмета] {user.username} ({user.user_id}) отправил на рассмотрение '{product_name}'. Уведомлено менеджеров: {result} из {len([m for m in product_managers if m.user_id])}"
+                f"[Использование предмета] {user.username} ({user.user_id}) отправил на рассмотрение '{product_name}'. Уведомлено менеджеров: {result} из {len(manager_ids)}"
             )
     else:
         await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
@@ -539,7 +624,7 @@ async def cancel_activation_handler(
             )
             duty_scheduler = DutyScheduleParser()
             current_duty = await duty_scheduler.get_current_senior_duty(
-                division=user_head.division, stp_repo=stp_repo
+                division=str(user_head.division), stp_repo=stp_repo
             )
             current_duty_user = await stp_repo.employee.get_user(
                 user_id=current_duty.user_id
