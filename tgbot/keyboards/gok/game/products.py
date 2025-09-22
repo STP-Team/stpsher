@@ -3,11 +3,11 @@ from typing import List
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from tgbot.keyboards.gok.main import (
-    create_filters_row,
-    GokProductsMenu,
-    GokPurchaseActivationMenu,
     GokGameMenu,
+    GokProductsMenu,
     GokPurchaseActionMenu,
+    GokPurchaseActivationMenu,
+    create_filters_row,
 )
 from tgbot.keyboards.user.main import MainMenu
 
@@ -35,7 +35,7 @@ def gok_purchases_paginated_kb(
     if page > 1:
         nav_buttons.append(
             InlineKeyboardButton(
-                text="↩️ Назад",
+                text="⬅️",
                 callback_data=GokProductsMenu(
                     menu="products_all", page=page - 1, filters=filters
                 ).pack(),
@@ -52,7 +52,7 @@ def gok_purchases_paginated_kb(
     if page < total_pages:
         nav_buttons.append(
             InlineKeyboardButton(
-                text="Вперёд ➡️",
+                text="➡️",
                 callback_data=GokProductsMenu(
                     menu="products_all", page=page + 1, filters=filters
                 ).pack(),
@@ -114,7 +114,7 @@ def gok_products_activation_kb(
         if page > 1:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="↩️ Назад",
+                    text="⬅️ Назад",
                     callback_data=GokGameMenu(
                         menu="products_activation", page=page - 1
                     ).pack(),
@@ -123,15 +123,15 @@ def gok_products_activation_kb(
 
         nav_buttons.append(
             InlineKeyboardButton(
-                text=f"📄 {page}/{total_pages}",
-                callback_data="current_page",
+                text=f"{page}/{total_pages}",
+                callback_data="noop",
             )
         )
 
         if page < total_pages:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="Вперёд ➡️",
+                    text="➡️",
                     callback_data=GokGameMenu(
                         menu="products_activation", page=page + 1
                     ).pack(),
@@ -179,7 +179,7 @@ def gok_purchases_detail_kb(
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад",
+                text="⬅️",
                 callback_data=GokGameMenu(
                     menu="products_activation", page=current_page
                 ).pack(),

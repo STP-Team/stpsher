@@ -157,7 +157,9 @@ class GroupsMiddleware(BaseMiddleware):
         try:
             # Проверяем корректность события
             if not event.new_chat_member or not event.new_chat_member.user:
-                logger.warning("[Группы] Получено некорректное событие изменения участника")
+                logger.warning(
+                    "[Группы] Получено некорректное событие изменения участника"
+                )
                 return
 
             group_id = event.chat.id
@@ -171,7 +173,9 @@ class GroupsMiddleware(BaseMiddleware):
             # Проверяем, что группа зарегистрирована в системе
             group = await stp_repo.group.get_group(group_id)
             if not group:
-                logger.debug(f"[Группы] Группа {group_id} не зарегистрирована в системе")
+                logger.debug(
+                    f"[Группы] Группа {group_id} не зарегистрирована в системе"
+                )
                 return
 
             old_status = (
@@ -399,7 +403,7 @@ class GroupsMiddleware(BaseMiddleware):
                 notification_text = (
                     f"👋 <b>Добро пожаловать в группу!</b>\n\n"
                     f"Сотрудник {user_info} присоединился к группе\n"
-                    f"<i>Должность: {employee.position + " " + employee.division or 'Не указана'}</i>"
+                    f"<i>Должность: {employee.position + ' ' + employee.division or 'Не указана'}</i>"
                 )
             else:
                 # Формируем сообщение для обычного пользователя
@@ -409,9 +413,7 @@ class GroupsMiddleware(BaseMiddleware):
                 )
 
             await event.bot.send_message(
-                chat_id=group_id,
-                text=notification_text,
-                parse_mode="HTML"
+                chat_id=group_id, text=notification_text, parse_mode="HTML"
             )
 
             logger.info(

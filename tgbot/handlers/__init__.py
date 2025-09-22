@@ -8,6 +8,7 @@ from tgbot.handlers.admin.search import admin_search_router
 from tgbot.handlers.deep.group.settings import deeplink_group
 from tgbot.handlers.gok.game.achievements import gok_game_achievements_router
 from tgbot.handlers.gok.game.main import gok_game_router
+from tgbot.handlers.gok.game.products import gok_game_products_router
 from tgbot.handlers.gok.main import gok_router
 from tgbot.handlers.group.admin import group_admin_router
 from tgbot.handlers.group.casino import group_casino_router
@@ -66,6 +67,7 @@ routers_list = [
     admin_search_router,
     gok_router,
     gok_game_router,
+    gok_game_products_router,
     gok_game_achievements_router,
     head_router,
     head_game_router,

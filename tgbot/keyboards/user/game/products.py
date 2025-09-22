@@ -46,14 +46,14 @@ def duty_products_activation_kb(
         if page > 1:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="◀️ Назад",
+                    text="⬅️",
                     callback_data=GameMenu(menu="products_activation").pack(),
                 )
             )
         if page < total_pages:
             nav_buttons.append(
                 InlineKeyboardButton(
-                    text="Вперёд ▶️",
+                    text="➡️",
                     callback_data=GameMenu(menu="products_activation").pack(),
                 )
             )
