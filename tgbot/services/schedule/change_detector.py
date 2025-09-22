@@ -503,7 +503,7 @@ class ScheduleChangeDetector:
                 # Format day in compact style: "1.08 ПТ"
                 formatted_day = self.format_compact_day(day)
 
-                message += f"{formatted_day} {old_val} => {new_val}\n"
+                message += f"{formatted_day} {old_val} → {new_val}\n"
 
             # Send notification
             success = await send_message(
