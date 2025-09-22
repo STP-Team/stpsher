@@ -73,14 +73,13 @@ class GroupsMiddleware(BaseMiddleware):
             if not group:
                 return
 
-            # Не проверяем бота
-            bot_id = event.bot.id
-            if user_id == bot_id:
+            # Не проверяем ботов
+            if event.from_user.is_bot:
                 return
 
             # Используем централизованную проверку на трудоустройство
             is_valid = await GroupsMiddleware._validate_user_employment(
-                user_id, group_id, group, stp_repo
+                user_id, group_id, group, stp_repo, event.from_user
             )
 
             if not is_valid:
@@ -156,10 +155,9 @@ class GroupsMiddleware(BaseMiddleware):
 
             group_id = event.chat.id
             user_id = event.new_chat_member.user.id
-            bot_id = event.bot.id
 
-            # Не обрабатываем изменения статуса бота
-            if user_id == bot_id:
+            # Не обрабатываем изменения статуса ботов
+            if event.new_chat_member.user.is_bot:
                 return
 
             # Проверяем, что группа зарегистрирована в системе
@@ -227,9 +225,15 @@ class GroupsMiddleware(BaseMiddleware):
         Обработка добавления пользователя в группу
         """
         try:
+            # Игнорируем ботов
+            if event.new_chat_member.user.is_bot:
+                logger.debug(
+                    f"[Группы] Пользователь {user_id} определен как бот, игнорируем обработку"
+                )
+                return
             # Используем централизованную проверку на трудоустройство
             is_valid = await GroupsMiddleware._validate_user_employment(
-                user_id, group_id, group, stp_repo
+                user_id, group_id, group, stp_repo, event.new_chat_member.user
             )
 
             if not is_valid:
@@ -332,6 +336,7 @@ class GroupsMiddleware(BaseMiddleware):
         group_id: int,
         group,
         stp_repo: MainRequestsRepo,
+        user=None,
     ) -> bool:
         """
         Проверяет, может ли пользователь находиться в группе согласно настройкам group
@@ -343,6 +348,12 @@ class GroupsMiddleware(BaseMiddleware):
         :return: True если пользователь может находиться в группе, False если должен быть удален
         """
         try:
+            # Игнорируем всех ботов, используя API Telegram
+            if user and user.is_bot:
+                logger.debug(
+                    f"[Группы] Пользователь {user_id} определен как бот, игнорируем проверку"
+                )
+                return True
             # Если настройка remove_unemployed отключена, разрешаем всех
             if not group.remove_unemployed:
                 # Проверяем доступ по ролям, если список ролей не пустой
