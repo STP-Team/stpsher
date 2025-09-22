@@ -58,14 +58,6 @@ def parse_duration(duration_str: str) -> Optional[timedelta]:
 @group_admin_router.message(Command("admins"))
 async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/admins для получения списка администраторов группы"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            "❌ Для использования команды /admins необходимо авторизоваться в боте"
-        )
-        return
-
     try:
         # Получаем список администраторов чата
         chat_administrators = await message.bot.get_chat_administrators(message.chat.id)
@@ -132,14 +124,6 @@ async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
 @group_admin_router.message(Command("pin"), GroupAdminFilter())
 async def pin_cmd(message: Message, user: Employee):
     """/pin для закрепления сообщения"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            "❌ Для использования команды /pin необходимо авторизоваться в боте"
-        )
-        return
-
     # Проверяем, что команда используется в ответ на сообщение
     if not message.reply_to_message:
         await message.reply(
@@ -175,14 +159,6 @@ async def pin_cmd(message: Message, user: Employee):
 @group_admin_router.message(Command("unpin"), GroupAdminFilter())
 async def unpin_cmd(message: Message, user: Employee):
     """/unpin для открепления сообщения"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            "❌ Для использования команды /unpin необходимо авторизоваться в боте"
-        )
-        return
-
     # Проверяем, что команда используется в ответ на сообщение
     if not message.reply_to_message:
         await message.reply(
@@ -213,15 +189,6 @@ async def unpin_cmd(message: Message, user: Employee):
 @group_admin_router.message(Command("mute"), GroupAdminFilter())
 async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/mute для заглушения пользователя"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            "❌ Для использования команды /mute необходимо авторизоваться в боте"
-        )
-        return
-
-    target_user_id = None
     target_user_name = "Пользователь"
     duration = None
     unmute_at = None
@@ -243,14 +210,14 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
             duration = parse_duration(duration_str)
             if duration is None and duration_str:
                 await message.reply(
-                    "❌ Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мьюта"
+                    "Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мута"
                 )
                 return
     else:
         # Заглушение по user_id из текста команды
         if not command_args:
             await message.reply(
-                "❌ Укажи user_id или используй команду в ответ на сообщение пользователя, которого хочешь заглушить"
+                "Используй команду в ответ на сообщение пользователя, которого хочешь замутить"
             )
             return
 
@@ -259,7 +226,7 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
             target_user_id = int(command_args[0])
         except ValueError:
             await message.reply(
-                "❌ Неверный формат user_id. Используй команду /mute <user_id> [время] или ответь на сообщение пользователя"
+                "Используй команду /mute <user_id> [время] или ответом на сообщение пользователя"
             )
             return
 
@@ -269,13 +236,13 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
             duration = parse_duration(duration_str)
             if duration is None:
                 await message.reply(
-                    "❌ Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мьюта"
+                    "Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мута"
                 )
                 return
 
     # Если указана длительность, вычисляем время размута
     if duration:
-        unmute_at = datetime.utcnow() + duration
+        unmute_at = datetime.now() + duration
 
     try:
         # Используем chat_restrict для ограничения пользователя в Telegram
@@ -312,37 +279,26 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
                 duration_text = f"{duration.seconds // 3600} ч."
             else:
                 duration_text = f"{duration.seconds // 60} мин."
-            mute_message = (
-                f"🔇 Пользователь {display_name} заглушен в группе на {duration_text}"
-            )
+            mute_message = f" {display_name} замьючен в группе на {duration_text}"
         else:
-            mute_message = f"🔇 Пользователь {display_name} заглушен в группе навсегда"
+            mute_message = f"{display_name} замьючен в группе навсегда"
 
         await message.reply(mute_message)
 
         # Логируем использование команды
         duration_log = f" на {duration}" if duration else " навсегда"
         logger.info(
-            f"[/mute] {user.fullname} ({message.from_user.id}) заглушил пользователя {target_user_id} в группе {message.chat.id}{duration_log}"
+            f"[/mute] {user.fullname} ({message.from_user.id}) замутил пользователя {target_user_id} в группе {message.chat.id}{duration_log}"
         )
 
     except Exception as e:
-        logger.error(f"Ошибка при заглушении пользователя: {e}")
-        await message.reply("❌ Произошла ошибка при заглушении пользователя")
+        logger.error(f"Ошибка при муте пользователя: {e}")
+        await message.reply("❌ Произошла ошибка при муте пользователя")
 
 
 @group_admin_router.message(Command("unmute"), GroupAdminFilter())
 async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/unmute для разглушения пользователя"""
-
-    # Проверяем авторизацию пользователя
-    if not user:
-        await message.reply(
-            "❌ Для использования команды /unmute необходимо авторизоваться в боте"
-        )
-        return
-
-    target_user_id = None
     target_user_name = "Пользователь"
 
     # Проверяем способы указания пользователя
@@ -360,12 +316,12 @@ async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
                 target_user_id = int(command_args[0])
             except ValueError:
                 await message.reply(
-                    "❌ Неверный формат user_id. Используй команду /unmute <user_id> или ответь на сообщение пользователя"
+                    "Используй команду /unmute <user_id> или ответом на сообщение пользователя"
                 )
                 return
         else:
             await message.reply(
-                "❌ Укажи user_id или используй команду в ответ на сообщение пользователя, которого хочешь разглушить"
+                "Используй команду в ответ на сообщение пользователя, которого хочешь размутить"
             )
             return
 
@@ -395,13 +351,124 @@ async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
         else:
             display_name = target_user_name
 
-        await message.reply(f"🔊 Пользователь {display_name} разглушен в группе")
+        await message.reply(f"{display_name} размьючен в группе")
 
         # Логируем использование команды
         logger.info(
-            f"[/unmute] {user.fullname} ({message.from_user.id}) разглушил пользователя {target_user_id} в группе {message.chat.id}"
+            f"[/unmute] {user.fullname} ({message.from_user.id}) размутил пользователя {target_user_id} в группе {message.chat.id}"
         )
 
     except Exception as e:
-        logger.error(f"Ошибка при разглушении пользователя: {e}")
-        await message.reply("❌ Произошла ошибка при разглушении пользователя")
+        logger.error(f"Ошибка при размуте пользователя: {e}")
+        await message.reply("❌ Произошла ошибка при размуте пользователя")
+
+
+@group_admin_router.message(Command("ban"), GroupAdminFilter())
+async def ban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
+    """/ban для бана пользователя"""
+    target_user_name = "Пользователь"
+
+    # Проверяем способы указания пользователя
+    if message.reply_to_message:
+        # Бан через ответ на сообщение
+        target_user_id = message.reply_to_message.from_user.id
+        target_user_name = (
+            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+        )
+    else:
+        # Бан по user_id из текста команды
+        command_args = message.text.split()[1:] if message.text else []
+        if command_args:
+            try:
+                target_user_id = int(command_args[0])
+            except ValueError:
+                await message.reply(
+                    "Используй команду /ban <user_id> или ответом на сообщение пользователя"
+                )
+                return
+        else:
+            await message.reply(
+                "Используй команду в ответ на сообщение пользователя, которого хочешь забанить"
+            )
+            return
+
+    try:
+        # Банируем пользователя в Telegram
+        await message.bot.ban_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_user_id,
+        )
+
+        # Получаем информацию о забаненном пользователе для красивого отображения
+        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        if employee:
+            display_name = short_name(employee.fullname)
+        else:
+            display_name = target_user_name
+
+        await message.reply(f"{display_name} забанен в группе")
+
+        # Логируем использование команды
+        logger.info(
+            f"[/ban] {user.fullname} ({message.from_user.id}) забанил пользователя {target_user_id} в группе {message.chat.id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при бане пользователя: {e}")
+        await message.reply("❌ Произошла ошибка при бане пользователя")
+
+
+@group_admin_router.message(Command("unban"), GroupAdminFilter())
+async def unban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
+    """/unban для разбана пользователя"""
+    target_user_name = "Пользователь"
+
+    # Проверяем способы указания пользователя
+    if message.reply_to_message:
+        # Разбан через ответ на сообщение
+        target_user_id = message.reply_to_message.from_user.id
+        target_user_name = (
+            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+        )
+    else:
+        # Разбан по user_id из текста команды
+        command_args = message.text.split()[1:] if message.text else []
+        if command_args:
+            try:
+                target_user_id = int(command_args[0])
+            except ValueError:
+                await message.reply(
+                    "Используй команду /unban <user_id> или ответом на сообщение пользователя"
+                )
+                return
+        else:
+            await message.reply(
+                "Используй команду в ответ на сообщение пользователя, которого хочешь разбанить"
+            )
+            return
+
+    try:
+        # Разбаниваем пользователя в Telegram
+        await message.bot.unban_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_user_id,
+            only_if_banned=True,
+        )
+
+        # Получаем информацию о разбаненном пользователе для красивого отображения
+        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        if employee:
+            display_name = short_name(employee.fullname)
+        else:
+            display_name = target_user_name
+
+        await message.reply(f"{display_name} разбанен в группе")
+
+        # Логируем использование команды
+        logger.info(
+            f"[/unban] {user.fullname} ({message.from_user.id}) разбанил пользователя {target_user_id} в группе {message.chat.id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при разбане пользователя: {e}")
+        await message.reply("❌ Произошла ошибка при разбане пользователя")

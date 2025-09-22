@@ -128,6 +128,10 @@ async def main():
             BotCommand(
                 command="unpin", description="Открепить сообщение (ответом на него)"
             ),
+            BotCommand(command="mute", description="Замутить пользователя"),
+            BotCommand(command="unmute", description="Размутить пользователя"),
+            BotCommand(command="ban", description="Забанить пользователя"),
+            BotCommand(command="unban", description="Разбанить пользователя"),
             BotCommand(command="settings", description="Настройки группы"),
             BotCommand(command="slots", description="Сыграть в слоты"),
             BotCommand(command="dice", description="Сыграть в кубик"),
