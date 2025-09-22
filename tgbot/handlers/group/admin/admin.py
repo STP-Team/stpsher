@@ -6,8 +6,6 @@ from typing import Optional
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import (
-    ChatMemberAdministrator,
-    ChatMemberOwner,
     ChatPermissions,
     Message,
 )
@@ -20,7 +18,9 @@ from tgbot.keyboards.mip.search import short_name
 logger = logging.getLogger(__name__)
 
 group_admin_router = Router()
-group_admin_router.message.filter(F.chat.type.in_(("group", "supergroup")))
+group_admin_router.message.filter(
+    F.chat.type.in_(("group", "supergroup")), GroupAdminFilter()
+)
 
 
 def parse_duration(duration_str: str) -> Optional[timedelta]:
@@ -55,73 +55,7 @@ def parse_duration(duration_str: str) -> Optional[timedelta]:
     return None
 
 
-@group_admin_router.message(Command("admins"))
-async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/admins для получения списка администраторов группы"""
-    try:
-        # Получаем список администраторов чата
-        chat_administrators = await message.bot.get_chat_administrators(message.chat.id)
-
-        # Обрабатываем каждого администратора и проверяем их в базе данных
-        admin_list = []
-        owner = None
-
-        for admin in chat_administrators:
-            user_info = admin.user
-
-            # Проверяем администратора в базе данных
-            db_user = await stp_repo.employee.get_user(user_id=user_info.id)
-            if db_user:
-                # Если есть в БД, используем данные из БД с ссылкой
-                if db_user.username:
-                    display_name = f"<a href='t.me/{db_user.username}'>{short_name(db_user.fullname)}</a>"
-                else:
-                    display_name = short_name(db_user.fullname)
-            else:
-                # Если нет в БД, используем данные из Telegram
-                display_name = (
-                    f"@{user_info.username}"
-                    if user_info.username
-                    else user_info.full_name
-                )
-
-            if isinstance(admin, ChatMemberOwner):
-                owner = display_name
-            elif isinstance(admin, ChatMemberAdministrator):
-                admin_list.append(display_name)
-
-        # Формируем сообщение
-        message_parts = ["<b>Администраторы группы:</b>"]
-
-        # Добавляем владельца
-        if owner:
-            message_parts.append(f"- {owner}, владелец")
-
-        # Добавляем администраторов
-        for admin_name in admin_list:
-            message_parts.append(f"- {admin_name}")
-
-        # Если нет администраторов
-        if not admin_list and not owner:
-            message_parts.append("Администраторы не найдены")
-
-        response_text = "\n".join(message_parts)
-
-        await message.reply(response_text)
-
-        # Логируем использование команды
-        logger.info(
-            f"[/admins] {user.fullname} ({message.from_user.id}) запросил список администраторов группы {message.chat.id}"
-        )
-
-    except Exception as e:
-        logger.error(f"Ошибка при получении списка администраторов: {e}")
-        await message.reply(
-            "❌ Произошла ошибка при получении списка администраторов. Возможно, у бота недостаточно прав."
-        )
-
-
-@group_admin_router.message(Command("pin"), GroupAdminFilter())
+@group_admin_router.message(Command("pin"))
 async def pin_cmd(message: Message, user: Employee):
     """/pin для закрепления сообщения"""
     # Проверяем, что команда используется в ответ на сообщение
@@ -156,7 +90,7 @@ async def pin_cmd(message: Message, user: Employee):
         )
 
 
-@group_admin_router.message(Command("unpin"), GroupAdminFilter())
+@group_admin_router.message(Command("unpin"))
 async def unpin_cmd(message: Message, user: Employee):
     """/unpin для открепления сообщения"""
     # Проверяем, что команда используется в ответ на сообщение
@@ -186,7 +120,7 @@ async def unpin_cmd(message: Message, user: Employee):
         )
 
 
-@group_admin_router.message(Command("mute"), GroupAdminFilter())
+@group_admin_router.message(Command("mute"))
 async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/mute для заглушения пользователя"""
     target_user_name = "Пользователь"
@@ -296,7 +230,7 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
         await message.reply("❌ Произошла ошибка при муте пользователя")
 
 
-@group_admin_router.message(Command("unmute"), GroupAdminFilter())
+@group_admin_router.message(Command("unmute"))
 async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/unmute для разглушения пользователя"""
     target_user_name = "Пользователь"
@@ -363,7 +297,7 @@ async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
         await message.reply("❌ Произошла ошибка при размуте пользователя")
 
 
-@group_admin_router.message(Command("ban"), GroupAdminFilter())
+@group_admin_router.message(Command("ban"))
 async def ban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/ban для бана пользователя"""
     target_user_name = "Пользователь"

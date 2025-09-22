@@ -104,16 +104,18 @@ async def main():
     )
     await bot.set_my_commands(
         commands=[
+            BotCommand(command="balance", description="Баланс баллов"),
+            BotCommand(command="top", description="Топ группы по баллам"),
+            BotCommand(command="slots", description="Сыграть в слоты"),
+            BotCommand(command="dice", description="Сыграть в кубик"),
+            BotCommand(command="darts", description="Сыграть в дартс"),
+            BotCommand(command="bowling", description="Сыграть в боулинг"),
             BotCommand(
                 command="whois", description="Проверить информацию о сотруднике"
             ),
             BotCommand(
                 command="admins", description="Проверить список администраторов"
             ),
-            BotCommand(command="slots", description="Сыграть в слоты"),
-            BotCommand(command="dice", description="Сыграть в кубик"),
-            BotCommand(command="darts", description="Сыграть в дартс"),
-            BotCommand(command="bowling", description="Сыграть в боулинг"),
         ],
         scope=BotCommandScopeAllGroupChats(),
     )
