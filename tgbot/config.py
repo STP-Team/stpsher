@@ -121,6 +121,8 @@ class MailConfig:
 
     nck_email_addr: str
     ntp_email_addr: str
+    gok_email_addr: str
+    mip_email_addr: str
 
     @staticmethod
     def from_env(env: Env):
@@ -135,6 +137,8 @@ class MailConfig:
 
         nck_email_addr = env.str("NCK_EMAIL_ADDR")
         ntp_email_addr = env.str("NTP_EMAIL_ADDR")
+        gok_email_addr = env.str("GOK_EMAIL_ADDR")
+        mip_email_addr = env.str("MIP_EMAIL_ADDR")
 
         return MailConfig(
             host=host,
@@ -144,6 +148,8 @@ class MailConfig:
             use_ssl=use_ssl,
             nck_email_addr=nck_email_addr,
             ntp_email_addr=ntp_email_addr,
+            gok_email_addr=gok_email_addr,
+            mip_email_addr=mip_email_addr,
         )
 
 

@@ -5,7 +5,7 @@ from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from infrastructure.database.models import Product, Employee
+from infrastructure.database.models import Employee, Product
 from infrastructure.database.models.STP.purchase import Purchase
 from tgbot.config import load_config
 
@@ -78,10 +78,17 @@ async def send_activation_product_email(
 Для активации перейдите в СТПшера"""
 
     email = []
-    if user.division == "НЦК":
-        email.append(config.mail.nck_email_addr)
-    else:
-        email.append(config.mail.ntp_email_addr)
+
+    match product.manager_role:
+        case 3:
+            if user.division == "НЦК":
+                email.append(config.mail.nck_email_addr)
+            else:
+                email.append(config.mail.ntp_email_addr)
+        case 5:
+            email.append(config.mail.gok_email_addr)
+        case 6:
+            email.append(config.mail.mip_email_addr)
 
     if user_head and user_head.email:
         email.append(user_head.email)
