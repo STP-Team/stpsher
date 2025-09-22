@@ -51,9 +51,9 @@ async def send_email(
 async def send_auth_email(code: str, email: str, bot_username: str):
     email_subject = "Авторизация в боте"
     email_content = f"""Добрый день<br><br>
-    
+
 Код для авторизации: <b>{code}</b><br>
-Введите код в бота @{bot_username} для завершения авторизации"""
+Введите код в бота <a href="https://t.me/{bot_username}">@{bot_username}</a> для завершения авторизации"""
 
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
 
@@ -64,15 +64,16 @@ async def send_activation_product_email(
     current_duty: Employee | None,
     product: Product,
     purchase: Purchase,
+    bot_username: str,
 ):
     email_subject = "Активация предмета"
     email_content = f"""Добрый день!<br><br>
 
-<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отправил запрос на активацию <b>{product.name}</b><br>
+<b>{user.fullname}</b>{f' (<a href="https://t.me/{user.username}">@{user.username}</a>)' if user.username else ""} отправил запрос на активацию <b>{product.name}</b><br>
 📝 Описание: {product.description}<br>
 📍 Активаций: <b>{purchase.usage_count + 1}</b> из <b>{product.count}</b><br><br>
 
-Для активации перейдите в СТПшера"""
+Для активации перейдите в <a href="https://t.me/{bot_username}">СТПшера</a>"""
 
     email = []
 
@@ -105,13 +106,16 @@ async def send_cancel_product_email(
     current_duty: Employee | None,
     product: Product,
     purchase: Purchase,
+    bot_username: str,
 ):
     email_subject = "Отмена покупки"
     email_content = f"""Добрый день!<br><br>
 
-<b>{user.fullname}</b>{f" (https://t.me/{user.username})" if user.username else ""} отменил использование <b>{product.name}</b><br>
+<b>{user.fullname}</b>{f' (<a href="https://t.me/{user.username}">@{user.username}</a>)' if user.username else ""} отменил использование <b>{product.name}</b><br>
 📝 Описание: {product.description}<br>
-📍 Активаций: <b>{purchase.usage_count}</b> из <b>{product.count}</b>"""
+📍 Активаций: <b>{purchase.usage_count}</b> из <b>{product.count}</b><br><br>
+
+Подробности можно посмотреть в <a href="https://t.me/{bot_username}">СТПшера</a>"""
 
     email = []
     match product.manager_role:
