@@ -69,22 +69,14 @@ def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMark
                 ).pack(),
             ),
         ],
-    ]
-
-    if group.remove_unemployed:
-        keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text="🛡️ Уровень доступа",
-                    callback_data=GroupSettingsMenu(
-                        group_id=group.group_id, menu="access"
-                    ).pack(),
-                ),
-            ]
-        )
-
-    # Add members button
-    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="🛡️ Уровень доступа",
+                callback_data=GroupSettingsMenu(
+                    group_id=group.group_id, menu="access"
+                ).pack(),
+            ),
+        ],
         [
             InlineKeyboardButton(
                 text="👥 Состав",
@@ -92,10 +84,7 @@ def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMark
                     group_id=group.group_id, menu="members"
                 ).pack(),
             ),
-        ]
-    )
-
-    keyboard.append(
+        ],
         [
             InlineKeyboardButton(
                 text="Копировать приглашение",
@@ -103,8 +92,10 @@ def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMark
                     text=group_link,
                 ),
             )
-        ]
-    )
+        ],
+    ]
+
+    # Add members button
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
