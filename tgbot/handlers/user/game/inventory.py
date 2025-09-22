@@ -478,12 +478,14 @@ async def use_product_handler(
                     current_duty_user = await stp_repo.employee.get_user(
                         user_id=current_duty.user_id
                     )
+                    bot_info = await callback.bot.get_me()
                     await send_activation_product_email(
                         user,
                         user_head,
                         current_duty_user,
                         user_product_detail.product_info,
                         user_product_detail.user_purchase,
+                        bot_username=bot_info.username,
                     )
 
             result = await broadcast(
