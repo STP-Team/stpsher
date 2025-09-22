@@ -159,7 +159,9 @@ async def handle_settings_callback(
 
         case "members":
             # Get all group members from the database
-            group_members = await stp_repo.group_member.get_group_members(group.group_id)
+            group_members = await stp_repo.group_member.get_group_members(
+                group.group_id
+            )
 
             # Get employee data for members who are employees
             employees = []
@@ -167,7 +169,9 @@ async def handle_settings_callback(
 
             for group_member in group_members:
                 # Try to get employee data
-                employee = await stp_repo.employee.get_user(user_id=group_member.member_id)
+                employee = await stp_repo.employee.get_user(
+                    user_id=group_member.member_id
+                )
                 if employee:
                     employees.append(employee)
                 else:
@@ -203,7 +207,7 @@ async def handle_settings_callback(
                     group_id=group.group_id,
                     employees=employees,
                     users=non_employee_users,
-                    current_page=1
+                    current_page=1,
                 ),
             )
 
@@ -372,7 +376,7 @@ async def handle_members_pagination(
             group_id=group.group_id,
             employees=employees,
             users=non_employee_users,
-            current_page=callback_data.page
+            current_page=callback_data.page,
         ),
     )
 
@@ -397,10 +401,13 @@ async def handle_member_detail(
         employee = await stp_repo.employee.get_user(user_id=callback_data.member_id)
         if employee:
             from tgbot.keyboards.group.settings import short_name
+
             member_name = short_name(employee.fullname)
-            role_info = roles.get(employee.role, {"name": "Неизвестная роль", "emoji": ""})
+            role_info = roles.get(
+                employee.role, {"name": "Неизвестная роль", "emoji": ""}
+            )
             member_info = f"""👤 <b>Сотрудник</b>: {employee.fullname}
-🏷️ <b>Роль</b>: {role_info['emoji']} {role_info['name']}
+🏷️ <b>Роль</b>: {role_info["emoji"]} {role_info["name"]}
 🆔 <b>ID</b>: <code>{employee.user_id}</code>"""
         else:
             await callback.answer("Не удалось найти данные сотрудника")
@@ -436,7 +443,7 @@ async def handle_member_detail(
             member_id=callback_data.member_id,
             member_type=callback_data.member_type,
             member_name=member_name,
-            page=callback_data.page
+            page=callback_data.page,
         ),
     )
 
@@ -457,14 +464,12 @@ async def handle_member_action(
         try:
             # Ban user from the group
             await callback.bot.ban_chat_member(
-                chat_id=group.group_id,
-                user_id=callback_data.member_id
+                chat_id=group.group_id, user_id=callback_data.member_id
             )
 
             # Remove from group_members table
             removal_success = await stp_repo.group_member.remove_member(
-                group_id=group.group_id,
-                member_id=callback_data.member_id
+                group_id=group.group_id, member_id=callback_data.member_id
             )
 
             if removal_success:
@@ -482,13 +487,17 @@ async def handle_member_action(
 
             # Return to members list
             # Get updated members list
-            group_members = await stp_repo.group_member.get_group_members(group.group_id)
+            group_members = await stp_repo.group_member.get_group_members(
+                group.group_id
+            )
 
             employees = []
             non_employee_users = []
 
             for group_member in group_members:
-                employee = await stp_repo.employee.get_user(user_id=group_member.member_id)
+                employee = await stp_repo.employee.get_user(
+                    user_id=group_member.member_id
+                )
                 if employee:
                     employees.append(employee)
                 else:
@@ -522,7 +531,7 @@ async def handle_member_action(
                     group_id=group.group_id,
                     employees=employees,
                     users=non_employee_users,
-                    current_page=callback_data.page
+                    current_page=callback_data.page,
                 ),
             )
 
