@@ -122,6 +122,12 @@ async def main():
             BotCommand(
                 command="whois", description="Проверить информацию о сотруднике"
             ),
+            BotCommand(
+                command="pin", description="Закрепить сообщение (ответом на него)"
+            ),
+            BotCommand(
+                command="unpin", description="Открепить сообщение (ответом на него)"
+            ),
             BotCommand(command="settings", description="Настройки группы"),
             BotCommand(command="slots", description="Сыграть в слоты"),
             BotCommand(command="dice", description="Сыграть в кубик"),

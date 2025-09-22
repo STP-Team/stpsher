@@ -86,13 +86,18 @@ async def _update_toggle_setting(
     updated_group = await stp_repo.group.update_group(
         group_id=group.group_id, **update_data
     )
+    group_invite = await callback.bot.create_chat_invite_link(
+        chat_id=group.group_id, name="Приглашение через СТПшер"
+    )
 
     if updated_group:
         status = "включено" if new_value else "выключено"
         await callback.answer(f"{success_message} {status}")
 
         await callback.message.edit_reply_markup(
-            reply_markup=group_settings_keyboard(updated_group)
+            reply_markup=group_settings_keyboard(
+                updated_group, group_invite.invite_link
+            )
         )
         logger.info(f"Successfully updated group {group.group_id} setting {field_name}")
     else:
@@ -216,6 +221,10 @@ async def handle_settings_callback(
 
         case "back":
             group_info = await callback.bot.get_chat(chat_id=group.group_id)
+            group_invite = await callback.bot.create_chat_invite_link(
+                chat_id=group.group_id, name="Приглашение через СТПшер"
+            )
+
             await callback.message.edit_text(
                 f"""⚙️ <b>Настройки группы</b>: {group_info.full_name}
 
@@ -226,7 +235,7 @@ async def handle_settings_callback(
 Часть опций содержит в себе детальные настройки, открыть их можно нажав на название опции
 
 <i>Используй меню для управления функциями бота в группе</i>""",
-                reply_markup=group_settings_keyboard(group),
+                reply_markup=group_settings_keyboard(group, group_invite.invite_link),
             )
 
 
