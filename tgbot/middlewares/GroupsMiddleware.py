@@ -122,21 +122,12 @@ class GroupsMiddleware(BaseMiddleware):
         :param group_id: ID группы
         :param stp_repo: Репозиторий для работы с БД
         """
-        # Получаем информацию о пользователе
-        user_mention = (
-            f"@{event.from_user.username}"
-            if event.from_user.username
-            else f"#{user_id}"
-        )
-        user_fullname = f"{event.from_user.first_name or ''} {event.from_user.last_name or ''}".strip()
 
         await GroupsMiddleware._execute_ban(
             bot=event.bot,
             user_id=user_id,
             group_id=group_id,
             stp_repo=stp_repo,
-            user_mention=user_mention,
-            user_fullname=user_fullname,
             reason_text="был заблокирован в данной группе",
         )
 
@@ -286,17 +277,26 @@ class GroupsMiddleware(BaseMiddleware):
         Обработка удаления пользователя из группы
         """
         try:
-            # Удаляем пользователя из таблицы group_members
-            result = await stp_repo.group_member.remove_member(group_id, user_id)
+            # Проверяем, существует ли пользователь в группе перед удалением
+            is_member = await stp_repo.group_member.is_member(group_id, user_id)
 
-            action = "исключен" if was_kicked else "покинул группу"
-            if result:
-                logger.info(
-                    f"[Группы] Пользователь {user_id} {action} и удален из участников группы {group_id}"
-                )
+            if is_member:
+                # Удаляем пользователя из таблицы group_members
+                result = await stp_repo.group_member.remove_member(group_id, user_id)
+
+                action = "исключен" if was_kicked else "покинул группу"
+                if result:
+                    logger.info(
+                        f"[Группы] Пользователь {user_id} {action} и удален из участников группы {group_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"[Группы] Пользователь {user_id} {action}, но не удалось удалить из участников группы {group_id}"
+                    )
             else:
-                logger.warning(
-                    f"[Группы] Пользователь {user_id} {action}, но не удалось удалить из участников группы {group_id}"
+                action = "исключен" if was_kicked else "покинул группу"
+                logger.info(
+                    f"[Группы] Пользователь {user_id} {action}, но уже отсутствует в участниках группы {group_id}"
                 )
 
         except Exception as e:
@@ -318,18 +318,11 @@ class GroupsMiddleware(BaseMiddleware):
         :param group_id: ID группы
         :param stp_repo: Репозиторий для работы с БД
         """
-        # Получаем информацию о пользователе
-        user = event.new_chat_member.user
-        user_mention = f"@{user.username}" if user.username else f"#{user_id}"
-        user_fullname = f"{user.first_name or ''} {user.last_name or ''}".strip()
-
         await GroupsMiddleware._execute_ban(
             bot=event.bot,
             user_id=user_id,
             group_id=group_id,
             stp_repo=stp_repo,
-            user_mention=user_mention,
-            user_fullname=user_fullname,
             reason_text="был заблокирован при попытке присоединения к группе",
         )
 
@@ -341,7 +334,7 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
     ) -> bool:
         """
-        Проверяет, может ли пользователь находиться в группе согласно настройке remove_unemployed
+        Проверяет, может ли пользователь находиться в группе согласно настройкам group
 
         :param user_id: ID пользователя
         :param group_id: ID группы
@@ -352,6 +345,11 @@ class GroupsMiddleware(BaseMiddleware):
         try:
             # Если настройка remove_unemployed отключена, разрешаем всех
             if not group.remove_unemployed:
+                # Проверяем доступ по ролям, если список ролей не пустой
+                if hasattr(group, "allowed_roles") and group.allowed_roles:
+                    return await GroupsMiddleware._check_user_role_access(
+                        user_id, group, stp_repo
+                    )
                 return True
 
             # Проверяем, является ли пользователь активным сотрудником
@@ -363,6 +361,17 @@ class GroupsMiddleware(BaseMiddleware):
                 )
                 return False
 
+            # Дополнительно проверяем доступ по ролям, если список ролей не пустой
+            if hasattr(group, "allowed_roles") and group.allowed_roles:
+                role_access = await GroupsMiddleware._check_user_role_access(
+                    user_id, group, stp_repo
+                )
+                if not role_access:
+                    logger.info(
+                        f"[Группы] Пользователь {user_id} не имеет доступа по ролям к группе {group_id}"
+                    )
+                    return False
+
             logger.debug(
                 f"[Группы] Пользователь {user_id} найден в базе сотрудников: {employee.position or 'Без должности'}"
             )
@@ -373,6 +382,54 @@ class GroupsMiddleware(BaseMiddleware):
                 f"[Группы] Ошибка при проверке статуса сотрудника {user_id} в группе {group_id}: {e}"
             )
             # В случае ошибки разрешаем пользователю остаться
+            return True
+
+    @staticmethod
+    async def _check_user_role_access(
+        user_id: int,
+        group,
+        stp_repo: MainRequestsRepo,
+    ) -> bool:
+        """
+        Проверяет, имеет ли пользователь доступ к группе по ролям
+
+        :param user_id: ID пользователя
+        :param group: Объект группы из БД
+        :param stp_repo: Репозиторий для работы с БД
+        :return: True если пользователь имеет доступ, False если нет
+        """
+        try:
+            # Если список разрешенных ролей пуст, разрешаем доступ всем
+            if not group.allowed_roles:
+                return True
+
+            # Получаем пользователя из базы
+            user = await stp_repo.employee.get_user(user_id=user_id)
+            if not user:
+                logger.info(
+                    f"[Группы] Пользователь {user_id} не найден в базе пользователей"
+                )
+                return False
+
+            # Проверяем, есть ли роль пользователя в списке разрешенных
+            user_role = getattr(user, "role", 0)  # По умолчанию роль 0 (не авторизован)
+
+            if user_role in group.allowed_roles or user_role == 10:
+                logger.debug(
+                    f"[Группы] Пользователь {user_id} имеет доступ (роль {user_role})"
+                )
+                return True
+            else:
+                logger.info(
+                    f"[Группы] Пользователь {user_id} не имеет доступа (роль {user_role} не в списке {group.allowed_roles})"
+                )
+                return False
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при проверке ролей пользователя {user_id}: {e}"
+            )
+            # В случае ошибки разрешаем доступ
             return True
 
     @staticmethod
@@ -431,20 +488,12 @@ class GroupsMiddleware(BaseMiddleware):
         user_id: int,
         group_id: int,
         stp_repo: MainRequestsRepo,
-        user_mention: str,
-        user_fullname: str,
         reason_text: str,
     ):
         """
         Общий метод для выполнения бана пользователя
         """
         try:
-            # Формируем информацию о пользователе для уведомления
-            if user_fullname:
-                user_info = f"{user_fullname} ({user_mention})"
-            else:
-                user_info = user_mention
-
             # Банить пользователя в Telegram группе
             await bot.ban_chat_member(chat_id=group_id, user_id=user_id)
 
@@ -452,11 +501,19 @@ class GroupsMiddleware(BaseMiddleware):
             await stp_repo.group_member.remove_member(group_id, user_id)
 
             # Отправляем уведомление в группу
-            notification_text = (
-                f"🚫 <b>Пользователь заблокирован</b>\n\n"
-                f"Пользователь {user_info} {reason_text}\n\n"
-                f"<i>Причина: пользователь не найден в базе сотрудников</i>"
-            )
+            user = await stp_repo.employee.get_user(user_id=user_id)
+            if user:
+                notification_text = (
+                    f"🚫 <b>Пользователь заблокирован</b>\n\n"
+                    f"{short_name(user.fullname)} {reason_text}\n\n"
+                    f"<i>Причина: недостаточно прав доступа к группе</i>"
+                )
+            else:
+                notification_text = (
+                    f"🚫 <b>Пользователь заблокирован</b>\n\n"
+                    f"{user_id} {reason_text}\n\n"
+                    f"<i>Причина: недостаточно прав доступа к группе</i>"
+                )
 
             await bot.send_message(
                 chat_id=group_id, text=notification_text, parse_mode="HTML"

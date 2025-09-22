@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Sequence
+from typing import Optional, Sequence, TypedDict, Unpack
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,6 +8,17 @@ from infrastructure.database.models.STP.group import Group
 from infrastructure.database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
+
+
+class GroupParams(TypedDict, total=False):
+    """Доступные параметры для обновления пользователя в таблице RegisteredUsers."""
+
+    group_id: int
+    invited_by: str | None
+    remove_unemployed: bool | None
+    is_casino_allowed: bool | None
+    new_user_notify: bool | None
+    allowed_roles: list | None
 
 
 class GroupRepo(BaseRepo):
@@ -90,6 +101,32 @@ class GroupRepo(BaseRepo):
             return group
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка добавления группы {group_id}: {e}")
+            await self.session.rollback()
+            return None
+
+    async def update_group(
+        self,
+        group_id: int = None,
+        **kwargs: Unpack[GroupParams],
+    ) -> Optional[Group]:
+        try:
+            select_stmt = select(Group).where(Group.group_id == group_id)
+
+            result = await self.session.execute(select_stmt)
+            group: Group | None = result.scalar_one_or_none()
+
+            # Если группа существует - обновляем ее
+            if group is not None:
+                for key, value in kwargs.items():
+                    setattr(group, key, value)
+                await self.session.commit()
+                logger.info(f"[БД] Группа {group_id} обновлена: {kwargs}")
+            else:
+                logger.warning(f"[БД] Группа {group_id} не найдена для обновления")
+
+            return group
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка обновления группы {group_id}: {e}")
             await self.session.rollback()
             return None
 

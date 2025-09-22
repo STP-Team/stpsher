@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean
+from sqlalchemy import JSON, Boolean
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -50,6 +50,12 @@ class Group(Base, TableNameMixin):
         nullable=False,
         comment="Уведомлять о новых вступивших участниках в группу",
         default=1,
+    )
+    allowed_roles: Mapped[list] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Список разрешенных ролей для доступа к группе",
+        default=[],
     )
 
     def __repr__(self):
