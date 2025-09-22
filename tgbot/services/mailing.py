@@ -56,9 +56,6 @@ async def send_auth_email(code: str, email: str, bot_username: str):
 Введите код в бота @{bot_username} для завершения авторизации"""
 
     await send_email(to_addrs=email, subject=email_subject, body=email_content)
-    logger.info(
-        f"[Авторизация] Письмо с кодом авторизации {code} отправлено на {email}"
-    )
 
 
 async def send_activation_product_email(

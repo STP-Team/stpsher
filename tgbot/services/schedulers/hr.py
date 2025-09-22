@@ -283,7 +283,9 @@ async def process_fired_users(session_pool, bot: Bot = None):
         logger.error(f"[Увольнения] Критическая ошибка при обработке увольнений: {e}")
 
 
-async def remove_fired_users_from_groups(session_pool, bot: Bot, fired_users: List[str]):
+async def remove_fired_users_from_groups(
+    session_pool, bot: Bot, fired_users: List[str]
+):
     """
     Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
 
@@ -309,14 +311,20 @@ async def remove_fired_users_from_groups(session_pool, bot: Bot, fired_users: Li
                     employee = await stp_repo.employee.get_user(fullname=fullname)
 
                     if not employee or not employee.user_id:
-                        logger.debug(f"[Увольнения] Сотрудник {fullname} не найден в БД или не имеет user_id")
+                        logger.debug(
+                            f"[Увольнения] Сотрудник {fullname} не найден в БД или не имеет user_id"
+                        )
                         continue
 
                     # Получаем все группы сотрудника
-                    user_groups = await stp_repo.group_member.get_member_groups(employee.user_id)
+                    user_groups = await stp_repo.group_member.get_member_groups(
+                        employee.user_id
+                    )
 
                     if not user_groups:
-                        logger.debug(f"[Увольнения] Сотрудник {fullname} не состоит в группах")
+                        logger.debug(
+                            f"[Увольнения] Сотрудник {fullname} не состоит в группах"
+                        )
                         continue
 
                     # Проверяем каждую группу на наличие опции remove_unemployed
@@ -324,20 +332,25 @@ async def remove_fired_users_from_groups(session_pool, bot: Bot, fired_users: Li
                     groups_banned_from = 0
 
                     for group_membership in user_groups:
-                        group = await stp_repo.group.get_group(group_membership.group_id)
+                        group = await stp_repo.group.get_group(
+                            group_membership.group_id
+                        )
 
                         if not group:
-                            logger.debug(f"[Увольнения] Группа {group_membership.group_id} не найдена в БД")
+                            logger.debug(
+                                f"[Увольнения] Группа {group_membership.group_id} не найдена в БД"
+                            )
                             continue
 
                         if not group.remove_unemployed:
-                            logger.debug(f"[Увольнения] Группа {group_membership.group_id} не настроена на удаление уволенных")
+                            logger.debug(
+                                f"[Увольнения] Группа {group_membership.group_id} не настроена на удаление уволенных"
+                            )
                             continue
 
                         # Удаляем из БД
                         db_removed = await stp_repo.group_member.remove_member(
-                            group_membership.group_id,
-                            employee.user_id
+                            group_membership.group_id, employee.user_id
                         )
 
                         if db_removed:
@@ -350,7 +363,7 @@ async def remove_fired_users_from_groups(session_pool, bot: Bot, fired_users: Li
                             try:
                                 await bot.ban_chat_member(
                                     chat_id=group_membership.group_id,
-                                    user_id=employee.user_id
+                                    user_id=employee.user_id,
                                 )
                                 groups_banned_from += 1
                                 logger.info(
@@ -375,7 +388,9 @@ async def remove_fired_users_from_groups(session_pool, bot: Bot, fired_users: Li
                         )
 
                 except Exception as e:
-                    logger.error(f"[Увольнения] Ошибка обработки групп для сотрудника {fullname}: {e}")
+                    logger.error(
+                        f"[Увольнения] Ошибка обработки групп для сотрудника {fullname}: {e}"
+                    )
 
             logger.info(
                 f"[Увольнения] Обработка групп завершена: удалено из БД {total_removed_from_groups} записей, "

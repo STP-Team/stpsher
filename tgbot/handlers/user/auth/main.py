@@ -1,3 +1,4 @@
+import logging
 import re
 
 from aiogram import F, Router
@@ -11,6 +12,8 @@ from tgbot.misc.helpers import generate_auth_code
 from tgbot.misc.states.user.auth import Authorization
 from tgbot.services.mailing import send_auth_email
 
+logger = logging.getLogger(__name__)
+
 user_auth_router = Router()
 user_auth_router.message.filter(F.chat.type == "private")
 user_auth_router.callback_query.filter(F.message.chat.type == "private")
@@ -19,6 +22,10 @@ user_auth_router.callback_query.filter(F.message.chat.type == "private")
 @user_auth_router.callback_query(F.data == "auth")
 async def user_auth(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+
+    logger.info(
+        f"[Авторизация] Пользователь {callback.from_user.username} ({callback.from_user.id}) запустил авторизацию"
+    )
 
     bot_message = await callback.message.edit_text("""<b>🔑 Авторизация</b>
 
@@ -57,6 +64,9 @@ async def user_auth_email(message: Message, state: FSMContext):
     await send_auth_email(
         code=auth_code, email=message.text, bot_username=bot_info.username
     )
+    logger.info(
+        f"[Авторизация] Пользователю {message.from_user.username} ({message.from_user.id}) отправлено письмо с кодом авторизации {auth_code} на {message.text}"
+    )
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -90,6 +100,10 @@ async def user_auth_code(message: Message, state: FSMContext):
 Письмо поступит от отправителя <code>shedule-botntp2@mail.ru</code></i>""",
         )
         return
+
+    logger.info(
+        f"[Авторизация] Пользователь {message.from_user.username} ({message.from_user.id}) ввел корректный код"
+    )
 
     await state.set_state(Authorization.fullname)
     await message.bot.edit_message_text(
@@ -141,6 +155,9 @@ async def user_auth_fullname(
                 text="""<b>✅ Успешная авторизация</b>
 
 Супер, авторизация пройдена. Теперь у тебя есть доступ ко всем ботам СТП 🥳""",
+            )
+            logger.info(
+                f"[Авторизация] Пользователь {message.from_user.username} ({message.from_user.id}) успешно авторизовался"
             )
             await user_start_cmd(message=message, user=db_user)
             return
