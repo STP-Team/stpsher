@@ -1,6 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from infrastructure.database.models import Employee
 from infrastructure.database.models.STP.group import Group
 from tgbot.misc.dicts import roles
 
@@ -18,6 +19,26 @@ class GroupAccessMenu(CallbackData, prefix="access"):
 class GroupAccessApplyMenu(CallbackData, prefix="access_apply"):
     group_id: int
     action: str
+
+
+class GroupMembersMenu(CallbackData, prefix="group_members"):
+    group_id: int
+    page: int = 1
+
+
+class GroupMemberDetailMenu(CallbackData, prefix="group_member_detail"):
+    group_id: int
+    member_id: int
+    member_type: str  # "employee" or "user"
+    page: int = 1
+
+
+class GroupMemberActionMenu(CallbackData, prefix="group_member_action"):
+    group_id: int
+    member_id: int
+    action: str  # "ban"
+    member_type: str
+    page: int = 1
 
 
 def group_settings_keyboard(group: Group) -> InlineKeyboardMarkup:
@@ -145,5 +166,244 @@ def group_access_keyboard(
             )
         ]
     )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def short_name(full_name: str) -> str:
+    """Extract short name from full name."""
+    # Remove date info in parentheses if present
+    clean_name = full_name.split("(")[0].strip()
+    parts = clean_name.split()
+
+    if len(parts) >= 2:
+        return " ".join(parts[:2])
+    return clean_name
+
+
+def group_members_keyboard(
+    group_id: int,
+    employees: list[Employee] = None,
+    users: list = None,
+    current_page: int = 1,
+    members_per_page: int = 8,
+) -> InlineKeyboardMarkup:
+    """
+    Keyboard for displaying group members with pagination.
+    Shows employees first with role emojis, then non-employees.
+    """
+    buttons = []
+
+    if employees is None:
+        employees = []
+    if users is None:
+        users = []
+
+    # Combine all members for pagination
+    all_members = []
+
+    # Add employees first
+    for employee in employees:
+        all_members.append(
+            {
+                "type": "employee",
+                "id": employee.user_id,
+                "name": short_name(employee.fullname),
+                "role": employee.role,
+                "data": employee,
+            }
+        )
+
+    # Add non-employees
+    for user in users:
+        username = getattr(user, "username", None)
+        display_name = f"@{username}" if username else f"user_{user.id}"
+        all_members.append(
+            {
+                "type": "user",
+                "id": user.id,
+                "name": f"{display_name} ({user.id})",
+                "role": None,
+                "data": user,
+            }
+        )
+
+    if not all_members:
+        # No members, show only navigation buttons
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад",
+                    callback_data=GroupSettingsMenu(
+                        group_id=group_id, menu="back"
+                    ).pack(),
+                )
+            ]
+        )
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    # Calculate pagination
+    total_members = len(all_members)
+    total_pages = (total_members + members_per_page - 1) // members_per_page
+
+    # Calculate range for current page
+    start_idx = (current_page - 1) * members_per_page
+    end_idx = start_idx + members_per_page
+    page_members = all_members[start_idx:end_idx]
+
+    # Create member buttons (2 per row)
+    for i in range(0, len(page_members), 2):
+        row = []
+
+        # First member in row
+        member = page_members[i]
+        if member["type"] == "employee":
+            role_emoji = roles.get(member["role"], {}).get("emoji", "")
+            if role_emoji:
+                role_emoji += " "
+            button_text = f"{role_emoji}{member['name']}"
+        else:
+            button_text = member["name"]
+
+        row.append(
+            InlineKeyboardButton(
+                text=button_text,
+                callback_data=GroupMemberDetailMenu(
+                    group_id=group_id,
+                    member_id=member["id"],
+                    member_type=member["type"],
+                    page=current_page,
+                ).pack(),
+            )
+        )
+
+        # Second member in row (if exists)
+        if i + 1 < len(page_members):
+            member = page_members[i + 1]
+            if member["type"] == "employee":
+                role_emoji = roles.get(member["role"], {}).get("emoji", "")
+                if role_emoji:
+                    role_emoji += " "
+                button_text = f"{role_emoji}{member['name']}"
+            else:
+                button_text = member["name"]
+
+            row.append(
+                InlineKeyboardButton(
+                    text=button_text,
+                    callback_data=GroupMemberDetailMenu(
+                        group_id=group_id,
+                        member_id=member["id"],
+                        member_type=member["type"],
+                        page=current_page,
+                    ).pack(),
+                )
+            )
+
+        buttons.append(row)
+
+    # Add pagination (only if more than one page)
+    if total_pages > 1:
+        pagination_row = []
+
+        # First button (⏪ or empty)
+        if current_page > 2:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏪",
+                    callback_data=GroupMembersMenu(group_id=group_id, page=1).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Second button (⬅️ or empty)
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=GroupMembersMenu(
+                        group_id=group_id, page=current_page - 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Page indicator
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}",
+                callback_data="noop",
+            )
+        )
+
+        # Fourth button (➡️ or empty)
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=GroupMembersMenu(
+                        group_id=group_id, page=current_page + 1
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        # Fifth button (⏭️ or empty)
+        if current_page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=GroupMembersMenu(
+                        group_id=group_id, page=total_pages
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
+
+        buttons.append(pagination_row)
+
+    # Add navigation buttons
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=GroupSettingsMenu(group_id=group_id, menu="back").pack(),
+            )
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def group_member_detail_keyboard(
+    group_id: int, member_id: int, member_type: str, member_name: str, page: int = 1
+) -> InlineKeyboardMarkup:
+    """
+    Keyboard for member detail view with ban option.
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="🚫 Забанить участника",
+                callback_data=GroupMemberActionMenu(
+                    group_id=group_id,
+                    member_id=member_id,
+                    action="ban",
+                    member_type=member_type,
+                    page=page,
+                ).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад к списку",
+                callback_data=GroupMembersMenu(group_id=group_id, page=page).pack(),
+            )
+        ],
+    ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

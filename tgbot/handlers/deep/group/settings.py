@@ -11,10 +11,16 @@ from tgbot.filters.deep import DeepLinkRegexFilter
 from tgbot.keyboards.group.settings import (
     GroupAccessApplyMenu,
     GroupAccessMenu,
+    GroupMemberActionMenu,
+    GroupMemberDetailMenu,
+    GroupMembersMenu,
     GroupSettingsMenu,
     group_access_keyboard,
+    group_member_detail_keyboard,
+    group_members_keyboard,
     group_settings_keyboard,
 )
+from tgbot.misc.dicts import roles
 
 deeplink_group = Router()
 logger = logging.getLogger(__name__)
@@ -152,8 +158,54 @@ async def handle_settings_callback(
             )
 
         case "members":
-            await callback.answer("Управление составом группы")
-            # TODO: Implement members management submenu
+            # Get all group members from the database
+            group_members = await stp_repo.group_member.get_group_members(group.group_id)
+
+            # Get employee data for members who are employees
+            employees = []
+            non_employee_users = []
+
+            for group_member in group_members:
+                # Try to get employee data
+                employee = await stp_repo.employee.get_user(user_id=group_member.member_id)
+                if employee:
+                    employees.append(employee)
+                else:
+                    # Get user info from Telegram
+                    try:
+                        chat_member = await callback.bot.get_chat_member(
+                            chat_id=group.group_id, user_id=group_member.member_id
+                        )
+                        non_employee_users.append(chat_member.user)
+                    except Exception:
+                        # User might have left the group or blocked the bot
+                        continue
+
+            total_members = len(employees) + len(non_employee_users)
+
+            # Create role legend from roles dict
+            role_legend = []
+            for role_id, role_info in roles.items():
+                if role_id not in [0, 10]:  # Skip unauthorized and root
+                    role_legend.append(f"{role_info['emoji']} - {role_info['name']}")
+
+            await callback.message.edit_text(
+                f"""👥 <b>Состав группы</b>
+
+Участники группы: <b>{total_members}</b>
+
+<blockquote><b>Обозначения</b>
+{chr(10).join(role_legend)}
+@username (user_id) - обычные пользователи</blockquote>
+
+<i>Нажми на участника для управления</i>""",
+                reply_markup=group_members_keyboard(
+                    group_id=group.group_id,
+                    employees=employees,
+                    users=non_employee_users,
+                    current_page=1
+                ),
+            )
 
         case "back":
             group_info = await callback.bot.get_chat(chat_id=group.group_id)
@@ -261,3 +313,219 @@ async def handle_access_apply_callback(
         await callback.message.edit_reply_markup(
             reply_markup=group_access_keyboard(group)
         )
+
+
+@deeplink_group.callback_query(GroupMembersMenu.filter())
+async def handle_members_pagination(
+    callback: CallbackQuery,
+    callback_data: GroupMembersMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Handle members list pagination"""
+    group = await stp_repo.group.get_group(callback_data.group_id)
+    if not group:
+        await callback.answer("Не удалось найти группу в базе :(")
+        return
+
+    # Get all group members from the database
+    group_members = await stp_repo.group_member.get_group_members(group.group_id)
+
+    # Get employee data for members who are employees
+    employees = []
+    non_employee_users = []
+
+    for group_member in group_members:
+        # Try to get employee data
+        employee = await stp_repo.employee.get_user(user_id=group_member.member_id)
+        if employee:
+            employees.append(employee)
+        else:
+            # Get user info from Telegram
+            try:
+                chat_member = await callback.bot.get_chat_member(
+                    chat_id=group.group_id, user_id=group_member.member_id
+                )
+                non_employee_users.append(chat_member.user)
+            except Exception:
+                # User might have left the group or blocked the bot
+                continue
+
+    total_members = len(employees) + len(non_employee_users)
+
+    # Create role legend from roles dict
+    role_legend = []
+    for role_id, role_info in roles.items():
+        if role_id not in [0, 10]:  # Skip unauthorized and root
+            role_legend.append(f"{role_info['emoji']} - {role_info['name']}")
+
+    await callback.message.edit_text(
+        f"""👥 <b>Состав группы</b>
+
+Участники группы: <b>{total_members}</b>
+
+<blockquote><b>Обозначения</b>
+{chr(10).join(role_legend)}
+@username (user_id) - обычные пользователи</blockquote>
+
+<i>Нажми на участника для управления</i>""",
+        reply_markup=group_members_keyboard(
+            group_id=group.group_id,
+            employees=employees,
+            users=non_employee_users,
+            current_page=callback_data.page
+        ),
+    )
+
+
+@deeplink_group.callback_query(GroupMemberDetailMenu.filter())
+async def handle_member_detail(
+    callback: CallbackQuery,
+    callback_data: GroupMemberDetailMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Handle member detail view"""
+    group = await stp_repo.group.get_group(callback_data.group_id)
+    if not group:
+        await callback.answer("Не удалось найти группу в базе :(")
+        return
+
+    member_name = ""
+    member_info = ""
+
+    if callback_data.member_type == "employee":
+        # Get employee data
+        employee = await stp_repo.employee.get_user(user_id=callback_data.member_id)
+        if employee:
+            from tgbot.keyboards.group.settings import short_name
+            member_name = short_name(employee.fullname)
+            role_info = roles.get(employee.role, {"name": "Неизвестная роль", "emoji": ""})
+            member_info = f"""👤 <b>Сотрудник</b>: {employee.fullname}
+🏷️ <b>Роль</b>: {role_info['emoji']} {role_info['name']}
+🆔 <b>ID</b>: <code>{employee.user_id}</code>"""
+        else:
+            await callback.answer("Не удалось найти данные сотрудника")
+            return
+    else:
+        # Get user info from Telegram
+        try:
+            chat_member = await callback.bot.get_chat_member(
+                chat_id=group.group_id, user_id=callback_data.member_id
+            )
+            user = chat_member.user
+            username = f"@{user.username}" if user.username else "Нет username"
+            full_name = f"{user.first_name}"
+            if user.last_name:
+                full_name += f" {user.last_name}"
+
+            member_name = username
+            member_info = f"""👤 <b>Пользователь</b>: {full_name}
+👤 <b>Username</b>: {username}
+🆔 <b>ID</b>: <code>{user.id}</code>"""
+        except Exception:
+            await callback.answer("Не удалось получить информацию о пользователе")
+            return
+
+    await callback.message.edit_text(
+        f"""🔍 <b>Детали участника</b>
+
+{member_info}
+
+<i>Выбери действие для управления участником</i>""",
+        reply_markup=group_member_detail_keyboard(
+            group_id=callback_data.group_id,
+            member_id=callback_data.member_id,
+            member_type=callback_data.member_type,
+            member_name=member_name,
+            page=callback_data.page
+        ),
+    )
+
+
+@deeplink_group.callback_query(GroupMemberActionMenu.filter())
+async def handle_member_action(
+    callback: CallbackQuery,
+    callback_data: GroupMemberActionMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Handle member actions (ban)"""
+    group = await stp_repo.group.get_group(callback_data.group_id)
+    if not group:
+        await callback.answer("Не удалось найти группу в базе :(")
+        return
+
+    if callback_data.action == "ban":
+        try:
+            # Ban user from the group
+            await callback.bot.ban_chat_member(
+                chat_id=group.group_id,
+                user_id=callback_data.member_id
+            )
+
+            # Remove from group_members table
+            removal_success = await stp_repo.group_member.remove_member(
+                group_id=group.group_id,
+                member_id=callback_data.member_id
+            )
+
+            if removal_success:
+                await callback.answer("✅ Участник забанен и удален из базы")
+                logger.info(
+                    f"User {callback_data.member_id} banned from group {group.group_id} "
+                    f"and removed from database"
+                )
+            else:
+                await callback.answer("⚠️ Участник забанен, но не удален из базы")
+                logger.warning(
+                    f"User {callback_data.member_id} banned from group {group.group_id} "
+                    f"but failed to remove from database"
+                )
+
+            # Return to members list
+            # Get updated members list
+            group_members = await stp_repo.group_member.get_group_members(group.group_id)
+
+            employees = []
+            non_employee_users = []
+
+            for group_member in group_members:
+                employee = await stp_repo.employee.get_user(user_id=group_member.member_id)
+                if employee:
+                    employees.append(employee)
+                else:
+                    try:
+                        chat_member = await callback.bot.get_chat_member(
+                            chat_id=group.group_id, user_id=group_member.member_id
+                        )
+                        non_employee_users.append(chat_member.user)
+                    except Exception:
+                        continue
+
+            total_members = len(employees) + len(non_employee_users)
+
+            # Create role legend
+            role_legend = []
+            for role_id, role_info in roles.items():
+                if role_id not in [0, 10]:
+                    role_legend.append(f"{role_info['emoji']} - {role_info['name']}")
+
+            await callback.message.edit_text(
+                f"""👥 <b>Состав группы</b>
+
+Участники группы: <b>{total_members}</b>
+
+<blockquote><b>Обозначения</b>
+{chr(10).join(role_legend)}
+@username (user_id) - обычные пользователи</blockquote>
+
+<i>Нажми на участника для управления</i>""",
+                reply_markup=group_members_keyboard(
+                    group_id=group.group_id,
+                    employees=employees,
+                    users=non_employee_users,
+                    current_page=callback_data.page
+                ),
+            )
+
+        except Exception as e:
+            await callback.answer("❌ Ошибка при бане участника")
+            logger.error(f"Failed to ban user {callback_data.member_id}: {e}")
