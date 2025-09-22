@@ -19,7 +19,7 @@ def game_kb(user: Employee = None) -> InlineKeyboardMarkup:
     buttons = []
 
     # Add products activation button for duties (role 3) as first row
-    if user and user.role == get_role(role_name="Дежурный"):
+    if user and user.role == get_role(role_name="Дежурный", return_id=True):
         buttons.append(
             [
                 InlineKeyboardButton(
