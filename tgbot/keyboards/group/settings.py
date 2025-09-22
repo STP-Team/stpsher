@@ -1,5 +1,5 @@
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import Employee
 from infrastructure.database.models.STP.group import Group
@@ -41,7 +41,7 @@ class GroupMemberActionMenu(CallbackData, prefix="group_member_action"):
     page: int = 1
 
 
-def group_settings_keyboard(group: Group) -> InlineKeyboardMarkup:
+def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMarkup:
     """Create keyboard for group settings."""
     # Base keyboard structure
     keyboard = [
@@ -92,6 +92,17 @@ def group_settings_keyboard(group: Group) -> InlineKeyboardMarkup:
                     group_id=group.group_id, menu="members"
                 ).pack(),
             ),
+        ]
+    )
+
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="Копировать приглашение",
+                copy_text=CopyTextButton(
+                    text=group_link,
+                ),
+            )
         ]
     )
 

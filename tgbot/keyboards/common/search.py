@@ -208,7 +208,7 @@ def user_detail_kb(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="🟢 Казино" if user.is_casino_allowed else "🟠 Казино",
+                    text="🟢 Казино" if user.is_casino_allowed else "🔴 Казино",
                     callback_data=HeadUserCasinoToggle(
                         user_id=user.user_id or user.id,
                         return_to=return_to,

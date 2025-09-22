@@ -54,7 +54,7 @@ def head_casino_management_kb(
 
             # Первый участник в ряду
             member = group_members[i]
-            status_emoji = "🟢" if member.is_casino_allowed else "🟠"
+            status_emoji = "🟢" if member.is_casino_allowed else "🔴"
             member_text = f"{status_emoji} {short_name(member.fullname)}"
 
             row.append(
@@ -67,7 +67,7 @@ def head_casino_management_kb(
             # Второй участник в ряду (если есть)
             if i + 1 < len(group_members):
                 member = group_members[i + 1]
-                status_emoji = "🟢" if member.is_casino_allowed else "🟠"
+                status_emoji = "🟢" if member.is_casino_allowed else "🔴"
                 member_text = f"{status_emoji} {short_name(member.fullname)}"
 
                 row.append(

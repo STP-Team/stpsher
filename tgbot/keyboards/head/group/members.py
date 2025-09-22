@@ -283,7 +283,7 @@ def head_member_detail_kb(
         ],
         [
             InlineKeyboardButton(
-                text="🟢 Казино" if user.is_casino_allowed else "🟠 Казино",
+                text="🟢 Казино" if user.is_casino_allowed else "🔴 Казино",
                 callback_data=HeadMemberActionMenu(
                     member_id=user.id, action="casino"
                 ).pack(),

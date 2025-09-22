@@ -45,18 +45,21 @@ async def handle_settings(
     if member.status in ["administrator", "creator"]:
         group = await stp_repo.group.get_group(int(group_id))
         group_info = await message.bot.get_chat(chat_id=group.group_id)
+        group_invite = await message.bot.create_chat_invite_link(
+            chat_id=group.group_id, name="Приглашение через СТПшер"
+        )
 
         await message.answer(
             f"""⚙️ <b>Настройки группы</b>: {group_info.full_name}
 
 <b>Обозначения</b>
 - 🟢 Опция включена
-- 🟠 Опция выключена
+- 🔴 Опция выключена
 
 Часть опций содержит в себе детальные настройки, открыть их можно нажав на название опции
 
 <i>Используй меню для управления функциями бота в группе</i>""",
-            reply_markup=group_settings_keyboard(group),
+            reply_markup=group_settings_keyboard(group, group_invite.invite_link),
         )
     else:
         await message.answer(
