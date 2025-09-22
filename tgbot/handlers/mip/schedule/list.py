@@ -1,5 +1,7 @@
 import os
+from datetime import datetime
 
+import pytz
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
@@ -30,6 +32,23 @@ from tgbot.misc.states.mip.schedule import RenameLocalFile
 mip_list_router = Router()
 mip_list_router.message.filter(F.chat.type == "private", MipFilter())
 mip_list_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
+
+
+def to_ekaterinburg_time(utc_dt: datetime, format_type: str = "short") -> str:
+    """Convert UTC datetime to Ekaterinburg timezone and format it"""
+    ekb_tz = pytz.timezone("Asia/Yekaterinburg")
+
+    # If datetime is naive (no timezone info), assume it's UTC
+    if utc_dt.tzinfo is None:
+        utc_dt = pytz.utc.localize(utc_dt)
+
+    # Convert to Ekaterinburg time
+    ekb_time = utc_dt.astimezone(ekb_tz)
+
+    if format_type == "long":
+        return ekb_time.strftime("%d.%m.%Y в %H:%M:%S")
+    else:
+        return ekb_time.strftime("%H:%M:%S %d.%m.%y")
 
 
 @mip_list_router.callback_query(ScheduleMenu.filter(F.menu == "local"))
@@ -149,16 +168,17 @@ async def show_history_files_paginated(
     for counter, file in enumerate(page_files, start=start_idx + 1):
         user = await stp_repo.employee.get_user(user_id=file.uploaded_by_user_id)
 
+        ekb_time = to_ekaterinburg_time(file.uploaded_at)
         if user.username:
             files_info.append(
                 f"""{counter}. <b>{file.file_name or "Unknown"}</b>
-Загрузил: <a href='t.me/{user.username}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
+Загрузил: <a href='t.me/{user.username}'>{user.fullname}</a> в {ekb_time}
 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
             )
         else:
             files_info.append(
                 f"""{counter}. <b>{file.file_name or "Unknown"}</b>
-Загрузил: <a href='tg://user?id={user.user_id}'>{user.fullname}</a> в {file.uploaded_at.strftime("%H:%M:%S %d.%m.%y")}
+Загрузил: <a href='tg://user?id={user.user_id}'>{user.fullname}</a> в {ekb_time}
 Размер файла: {round(file.file_size / (1024 * 1024), 2)} MB"""
             )
         files_info.append("")
@@ -233,6 +253,7 @@ async def show_file_detail(
         else:
             user_info = f"<a href='tg://user?id={user.user_id}'>{user.fullname}</a>"
 
+        ekb_time = to_ekaterinburg_time(file_log.uploaded_at, "long")
         message_text = f"""<b>📝 Подробно о файле</b>
 
 <b>📄 Название</b>
@@ -242,7 +263,7 @@ async def show_file_detail(
 {user_info}
 
 <b>📅 Дата загрузки</b>
-{file_log.uploaded_at.strftime("%d.%m.%Y в %H:%M:%S")}
+{ekb_time}
 
 <b>🏋 Размер файла</b>
 {round(file_log.file_size / (1024 * 1024), 2)} MB
@@ -370,10 +391,8 @@ async def show_local_file_detail(
         size_mb = round(file_size / (1024 * 1024), 2)
 
         # Get file modification time
-        import datetime
-
         mod_time = os.path.getmtime(file_path)
-        mod_datetime = datetime.datetime.fromtimestamp(mod_time)
+        mod_datetime = datetime.fromtimestamp(mod_time)
 
         # Try to get info from schedule_log for this filename
         logs = await stp_repo.upload.get_files_history()
@@ -403,7 +422,10 @@ async def show_local_file_detail(
                     )
                 else:
                     uploader_info = f"<a href='tg://user?id={uploader.user_id}'>{uploader.fullname}</a>"
-            upload_date = file_log.uploaded_at.strftime("%d.%m.%Y в %H:%M:%S")
+            upload_date = to_ekaterinburg_time(file_log.uploaded_at, "long")
+
+        # Convert local file modification time to Ekaterinburg timezone
+        local_mod_time = to_ekaterinburg_time(mod_datetime, "long")
 
         message_text = f"""<b>📝 Подробно о файле</b>
 
@@ -414,7 +436,7 @@ async def show_local_file_detail(
 {size_mb} MB
 
 <b>📅 Дата последнего изменения на сервере</b>
-{mod_datetime.strftime("%d.%m.%Y в %H:%M:%S")}
+{local_mod_time}
 
 <b>🤨 Последний загрузивший</b>
 {uploader_info}
@@ -689,7 +711,7 @@ async def handle_version_selection(
             user_id=selected_version.uploaded_by_user_id
         )
         uploader_name = uploader.fullname if uploader else "Неизвестно"
-        upload_time = selected_version.uploaded_at.strftime("%H:%M:%S %d.%m.%Y")
+        upload_time = to_ekaterinburg_time(selected_version.uploaded_at, "long")
         size_mb = round(selected_version.file_size / (1024 * 1024), 2)
 
         # Show confirmation message
