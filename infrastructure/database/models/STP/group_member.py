@@ -39,7 +39,7 @@ class GroupMember(Base, TableNameMixin):
         BIGINT, primary_key=True, comment="Идентификатор участника Telegram"
     )
     is_muted: Mapped[bool] = mapped_column(
-        Boolean,
+        Boolean,    
         nullable=False,
         comment="Есть ли мьют у специалиста в группе",
         default=0,

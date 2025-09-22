@@ -1,8 +1,16 @@
 import logging
+import re
+from datetime import datetime, timedelta
+from typing import Optional
 
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import ChatMemberAdministrator, ChatMemberOwner, Message
+from aiogram.types import (
+    ChatMemberAdministrator,
+    ChatMemberOwner,
+    ChatPermissions,
+    Message,
+)
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
@@ -13,6 +21,38 @@ logger = logging.getLogger(__name__)
 
 group_admin_router = Router()
 group_admin_router.message.filter(F.chat.type.in_(("group", "supergroup")))
+
+
+def parse_duration(duration_str: str) -> Optional[timedelta]:
+    """
+    Парсит строку длительности в timedelta
+    Поддерживает форматы: 1h, 30m, 7d, 1ч, 30м, 7д
+    """
+    if not duration_str:
+        return None
+
+    # Паттерны для английского и русского языков
+    patterns = [
+        (r"^(\d+)h$", "hours"),  # 1h
+        (r"^(\d+)m$", "minutes"),  # 30m
+        (r"^(\d+)d$", "days"),  # 7d
+        (r"^(\d+)ч$", "hours"),  # 1ч
+        (r"^(\d+)м$", "minutes"),  # 30м
+        (r"^(\d+)д$", "days"),  # 7д
+    ]
+
+    for pattern, unit in patterns:
+        match = re.match(pattern, duration_str.lower())
+        if match:
+            value = int(match.group(1))
+            if unit == "minutes":
+                return timedelta(minutes=value)
+            elif unit == "hours":
+                return timedelta(hours=value)
+            elif unit == "days":
+                return timedelta(days=value)
+
+    return None
 
 
 @group_admin_router.message(Command("admins"))
@@ -168,3 +208,200 @@ async def unpin_cmd(message: Message, user: Employee):
         await message.reply(
             "❌ Произошла ошибка при откреплении сообщения. Возможно, у бота недостаточно прав."
         )
+
+
+@group_admin_router.message(Command("mute"), GroupAdminFilter())
+async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
+    """/mute для заглушения пользователя"""
+
+    # Проверяем авторизацию пользователя
+    if not user:
+        await message.reply(
+            "❌ Для использования команды /mute необходимо авторизоваться в боте"
+        )
+        return
+
+    target_user_id = None
+    target_user_name = "Пользователь"
+    duration = None
+    unmute_at = None
+
+    # Парсим аргументы команды
+    command_args = message.text.split()[1:] if message.text else []
+
+    # Проверяем способы указания пользователя
+    if message.reply_to_message:
+        # Заглушение через ответ на сообщение
+        target_user_id = message.reply_to_message.from_user.id
+        target_user_name = (
+            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+        )
+
+        # Проверяем наличие длительности в аргументах
+        if command_args:
+            duration_str = command_args[0]
+            duration = parse_duration(duration_str)
+            if duration is None and duration_str:
+                await message.reply(
+                    "❌ Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мьюта"
+                )
+                return
+    else:
+        # Заглушение по user_id из текста команды
+        if not command_args:
+            await message.reply(
+                "❌ Укажи user_id или используй команду в ответ на сообщение пользователя, которого хочешь заглушить"
+            )
+            return
+
+        # Первый аргумент - user_id
+        try:
+            target_user_id = int(command_args[0])
+        except ValueError:
+            await message.reply(
+                "❌ Неверный формат user_id. Используй команду /mute <user_id> [время] или ответь на сообщение пользователя"
+            )
+            return
+
+        # Второй аргумент - длительность (если есть)
+        if len(command_args) > 1:
+            duration_str = command_args[1]
+            duration = parse_duration(duration_str)
+            if duration is None:
+                await message.reply(
+                    "❌ Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мьюта"
+                )
+                return
+
+    # Если указана длительность, вычисляем время размута
+    if duration:
+        unmute_at = datetime.utcnow() + duration
+
+    try:
+        # Используем chat_restrict для ограничения пользователя в Telegram
+        restricted_permissions = ChatPermissions(
+            can_send_messages=False,
+            can_send_media_messages=False,
+            can_send_polls=False,
+            can_send_other_messages=False,
+            can_add_web_page_previews=False,
+            can_change_info=False,
+            can_invite_users=False,
+            can_pin_messages=False,
+        )
+
+        await message.bot.restrict_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_user_id,
+            permissions=restricted_permissions,
+            until_date=unmute_at,
+        )
+
+        # Получаем информацию о заглушенном пользователе для красивого отображения
+        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        if employee:
+            display_name = short_name(employee.fullname)
+        else:
+            display_name = target_user_name
+
+        # Формируем сообщение с информацией о мьюте
+        if duration:
+            if duration.days > 0:
+                duration_text = f"{duration.days} дн."
+            elif duration.seconds >= 3600:
+                duration_text = f"{duration.seconds // 3600} ч."
+            else:
+                duration_text = f"{duration.seconds // 60} мин."
+            mute_message = (
+                f"🔇 Пользователь {display_name} заглушен в группе на {duration_text}"
+            )
+        else:
+            mute_message = f"🔇 Пользователь {display_name} заглушен в группе навсегда"
+
+        await message.reply(mute_message)
+
+        # Логируем использование команды
+        duration_log = f" на {duration}" if duration else " навсегда"
+        logger.info(
+            f"[/mute] {user.fullname} ({message.from_user.id}) заглушил пользователя {target_user_id} в группе {message.chat.id}{duration_log}"
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при заглушении пользователя: {e}")
+        await message.reply("❌ Произошла ошибка при заглушении пользователя")
+
+
+@group_admin_router.message(Command("unmute"), GroupAdminFilter())
+async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
+    """/unmute для разглушения пользователя"""
+
+    # Проверяем авторизацию пользователя
+    if not user:
+        await message.reply(
+            "❌ Для использования команды /unmute необходимо авторизоваться в боте"
+        )
+        return
+
+    target_user_id = None
+    target_user_name = "Пользователь"
+
+    # Проверяем способы указания пользователя
+    if message.reply_to_message:
+        # Разглушение через ответ на сообщение
+        target_user_id = message.reply_to_message.from_user.id
+        target_user_name = (
+            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+        )
+    else:
+        # Разглушение по user_id из текста команды
+        command_args = message.text.split()[1:] if message.text else []
+        if command_args:
+            try:
+                target_user_id = int(command_args[0])
+            except ValueError:
+                await message.reply(
+                    "❌ Неверный формат user_id. Используй команду /unmute <user_id> или ответь на сообщение пользователя"
+                )
+                return
+        else:
+            await message.reply(
+                "❌ Укажи user_id или используй команду в ответ на сообщение пользователя, которого хочешь разглушить"
+            )
+            return
+
+    try:
+        # Восстанавливаем права пользователя в Telegram
+        normal_permissions = ChatPermissions(
+            can_send_messages=True,
+            can_send_media_messages=True,
+            can_send_polls=True,
+            can_send_other_messages=True,
+            can_add_web_page_previews=True,
+            can_change_info=False,
+            can_invite_users=False,
+            can_pin_messages=False,
+        )
+
+        await message.bot.restrict_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_user_id,
+            permissions=normal_permissions,
+        )
+
+        # Получаем информацию о разглушенном пользователе для красивого отображения
+        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        if employee:
+            display_name = short_name(employee.fullname)
+        else:
+            display_name = target_user_name
+
+        await message.reply(f"🔊 Пользователь {display_name} разглушен в группе")
+
+        # Логируем использование команды
+        logger.info(
+            f"[/unmute] {user.fullname} ({message.from_user.id}) разглушил пользователя {target_user_id} в группе {message.chat.id}"
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при разглушении пользователя: {e}")
+        await message.reply("❌ Произошла ошибка при разглушении пользователя")
