@@ -88,7 +88,7 @@ def gok_products_activation_kb(
 
     # Purchases buttons for current page
     for i, product_details in enumerate(page_products):
-        purchase = product_details.purchase
+        purchase = product_details.user_purchase
         product = product_details.product_info
 
         # Truncate name for button display
