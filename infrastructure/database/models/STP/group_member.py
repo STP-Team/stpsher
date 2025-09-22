@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, func
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,6 +37,12 @@ class GroupMember(Base, TableNameMixin):
     )
     member_id: Mapped[int] = mapped_column(
         BIGINT, primary_key=True, comment="Идентификатор участника Telegram"
+    )
+    is_muted: Mapped[bool] = mapped_column(
+        Boolean,    
+        nullable=False,
+        comment="Есть ли мьют у специалиста в группе",
+        default=0,
     )
     added_at: Mapped[datetime] = mapped_column(
         DateTime,
