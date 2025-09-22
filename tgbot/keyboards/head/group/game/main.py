@@ -41,6 +41,12 @@ def head_game_kb() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
+                text="🎖️ Рейтинг",
+                callback_data=HeadGameMenu(menu="rating").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
                 text="↩️ Назад",
                 callback_data=MainMenu(menu="group_management").pack(),
             ),

@@ -1,12 +1,17 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.user.main import MainMenu
 
 
 class RatingMenu(CallbackData, prefix="rating"):
     metric: str
     period: str = "day"
+
+
+class GameBalanceRatingMenu(CallbackData, prefix="game_balance_rating"):
+    menu: str
 
 
 def rating_menu_kb(
@@ -64,6 +69,28 @@ def rating_menu_kb(
             InlineKeyboardButton(
                 text="🏠 Домой",
                 callback_data=MainMenu(menu="main").pack(),
+            ),
+        ],
+    ]
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
+
+
+def game_balance_rating_kb() -> InlineKeyboardMarkup:
+    """
+    Клавиатура для рейтинга баланса игроков
+
+    :return: Объект встроенной клавиатуры для рейтинга баланса игроков
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=GroupManagementMenu(menu="game").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]

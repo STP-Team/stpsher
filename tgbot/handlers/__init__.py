@@ -21,6 +21,7 @@ from tgbot.handlers.head.group.game.filters import head_game_filters_router
 from tgbot.handlers.head.group.game.history import head_game_history_router
 from tgbot.handlers.head.group.game.main import head_game_router
 from tgbot.handlers.head.group.game.products import head_game_products_router
+from tgbot.handlers.head.group.game.rating import head_group_game_rating_router
 from tgbot.handlers.head.group.main import head_group_router
 from tgbot.handlers.head.group.members import head_group_members_router
 from tgbot.handlers.head.group.rating import head_group_rating_router
@@ -75,6 +76,7 @@ routers_list = [
     head_game_achievements_router,
     head_game_products_router,
     head_game_filters_router,
+    head_group_game_rating_router,
     head_kpi_router,
     head_schedule_group_router,
     head_search_router,
