@@ -42,7 +42,7 @@ class HRScheduler(BaseScheduler):
         # Задача обработки увольнений - каждый день в 9:00
         scheduler.add_job(
             func=self._process_fired_users_job,
-            args=[session_pool],
+            args=[session_pool, bot],
             trigger="cron",
             id="hr_process_fired_users",
             name="Обработка увольнений",
@@ -53,7 +53,7 @@ class HRScheduler(BaseScheduler):
         # Запуск обработки увольнений при старте
         scheduler.add_job(
             func=self._process_fired_users_job,
-            args=[session_pool],
+            args=[session_pool, bot],
             trigger="date",
             id="hr_startup_process_fired_users",
             name="Запуск при старте: Обработка увольнений",
@@ -72,11 +72,11 @@ class HRScheduler(BaseScheduler):
             minute=30,
         )
 
-    async def _process_fired_users_job(self, session_pool):
+    async def _process_fired_users_job(self, session_pool, bot: Bot):
         """Обёртка для задачи обработки увольнений"""
         self._log_job_execution_start("Обработка увольнений")
         try:
-            await process_fired_users(session_pool)
+            await process_fired_users(session_pool, bot)
             self._log_job_execution_end("Обработка увольнений", success=True)
         except Exception as e:
             self._log_job_execution_end(
@@ -234,12 +234,13 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
     return fired_users
 
 
-async def process_fired_users(session_pool):
+async def process_fired_users(session_pool, bot: Bot = None):
     """
-    Обработка уволенных сотрудников - удаление из базы данных
+    Обработка уволенных сотрудников - удаление из базы данных и групп
 
     Args:
         session_pool: Пул сессий БД из bot.py
+        bot: Экземпляр бота для операций в Telegram (опционально)
     """
     try:
         fired_users = get_fired_users_from_excel()
@@ -274,8 +275,115 @@ async def process_fired_users(session_pool):
                 f"[Увольнения] Обработка завершена. Удалено {total_deleted} записей для {len(fired_users)} сотрудников"
             )
 
+        # Если передан экземпляр бота, удаляем сотрудников из групп
+        if bot and fired_users:
+            await remove_fired_users_from_groups(session_pool, bot, fired_users)
+
     except Exception as e:
         logger.error(f"[Увольнения] Критическая ошибка при обработке увольнений: {e}")
+
+
+async def remove_fired_users_from_groups(session_pool, bot: Bot, fired_users: List[str]):
+    """
+    Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
+
+    Args:
+        session_pool: Пул сессий БД
+        bot: Экземпляр бота для выполнения операций в Telegram
+        fired_users: Список ФИО уволенных сотрудников
+    """
+    try:
+        if not fired_users:
+            logger.info("[Увольнения] Нет сотрудников для удаления из групп")
+            return
+
+        async with session_pool() as session:
+            stp_repo = MainRequestsRepo(session)
+
+            total_removed_from_groups = 0
+            total_banned_from_telegram = 0
+
+            for fullname in fired_users:
+                try:
+                    # Получаем информацию о сотруднике
+                    employee = await stp_repo.employee.get_user(fullname=fullname)
+
+                    if not employee or not employee.user_id:
+                        logger.debug(f"[Увольнения] Сотрудник {fullname} не найден в БД или не имеет user_id")
+                        continue
+
+                    # Получаем все группы сотрудника
+                    user_groups = await stp_repo.group_member.get_member_groups(employee.user_id)
+
+                    if not user_groups:
+                        logger.debug(f"[Увольнения] Сотрудник {fullname} не состоит в группах")
+                        continue
+
+                    # Проверяем каждую группу на наличие опции remove_unemployed
+                    groups_removed_from = 0
+                    groups_banned_from = 0
+
+                    for group_membership in user_groups:
+                        group = await stp_repo.group.get_group(group_membership.group_id)
+
+                        if not group:
+                            logger.debug(f"[Увольнения] Группа {group_membership.group_id} не найдена в БД")
+                            continue
+
+                        if not group.remove_unemployed:
+                            logger.debug(f"[Увольнения] Группа {group_membership.group_id} не настроена на удаление уволенных")
+                            continue
+
+                        # Удаляем из БД
+                        db_removed = await stp_repo.group_member.remove_member(
+                            group_membership.group_id,
+                            employee.user_id
+                        )
+
+                        if db_removed:
+                            groups_removed_from += 1
+                            logger.info(
+                                f"[Увольнения] Сотрудник {fullname} удален из БД группы {group_membership.group_id}"
+                            )
+
+                            # Пытаемся заблокировать в Telegram
+                            try:
+                                await bot.ban_chat_member(
+                                    chat_id=group_membership.group_id,
+                                    user_id=employee.user_id
+                                )
+                                groups_banned_from += 1
+                                logger.info(
+                                    f"[Увольнения] Сотрудник {fullname} заблокирован в группе {group_membership.group_id}"
+                                )
+                            except Exception as telegram_error:
+                                logger.warning(
+                                    f"[Увольнения] Не удалось заблокировать {fullname} в группе {group_membership.group_id}: {telegram_error}"
+                                )
+                        else:
+                            logger.warning(
+                                f"[Увольнения] Не удалось удалить {fullname} из БД группы {group_membership.group_id}"
+                            )
+
+                    total_removed_from_groups += groups_removed_from
+                    total_banned_from_telegram += groups_banned_from
+
+                    if groups_removed_from > 0:
+                        logger.info(
+                            f"[Увольнения] Сотрудник {fullname}: удален из {groups_removed_from} групп в БД, "
+                            f"заблокирован в {groups_banned_from} групп"
+                        )
+
+                except Exception as e:
+                    logger.error(f"[Увольнения] Ошибка обработки групп для сотрудника {fullname}: {e}")
+
+            logger.info(
+                f"[Увольнения] Обработка групп завершена: удалено из БД {total_removed_from_groups} записей, "
+                f"заблокировано в Telegram {total_banned_from_telegram} записей"
+            )
+
+    except Exception as e:
+        logger.error(f"[Увольнения] Критическая ошибка при удалении из групп: {e}")
 
 
 # Функции для работы с авторизацией

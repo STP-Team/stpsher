@@ -53,7 +53,9 @@ async def handle_settings(
             reply_markup=group_settings_keyboard(group),
         )
     else:
-        await message.answer("Доступ к настройкам группы есть только у администраторов этой группы")
+        await message.answer(
+            "Доступ к настройкам группы есть только у администраторов этой группы"
+        )
 
 
 async def _update_toggle_setting(
@@ -144,7 +146,9 @@ async def handle_settings_callback(
 
 <i>Выбери роли, которые должны иметь доступ к группе, затем нажми "Применить"</i>
 <i>Если выключить все роли - у любого сотрудника будет доступ</i>""",
-                reply_markup=group_access_keyboard(group, pending_role_changes[group.group_id]),
+                reply_markup=group_access_keyboard(
+                    group, pending_role_changes[group.group_id]
+                ),
             )
 
         case "members":
@@ -187,7 +191,9 @@ async def handle_access_callback(
 
     if role_id in current_pending:
         # Remove role from pending list
-        pending_role_changes[group.group_id] = [r for r in current_pending if r != role_id]
+        pending_role_changes[group.group_id] = [
+            r for r in current_pending if r != role_id
+        ]
         action = "убрана из выбранных"
     else:
         # Add role to pending list
@@ -195,6 +201,7 @@ async def handle_access_callback(
         action = "добавлена к выбранным"
 
     from tgbot.misc.dicts import roles
+
     role_name = roles[role_id]["name"]
     await callback.answer(f"Роль '{role_name}' {action}")
 
@@ -234,7 +241,9 @@ async def handle_access_apply_callback(
                 await callback.message.edit_reply_markup(
                     reply_markup=group_access_keyboard(updated_group)
                 )
-                logger.info(f"Successfully applied access roles for group {group.group_id}")
+                logger.info(
+                    f"Successfully applied access roles for group {group.group_id}"
+                )
             else:
                 await callback.answer("❌ Ошибка при применении настроек")
                 logger.error(f"Failed to apply access roles for group {group.group_id}")
