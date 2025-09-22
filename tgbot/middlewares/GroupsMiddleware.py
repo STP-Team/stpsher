@@ -5,6 +5,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.keyboards.mip.search import short_name
 
 logger = logging.getLogger(__name__)
 
@@ -402,14 +403,13 @@ class GroupsMiddleware(BaseMiddleware):
                 # Формируем сообщение для сотрудника
                 notification_text = (
                     f"👋 <b>Добро пожаловать в группу!</b>\n\n"
-                    f"Сотрудник {user_info} присоединился к группе\n"
+                    f"{short_name(employee.fullname)} присоединился к группе\n"
                     f"<i>Должность: {employee.position + ' ' + employee.division or 'Не указана'}</i>"
                 )
             else:
                 # Формируем сообщение для обычного пользователя
                 notification_text = (
-                    f"👋 <b>Новый участник</b>\n\n"
-                    f"Пользователь {user_info} присоединился к группе"
+                    f"👋 <b>Новый участник</b>\n\n{user_info} присоединился к группе"
                 )
 
             await event.bot.send_message(

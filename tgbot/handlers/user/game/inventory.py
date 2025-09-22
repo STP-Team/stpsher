@@ -18,7 +18,7 @@ from tgbot.keyboards.user.game.inventory import (
 )
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.shop import ProductDetailsShop
-from tgbot.misc.dicts import roles
+from tgbot.misc.helpers import get_role
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.mailing import (
     send_activation_product_email,
@@ -343,16 +343,12 @@ async def use_product_handler(
     success = await stp_repo.purchase.use_purchase(user_product_id)
 
     # Refresh the product detail view
-    await product_detail_view(
-        callback, ProductDetailMenu(user_product_id=user_product_id), stp_repo
-    )
+    callback_data = ProductDetailMenu(user_product_id=user_product_id)
+    await product_detail_view(callback, callback_data, stp_repo)
 
     if success:
         product_name = user_product_detail.product_info.name
-        role_lookup = {v: k for k, v in roles.items()}
-        confirmer = role_lookup.get(
-            user_product_detail.product_info.manager_role, "Неизвестно"
-        )
+        confirmer = get_role(user_product_detail.product_info.manager_role)["name"]
 
         await callback.answer(
             f"✅ Предмет {product_name} отправлен на рассмотрение!\n\n"

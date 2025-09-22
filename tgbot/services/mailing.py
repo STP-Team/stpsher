@@ -117,10 +117,16 @@ async def send_cancel_product_email(
 📍 Активаций: <b>{purchase.usage_count}</b> из <b>{product.count}</b>"""
 
     email = []
-    if user.division == "НЦК":
-        email.append(config.mail.nck_email_addr)
-    else:
-        email.append(config.mail.ntp_email_addr)
+    match product.manager_role:
+        case 3:
+            if user.division == "НЦК":
+                email.append(config.mail.nck_email_addr)
+            else:
+                email.append(config.mail.ntp_email_addr)
+        case 5:
+            email.append(config.mail.gok_email_addr)
+        case 6:
+            email.append(config.mail.mip_email_addr)
 
     if user_head and user_head.email:
         email.append(user_head.email)
