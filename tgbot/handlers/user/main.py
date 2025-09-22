@@ -3,6 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
+from aiogram.utils.deep_linking import create_startgroup_link
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
@@ -30,13 +31,14 @@ async def user_start_cmd(message: Message, user: Employee):
         )
         return
 
+    group_link = await create_startgroup_link(message.bot, payload="start")
     await message.answer(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
 Я - бот-помощник СТП
 
 <i>Используй меню для взаимодействия с ботом</i>""",
-        reply_markup=main_kb(),
+        reply_markup=main_kb(group_link),
     )
 
 
@@ -53,13 +55,14 @@ async def user_start_cb(callback: CallbackQuery, user: Employee):
         )
         return
 
+    group_link = await create_startgroup_link(callback.bot, payload="start")
     await callback.message.edit_text(
         f"""👋 Привет, <b>{user.fullname}</b>!
 
 Я - бот-помощник СТП
 
 <i>Используй меню для взаимодействия с ботом</i>""",
-        reply_markup=main_kb(),
+        reply_markup=main_kb(group_link),
     )
 
 

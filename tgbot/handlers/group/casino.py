@@ -47,6 +47,15 @@ async def play_casino_game(
     bet_amount: int,
 ):
     """Общая функция для игры в казино в группе"""
+    group = await stp_repo.group.get_group(message.chat.id)
+    if group and not group.is_casino_allowed:
+        await message.reply(
+            """❌ <b>Казино недоступно</b>
+
+Администратор группы выключил возможность игры в казино в этой группы""",
+        )
+        return
+
     if not user.is_casino_allowed:
         await message.reply(
             """❌ <b>Доступ к казино закрыт</b>

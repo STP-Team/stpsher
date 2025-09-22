@@ -3,7 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from tgbot.keyboards.user.main import MainMenu
 
 
-def main_kb() -> InlineKeyboardMarkup:
+def main_kb(group_link: str) -> InlineKeyboardMarkup:
     """
     Клавиатура главного меню.
 
@@ -35,6 +35,9 @@ def main_kb() -> InlineKeyboardMarkup:
                 text="🔍 Поиск сотрудников",
                 callback_data=MainMenu(menu="head_search").pack(),
             ),
+        ],
+        [
+            InlineKeyboardButton(text="👋 Пригласить бота", url=group_link),
         ],
     ]
 

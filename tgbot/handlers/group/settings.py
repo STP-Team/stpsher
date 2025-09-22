@@ -1,9 +1,9 @@
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from aiogram.utils.deep_linking import create_start_link
 
 from tgbot.filters.group import GroupAdminFilter
-from tgbot.keyboards.group.settings import group_settings_keyboard
 
 group_settings_router = Router()
 group_settings_router.message.filter(F.chat.type.in_(("group", "supergroup")))
@@ -12,15 +12,19 @@ group_settings_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 @group_settings_router.message(Command("settings"), GroupAdminFilter())
 async def group_settings(message: Message):
     """Handle /settings command for group admins."""
+    settings_deeplink = await create_start_link(
+        message.bot, payload=f"group_{message.chat.id}", encode=True
+    )
     await message.answer(
-        "<b>⚙️ Настройки группы</b>\n\nВыбери нужную настройку:",
-        reply_markup=group_settings_keyboard(message.chat.id),
+        f"""<b>⚙️ Настройки группы</b>
+
+Для настройки группы нажми <a href='{settings_deeplink}'>сюда</a>""",
     )
 
 
 @group_settings_router.message(Command("settings"))
 async def group_settings_non_admin(message: Message):
     """Handle /settings command for non-admin users."""
-    await message.answer(
+    await message.reply(
         "Только администраторы группы могут использовать эту команду :("
     )

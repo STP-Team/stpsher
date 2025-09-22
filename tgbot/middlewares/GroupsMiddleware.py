@@ -72,27 +72,24 @@ class GroupsMiddleware(BaseMiddleware):
             if not group:
                 return
 
-            # Проверяем настройку remove_unemployed для группы
-            if group.remove_unemployed:
-                # Получаем ID бота, чтобы не банить самого себя
-                bot_id = event.bot.id
+            # Не проверяем бота
+            bot_id = event.bot.id
+            if user_id == bot_id:
+                return
 
-                # Не проверяем бота
-                if user_id == bot_id:
-                    return
+            # Используем централизованную проверку на трудоустройство
+            is_valid = await GroupsMiddleware._validate_user_employment(
+                user_id, group_id, group, stp_repo
+            )
 
-                # Проверяем, является ли пользователь активным сотрудником
-                employee = await stp_repo.employee.get_user(user_id=user_id)
-
-                if not employee:
-                    # Пользователь не найден в таблице employees - банить
-                    await GroupsMiddleware._ban_user_from_group(
-                        event, user_id, group_id, stp_repo
-                    )
-                    logger.info(
-                        f"[Группы] Пользователь {user_id} забанен в группе {group_id} (не найден в employees)"
-                    )
-                    return
+            if not is_valid:
+                await GroupsMiddleware._ban_user_from_group(
+                    event, user_id, group_id, stp_repo
+                )
+                logger.info(
+                    f"[Группы] Пользователь {user_id} забанен в группе {group_id} (не найден в employees)"
+                )
+                return
 
             # Проверяем, является ли пользователь уже участником
             is_member = await stp_repo.group_member.is_member(group_id, user_id)
@@ -153,21 +150,28 @@ class GroupsMiddleware(BaseMiddleware):
         :param event: Событие изменения статуса участника
         :param stp_repo: Репозиторий для работы с БД
         """
-        if not event.new_chat_member or not event.new_chat_member.user:
-            return
-
-        group_id = event.chat.id
-        user_id = event.new_chat_member.user.id
-        bot_id = event.bot.id
-
-        # Не обрабатываем изменения статуса бота
-        if user_id == bot_id:
-            return
+        # Инициализируем переменные для обработки ошибок
+        group_id = None
+        user_id = None
 
         try:
-            # Проверяем, есть ли группа в таблице groups
+            # Проверяем корректность события
+            if not event.new_chat_member or not event.new_chat_member.user:
+                logger.warning("[Группы] Получено некорректное событие изменения участника")
+                return
+
+            group_id = event.chat.id
+            user_id = event.new_chat_member.user.id
+            bot_id = event.bot.id
+
+            # Не обрабатываем изменения статуса бота
+            if user_id == bot_id:
+                return
+
+            # Проверяем, что группа зарегистрирована в системе
             group = await stp_repo.group.get_group(group_id)
             if not group:
+                logger.debug(f"[Группы] Группа {group_id} не зарегистрирована в системе")
                 return
 
             old_status = (
@@ -227,20 +231,20 @@ class GroupsMiddleware(BaseMiddleware):
         Обработка добавления пользователя в группу
         """
         try:
-            # Проверяем настройку remove_unemployed для группы
-            if group.remove_unemployed:
-                # Проверяем, является ли пользователь активным сотрудником
-                employee = await stp_repo.employee.get_user(user_id=user_id)
+            # Используем централизованную проверку на трудоустройство
+            is_valid = await GroupsMiddleware._validate_user_employment(
+                user_id, group_id, group, stp_repo
+            )
 
-                if not employee:
-                    # Пользователь не найден в таблице employees - банить
-                    await GroupsMiddleware._ban_user_from_group_by_update(
-                        event, user_id, group_id, stp_repo
-                    )
-                    logger.info(
-                        f"[Группы] Пользователь {user_id} забанен при добавлении в группу {group_id} (не найден в employees)"
-                    )
-                    return
+            if not is_valid:
+                # Пользователь не найден в таблице employees - банить
+                await GroupsMiddleware._ban_user_from_group_by_update(
+                    event, user_id, group_id, stp_repo
+                )
+                logger.info(
+                    f"[Группы] Пользователь {user_id} забанен при добавлении в группу {group_id} (не найден в employees)"
+                )
+                return
 
             # Добавляем пользователя в участники группы
             is_member = await stp_repo.group_member.is_member(group_id, user_id)
@@ -250,6 +254,12 @@ class GroupsMiddleware(BaseMiddleware):
                     logger.info(
                         f"[Группы] Пользователь {user_id} добавлен в участники группы {group_id}"
                     )
+
+                    # Отправляем уведомление о новом участнике, если включена настройка
+                    if group.new_user_notify:
+                        await GroupsMiddleware._send_new_user_notification(
+                            event, user_id, group_id, stp_repo
+                        )
                 else:
                     logger.warning(
                         f"[Группы] Не удалось добавить пользователя {user_id} в участники группы {group_id}"
@@ -319,6 +329,101 @@ class GroupsMiddleware(BaseMiddleware):
         )
 
     @staticmethod
+    async def _validate_user_employment(
+        user_id: int,
+        group_id: int,
+        group,
+        stp_repo: MainRequestsRepo,
+    ) -> bool:
+        """
+        Проверяет, может ли пользователь находиться в группе согласно настройке remove_unemployed
+
+        :param user_id: ID пользователя
+        :param group_id: ID группы
+        :param group: Объект группы из БД
+        :param stp_repo: Репозиторий для работы с БД
+        :return: True если пользователь может находиться в группе, False если должен быть удален
+        """
+        try:
+            # Если настройка remove_unemployed отключена, разрешаем всех
+            if not group.remove_unemployed:
+                return True
+
+            # Проверяем, является ли пользователь активным сотрудником
+            employee = await stp_repo.employee.get_user(user_id=user_id)
+
+            if not employee:
+                logger.info(
+                    f"[Группы] Пользователь {user_id} не найден в базе сотрудников (группа {group_id})"
+                )
+                return False
+
+            logger.debug(
+                f"[Группы] Пользователь {user_id} найден в базе сотрудников: {employee.position or 'Без должности'}"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при проверке статуса сотрудника {user_id} в группе {group_id}: {e}"
+            )
+            # В случае ошибки разрешаем пользователю остаться
+            return True
+
+    @staticmethod
+    async def _send_new_user_notification(
+        event: ChatMemberUpdated,
+        user_id: int,
+        group_id: int,
+        stp_repo: MainRequestsRepo,
+    ):
+        """
+        Отправляет уведомление о новом участнике группы
+        """
+        try:
+            user = event.new_chat_member.user
+            user_mention = f"@{user.username}" if user.username else f"#{user_id}"
+            user_fullname = f"{user.first_name or ''} {user.last_name or ''}".strip()
+
+            # Формируем информацию о пользователе
+            if user_fullname:
+                user_info = f"{user_fullname} ({user_mention})"
+            else:
+                user_info = user_mention
+
+            # Проверяем, является ли пользователь сотрудником
+            employee = await stp_repo.employee.get_user(user_id=user_id)
+
+            if employee:
+                # Формируем сообщение для сотрудника
+                notification_text = (
+                    f"👋 <b>Добро пожаловать в группу!</b>\n\n"
+                    f"Сотрудник {user_info} присоединился к группе\n"
+                    f"<i>Должность: {employee.position + " " + employee.division or 'Не указана'}</i>"
+                )
+            else:
+                # Формируем сообщение для обычного пользователя
+                notification_text = (
+                    f"👋 <b>Новый участник</b>\n\n"
+                    f"Пользователь {user_info} присоединился к группе"
+                )
+
+            await event.bot.send_message(
+                chat_id=group_id,
+                text=notification_text,
+                parse_mode="HTML"
+            )
+
+            logger.info(
+                f"[Группы] Отправлено уведомление о новом участнике {user_id} в группе {group_id}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при отправке уведомления о новом участнике {user_id} в группе {group_id}: {e}"
+            )
+
+    @staticmethod
     async def _execute_ban(
         bot,
         user_id: int,
@@ -347,8 +452,8 @@ class GroupsMiddleware(BaseMiddleware):
             # Отправляем уведомление в группу
             notification_text = (
                 f"🚫 <b>Пользователь заблокирован</b>\n\n"
-                f"Пользователь {user_info} {reason_text}\n"
-                f"<i>Причина: пользователь не найден в базе данных сотрудников</i>"
+                f"Пользователь {user_info} {reason_text}\n\n"
+                f"<i>Причина: пользователь не найден в базе сотрудников</i>"
             )
 
             await bot.send_message(

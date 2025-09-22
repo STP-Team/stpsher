@@ -5,6 +5,7 @@ from tgbot.handlers.admin.schedule.list import admin_list_router
 from tgbot.handlers.admin.schedule.main import admin_schedule_router
 from tgbot.handlers.admin.schedule.upload import admin_upload_router
 from tgbot.handlers.admin.search import admin_search_router
+from tgbot.handlers.deep.group.settings import deeplink_group
 from tgbot.handlers.gok.game.achievements import gok_game_achievements_router
 from tgbot.handlers.gok.game.main import gok_game_router
 from tgbot.handlers.gok.main import gok_router
@@ -56,6 +57,7 @@ from tgbot.handlers.user.schedule.main import user_schedule_router
 from tgbot.handlers.user.schedule.my import user_schedule_my_router
 
 routers_list = [
+    deeplink_group,
     root_router,
     admin_router,
     admin_schedule_router,
