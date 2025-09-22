@@ -14,10 +14,13 @@ from tgbot.keyboards.group.settings import (
     GroupMemberActionMenu,
     GroupMemberDetailMenu,
     GroupMembersMenu,
+    GroupServiceMessagesApplyMenu,
+    GroupServiceMessagesMenu,
     GroupSettingsMenu,
     group_access_keyboard,
     group_member_detail_keyboard,
     group_members_keyboard,
+    group_service_messages_keyboard,
     group_settings_keyboard,
 )
 from tgbot.misc.dicts import roles
@@ -27,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 # Store pending role changes per group
 pending_role_changes = {}
+# Store pending service messages changes per group
+pending_service_messages_changes = {}
 
 
 @deeplink_group.message(
@@ -222,6 +227,35 @@ async def handle_settings_callback(
                     employees=employees,
                     users=non_employee_users,
                     current_page=1,
+                ),
+            )
+
+        case "service_messages":
+            # Initialize pending changes with current service messages categories
+            pending_service_messages_changes[group.group_id] = (
+                getattr(group, "service_messages", []) or []
+            ).copy()
+
+            await callback.message.edit_text(
+                """🗑️ <b>Управление сервисными сообщениями</b>
+
+<b>Обозначения</b>
+- 🟢 Удаляются
+- 🔴 Не удаляются
+
+<blockquote expandable><b>Типы сервисных сообщений:</b>
+• <b>Все</b> - все сервисные сообщения
+• <b>Вход</b> - "X присоединился к чату"
+• <b>Выход</b> - "X покинул чат"
+• <b>Прочее</b> - бусты, платежи, уведомления
+• <b>Фото</b> - смена фото чата
+• <b>Закреп</b> - "X закрепил сообщение"
+• <b>Название</b> - смена названия чата
+• <b>Видеозвонки</b> - действия с видеозвонками</blockquote>
+
+<i>Выбери типы сообщений для удаления, затем нажми "Применить"</i>""",
+                reply_markup=group_service_messages_keyboard(
+                    group, pending_service_messages_changes[group.group_id]
                 ),
             )
 
@@ -556,3 +590,111 @@ async def handle_member_action(
         except Exception as e:
             await callback.answer("❌ Ошибка при бане участника")
             logger.error(f"Failed to ban user {callback_data.member_id}: {e}")
+
+
+@deeplink_group.callback_query(GroupServiceMessagesMenu.filter())
+async def handle_service_messages_callback(
+    callback: CallbackQuery,
+    callback_data: GroupServiceMessagesMenu,
+    stp_repo: MainRequestsRepo,
+):
+    group = await stp_repo.group.get_group(callback_data.group_id)
+    if not group:
+        await callback.answer("Не удалось найти группу в базе :(")
+        return
+
+    # Get current pending categories for this group
+    if group.group_id not in pending_service_messages_changes:
+        pending_service_messages_changes[group.group_id] = (
+            getattr(group, "service_messages", []) or []
+        ).copy()
+
+    current_pending = pending_service_messages_changes[group.group_id]
+    category = callback_data.category
+
+    if category in current_pending:
+        # Remove category from pending list
+        pending_service_messages_changes[group.group_id] = [
+            c for c in current_pending if c != category
+        ]
+        action = "убрана из удаляемых"
+    else:
+        # Add category to pending list
+        pending_service_messages_changes[group.group_id] = current_pending + [category]
+        action = "добавлена к удаляемым"
+
+    # Category names for user feedback
+    category_names = {
+        "all": "Все сообщения",
+        "join": "Вход пользователей",
+        "leave": "Выход пользователей",
+        "other": "Прочие сообщения",
+        "photo": "Смена фото",
+        "pin": "Закрепленные сообщения",
+        "title": "Смена названия",
+        "videochat": "Видеозвонки",
+    }
+
+    category_name = category_names.get(category, category)
+    await callback.answer(f"Категория '{category_name}' {action}")
+
+    # Update keyboard with pending changes
+    await callback.message.edit_reply_markup(
+        reply_markup=group_service_messages_keyboard(
+            group, pending_service_messages_changes[group.group_id]
+        )
+    )
+
+
+@deeplink_group.callback_query(GroupServiceMessagesApplyMenu.filter())
+async def handle_service_messages_apply_callback(
+    callback: CallbackQuery,
+    callback_data: GroupServiceMessagesApplyMenu,
+    stp_repo: MainRequestsRepo,
+):
+    group = await stp_repo.group.get_group(callback_data.group_id)
+    if not group:
+        await callback.answer("Не удалось найти группу в базе :(")
+        return
+
+    if callback_data.action == "apply":
+        # Apply the pending changes
+        if group.group_id in pending_service_messages_changes:
+            new_categories = pending_service_messages_changes[group.group_id]
+
+            updated_group = await stp_repo.group.update_group(
+                group_id=group.group_id, service_messages=new_categories
+            )
+
+            if updated_group:
+                await callback.answer("✅ Настройки сервисных сообщений применены!")
+
+                # Clean up pending changes
+                del pending_service_messages_changes[group.group_id]
+
+                # Update keyboard without pending changes
+                await callback.message.edit_reply_markup(
+                    reply_markup=group_service_messages_keyboard(updated_group)
+                )
+                logger.info(
+                    f"Successfully applied service messages settings for group {group.group_id}"
+                )
+            else:
+                await callback.answer("❌ Ошибка при применении настроек")
+                logger.error(
+                    f"Failed to apply service messages settings for group {group.group_id}"
+                )
+        else:
+            await callback.answer("Нет изменений для применения")
+
+    elif callback_data.action == "cancel":
+        # Cancel pending changes
+        if group.group_id in pending_service_messages_changes:
+            del pending_service_messages_changes[group.group_id]
+
+        await callback.answer("❌ Изменения отменены")
+
+        # Update keyboard with original categories
+        await callback.message.edit_reply_markup(
+            reply_markup=group_service_messages_keyboard(group)
+        )

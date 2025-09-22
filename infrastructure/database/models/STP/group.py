@@ -57,6 +57,12 @@ class Group(Base, TableNameMixin):
         comment="Список разрешенных ролей для доступа к группе",
         default=[],
     )
+    service_messages: Mapped[list] = mapped_column(
+        JSON,
+        nullable=False,
+        comment="Список сервисных сообщений на удаление",
+        default=[],
+    )
 
     def __repr__(self):
         return f"<Group group_id={self.group_id} invited_by={self.invited_by}>"

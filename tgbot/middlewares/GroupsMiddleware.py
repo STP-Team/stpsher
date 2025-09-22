@@ -32,6 +32,13 @@ class GroupsMiddleware(BaseMiddleware):
 
         # Handle different event types
         if isinstance(event, Message) and event.chat.type in ["group", "supergroup"]:
+            # Check and delete service messages first
+            should_delete = await self._check_and_delete_service_message(
+                event, stp_repo
+            )
+            if should_delete:
+                return None  # Don't continue processing if message was deleted
+
             await self._update_group(event, stp_repo)
         elif isinstance(event, ChatMemberUpdated) and event.chat.type in [
             "group",
@@ -538,3 +545,114 @@ class GroupsMiddleware(BaseMiddleware):
             logger.error(
                 f"[Группы] Ошибка при бане пользователя {user_id} из группы {group_id}: {e}"
             )
+
+    @staticmethod
+    async def _check_and_delete_service_message(
+        event: Message,
+        stp_repo: MainRequestsRepo,
+    ) -> bool:
+        """
+        Проверяет, является ли сообщение сервисным и должно ли быть удалено
+        согласно настройкам группы
+
+        :param event: Сообщение для проверки
+        :param stp_repo: Репозиторий для работы с БД
+        :return: True если сообщение было удалено, False если нет
+        """
+        try:
+            group_id = event.chat.id
+
+            # Получаем настройки группы
+            group = await stp_repo.group.get_group(group_id)
+            if not group:
+                return False
+
+            # Проверяем, есть ли настройки для удаления сервисных сообщений
+            service_categories = getattr(group, "service_messages", []) or []
+            if not service_categories:
+                return False
+
+            # Определяем тип сервисного сообщения
+            message_category = GroupsMiddleware._detect_service_message_category(event)
+            if not message_category:
+                return False  # Не сервисное сообщение
+
+            # Проверяем, нужно ли удалять этот тип сообщений
+            should_delete = (
+                "all" in service_categories or message_category in service_categories
+            )
+
+            if should_delete:
+                # Удаляем сообщение
+                await event.delete()
+                logger.info(
+                    f"[Группы] Удалено сервисное сообщение типа '{message_category}' в группе {group_id}"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при проверке сервисного сообщения в группе {event.chat.id}: {e}"
+            )
+            return False
+
+    @staticmethod
+    def _detect_service_message_category(message: Message) -> str | None:
+        """
+        Определяет категорию сервисного сообщения
+
+        :param message: Сообщение для анализа
+        :return: Категория сообщения или None если не сервисное
+        """
+        # join: Новый пользователь присоединился
+        if message.new_chat_members:
+            return "join"
+
+        # leave: Пользователь покинул чат
+        if message.left_chat_member:
+            return "leave"
+
+        # photo: Изменение фото чата
+        if message.new_chat_photo:
+            return "photo"
+
+        # photo: Удаление фото чата
+        if message.delete_chat_photo:
+            return "photo"
+
+        # title: Изменение названия чата
+        if message.new_chat_title:
+            return "title"
+
+        # pin: Закрепление сообщения
+        if message.pinned_message:
+            return "pin"
+
+        # videochat: Видеозвонки
+        if (
+            message.video_chat_started
+            or message.video_chat_ended
+            or message.video_chat_participants_invited
+            or message.video_chat_scheduled
+        ):
+            return "videochat"
+
+        # other: Прочие сервисные сообщения
+        if (
+            message.group_chat_created
+            or message.supergroup_chat_created
+            or message.channel_chat_created
+            or message.migrate_to_chat_id
+            or message.migrate_from_chat_id
+            or message.successful_payment
+            or message.connected_website
+            or message.proximity_alert_triggered
+            or message.message_auto_delete_timer_changed
+            or message.web_app_data
+            or message.passport_data
+        ):
+            return "other"
+
+        return None

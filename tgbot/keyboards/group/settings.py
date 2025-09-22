@@ -41,6 +41,18 @@ class GroupMemberActionMenu(CallbackData, prefix="group_member_action"):
     page: int = 1
 
 
+class GroupServiceMessagesMenu(CallbackData, prefix="service_msg"):
+    group_id: int
+    category: (
+        str  # "all", "join", "leave", "other", "photo", "pin", "title", "videochat"
+    )
+
+
+class GroupServiceMessagesApplyMenu(CallbackData, prefix="service_msg_apply"):
+    group_id: int
+    action: str  # "apply", "cancel"
+
+
 def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMarkup:
     """Create keyboard for group settings."""
     # Base keyboard structure
@@ -78,6 +90,12 @@ def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMark
             ),
         ],
         [
+            InlineKeyboardButton(
+                text="🗑️ Сервисные сообщения",
+                callback_data=GroupSettingsMenu(
+                    group_id=group.group_id, menu="service_messages"
+                ).pack(),
+            ),
             InlineKeyboardButton(
                 text="👥 Состав",
                 callback_data=GroupSettingsMenu(
@@ -407,5 +425,86 @@ def group_member_detail_keyboard(
             )
         ],
     ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def group_service_messages_keyboard(
+    group: Group, pending_categories: list = None
+) -> InlineKeyboardMarkup:
+    """Create keyboard for service messages management."""
+    if pending_categories is None:
+        pending_categories = getattr(group, "service_messages", []) or []
+
+    # Service message categories with descriptions
+    categories = {
+        "all": {"name": "Все", "emoji": "🗑️", "desc": "Все сервисные сообщения"},
+        "join": {"name": "Вход", "emoji": "👋", "desc": "Вход пользователей"},
+        "leave": {"name": "Выход", "emoji": "👋", "desc": "Выход пользователей"},
+        "other": {"name": "Прочее", "emoji": "📝", "desc": "Бусты, платежи и др."},
+        "photo": {"name": "Фото", "emoji": "🖼️", "desc": "Смена фото чата"},
+        "pin": {"name": "Закреп", "emoji": "📌", "desc": "Закрепленные сообщения"},
+        "title": {"name": "Название", "emoji": "✏️", "desc": "Смена названия"},
+        "videochat": {"name": "Видеозвонки", "emoji": "📹", "desc": "Видеозвонки"},
+    }
+
+    category_buttons = []
+
+    # Create buttons for each category
+    for category_id, category_info in categories.items():
+        is_enabled = category_id in pending_categories
+        status = "🟢" if is_enabled else "🔴"
+        button_text = f"{status} {category_info['emoji']} {category_info['name']}"
+
+        category_buttons.append(
+            InlineKeyboardButton(
+                text=button_text,
+                callback_data=GroupServiceMessagesMenu(
+                    group_id=group.group_id, category=category_id
+                ).pack(),
+            )
+        )
+
+    # Arrange buttons in rows of 2
+    buttons = []
+    for i in range(0, len(category_buttons), 2):
+        row = category_buttons[i : i + 2]
+        buttons.append(row)
+
+    # Check if there are changes to apply
+    current_categories = set(getattr(group, "service_messages", []) or [])
+    pending_categories_set = set(pending_categories)
+    has_changes = current_categories != pending_categories_set
+
+    if has_changes:
+        # Add apply and cancel buttons
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="✅ Применить",
+                    callback_data=GroupServiceMessagesApplyMenu(
+                        group_id=group.group_id, action="apply"
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="❌ Отменить",
+                    callback_data=GroupServiceMessagesApplyMenu(
+                        group_id=group.group_id, action="cancel"
+                    ).pack(),
+                ),
+            ]
+        )
+
+    # Add back button
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=GroupSettingsMenu(
+                    group_id=group.group_id, menu="back"
+                ).pack(),
+            )
+        ]
+    )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

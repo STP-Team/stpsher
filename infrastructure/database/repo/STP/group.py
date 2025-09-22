@@ -19,6 +19,7 @@ class GroupParams(TypedDict, total=False):
     is_casino_allowed: bool | None
     new_user_notify: bool | None
     allowed_roles: list | None
+    service_messages: list | None
 
 
 class GroupRepo(BaseRepo):
