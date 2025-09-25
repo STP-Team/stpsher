@@ -9,21 +9,21 @@ from tgbot.keyboards.user.main import MainMenu
 class GokGameMenu(CallbackData, prefix="gok_game"):
     menu: str
     page: int = 1
-    filters: str = "НЦК,НТП"  # Фильтры по направлению
+    filters: str = "НЦК,НТП1,НТП2"  # Фильтры по направлению
 
 
 class GokFilterToggleMenu(CallbackData, prefix="gok_filter_toggle"):
     menu: str  # "achievements_all" или "products_all"
     filter_name: str  # "НЦК" или "НТП"
     page: int = 1
-    current_filters: str = "НЦК,НТП"  # текущие активные фильтры
+    current_filters: str = "НЦК,НТП1,НТП2"  # текущие активные фильтры
 
 
 class GokProductsMenu(CallbackData, prefix="gok_products"):
     menu: str
     page: int = 1
     product_id: int = 0
-    filters: str = "НЦК,НТП"  # comma-separated active filters
+    filters: str = "НЦК,НТП1,НТП2"  # comma-separated active filters
 
 
 class GokPurchaseActivationMenu(CallbackData, prefix="gok_purchase_activation"):
@@ -44,7 +44,7 @@ def parse_filters(filters_str: str) -> Set[str]:
     :return:
     """
     if not filters_str:
-        return {"НЦК", "НТП"}
+        return {"НЦК", "НТП1", "НТП2"}
     return set(
         filter_name.strip()
         for filter_name in filters_str.split(",")
@@ -77,7 +77,7 @@ def toggle_filter(current_filters: str, filter_to_toggle: str) -> str:
 
     # Ensure at least one filter is active
     if not filters_set:
-        filters_set = {"НЦК", "НТП"}
+        filters_set = {"НЦК", "НТП1", "НТП2"}
 
     return filters_to_string(filters_set)
 
@@ -95,7 +95,7 @@ def create_filters_row(
     active_filters = parse_filters(current_filters)
     buttons = []
 
-    filter_options = [("НЦК", "НЦК"), ("НТП", "НТП")]
+    filter_options = [("НЦК", "НЦК"), ("НТП1", "НТП1"), ("НТП2", "НТП2")]
 
     for display_name, filter_name in filter_options:
         is_active = filter_name in active_filters
@@ -138,6 +138,10 @@ def gok_kb() -> InlineKeyboardMarkup:
             ),
         ],
         [
+            InlineKeyboardButton(
+                text="🕵🏻 Поиск сотрудника",
+                callback_data=MainMenu(menu="search").pack(),
+            ),
             InlineKeyboardButton(
                 text="👯‍♀️ Группы",
                 callback_data=MainMenu(menu="groups").pack(),

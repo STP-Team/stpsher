@@ -1,8 +1,18 @@
+from typing import List
+
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu
+from tgbot.misc.helpers import get_role
+
+
+class SearchFilterToggleMenu(CallbackData, prefix="sf_toggle"):
+    menu: str  # "specialists" или "heads"
+    filter_name: str  # "НЦК", "НТП1" или "НТП2"
+    page: int = 1
+    current_filters: str = "НЦК,НТП1,НТП2"  # текущие активные фильтры
 
 
 class SearchUserResult(CallbackData, prefix="search_user"):
@@ -60,6 +70,162 @@ class ScheduleNavigation(CallbackData, prefix="sched_nav"):
     context: str = "mip"  # Контекст использования (mip, head)
 
 
+def get_gender_emoji(fullname: str) -> str:
+    """Определяет пол по имени и возвращает соответствующий эмодзи"""
+    if not fullname:
+        return ""
+
+    name_parts = fullname.strip().split()
+    if len(name_parts) < 2:
+        return ""
+
+    # Берем второе слово (имя) и проверяем окончание
+    first_name = name_parts[1].lower()
+
+    # Мужские окончания
+    male_endings = [
+        "ич",
+        "ович",
+        "евич",
+        "ич",
+        "ей",
+        "ай",
+        "ий",
+        "он",
+        "ан",
+        "ен",
+        "ин",
+        "им",
+        "ем",
+        "ам",
+        "ум",
+        "юр",
+        "ур",
+        "ор",
+        "ер",
+        "ир",
+        "ар",
+    ]
+    # Женские окончания
+    female_endings = [
+        "на",
+        "ла",
+        "ра",
+        "са",
+        "та",
+        "ка",
+        "га",
+        "ва",
+        "да",
+        "за",
+        "ма",
+        "па",
+        "ха",
+        "ца",
+        "ча",
+        "ша",
+        "ща",
+        "ья",
+        "ия",
+        "ея",
+    ]
+
+    # Проверяем окончания
+    for ending in male_endings:
+        if first_name.endswith(ending):
+            return "👨 "
+
+    for ending in female_endings:
+        if first_name.endswith(ending):
+            return "👩 "
+
+    # Если не удалось определить, возвращаем пустую строку
+    return ""
+
+
+def parse_filters(filters_str: str) -> set[str]:
+    """
+    Парсит фильтры
+    :param filters_str: Список фильтров
+    :return:
+    """
+    if not filters_str:
+        return {"НЦК", "НТП1", "НТП2"}
+    return set(
+        filter_name.strip()
+        for filter_name in filters_str.split(",")
+        if filter_name.strip()
+    )
+
+
+def filters_to_string(filters_set: set[str]) -> str:
+    """
+    Конвертирует список фильтров в строку, разделенную запятыми
+    :param filters_set: Сет фильтров
+    :return:
+    """
+    return ",".join(sorted(filters_set))
+
+
+def toggle_filter(current_filters: str, filter_to_toggle: str) -> str:
+    """
+    Включает или выключает фильтры и возвращает новый список фильтров
+    :param current_filters: Текущие активные фильтры
+    :param filter_to_toggle: Изменяемые фильтры
+    :return:
+    """
+    filters_set = parse_filters(current_filters)
+
+    if filter_to_toggle in filters_set:
+        filters_set.discard(filter_to_toggle)
+    else:
+        filters_set.add(filter_to_toggle)
+
+    # Ensure at least one filter is active
+    if not filters_set:
+        filters_set = {"НЦК", "НТП1", "НТП2"}
+
+    return filters_to_string(filters_set)
+
+
+def create_filters_row(
+    menu: str, current_filters: str, page: int = 1
+) -> List[InlineKeyboardButton]:
+    """
+    Создает строку кнопок для клавиатуры с фильтрами по направлению
+    :param menu: Меню, для которого добавляется фильтр
+    :param current_filters: Текущие активные фильтры
+    :param page: Текущая открытая страница
+    :return:
+    """
+    active_filters = parse_filters(current_filters)
+    buttons = []
+
+    # Для heads меню используем только НЦК и НТП2
+    if menu == "heads":
+        filter_options = [("НЦК", "НЦК"), ("НТП2", "НТП2")]
+    else:
+        filter_options = [("НЦК", "НЦК"), ("НТП1", "НТП1"), ("НТП2", "НТП2")]
+
+    for display_name, filter_name in filter_options:
+        is_active = filter_name in active_filters
+        emoji = "✅" if is_active else "☑️"
+
+        buttons.append(
+            InlineKeyboardButton(
+                text=f"{emoji} {display_name}",
+                callback_data=SearchFilterToggleMenu(
+                    menu=menu,
+                    filter_name=filter_name,
+                    page=page,
+                    current_filters=current_filters,
+                ).pack(),
+            )
+        )
+
+    return buttons
+
+
 def search_results_kb(
     users: list[Employee],
     page: int,
@@ -67,6 +233,7 @@ def search_results_kb(
     search_type: str,
     context: str = "mip",
     back_callback: str = "search",
+    filters: str = "НЦК,НТП1,НТП2",
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура результатов поиска пользователей
@@ -79,60 +246,113 @@ def search_results_kb(
     :param back_callback: Callback для кнопки "Назад"
     :return: Объект встроенной клавиатуры
     """
+    from tgbot.keyboards.group.main import short_name
+
     buttons = []
 
-    # Кнопки пользователей
+    # Кнопки пользователей (по два в строке)
+    user_buttons = []
     for user in users:
-        status_emoji = ""
-        if not user.user_id:
-            status_emoji = "🔒 "
-        elif user.role == 3:
-            status_emoji = "👮 "
-        elif user.role == 4:
-            status_emoji = "🔨 "
+        # Формат: "Подразделение | Короткое имя"
+        division = user.division or "—"
+        display_name = f"{division} | {short_name(user.fullname)}"
+        role_emoji = get_role(user.role)["emoji"]
+        user_buttons.append(
+            InlineKeyboardButton(
+                text=f"{role_emoji}{display_name}",
+                callback_data=SearchUserResult(
+                    user_id=user.user_id or user.id, context=context
+                ).pack(),
+            )
+        )
 
-        buttons.append(
-            [
+    # Группируем кнопки по две в строке
+    for i in range(0, len(user_buttons), 2):
+        row = user_buttons[i : i + 2]
+        buttons.append(row)
+
+    # Пагинация (стиль shop_kb - 5 кнопок в строке)
+    if total_pages > 1:
+        from tgbot.keyboards.search.main import SearchMenu
+
+        pagination_row = []
+
+        # Первая кнопка (⏪ или пусто)
+        if page > 2:
+            pagination_row.append(
                 InlineKeyboardButton(
-                    text=f"{status_emoji}{user.fullname}",
-                    callback_data=SearchUserResult(
-                        user_id=user.user_id or user.id, context=context
+                    text="⏪",
+                    callback_data=SearchMenu(
+                        menu=search_type, page=1, filters=filters
                     ).pack(),
                 )
-            ]
-        )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
-    # Навигация по страницам
-    nav_buttons = []
-    if page > 1:
-        from tgbot.keyboards.mip.search import SearchMenu
+        # Вторая кнопка (⬅️ или пусто)
+        if page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=SearchMenu(
+                        menu=search_type, page=page - 1, filters=filters
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
-        nav_buttons.append(
+        # Центральная кнопка - Индикатор страницы (всегда видна)
+        pagination_row.append(
             InlineKeyboardButton(
-                text="◀️",
-                callback_data=SearchMenu(menu=search_type, page=page - 1).pack(),
+                text=f"{page}/{total_pages}",
+                callback_data="noop",
             )
         )
 
-    if page < total_pages:
-        from tgbot.keyboards.mip.search import SearchMenu
-
-        nav_buttons.append(
-            InlineKeyboardButton(
-                text="▶️",
-                callback_data=SearchMenu(menu=search_type, page=page + 1).pack(),
+        # Четвертая кнопка (➡️ или пусто)
+        if page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=SearchMenu(
+                        menu=search_type, page=page + 1, filters=filters
+                    ).pack(),
+                )
             )
-        )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
-    if nav_buttons:
-        buttons.append(nav_buttons)
+        # Пятая кнопка (⏭️ или пусто)
+        if page < total_pages - 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="⏭️",
+                    callback_data=SearchMenu(
+                        menu=search_type, page=total_pages, filters=filters
+                    ).pack(),
+                )
+            )
+        else:
+            pagination_row.append(InlineKeyboardButton(text=" ", callback_data="noop"))
 
-    # Кнопка "Назад"
+        buttons.append(pagination_row)
+
+    # Добавляем строку фильтров (после пагинации)
+    filter_buttons = create_filters_row(search_type, filters, page)
+    if filter_buttons:
+        buttons.append(filter_buttons)
+
+    # Кнопки "Назад" и "Домой"
     buttons.append(
         [
             InlineKeyboardButton(
                 text="↩️ Назад", callback_data=MainMenu(menu=back_callback).pack()
-            )
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="search").pack()
+            ),
         ]
     )
 
@@ -147,6 +367,7 @@ def user_detail_kb(
     show_edit_buttons: bool = True,
     is_head: bool = False,
     head_user_id: int = 0,
+    viewer_role: int = 1,
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для детального просмотра пользователя
@@ -158,53 +379,55 @@ def user_detail_kb(
     :param show_edit_buttons: Показывать ли кнопки редактирования
     :param is_head: Является ли пользователь руководителем
     :param head_user_id: ID пользователя-руководителя
+    :param viewer_role: Роль пользователя, который смотрит информацию
     :return: Объект встроенной клавиатуры
     """
     buttons = []
 
-    # Основные кнопки (расписание и KPI) - показываем всегда
-    action_buttons = [
-        InlineKeyboardButton(
-            text="📅 Расписание",
-            callback_data=ViewUserSchedule(
-                user_id=user.user_id or user.id,
-                return_to=return_to,
-                head_id=head_id,
-                context=context,
-            ).pack(),
-        ),
-        InlineKeyboardButton(
-            text="🌟 KPI",
-            callback_data=ViewUserKPI(
-                user_id=user.user_id or user.id,
-                return_to=return_to,
-                head_id=head_id,
-                context=context,
-            ).pack(),
-        ),
-    ]
-    buttons.append(action_buttons)
+    # Для ролей 1 и 3 показываем только базовые кнопки навигации
+    if viewer_role in [1, 3]:
+        # Кнопка назад
+        if return_to == "search":
+            back_callback = "search" if context == "mip" else "main"
+        else:
+            back_callback = return_to
 
-    # Кнопки редактирования - только для MIP контекста
-    if show_edit_buttons and context == "mip":
-        from tgbot.keyboards.mip.search import EditUserMenu
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="↩️ Назад", callback_data=MainMenu(menu=back_callback).pack()
+                ),
+                InlineKeyboardButton(
+                    text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
+                ),
+            ]
+        )
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-        edit_buttons = [
+    # Для роли 2 (руководители) показываем дополнительные кнопки
+    elif viewer_role == 2:
+        # Основные кнопки (расписание и KPI)
+        action_buttons = [
             InlineKeyboardButton(
-                text="✏️ ФИО",
-                callback_data=EditUserMenu(
-                    user_id=user.user_id, action="edit_fullname"
+                text="📅 Расписание",
+                callback_data=ViewUserSchedule(
+                    user_id=user.user_id or user.id,
+                    return_to=return_to,
+                    head_id=head_id,
+                    context=context,
                 ).pack(),
             ),
             InlineKeyboardButton(
-                text="🛡️ Роль",
-                callback_data=EditUserMenu(
-                    user_id=user.user_id, action="edit_role"
+                text="🌟 KPI",
+                callback_data=ViewUserKPI(
+                    user_id=user.user_id or user.id,
+                    return_to=return_to,
+                    head_id=head_id,
+                    context=context,
                 ).pack(),
             ),
         ]
-        buttons.append(edit_buttons)
-    elif show_edit_buttons and context == "head":
+        buttons.append(action_buttons)
         buttons.append(
             [
                 InlineKeyboardButton(
@@ -231,6 +454,78 @@ def user_detail_kb(
                 )
             ]
         )
+
+    # Для остальных ролей (МИП и выше) показываем полную функциональность
+    else:
+        # Основные кнопки (расписание и KPI) - показываем всегда
+        action_buttons = [
+            InlineKeyboardButton(
+                text="📅 Расписание",
+                callback_data=ViewUserSchedule(
+                    user_id=user.user_id or user.id,
+                    return_to=return_to,
+                    head_id=head_id,
+                    context=context,
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🌟 KPI",
+                callback_data=ViewUserKPI(
+                    user_id=user.user_id or user.id,
+                    return_to=return_to,
+                    head_id=head_id,
+                    context=context,
+                ).pack(),
+            ),
+        ]
+        buttons.append(action_buttons)
+
+        # Кнопки редактирования - только для MIP контекста
+        if show_edit_buttons and context == "mip":
+            from tgbot.keyboards.mip.search import EditUserMenu
+
+            edit_buttons = [
+                InlineKeyboardButton(
+                    text="✏️ ФИО",
+                    callback_data=EditUserMenu(
+                        user_id=user.user_id, action="edit_fullname"
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🛡️ Роль",
+                    callback_data=EditUserMenu(
+                        user_id=user.user_id, action="edit_role"
+                    ).pack(),
+                ),
+            ]
+            buttons.append(edit_buttons)
+        elif show_edit_buttons and context == "head":
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="🟢 Казино" if user.is_casino_allowed else "🔴 Казино",
+                        callback_data=HeadUserCasinoToggle(
+                            user_id=user.user_id or user.id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ]
+            )
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="⚙️ Изменить статус",
+                        callback_data=HeadUserStatusSelect(
+                            user_id=user.user_id or user.id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    )
+                ]
+            )
 
     # Кнопка группы для руководителей
     if is_head:

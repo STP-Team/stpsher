@@ -13,7 +13,7 @@ from aiogram.types import (
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.group import GroupAdminFilter
-from tgbot.keyboards.mip.search import short_name
+from tgbot.keyboards.group import short_name
 
 logger = logging.getLogger(__name__)
 

@@ -28,7 +28,7 @@ class SearchService:
         """
         if search_type == "specialists":
             # Специалисты - роль 1 (обычные пользователи)
-            return [user for user in users if user.role == 1]
+            return [user for user in users if user.role in [1, 3]]
         elif search_type == "heads":
             # Руководители - роль 2 (руководители)
             return [user for user in users if user.role == 2]
@@ -169,8 +169,8 @@ class SearchService:
         if user.email:
             user_info += f"\n<b>Рабочая почта:</b> {user.email}"
 
-        # Добавляем статистику уровня (только для специалистов и дежурных)
-        if user.user_id and user.role in [1, 3] and stats:
+        # Добавляем статистику уровня (только для РГ, МИП, ГОК и рутов)
+        if user.user_id and user.role in [2, 5, 6, 10] and stats:
             user_info += f"""
 
 <blockquote expandable><b>📊 Статистика игрока</b>
@@ -180,6 +180,50 @@ class SearchService:
 <b>💸 Всего потрачено:</b> {stats["total_spent"]} баллов</blockquote>"""
 
         return user_info
+
+    @staticmethod
+    def format_user_info_role_based(
+        user: Employee,
+        user_head: Employee = None,
+        stats: dict = None,
+        viewer_role: int = 1,
+    ) -> str:
+        """
+        Формирует информацию о пользователе в зависимости от роли смотрящего
+
+        :param user: Сотрудник
+        :param user_head: Руководитель (опционально)
+        :param stats: Статистика игрока (опционально)
+        :param viewer_role: Роль пользователя, который смотрит информацию
+        :return: Отформатированная строка с информацией
+        """
+        # Базовая информация для ролей 1 и 3 (упрощенная)
+        if viewer_role in [1, 3]:
+            emoji = get_role(user.role)["emoji"] or "👤"
+            user_info = f"{emoji} <b>{user.fullname}</b>\n\n"
+            user_info += f"<b>💼 Должность:</b> {user.position or 'Не указано'}\n"
+
+            if user_head:
+                user_info += f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>\n\n"
+
+            user_info += f"<b>📱 Telegram:</b> @{user.username or 'не указан'}\n"
+
+            if user.email:
+                user_info += f"<b>📧 Email:</b> {user.email}\n\n"
+
+            user_info += f"<b>🛡️ Уровень доступа:</b> {get_role(user.role)['name']}"
+
+            return user_info
+
+        # Для роли 2 (руководители) показываем расширенную информацию
+        elif viewer_role == 2:
+            user_info = SearchService.format_user_info_base(user, user_head, stats)
+            return user_info
+
+        # Для остальных ролей (МИП и выше) показываем полную информацию
+        else:
+            user_info = SearchService.format_user_info_base(user, user_head, stats)
+            return user_info
 
     @staticmethod
     def format_head_group_info(group_stats: dict) -> str:

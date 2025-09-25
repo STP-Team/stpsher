@@ -1,19 +1,27 @@
 import logging
+import re
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
-from tgbot.keyboards.common.search import (
+from tgbot.keyboards.mip.search import (
+    EditUserMenu,
+    SelectUserRole,
+    edit_user_back_kb,
+    role_selection_kb,
+)
+from tgbot.keyboards.search.main import SearchMenu, search_main_kb
+from tgbot.keyboards.search.search import (
     HeadUserCasinoToggle,
     HeadUserStatusChange,
     HeadUserStatusSelect,
     ScheduleNavigation,
+    SearchFilterToggleMenu,
     SearchUserResult,
     ViewUserKPI,
     ViewUserSchedule,
@@ -22,17 +30,22 @@ from tgbot.keyboards.common.search import (
     search_back_kb,
     search_results_kb,
     search_user_kpi_kb,
+    toggle_filter,
     user_detail_kb,
     user_schedule_with_month_kb,
 )
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.misc.states.head.search import HeadSearchEmployee
+from tgbot.misc.dicts import roles
+from tgbot.misc.helpers import get_role
+from tgbot.misc.states.search import EditEmployee, SearchEmployee
 from tgbot.services.salary import SalaryFormatter
 from tgbot.services.search import SearchService
 
-head_search_router = Router()
-head_search_router.message.filter(F.chat.type == "private", HeadFilter())
-head_search_router.callback_query.filter(F.message.chat.type == "private", HeadFilter())
+search_router = Router()
+
+# Фильтры для роутера - обрабатываем запросы от МИП и руководителей
+search_router.message.filter(F.chat.type == "private")
+search_router.callback_query.filter(F.message.chat.type == "private")
 
 logger = logging.getLogger(__name__)
 
@@ -40,30 +53,230 @@ logger = logging.getLogger(__name__)
 USERS_PER_PAGE = 10
 
 
-@head_search_router.callback_query(MainMenu.filter(F.menu == "head_search"))
-async def head_search_start(callback: CallbackQuery, state: FSMContext):
-    """Начать поиск сотрудников для руководителя"""
+@search_router.callback_query(MainMenu.filter(F.menu == "search"))
+async def search_main_menu(callback: CallbackQuery, state: FSMContext, user: Employee):
+    await state.clear()
+
+    # Определяем контекст в зависимости от роли пользователя
+    if user.role == 10:  # root
+        context = "root"
+    elif user.role == 6:  # МИП
+        context = "mip"
+    elif user.role == 2:  # Руководитель
+        context = "head"
+    else:  # Обычные пользователи
+        context = "user"
+
+    await state.update_data(user_context=context)
+
+    await callback.message.edit_text(
+        """<b>🕵🏻 Поиск сотрудника</b>
+
+<i>Выбери должность искомого человека или воспользуйся общим поиском</i>""",
+        reply_markup=search_main_kb(),
+    )
+
+
+@search_router.callback_query(SearchMenu.filter())
+async def search_menu_handler(
+    callback: CallbackQuery,
+    callback_data: SearchMenu,
+    stp_repo: MainRequestsRepo,
+    state: FSMContext,
+    user: Employee,
+):
+    """Обработка меню поиска"""
+    menu = callback_data.menu
+
+    # Определяем контекст в зависимости от роли пользователя
+    if user.role == 10:  # root
+        context = "root"
+    elif user.role == 6:  # МИП
+        context = "mip"
+    elif user.role == 2:  # Руководитель
+        context = "head"
+    else:  # Обычные пользователи
+        context = "user"
+
+    if menu == "specialists":
+        await show_specialists(callback, callback_data, stp_repo, context)
+    elif menu == "heads":
+        await show_heads(callback, callback_data, stp_repo, context)
+    elif menu == "start_search":
+        await start_search(callback, context, state)
+
+
+@search_router.callback_query(SearchFilterToggleMenu.filter())
+async def handle_search_filter_toggle(
+    callback: CallbackQuery,
+    callback_data: SearchFilterToggleMenu,
+    stp_repo: MainRequestsRepo,
+    state: FSMContext,
+    user: Employee,
+):
+    """Обработка переключения фильтров для поиска"""
+    menu = callback_data.menu
+    filter_name = callback_data.filter_name
+    current_filters = callback_data.current_filters
+
+    # Переключаем фильтр
+    new_filters = toggle_filter(current_filters, filter_name)
+
+    # Определяем контекст в зависимости от роли пользователя
+    if user.role == 10:  # root
+        context = "root"
+    elif user.role == 6:  # МИП
+        context = "mip"
+    elif user.role == 2:  # Руководитель
+        context = "head"
+    else:  # Обычные пользователи
+        context = "user"
+
+    # Создаем новый SearchMenu с обновленными фильтрами и сбрасываем страницу на 1
+    new_callback_data = SearchMenu(menu=menu, page=1, filters=new_filters)
+
+    # Вызываем соответствующую функцию в зависимости от меню
+    if menu == "specialists":
+        await show_specialists(callback, new_callback_data, stp_repo, context)
+    elif menu == "heads":
+        await show_heads(callback, new_callback_data, stp_repo, context)
+
+
+async def show_specialists(
+    callback: CallbackQuery,
+    callback_data: SearchMenu,
+    stp_repo: MainRequestsRepo,
+    context: str,
+):
+    """Показать всех специалистов с пагинацией"""
+    page = callback_data.page
+    filters = callback_data.filters
+
+    # Получаем всех пользователей и фильтруем специалистов
+    all_users = await stp_repo.employee.get_users()
+    if not all_users:
+        await callback.answer("❌ Пользователи не найдены", show_alert=True)
+        return
+
+    specialists = SearchService.filter_users_by_type(all_users, "specialists")
+
+    # Применяем фильтры по подразделениям
+    if filters:
+        active_filters = set(f.strip() for f in filters.split(",") if f.strip())
+        if active_filters and active_filters != {"НЦК", "НТП1", "НТП2"}:
+            specialists = [u for u in specialists if u.division in active_filters]
+
+    if not specialists:
+        await callback.answer("❌ Специалисты не найдены", show_alert=True)
+        return
+
+    # Сортировка по алфавиту
+    specialists.sort(key=lambda u: u.fullname)
+
+    # Пагинация
+    total_users = len(specialists)
+    total_pages = (total_users + USERS_PER_PAGE - 1) // USERS_PER_PAGE
+
+    start_idx = (page - 1) * USERS_PER_PAGE
+    end_idx = start_idx + USERS_PER_PAGE
+    page_users = specialists[start_idx:end_idx]
+
+    await callback.message.edit_text(
+        f"""<b>👤 Специалисты</b>
+
+Найдено специалистов: {total_users}
+Страница {page} из {total_pages}""",
+        reply_markup=search_results_kb(
+            page_users,
+            page,
+            total_pages,
+            "specialists",
+            context=context,
+            back_callback="search" if context == "mip" else "main",
+            filters=filters,
+        ),
+    )
+
+
+async def show_heads(
+    callback: CallbackQuery,
+    callback_data: SearchMenu,
+    stp_repo: MainRequestsRepo,
+    context: str,
+):
+    """Показать всех руководителей с пагинацией"""
+    page = callback_data.page
+    filters = callback_data.filters
+
+    # Получаем всех пользователей и фильтруем руководителей
+    all_users = await stp_repo.employee.get_users()
+    if not all_users:
+        await callback.answer("❌ Пользователи не найдены", show_alert=True)
+        return
+
+    heads = SearchService.filter_users_by_type(all_users, "heads")
+
+    # Применяем фильтры по подразделениям
+    if filters:
+        active_filters = set(f.strip() for f in filters.split(",") if f.strip())
+        if active_filters and active_filters != {"НЦК", "НТП1", "НТП2"}:
+            heads = [u for u in heads if u.division in active_filters]
+
+    if not heads:
+        await callback.answer("❌ Руководители не найдены", show_alert=True)
+        return
+
+    # Сортировка по алфавиту
+    heads.sort(key=lambda u: u.fullname)
+
+    # Пагинация
+    total_users = len(heads)
+    total_pages = (total_users + USERS_PER_PAGE - 1) // USERS_PER_PAGE
+
+    start_idx = (page - 1) * USERS_PER_PAGE
+    end_idx = start_idx + USERS_PER_PAGE
+    page_users = heads[start_idx:end_idx]
+
+    await callback.message.edit_text(
+        f"""<b>👑 Руководители</b>
+
+Найдено руководителей: {total_users}""",
+        reply_markup=search_results_kb(
+            page_users,
+            page,
+            total_pages,
+            "heads",
+            context=context,
+            back_callback="search" if context == "mip" else "main",
+            filters=filters,
+        ),
+    )
+
+
+async def start_search(callback: CallbackQuery, context: str, state: FSMContext):
+    """Начать поиск по имени"""
     bot_message = await callback.message.edit_text(
-        """<b>🔍 Поиск сотрудника</b>
+        """<b>🕵🏻 Поиск сотрудника</b>
 
 Введи часть имени, фамилии или полное ФИО сотрудника:
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-        reply_markup=search_back_kb(context="head"),
+        reply_markup=search_back_kb(context=context),
     )
 
-    await state.update_data(bot_message_id=bot_message.message_id)
-    await state.set_state(HeadSearchEmployee.waiting_search_query)
+    await state.update_data(bot_message_id=bot_message.message_id, context=context)
+    await state.set_state(SearchEmployee.waiting_search_query)
 
 
-@head_search_router.message(HeadSearchEmployee.waiting_search_query)
-async def process_head_search_query(
+@search_router.message(SearchEmployee.waiting_search_query)
+async def process_search_query(
     message: Message, state: FSMContext, stp_repo: MainRequestsRepo
 ):
-    """Обработка поискового запроса от руководителя"""
+    """Обработка поискового запроса"""
     search_query = message.text.strip()
     state_data = await state.get_data()
     bot_message_id = state_data.get("bot_message_id")
+    context = state_data.get("context", "mip")
 
     # Удаляем сообщение пользователя
     await message.delete()
@@ -72,14 +285,14 @@ async def process_head_search_query(
         await message.bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=bot_message_id,
-            text="""<b>🔍 Поиск сотрудника</b>
+            text="""<b>🕵🏻 Поиск сотрудника</b>
 
 ❌ Поисковый запрос слишком короткий (минимум 2 символа)
 
 Введи часть имени, фамилии или полное ФИО сотрудника:
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-            reply_markup=search_back_kb(context="head"),
+            reply_markup=search_back_kb(context=context),
         )
         return
 
@@ -93,14 +306,14 @@ async def process_head_search_query(
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=bot_message_id,
-                text=f"""<b>🔍 Поиск сотрудника</b>
+                text=f"""<b>🕵🏻 Поиск сотрудника</b>
 
 ❌ По запросу "<code>{search_query}</code>" ничего не найдено
 
 Попробуй другой запрос или проверь правильность написания
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-                reply_markup=search_back_kb(context="head"),
+                reply_markup=search_back_kb(context=context),
             )
             return
 
@@ -120,20 +333,22 @@ async def process_head_search_query(
         total_pages = (total_found + USERS_PER_PAGE - 1) // USERS_PER_PAGE
         page_users = sorted_users[:USERS_PER_PAGE]
 
+        back_callback = "search" if context == "mip" else "main"
+
         await message.bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=bot_message_id,
             text=f"""<b>🔍 Результаты поиска</b>
 
-По запросу "<code>{search_query}</code>" найдено: {total_found} сотрудников
-Страница 1 из {total_pages}""",
+По запросу "<code>{search_query}</code>" найдено: {total_found} сотрудников""",
             reply_markup=search_results_kb(
                 page_users,
                 1,
                 total_pages,
                 "search_results",
-                context="head",
-                back_callback="main",
+                context=context,
+                back_callback=back_callback,
+                filters="НЦК,НТП1,НТП2",
             ),
         )
 
@@ -144,65 +359,82 @@ async def process_head_search_query(
         await message.bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=bot_message_id,
-            text="""<b>🔍 Поиск сотрудника</b>
+            text="""<b>🕵🏻 Поиск сотрудника</b>
 
 ❌ Произошла ошибка при поиске. Попробуй позже
 
 <i>Например: Иванов, Иван, Иванов И, Иванов Иван и т.д.</i>""",
-            reply_markup=search_back_kb(context="head"),
+            reply_markup=search_back_kb(context=context),
         )
 
 
-@head_search_router.callback_query(SearchUserResult.filter(F.context == "head"))
-async def show_head_user_details(
-    callback: CallbackQuery, callback_data: SearchUserResult, stp_repo: MainRequestsRepo
+@search_router.callback_query(SearchUserResult.filter())
+async def show_user_details(
+    callback: CallbackQuery,
+    callback_data: SearchUserResult,
+    stp_repo: MainRequestsRepo,
+    user: Employee,
 ):
-    """Показать детальную информацию о найденном пользователе для руководителя"""
+    """Показать детальную информацию о найденном пользователе"""
     user_id = callback_data.user_id
     return_to = callback_data.return_to
     head_id = callback_data.head_id
+    context = callback_data.context
+    viewer_role = user.role  # Роль пользователя, который смотрит информацию
 
     try:
-        user = await stp_repo.employee.get_user(user_id=user_id)
+        target_user = await stp_repo.employee.get_user(user_id=user_id)
         user_head = (
-            await stp_repo.employee.get_user(fullname=user.head) if user.head else None
+            await stp_repo.employee.get_user(fullname=target_user.head)
+            if target_user.head
+            else None
         )
 
-        if not user:
+        if not target_user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
-        # Получаем статистику пользователя
-        stats = await SearchService.get_user_statistics(user_id, stp_repo)
+        # Получаем статистику пользователя (только для роли 2 и выше)
+        stats = None
+        if viewer_role >= 2:
+            stats = await SearchService.get_user_statistics(user_id, stp_repo)
 
-        # Формирование информации о пользователе
-        user_info = SearchService.format_user_info_base(user, user_head, stats)
+        # Формирование информации о пользователе в зависимости от роли смотрящего
+        user_info = SearchService.format_user_info_role_based(
+            target_user, user_head, stats, viewer_role
+        )
 
-        # Дополнительная информация для руководителей
-        if user.role == 2:  # Руководитель
+        # Дополнительная информация для руководителей (только для роли 2 и выше)
+        if target_user.role == 2 and viewer_role >= 2:  # Руководитель
             group_stats = await SearchService.get_group_statistics(
-                user.fullname, stp_repo
+                target_user.fullname, stp_repo
             )
             user_info += SearchService.format_head_group_info(group_stats)
 
-        # Определяем параметры клавиатуры для руководителей
-        is_head = user.role == 2  # Руководитель
-        head_user_id = user.user_id if is_head else 0
+        # Определяем возможности редактирования в зависимости от контекста и роли
+        if context == "mip" and viewer_role >= 6:  # МИП может редактировать всех
+            can_edit = target_user.role in [1, 2, 3]
+        elif (
+            context == "head" and viewer_role == 2
+        ):  # Руководитель может редактировать только специалистов и дежурных
+            can_edit = target_user.role in [1, 3]
+        else:
+            can_edit = False
 
-        # Определяем, может ли руководитель изменять статус этого пользователя
-        # Руководитель может изменять статус любых специалистов и дежурных
-        can_edit_status = user.role in [1, 3]  # Любые специалисты и дежурные
+        is_head = target_user.role == 2
+        head_user_id = target_user.user_id if is_head else 0
 
         await callback.message.edit_text(
             user_info,
             reply_markup=user_detail_kb(
-                user,
+                target_user,
                 return_to,
                 head_id,
-                context="head",
-                show_edit_buttons=can_edit_status,  # Показываем кнопки изменения статуса для подчиненных
+                context=context,
+                show_edit_buttons=can_edit,
                 is_head=is_head,
                 head_user_id=head_user_id,
+                viewer_role=viewer_role,
             ),
         )
 
@@ -211,17 +443,18 @@ async def show_head_user_details(
         await callback.answer("❌ Ошибка при получении данных", show_alert=True)
 
 
-@head_search_router.callback_query(ViewUserSchedule.filter(F.context == "head"))
-async def view_head_user_schedule(
+@search_router.callback_query(ViewUserSchedule.filter())
+async def view_user_schedule(
     callback: CallbackQuery,
     callback_data: ViewUserSchedule,
     stp_repo: MainRequestsRepo,
 ):
-    """Просмотр расписания пользователя для руководителя"""
+    """Просмотр расписания пользователя"""
     user_id = callback_data.user_id
     return_to = callback_data.return_to
     head_id = callback_data.head_id
     requested_month_idx = callback_data.month_idx
+    context = callback_data.context
 
     try:
         # Получаем пользователя
@@ -255,7 +488,7 @@ async def view_head_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=False,
-                    context="head",
+                    context=context,
                 ),
             )
 
@@ -282,7 +515,7 @@ async def view_head_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=False,
-                    context="head",
+                    context=context,
                 ),
             )
 
@@ -291,18 +524,19 @@ async def view_head_user_schedule(
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
-@head_search_router.callback_query(ScheduleNavigation.filter(F.context == "head"))
-async def navigate_head_user_schedule(
+@search_router.callback_query(ScheduleNavigation.filter())
+async def navigate_user_schedule(
     callback: CallbackQuery,
     callback_data: ScheduleNavigation,
     stp_repo: MainRequestsRepo,
 ):
-    """Навигация по месяцам в расписании пользователя для руководителя"""
+    """Навигация по месяцам в расписании пользователя"""
     user_id = callback_data.user_id
     action = callback_data.action
     month_idx = callback_data.month_idx
     return_to = callback_data.return_to
     head_id = callback_data.head_id
+    context = callback_data.context
 
     try:
         # Получаем пользователя
@@ -336,7 +570,7 @@ async def navigate_head_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=not compact,
-                    context="head",
+                    context=context,
                 ),
             )
 
@@ -363,7 +597,7 @@ async def navigate_head_user_schedule(
                     return_to=return_to,
                     head_id=head_id,
                     is_detailed=not compact,
-                    context="head",
+                    context=context,
                 ),
             )
 
@@ -372,17 +606,18 @@ async def navigate_head_user_schedule(
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
-@head_search_router.callback_query(ViewUserKPI.filter(F.context == "head"))
-async def view_head_user_kpi(
+@search_router.callback_query(ViewUserKPI.filter())
+async def view_user_kpi(
     callback: CallbackQuery,
     callback_data: ViewUserKPI,
     stp_repo: MainRequestsRepo,
     kpi_repo: KPIRequestsRepo,
 ):
-    """Просмотр KPI пользователя для руководителя"""
+    """Просмотр KPI пользователя"""
     user_id = callback_data.user_id
     return_to = callback_data.return_to
     head_id = callback_data.head_id
+    context = callback_data.context
 
     try:
         # Получаем пользователя
@@ -407,7 +642,7 @@ async def view_head_user_kpi(
                 await callback.message.edit_text(
                     message_text,
                     reply_markup=search_user_kpi_kb(
-                        user_id, return_to, head_id, "main", context="head"
+                        user_id, return_to, head_id, "main", context=context
                     ),
                 )
                 return
@@ -468,7 +703,7 @@ async def view_head_user_kpi(
         await callback.message.edit_text(
             message_text,
             reply_markup=search_user_kpi_kb(
-                user_id, return_to, head_id, "main", context="head"
+                user_id, return_to, head_id, "main", context=context
             ),
         )
 
@@ -477,7 +712,8 @@ async def view_head_user_kpi(
         await callback.answer("❌ Ошибка при получении KPI", show_alert=True)
 
 
-@head_search_router.callback_query(HeadUserStatusSelect.filter())
+# Обработчики для руководителей
+@search_router.callback_query(HeadUserStatusSelect.filter())
 async def show_head_user_status_select(
     callback: CallbackQuery,
     callback_data: HeadUserStatusSelect,
@@ -531,13 +767,15 @@ async def show_head_user_status_select(
         await callback.answer("❌ Ошибка при отображении меню", show_alert=True)
 
 
-@head_search_router.callback_query(HeadUserStatusChange.filter())
+@search_router.callback_query(HeadUserStatusChange.filter())
 async def change_head_user_status(
     callback: CallbackQuery,
     callback_data: HeadUserStatusChange,
     stp_repo: MainRequestsRepo,
 ):
     """Обработчик изменения статуса пользователя (стажер/дежурный)"""
+    from aiogram.exceptions import TelegramBadRequest
+
     user_id = callback_data.user_id
     status_type = callback_data.status_type
     return_to = callback_data.return_to
@@ -558,8 +796,6 @@ async def change_head_user_status(
                 show_alert=True,
             )
             return
-
-        # Роль уже проверена выше, можно изменять
 
         notification_text = ""
         changes_made = False
@@ -633,11 +869,12 @@ async def change_head_user_status(
         await callback.answer("❌ Ошибка при изменении статуса", show_alert=True)
 
 
-@head_search_router.callback_query(HeadUserCasinoToggle.filter())
+@search_router.callback_query(HeadUserCasinoToggle.filter())
 async def toggle_head_user_casino(
     callback: CallbackQuery,
     callback_data: HeadUserCasinoToggle,
     stp_repo: MainRequestsRepo,
+    user: Employee,
 ):
     """Обработчик переключения доступа к казино для пользователя из поиска"""
     user_id = callback_data.user_id
@@ -674,7 +911,7 @@ async def toggle_head_user_casino(
         )
 
         # Обновляем информацию о пользователе
-        await show_head_user_details(
+        await show_user_details(
             callback,
             SearchUserResult(
                 user_id=user_id,
@@ -683,6 +920,7 @@ async def toggle_head_user_casino(
                 context=context,
             ),
             stp_repo,
+            user,
         )
 
     except Exception as e:
@@ -690,3 +928,196 @@ async def toggle_head_user_casino(
             f"Ошибка при изменении доступа к казино пользователя {user_id}: {e}"
         )
         await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
+
+
+# Обработчики для МИП (редактирование пользователей)
+@search_router.callback_query(EditUserMenu.filter())
+async def start_edit_user(
+    callback: CallbackQuery,
+    callback_data: EditUserMenu,
+    state: FSMContext,
+    stp_repo: MainRequestsRepo,
+):
+    """Начать редактирование данных пользователя (только для МИП)"""
+    user_id = callback_data.user_id
+    action = callback_data.action
+
+    if action == "edit_fullname":
+        # Получаем текущие данные пользователя
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        bot_message = await callback.message.edit_text(
+            f"""<b>✏️ Изменение ФИО</b>
+
+<b>Текущее ФИО:</b> {user.fullname}
+
+Введи новое ФИО:
+
+<i>Например: Иванов Иван Иванович</i>""",
+            reply_markup=edit_user_back_kb(user_id),
+        )
+
+        await state.update_data(
+            bot_message_id=bot_message.message_id,
+            user_id=user_id,
+            current_fullname=user.fullname,
+        )
+        await state.set_state(EditEmployee.waiting_new_fullname)
+
+    elif action == "edit_role":
+        # Получаем текущие данные пользователя
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        await callback.message.edit_text(
+            f"""🛡️ <b>Изменение уровня доступа</b>
+
+<b>Сотрудник:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>Текущий уровень доступа:</b> {get_role(user.role)["name"]}
+
+Выбери новую уровень для пользователя:
+
+<i>Пользователь получит уведомление об изменении</i>""",
+            reply_markup=role_selection_kb(user_id, user.role),
+        )
+
+
+# Import statements moved from bottom for these keyboard functions
+
+
+@search_router.message(EditEmployee.waiting_new_fullname)
+async def process_edit_fullname(
+    message: Message, state: FSMContext, stp_repo: MainRequestsRepo
+):
+    """Обработка изменения ФИО пользователя (только для МИП)"""
+
+    new_fullname = message.text.strip()
+    state_data = await state.get_data()
+    bot_message_id = state_data.get("bot_message_id")
+    user_id = state_data.get("user_id")
+    current_fullname = state_data.get("current_fullname")
+
+    # Удаляем сообщение пользователя
+    await message.delete()
+
+    # Валидация ФИО
+    fullname_pattern = r"^[А-Яа-яЁё]+ [А-Яа-яЁё]+ [А-Яа-яЁё]+$"
+    if not re.match(fullname_pattern, new_fullname):
+        await message.bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=bot_message_id,
+            text=f"""<b>✏️ Изменение ФИО</b>
+
+<b>Текущее ФИО:</b> {current_fullname}
+
+❌ Неверный формат ФИО. Попробуй ещё раз:
+
+<i>Например: Иванов Иван Иванович</i>""",
+            reply_markup=edit_user_back_kb(user_id),
+        )
+        return
+
+    try:
+        # Обновляем ФИО в базе данных
+        await stp_repo.employee.update_user(user_id=user_id, fullname=new_fullname)
+
+        await message.bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=bot_message_id,
+            text=f"""<b>✅ ФИО изменено</b>
+
+<b>Было:</b> <code>{current_fullname}</code>
+<b>Стало:</b> <code>{new_fullname}</code>
+
+Изменения сохранены в базе данных.""",
+            reply_markup=edit_user_back_kb(user_id),
+        )
+
+        await state.clear()
+        logger.info(
+            f"[МИП] - [Изменение ФИО] {message.from_user.username} ({message.from_user.id}) изменил ФИО пользователя {user_id}: {current_fullname} → {new_fullname}"
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при изменении ФИО пользователя {user_id}: {e}")
+        await message.bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=bot_message_id,
+            text=f"""<b>✏️ Изменение ФИО</b>
+
+❌ Произошла ошибка при сохранении. Попробуй позже
+
+<b>Текущее ФИО:</b> {current_fullname}""",
+            reply_markup=edit_user_back_kb(user_id),
+        )
+
+
+@search_router.callback_query(SelectUserRole.filter())
+async def process_role_change(
+    callback: CallbackQuery,
+    callback_data: SelectUserRole,
+    stp_repo: MainRequestsRepo,
+    user: Employee,
+):
+    """Обработка изменения роли пользователя (только для МИП)"""
+    user_id = callback_data.user_id
+    new_role = callback_data.role
+
+    try:
+        # Получаем данные пользователя
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Проверяем, что роль действительно изменилась
+        if user.role == new_role:
+            await callback.answer("❌ Пользователь уже имеет эту роль", show_alert=True)
+            return
+
+        # Получаем названия ролей
+        old_role_name = (
+            roles[user.role]["name"]
+            if user.role in roles
+            else f"Неизвестный уровень ({user.role})"
+        )
+        new_role_name = (
+            roles[new_role]["name"]
+            if new_role in roles
+            else f"Неизвестный уровень ({new_role})"
+        )
+
+        # Обновляем роль в базе данных
+        await stp_repo.employee.update_user(user_id=user_id, role=new_role)
+
+        # Отправляем уведомление пользователю о смене роли
+        try:
+            await callback.bot.send_message(
+                chat_id=user_id,
+                text=f"""<b>🔔 Изменение роли</b>
+
+Уровень был изменен: {old_role_name} → {new_role_name}
+
+<i>Изменения могут повлиять на доступные функции бота</i>""",
+            )
+        except Exception as notify_error:
+            logger.error(
+                f"Не удалось отправить уведомление пользователю {user_id}: {notify_error}"
+            )
+
+        logger.info(
+            f"[МИП] - [Изменение роли] {callback.from_user.username} ({callback.from_user.id}) изменил роль пользователя {user_id}: {old_role_name} → {new_role_name}"
+        )
+
+        # Возвращаемся к информации о пользователе
+        user_callback_data = SearchUserResult(user_id=user_id, context="mip")
+        await show_user_details(callback, user_callback_data, stp_repo, user)
+
+    except Exception as e:
+        logger.error(f"Ошибка при изменении роли пользователя {user_id}: {e}")
+        await callback.answer("❌ Ошибка при сохранении роли", show_alert=True)

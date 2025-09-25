@@ -542,7 +542,7 @@ async def create_default_commands(
 
 def create_search_help_item() -> InlineQueryResultArticle:
     """Создание справки по поиску"""
-    help_text = """<b>🔍 Поиск сотрудников</b>
+    help_text = """<b>🕵🏻 Поиск сотрудника</b>
 
 <b>Основные команды:</b>
 • Просто введите имя или фамилию для поиска
@@ -574,7 +574,7 @@ def create_search_help_item() -> InlineQueryResultArticle:
 
     return InlineQueryResultArticle(
         id="search_help",
-        title="🔍 Поиск сотрудников",
+        title="🕵🏻 Поиск сотрудника",
         description="Введите имя или используйте фильтры для поиска",
         input_message_content=InputTextMessageContent(
             message_text=help_text, parse_mode="HTML"

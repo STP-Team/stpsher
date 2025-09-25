@@ -6,7 +6,7 @@ from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.keyboards.mip.search import short_name
+from tgbot.keyboards.group import short_name
 
 logger = logging.getLogger(__name__)
 

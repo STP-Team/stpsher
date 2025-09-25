@@ -36,8 +36,8 @@ def gok_achievements_paginated_kb(
 
     nav_buttons.append(
         InlineKeyboardButton(
-            text=f"📄 {page}/{total_pages}",
-            callback_data="current_page",
+            text=f"{page}/{total_pages}",
+            callback_data="noop",
         )
     )
 

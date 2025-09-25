@@ -4,7 +4,6 @@ from tgbot.handlers.admin.main import admin_router
 from tgbot.handlers.admin.schedule.list import admin_list_router
 from tgbot.handlers.admin.schedule.main import admin_schedule_router
 from tgbot.handlers.admin.schedule.upload import admin_upload_router
-from tgbot.handlers.admin.search import admin_search_router
 from tgbot.handlers.deep.group.settings import deeplink_group
 from tgbot.handlers.gok.game.achievements import gok_game_achievements_router
 from tgbot.handlers.gok.game.main import gok_game_router
@@ -33,7 +32,6 @@ from tgbot.handlers.head.group.schedule import head_group_schedule_router
 from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.head.schedule.group import head_schedule_group_router
-from tgbot.handlers.head.search import head_search_router
 from tgbot.handlers.inline.inline import user_inline_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
 from tgbot.handlers.mip.game.achievements import mip_game_achievements_router
@@ -43,8 +41,8 @@ from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.mip.schedule.list import mip_list_router
 from tgbot.handlers.mip.schedule.main import mip_schedule_router
 from tgbot.handlers.mip.schedule.upload import mip_upload_router
-from tgbot.handlers.mip.search import mip_search_router
 from tgbot.handlers.root.main import root_router
+from tgbot.handlers.search.main import search_router
 from tgbot.handlers.user.auth.main import user_auth_router
 from tgbot.handlers.user.game.achievements import user_game_achievements_router
 from tgbot.handlers.user.game.casino import user_game_casino_router
@@ -69,7 +67,6 @@ routers_list = [
     admin_schedule_router,
     admin_upload_router,
     admin_list_router,
-    admin_search_router,
     gok_router,
     gok_game_router,
     gok_game_products_router,
@@ -83,7 +80,6 @@ routers_list = [
     head_group_game_rating_router,
     head_kpi_router,
     head_schedule_group_router,
-    head_search_router,
     head_group_router,
     head_group_members_router,
     head_group_rating_router,
@@ -97,7 +93,7 @@ routers_list = [
     mip_schedule_router,
     mip_upload_router,
     mip_list_router,
-    mip_search_router,
+    search_router,
     user_router,
     user_auth_router,
     user_schedule_router,
