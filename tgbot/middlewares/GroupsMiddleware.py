@@ -2,6 +2,7 @@ import logging
 from typing import Any, Awaitable, Callable, Dict, Union
 
 from aiogram import BaseMiddleware
+from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
@@ -49,6 +50,32 @@ class GroupsMiddleware(BaseMiddleware):
         # Continue to the next middleware/handler
         result = await handler(event, data)
         return result
+
+    @staticmethod
+    async def _cleanup_removed_group(
+        group_id: int,
+        stp_repo: MainRequestsRepo,
+    ):
+        """
+        Удаляет группу и всех её участников из базы данных
+        когда бот был исключен из группы
+
+        :param group_id: ID группы для удаления
+        :param stp_repo: Репозиторий для работы с БД
+        """
+        try:
+            # Удаляем всех участников группы
+            await stp_repo.group_member.remove_all_members(group_id)
+            logger.info(f"[Группы] Удалены все участники группы {group_id}")
+
+            # Удаляем саму группу
+            await stp_repo.group.delete_group(group_id)
+            logger.info(f"[Группы] Группа {group_id} удалена из базы данных")
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при очистке данных группы {group_id}: {e}"
+            )
 
     @staticmethod
     async def _update_group(
@@ -495,6 +522,17 @@ class GroupsMiddleware(BaseMiddleware):
                 f"[Группы] Отправлено уведомление о новом участнике {user_id} в группе {group_id}"
             )
 
+        except TelegramForbiddenError as e:
+            # Проверяем, что бот был исключен из группы
+            if "bot was kicked from the supergroup chat" in str(e):
+                logger.warning(
+                    f"[Группы] Бот был исключен из группы {group_id}, выполняется очистка данных"
+                )
+                await GroupsMiddleware._cleanup_removed_group(group_id, stp_repo)
+            else:
+                logger.error(
+                    f"[Группы] Ошибка доступа при отправке уведомления о новом участнике {user_id} в группе {group_id}: {e}"
+                )
         except Exception as e:
             logger.error(
                 f"[Группы] Ошибка при отправке уведомления о новом участнике {user_id} в группе {group_id}: {e}"
@@ -541,6 +579,17 @@ class GroupsMiddleware(BaseMiddleware):
                 f"[Группы] Пользователь {user_id} забанен и удален из группы {group_id}"
             )
 
+        except TelegramForbiddenError as e:
+            # Проверяем, что бот был исключен из группы
+            if "bot was kicked from the supergroup chat" in str(e):
+                logger.warning(
+                    f"[Группы] Бот был исключен из группы {group_id}, выполняется очистка данных"
+                )
+                await GroupsMiddleware._cleanup_removed_group(group_id, stp_repo)
+            else:
+                logger.error(
+                    f"[Группы] Ошибка доступа при бане пользователя {user_id} из группы {group_id}: {e}"
+                )
         except Exception as e:
             logger.error(
                 f"[Группы] Ошибка при бане пользователя {user_id} из группы {group_id}: {e}"
