@@ -66,7 +66,6 @@ class Transaction(Base, TableNameMixin):
     kpi_extracted_at: Mapped[Optional[datetime]] = mapped_column(
         TIMESTAMP,
         nullable=True,
-        default=func.current_timestamp(),
         comment="Начальная дата выгружаемых показателей",
     )
     created_at: Mapped[Optional[datetime]] = mapped_column(
