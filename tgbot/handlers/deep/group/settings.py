@@ -53,7 +53,9 @@ async def handle_settings(
 
     try:
         # Check if user is in the group
-        user_groups = await get_user_groups(user_id, stp_repo, message.bot)
+        user_groups, admin_status = await get_user_groups(
+            user_id, stp_repo, message.bot
+        )
         group_found = any(gid == group_id for gid, _ in user_groups)
 
         if not group_found:

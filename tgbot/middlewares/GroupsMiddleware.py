@@ -33,6 +33,13 @@ class GroupsMiddleware(BaseMiddleware):
 
         # Handle different event types
         if isinstance(event, Message) and event.chat.type in ["group", "supergroup"]:
+            # Check if message is a bot command in an unregistered group
+            command_handled = await self._handle_unregistered_group_command(
+                event, stp_repo
+            )
+            if command_handled:
+                return None  # Don't continue processing if command was handled by unregistered group logic
+
             # Check and delete service messages first
             should_delete = await self._check_and_delete_service_message(
                 event, stp_repo
@@ -703,3 +710,181 @@ class GroupsMiddleware(BaseMiddleware):
             return "other"
 
         return None
+
+    @staticmethod
+    async def _handle_unregistered_group_command(
+        event: Message,
+        stp_repo: MainRequestsRepo,
+    ) -> bool:
+        """
+        Обрабатывает команды бота в незарегистрированных группах.
+        Если группа не зарегистрирована и пользователь использует команду бота,
+        запрашивает админские права и регистрирует группу при их получении.
+
+        :param event: Сообщение с командой
+        :param stp_repo: Репозиторий для работы с БД
+        :return: True если команда была обработана, False если нет
+        """
+        try:
+            # Проверяем, является ли сообщение командой бота
+            if not GroupsMiddleware._is_bot_command(event):
+                return False
+
+            group_id = event.chat.id
+            user_id = event.from_user.id if event.from_user else None
+
+            if not user_id:
+                return False
+
+            # Проверяем, зарегистрирована ли группа
+            group = await stp_repo.group.get_group(group_id)
+            if group:
+                return False  # Группа уже зарегистрирована, не обрабатываем
+
+            logger.info(
+                f"[Группы] Команда {event.text} от пользователя {user_id} в незарегистрированной группе {group_id}"
+            )
+
+            # Проверяем, есть ли у бота админские права
+            has_admin = await GroupsMiddleware._check_bot_admin_rights(event, group_id)
+
+            if has_admin:
+                # У бота есть админские права - регистрируем группу
+                await GroupsMiddleware._create_group_in_database(
+                    group_id, user_id, stp_repo
+                )
+                logger.info(
+                    f"[Группы] Группа {group_id} автоматически зарегистрирована с админскими правами"
+                )
+                return False  # Позволяем команде продолжить выполнение
+            else:
+                # Просим админские права
+                await GroupsMiddleware._request_admin_rights(event, group_id)
+                return True  # Команда обработана, дальше не продолжаем
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при обработке команды в незарегистрированной группе {event.chat.id}: {e}"
+            )
+            return False
+
+    @staticmethod
+    def _is_bot_command(message: Message) -> bool:
+        """
+        Проверяет, является ли сообщение командой бота
+
+        :param message: Сообщение для проверки
+        :return: True если это команда бота, False если нет
+        """
+        if not message.text:
+            return False
+
+        text = message.text.strip()
+        if not text.startswith("/"):
+            return False
+
+        # Список команд бота, которые должны работать в группах
+        bot_commands = [
+            "/admins",
+            "/balance",
+            "/top",
+            "/slots",
+            "/dice",
+            "/darts",
+            "/bowling",
+            "/mute",
+            "/unmute",
+            "/ban",
+            "/unban",
+            "/pin",
+            "/unpin",
+            "/settings",
+        ]
+
+        # Проверяем, начинается ли текст с одной из команд
+        for command in bot_commands:
+            if text.startswith(command):
+                return True
+
+        return False
+
+    @staticmethod
+    async def _check_bot_admin_rights(event: Message, group_id: int) -> bool:
+        """
+        Проверяет, есть ли у бота админские права в группе
+
+        :param event: Событие сообщения
+        :param group_id: ID группы
+        :return: True если у бота есть админские права, False если нет
+        """
+        try:
+            bot_member = await event.bot.get_chat_member(group_id, event.bot.id)
+            return bot_member.status in ["administrator", "creator"]
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при проверке прав бота в группе {group_id}: {e}"
+            )
+            return False
+
+    @staticmethod
+    async def _request_admin_rights(event: Message, group_id: int):
+        """
+        Отправляет сообщение с просьбой предоставить боту админские права
+
+        :param event: Событие сообщения
+        :param group_id: ID группы
+        """
+        try:
+            request_message = (
+                "🤖 <b>Требуются права администратора</b>\n\n"
+                "Для использования команд бота в этой группе необходимо предоставить боту права администратора.\n\n"
+                "<b>Как предоставить права:</b>\n"
+                "1. Перейди в настройки группы\n"
+                "2. Выбери <b>Администраторы</b> → <b>Добавить администратора</b>"
+                "3. Найди и выбери меня в списке\n"
+                "4. Предоставь все права\n\n"
+                "После предоставления прав группа будет автоматически зарегистрирована"
+            )
+
+            await event.reply(request_message, parse_mode="HTML")
+
+            logger.info(
+                f"[Группы] Отправлен запрос на админские права для группы {group_id}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при отправке запроса админских прав для группы {group_id}: {e}"
+            )
+
+    @staticmethod
+    async def _create_group_in_database(
+        group_id: int, invited_by: int, stp_repo: MainRequestsRepo
+    ):
+        """
+        Создает группу в базе данных
+
+        :param group_id: ID группы
+        :param invited_by: ID пользователя, который пригласил бота
+        :param stp_repo: Репозиторий для работы с БД
+        """
+        try:
+            # Добавляем группу с дефолтными настройками
+            group = await stp_repo.group.add_group(
+                group_id=group_id,
+                invited_by=invited_by
+            )
+
+            if group:
+                logger.info(
+                    f"[Группы] Группа {group_id} успешно создана в базе данных (приглашен пользователем {invited_by})"
+                )
+            else:
+                logger.warning(
+                    f"[Группы] Не удалось создать группу {group_id} в базе данных"
+                )
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка при создании группы {group_id} в базе данных: {e}"
+            )
