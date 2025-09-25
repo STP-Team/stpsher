@@ -38,9 +38,12 @@ pending_service_messages_changes = {}
 
 async def get_user_groups(
     user_id: int, stp_repo: MainRequestsRepo, bot
-) -> List[Tuple[int, str]]:
-    """Get list of all groups where user is a member."""
-    user_groups = []
+) -> tuple[List[Tuple[int, str]], dict[int, bool]]:
+    """Get list of all groups where user is a member and their admin status."""
+    admin_groups = []
+    member_groups_list = []
+    admin_status = {}
+
     member_groups = await stp_repo.group_member.get_member_groups(user_id)
 
     for group_member in member_groups:
@@ -49,15 +52,34 @@ async def get_user_groups(
             try:
                 chat_info = await bot.get_chat(chat_id=group_id)
                 group_name = chat_info.title or f"{group_id}"
-                user_groups.append((group_id, group_name))
+
+                # Check admin status
+                is_admin = await check_user_admin_status(user_id, group_id, bot)
+                admin_status[group_id] = is_admin
+
+                if is_admin:
+                    admin_groups.append((group_id, group_name))
+                else:
+                    member_groups_list.append((group_id, group_name))
+
             except Exception as e:
                 logger.warning(f"Failed to get chat info for group {group_id}: {e}")
-                user_groups.append((group_id, f"{group_id}"))
+                group_name = f"{group_id}"
+                is_admin = await check_user_admin_status(user_id, group_id, bot)
+                admin_status[group_id] = is_admin
+
+                if is_admin:
+                    admin_groups.append((group_id, group_name))
+                else:
+                    member_groups_list.append((group_id, group_name))
+
         except Exception as e:
             logger.warning(f"Failed to check group {group_id}: {e}")
             continue
 
-    return user_groups
+    # Sort admin groups first, then member groups
+    sorted_groups = admin_groups + member_groups_list
+    return sorted_groups, admin_status
 
 
 async def check_user_admin_status(user_id: int, group_id: int, bot) -> bool:
@@ -111,7 +133,7 @@ async def _update_toggle_setting(
 async def handle_management_menu(callback: CallbackQuery, stp_repo: MainRequestsRepo):
     """Handle groups management menu."""
     user_id = callback.from_user.id
-    user_groups = await get_user_groups(user_id, stp_repo, callback.bot)
+    user_groups, admin_status = await get_user_groups(user_id, stp_repo, callback.bot)
 
     if not user_groups:
         await callback.message.edit_text(
@@ -133,7 +155,7 @@ async def handle_management_menu(callback: CallbackQuery, stp_repo: MainRequests
 Найдено групп: <b>{len(user_groups)}</b>
 
 <i>Выбери группу для просмотра настроек</i>""",
-            reply_markup=group_management_kb(user_groups),
+            reply_markup=group_management_kb(user_groups, admin_status=admin_status),
         )
 
     await callback.answer()
@@ -147,7 +169,7 @@ async def handle_management_pagination(
 ):
     """Handle pagination in groups management menu."""
     user_id = callback.from_user.id
-    user_groups = await get_user_groups(user_id, stp_repo, callback.bot)
+    user_groups, admin_status = await get_user_groups(user_id, stp_repo, callback.bot)
 
     if not user_groups:
         await callback.answer("У тебя нет групп для управления")
@@ -159,7 +181,7 @@ async def handle_management_pagination(
 Найдено групп: <b>{len(user_groups)}</b>
 
 <i>Выбери группу для просмотра настроек</i>""",
-        reply_markup=group_management_kb(user_groups, callback_data.page),
+        reply_markup=group_management_kb(user_groups, callback_data.page, admin_status=admin_status),
     )
 
     await callback.answer()
@@ -176,6 +198,7 @@ async def handle_group_selection(
     """Handle group selection for management."""
     user_id = callback.from_user.id
     group_id = callback_data.group_id
+    user_groups, admin_status = await get_user_groups(user_id, stp_repo, callback.bot)
 
     try:
         group = await stp_repo.group.get_group(group_id)
@@ -213,8 +236,7 @@ async def handle_group_selection(
 
 <i>Для изменения настроек необходимо иметь права администратора в группе</i>""",
                 reply_markup=group_management_kb(
-                    await get_user_groups(user_id, stp_repo, callback.bot),
-                    callback_data.page,
+                    user_groups, callback_data.page, admin_status=admin_status
                 ),
             )
 
@@ -235,7 +257,7 @@ async def handle_back_to_list(
 ):
     """Handle back to groups list."""
     user_id = callback.from_user.id
-    user_groups = await get_user_groups(user_id, stp_repo, callback.bot)
+    user_groups, admin_status = await get_user_groups(user_id, stp_repo, callback.bot)
 
     if not user_groups:
         await callback.message.edit_text(
@@ -257,7 +279,7 @@ async def handle_back_to_list(
 Найдено групп: <b>{len(user_groups)}</b>
 
 <i>Выбери группу для просмотра настроек</i>""",
-            reply_markup=group_management_kb(user_groups, callback_data.page),
+            reply_markup=group_management_kb(user_groups, callback_data.page, admin_status=admin_status),
         )
 
     await callback.answer()
