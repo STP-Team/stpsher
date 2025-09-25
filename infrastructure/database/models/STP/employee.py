@@ -42,7 +42,7 @@ class Employee(Base, TableNameMixin):
     head: Mapped[str] = mapped_column(Unicode, nullable=True)
     email: Mapped[str] = mapped_column(Unicode, nullable=True)
     role: Mapped[int] = mapped_column(BIGINT, nullable=False)
-    is_trainee: Mapped[Boolean] = mapped_column(BOOLEAN, nullable=False)
+    is_trainee: Mapped[Boolean] = mapped_column(BOOLEAN, nullable=False, default=True)
     is_casino_allowed: Mapped[Boolean] = mapped_column(BOOLEAN, nullable=False)
 
     def __repr__(self):

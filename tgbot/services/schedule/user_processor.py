@@ -58,7 +58,6 @@ async def _add_new_user(session, division: str, excel_user: Dict[str, str]):
         fullname=excel_user["fullname"],
         head=excel_user["head"],
         role=0,
-        is_trainee=False,
         is_casino_allowed=True,
     )
     session.add(new_user)
