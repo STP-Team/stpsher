@@ -70,6 +70,12 @@ class GroupServiceMessagesApplyMenu(CallbackData, prefix="group_service_msg_appl
     page: int = 1
 
 
+class GroupRemoveBotMenu(CallbackData, prefix="group_remove_bot"):
+    group_id: int
+    action: str
+    page: int = 1
+
+
 def groups_kb(group_link: str) -> InlineKeyboardMarkup:
     """Main groups menu keyboard."""
     buttons = [
@@ -89,6 +95,36 @@ def groups_kb(group_link: str) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text="↩️ Назад",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
+        ],
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def group_remove_bot_confirmation_kb(
+    group_id: int, page: int = 1
+) -> InlineKeyboardMarkup:
+    """Confirmation keyboard for removing bot from group."""
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text="🤔 Да, удалить",
+                callback_data=GroupRemoveBotMenu(
+                    group_id=group_id, action="remove", page=page
+                ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=GroupSettingsMenu(
+                    group_id=group_id, menu="back", page=page
+                ).pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
                 callback_data=MainMenu(menu="main").pack(),
             ),
         ],
@@ -231,10 +267,19 @@ def group_settings_kb(group: Group, page: int = 1) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=GroupManagementMenu(
-                    action="back_to_list", page=page
+                text="♻️ Удалить бота",
+                callback_data=GroupRemoveBotMenu(
+                    group_id=group.group_id, action="confirm", page=page
                 ).pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=MainMenu(menu="groups").pack(),
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ],
     ]
@@ -343,7 +388,7 @@ def group_members_kb(
     current_page: int = 1,
     list_page: int = 1,
     members_per_page: int = 8,
-) -> InlineKeyboardMarkup:
+) -> InlineKeyboardMarkup | None:
     """Group members management keyboard."""
     buttons = []
 
@@ -390,106 +435,6 @@ def group_members_kb(
             ]
         )
         return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-    total_members = len(all_members)
-    total_pages = (total_members + members_per_page - 1) // members_per_page
-
-    start_idx = (current_page - 1) * members_per_page
-    end_idx = start_idx + members_per_page
-    page_members = all_members[start_idx:end_idx]
-
-    for i in range(0, len(page_members), 2):
-        row = []
-
-        member = page_members[i]
-        if member["type"] == "employee":
-            role_emoji = roles.get(member["role"], {}).get("emoji", "")
-            button_text = f"{role_emoji} {member['name']}"
-        else:
-            button_text = member["name"]
-
-        row.append(
-            InlineKeyboardButton(
-                text=button_text,
-                callback_data=GroupMemberDetailMenu(
-                    group_id=group_id,
-                    member_id=member["id"],
-                    member_type=member["type"],
-                    page=current_page,
-                    list_page=list_page,
-                ).pack(),
-            )
-        )
-
-        if i + 1 < len(page_members):
-            member = page_members[i + 1]
-            if member["type"] == "employee":
-                role_emoji = roles.get(member["role"], {}).get("emoji", "")
-                button_text = f"{role_emoji} {member['name']}"
-            else:
-                button_text = member["name"]
-
-            row.append(
-                InlineKeyboardButton(
-                    text=button_text,
-                    callback_data=GroupMemberDetailMenu(
-                        group_id=group_id,
-                        member_id=member["id"],
-                        member_type=member["type"],
-                        page=current_page,
-                        list_page=list_page,
-                    ).pack(),
-                )
-            )
-
-        buttons.append(row)
-
-    if total_pages > 1:
-        pagination_row = []
-        if current_page > 1:
-            pagination_row.append(
-                InlineKeyboardButton(
-                    text="◀️",
-                    callback_data=GroupMembersMenu(
-                        group_id=group_id,
-                        page=current_page - 1,
-                        list_page=list_page,
-                    ).pack(),
-                )
-            )
-
-        pagination_row.append(
-            InlineKeyboardButton(
-                text=f"{current_page}/{total_pages}", callback_data="noop"
-            )
-        )
-
-        if current_page < total_pages:
-            pagination_row.append(
-                InlineKeyboardButton(
-                    text="▶️",
-                    callback_data=GroupMembersMenu(
-                        group_id=group_id,
-                        page=current_page + 1,
-                        list_page=list_page,
-                    ).pack(),
-                )
-            )
-
-        buttons.append(pagination_row)
-
-    buttons.append(
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=GroupSettingsMenu(
-                    group_id=group_id, menu="back", page=list_page
-                ).pack(),
-            )
-        ]
-    )
-
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def group_member_detail_kb(

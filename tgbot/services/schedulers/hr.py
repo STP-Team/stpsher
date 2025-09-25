@@ -236,7 +236,7 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
 
 async def process_fired_users(session_pool, bot: Bot = None):
     """
-    Обработка уволенных сотрудников - удаление из базы данных и групп
+    Обработка уволенных сотрудников - удаление из базы и групп
 
     Args:
         session_pool: Пул сессий БД из bot.py

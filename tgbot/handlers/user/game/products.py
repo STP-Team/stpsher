@@ -232,7 +232,7 @@ async def duty_purchase_action(
         # Проверяем, что дежурный может активировать только предметы из своего направления
         if product.division != user.division:
             await callback.answer(
-                f"❌ Вы можете активировать только предметы из направления {user.division}",
+                f"❌ Ты можешь активировать только предметы из направления {user.division}",
                 show_alert=True,
             )
             return

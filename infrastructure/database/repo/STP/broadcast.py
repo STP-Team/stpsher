@@ -157,7 +157,7 @@ class BroadcastRepo(BaseRepo):
             if broadcast:
                 await self.session.delete(broadcast)
                 await self.session.commit()
-                logger.info(f"[БД] Рассылка {broadcast_id} удалена из базы данных")
+                logger.info(f"[БД] Рассылка {broadcast_id} удалена из базы")
                 return True
             else:
                 logger.warning(f"[БД] Рассылка с ID {broadcast_id} не найдена")

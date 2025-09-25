@@ -64,7 +64,7 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
     ):
         """
-        Удаляет группу и всех её участников из базы данных
+        Удаляет группу и всех её участников из базы
         когда бот был исключен из группы
 
         :param group_id: ID группы для удаления
@@ -77,7 +77,7 @@ class GroupsMiddleware(BaseMiddleware):
 
             # Удаляем саму группу
             await stp_repo.group.delete_group(group_id)
-            logger.info(f"[Группы] Группа {group_id} удалена из базы данных")
+            logger.info(f"[Группы] Группа {group_id} удалена из базы")
 
         except Exception as e:
             logger.error(f"[Группы] Ошибка при очистке данных группы {group_id}: {e}")

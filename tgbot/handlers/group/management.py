@@ -12,6 +12,7 @@ from tgbot.keyboards.group.main import (
     GroupMemberActionMenu,
     GroupMemberDetailMenu,
     GroupMembersMenu,
+    GroupRemoveBotMenu,
     GroupServiceMessagesApplyMenu,
     GroupServiceMessagesMenu,
     GroupSettingsMenu,
@@ -20,6 +21,7 @@ from tgbot.keyboards.group.main import (
     group_management_kb,
     group_member_detail_kb,
     group_members_kb,
+    group_remove_bot_confirmation_kb,
     group_service_messages_kb,
     group_settings_kb,
 )
@@ -929,3 +931,112 @@ async def handle_member_action(
             logger.error(f"Failed to ban user {callback_data.member_id}: {e}")
 
     await callback.answer()
+
+
+@group_management_router.callback_query(
+    GroupRemoveBotMenu.filter(F.action == "confirm")
+)
+async def group_remove_bot_confirm_cb(
+    callback: CallbackQuery,
+    callback_data: GroupRemoveBotMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Show confirmation for removing bot from group."""
+    try:
+        group = await stp_repo.group.get_group(callback_data.group_id)
+        if not group:
+            await callback.answer("❌ Группа не найдена")
+            return
+
+        is_admin = await check_user_admin_status(
+            callback.from_user.id, callback_data.group_id, callback.bot, stp_repo
+        )
+        if not is_admin:
+            await callback.answer("❌ Только администраторы группы могут удалить бота")
+            return
+
+        group_name = "неизвестная группа"
+        try:
+            chat_info = await callback.bot.get_chat(chat_id=callback_data.group_id)
+            group_name = chat_info.title or f"ID: {callback_data.group_id}"
+        except Exception as e:
+            logger.warning(
+                f"Failed to get chat info for group {callback_data.group_id}: {e}"
+            )
+
+        await callback.message.edit_text(
+            f"""⚠️ <b>Подтверждение удаления бота</b>
+
+Группа: <b>{group_name}</b>
+
+<b>Что произойдет:</b>
+∙ Бот покинет группу
+∙ Группа будет удалена из базы
+∙ Все участники будут исключены из состава группы
+
+<b>Это действие необратимо!</b>
+
+Ты уверен, что хочешь удалить бота из этой группы?""",
+            reply_markup=group_remove_bot_confirmation_kb(
+                group_id=callback_data.group_id, page=callback_data.page
+            ),
+        )
+
+    except Exception as e:
+        await callback.answer("❌ Ошибка при загрузке данных группы")
+        logger.error(f"Failed to show group removal confirmation: {e}")
+
+
+@group_management_router.callback_query(GroupRemoveBotMenu.filter(F.action == "remove"))
+async def group_remove_bot_execute_cb(
+    callback: CallbackQuery,
+    callback_data: GroupRemoveBotMenu,
+    stp_repo: MainRequestsRepo,
+):
+    """Execute bot removal from group."""
+    try:
+        group = await stp_repo.group.get_group(callback_data.group_id)
+        if not group:
+            await callback.answer("❌ Группа не найдена")
+            return
+
+        is_admin = await check_user_admin_status(
+            callback.from_user.id, callback_data.group_id, callback.bot, stp_repo
+        )
+        if not is_admin:
+            await callback.answer("❌ Только администраторы группы могут удалить бота")
+            return
+
+        try:
+            await callback.bot.leave_chat(chat_id=callback_data.group_id)
+            logger.info(f"Bot left group {callback_data.group_id}")
+        except Exception as e:
+            logger.warning(f"Failed to leave group {callback_data.group_id}: {e}")
+
+        try:
+            await stp_repo.group_member.remove_all_members(callback_data.group_id)
+            logger.info(f"Removed all members from group {callback_data.group_id}")
+        except Exception as e:
+            logger.error(
+                f"Failed to remove group members {callback_data.group_id}: {e}"
+            )
+
+        try:
+            await stp_repo.group.delete_group(callback_data.group_id)
+            logger.info(f"Deleted group {callback_data.group_id} from database")
+        except Exception as e:
+            logger.error(f"Failed to delete group {callback_data.group_id}: {e}")
+
+        await callback.message.edit_text(
+            """✅ <b>Бот успешно удален из группы</b>
+
+Группа была исключена из системы управления
+Все связанные данные удалены""",
+            reply_markup=None,
+        )
+
+        await callback.answer("✅ Бот удален из группы")
+
+    except Exception as e:
+        await callback.answer("❌ Ошибка при удалении бота из группы")
+        logger.error(f"Failed to remove bot from group {callback_data.group_id}: {e}")

@@ -232,7 +232,7 @@ def _is_valid_fullname(fullname_cell: str) -> bool:
 
 async def process_fired_users_with_stats(files_list: list[str], session_pool):
     """
-    Обработка уволенных сотрудников - удаление из базы данных
+    Обработка уволенных сотрудников - удаление из базы
 
     :param files_list: Список файлов для проверки
     :param session_pool: Пул сессий БД из bot.py

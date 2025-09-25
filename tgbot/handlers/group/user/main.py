@@ -116,7 +116,7 @@ async def balance_cmd(message: Message, user: Employee, stp_repo: MainRequestsRe
 async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """/top для получения рейтинга группы"""
     try:
-        # Получаем участников группы из базы данных
+        # Получаем участников группы из базы
         group_members_data = await stp_repo.group_member.get_group_members(
             message.chat.id
         )

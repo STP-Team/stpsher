@@ -303,7 +303,7 @@ class EmployeeRepo(BaseRepo):
                 await self.session.delete(user)
                 deleted_count += 1
                 logger.info(
-                    f"[БД] Пользователь {user.fullname} (ID: {user.user_id}) удален из базы данных"
+                    f"[БД] Пользователь {user.fullname} (ID: {user.user_id}) удален из базы"
                 )
 
             if deleted_count > 0:
