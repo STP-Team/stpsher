@@ -48,11 +48,11 @@ async def get_user_groups(
         try:
             try:
                 chat_info = await bot.get_chat(chat_id=group_id)
-                group_name = chat_info.title or f"Группа {group_id}"
+                group_name = chat_info.title or f"{group_id}"
                 user_groups.append((group_id, group_name))
             except Exception as e:
                 logger.warning(f"Failed to get chat info for group {group_id}: {e}")
-                user_groups.append((group_id, f"Группа {group_id}"))
+                user_groups.append((group_id, f"{group_id}"))
         except Exception as e:
             logger.warning(f"Failed to check group {group_id}: {e}")
             continue
@@ -185,7 +185,7 @@ async def handle_group_selection(
 
         is_admin = await check_user_admin_status(user_id, group_id, callback.bot)
         chat_info = await callback.bot.get_chat(chat_id=group_id)
-        group_name = chat_info.title or f"Группа {group_id}"
+        group_name = chat_info.title or f"{group_id}"
 
         if is_admin:
             await callback.message.edit_text(
@@ -410,7 +410,7 @@ async def handle_settings_callback(
 
         case "back":
             chat_info = await callback.bot.get_chat(chat_id=group.group_id)
-            group_name = chat_info.title or f"Группа {group_id}"
+            group_name = chat_info.title or f"{group_id}"
 
             await callback.message.edit_text(
                 f"""⚙️ <b>Настройки группы</b>: {group_name}

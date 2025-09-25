@@ -108,18 +108,35 @@ def group_management_kb(
     start_index = (current_page - 1) * page_size
     end_index = min(start_index + page_size, total_groups)
 
-    for group_id, group_name in groups[start_index:end_index]:
+    page_groups = groups[start_index:end_index]
+
+    for i in range(0, len(page_groups), 2):
+        row = []
+
+        group_id, group_name = page_groups[i]
         display_name = group_name[:30] + "..." if len(group_name) > 30 else group_name
-        buttons.append(
-            [
+        row.append(
+            InlineKeyboardButton(
+                text=f"📌 {display_name}",
+                callback_data=GroupManagementMenu(
+                    action="select_group", group_id=group_id, page=current_page
+                ).pack(),
+            )
+        )
+
+        if i + 1 < len(page_groups):
+            group_id, group_name = page_groups[i + 1]
+            display_name = group_name[:30] + "..." if len(group_name) > 30 else group_name
+            row.append(
                 InlineKeyboardButton(
                     text=f"📌 {display_name}",
                     callback_data=GroupManagementMenu(
                         action="select_group", group_id=group_id, page=current_page
                     ).pack(),
                 )
-            ]
-        )
+            )
+
+        buttons.append(row)
 
     if total_pages > 1:
         pagination_row = []
@@ -156,7 +173,11 @@ def group_management_kb(
             InlineKeyboardButton(
                 text="↩️ Назад",
                 callback_data=MainMenu(menu="groups").pack(),
-            )
+            ),
+            InlineKeyboardButton(
+                text="🏠 Домой",
+                callback_data=MainMenu(menu="main").pack(),
+            ),
         ]
     )
 
@@ -204,7 +225,7 @@ def group_settings_kb(group: Group, page: int = 1) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад к списку групп",
+                text="↩️ Назад",
                 callback_data=GroupManagementMenu(
                     action="back_to_list", page=page
                 ).pack(),

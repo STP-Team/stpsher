@@ -73,9 +73,7 @@ class GroupsMiddleware(BaseMiddleware):
             logger.info(f"[Группы] Группа {group_id} удалена из базы данных")
 
         except Exception as e:
-            logger.error(
-                f"[Группы] Ошибка при очистке данных группы {group_id}: {e}"
-            )
+            logger.error(f"[Группы] Ошибка при очистке данных группы {group_id}: {e}")
 
     @staticmethod
     async def _update_group(

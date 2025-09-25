@@ -410,7 +410,7 @@ def group_member_detail_keyboard(
         ],
         [
             InlineKeyboardButton(
-                text="↩️ Назад к списку",
+                text="↩️ Назад",
                 callback_data=GroupMembersMenu(group_id=group_id, page=page).pack(),
             )
         ],
