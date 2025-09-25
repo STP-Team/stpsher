@@ -150,9 +150,7 @@ async def _update_toggle_setting(
         await callback.answer(f"{success_message} {status}")
 
         await callback.message.edit_reply_markup(
-            reply_markup=group_settings_kb(
-                updated_group, 1
-            )
+            reply_markup=group_settings_kb(updated_group, 1)
         )
         logger.info(f"Successfully updated group {group.group_id} setting {field_name}")
     else:
