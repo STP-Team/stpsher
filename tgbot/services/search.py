@@ -154,30 +154,20 @@ class SearchService:
         :return: Отформатированная строка с информацией
         """
         # Формирование основной информации о пользователе
-        user_info = f"""<b>👤 Информация о сотруднике</b>
+        user_info = f"""<b>👤 {user.fullname}</b>
 
-<b>ФИО:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>Должность:</b> {user.position} {user.division}"""
+<b>💼 Должность:</b> {user.position} {user.division}"""
 
         if user_head:
-            user_info += f"\n<b>Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+            user_info += f"\n<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
 
-        user_info += (
-            f"\n\n🛡️<b>Уровень доступа:</b> {get_role(user.role)['name']} ({user.role})"
-        )
+        if user.username:
+            user_info += f"\n\n<b>📱 Telegram:</b> @{user.username}"
 
         if user.email:
-            user_info += f"\n<b>Рабочая почта:</b> {user.email}"
+            user_info += f"\n<b>📧 Email:</b> {user.email}"
 
-        # Добавляем статистику уровня (только для РГ, МИП, ГОК и рутов)
-        if user.user_id and user.role in [2, 5, 6, 10] and stats:
-            user_info += f"""
-
-<blockquote expandable><b>📊 Статистика игрока</b>
-<b>⚔️ Уровень:</b> {stats["level"]}
-<b>✨ Баланс:</b> {stats["balance"]} баллов
-<b>📈 Всего заработано:</b> {stats["total_earned"]} баллов
-<b>💸 Всего потрачено:</b> {stats["total_spent"]} баллов</blockquote>"""
+        user_info += f"\n\n🛡️ <b>Уровень доступа:</b> {get_role(user.role)['name']}"
 
         return user_info
 
@@ -237,6 +227,4 @@ class SearchService:
 
 <blockquote expandable><b>👥 Статистика группы</b>
 <b>Сотрудников в группе:</b> {group_stats["total_users"]}
-<b>Общие очки группы:</b> {group_stats["total_points"]} баллов</blockquote>
-
-<i>💡 Нажми кнопку ниже чтобы увидеть список группы</i>"""
+<b>Общие очки группы:</b> {group_stats["total_points"]} баллов</blockquote>"""

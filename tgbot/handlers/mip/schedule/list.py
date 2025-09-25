@@ -108,7 +108,6 @@ async def show_local_files_paginated(
 
     files_text = "\n".join(files_info)
     message_text = f"""<b>📁 Локальные файлы</b>
-<i>Страница {page} из {total_pages}</i>
 
 {files_text}
 <i>Нажми на файл для подробной информации</i>"""
@@ -185,7 +184,6 @@ async def show_history_files_paginated(
 
     files_text = "\n".join(files_info)
     message_text = f"""<b>📜 История загрузок</b>
-<i>Страница {page} из {total_pages}</i>
 
 {files_text}
 <i>Используй меню для просмотра подробной информации о файле</i>"""
@@ -659,7 +657,6 @@ async def show_file_versions(
 
 <b>Файл:</b> {filename}
 <b>Найдено версий:</b> {total_versions}
-<i>Страница {versions_page} из {total_pages}</i>
 
 <i>Выбери версию для восстановления:</i>"""
 

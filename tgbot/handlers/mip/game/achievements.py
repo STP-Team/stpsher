@@ -96,7 +96,6 @@ async def achievements_all(
     filtered_stats = f"Показано: {total_achievements}"
 
     message_text = f"""<b>🎯 Все возможные достижения</b>
-<i>Страница {page} из {total_pages}</i>
 
 <blockquote>Всего достижений:
 НТП: {stats_ntp} | НЦК: {stats_nck}

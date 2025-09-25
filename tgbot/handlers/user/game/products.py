@@ -108,7 +108,6 @@ async def duty_products_activation(
         purchases_list.append("")
 
     message_text = f"""<b>✍️ Активация предметов</b>
-<i>Страница {page} из {total_pages}</i>
 
 {chr(10).join(purchases_list)}"""
 

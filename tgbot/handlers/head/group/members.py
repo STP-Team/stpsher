@@ -156,7 +156,7 @@ async def member_detail_cb(
 <b>Должность:</b> {member.position or "Не указано"} {member.division or ""}
 <b>Email:</b> {member.email or "Не указано"}
 
-🛡️ <b>Уровень доступа:</b> <code>{get_role(member.role)["name"]}</code>"""
+🛡️ <b>Уровень доступа:</b> {get_role(member.role)["name"]}"""
 
     # Добавляем статус только для неавторизованных пользователей
     if not member.user_id:

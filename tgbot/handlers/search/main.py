@@ -111,7 +111,6 @@ async def handle_search_filter_toggle(
     callback: CallbackQuery,
     callback_data: SearchFilterToggleMenu,
     stp_repo: MainRequestsRepo,
-    state: FSMContext,
     user: Employee,
 ):
     """Обработка переключения фильтров для поиска"""

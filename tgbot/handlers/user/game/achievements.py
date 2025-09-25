@@ -82,7 +82,6 @@ async def user_achievements_cb(
         achievements_list.append("")
 
     message_text = f"""<b>🎯 Достижения</b>
-<i>Страница 1 из {total_pages}</i>
 
 <b>📊 Всего достижений:</b> {total_achievements}
 
@@ -170,7 +169,6 @@ async def achievements_all(
         achievements_list.append("")
 
     message_text = f"""<b>🎯 Все возможные достижения</b>
-<i>Страница {page} из {total_pages}</i>
 
 <b>📊 Всего достижений:</b> {total_achievements}
 

@@ -89,7 +89,6 @@ async def products_all(
 
     message_text = f"""
 <b>👏 Все возможные предметы</b>
-<i>Страница {page} из {total_pages}</i>
 
 <blockquote expandable><b>Всего предметов:</b>  
 • НТП: {stats_ntp}  
@@ -171,7 +170,6 @@ async def purchase_activation(
         purchases_list.append("")
 
     message_text = f"""<b>✍️ Активация предметов</b>
-<i>Страница {page} из {total_pages}</i>
 
 {chr(10).join(purchases_list)}"""
 
