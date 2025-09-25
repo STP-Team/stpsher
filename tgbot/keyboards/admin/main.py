@@ -20,6 +20,10 @@ def main_kb() -> InlineKeyboardMarkup:
                 text="🕵🏻 Поиск сотрудника",
                 callback_data=MainMenu(menu="search").pack(),
             ),
+            InlineKeyboardButton(
+                text="👯‍♀️ Группы",
+                callback_data=MainMenu(menu="groups").pack(),
+            ),
         ],
     ]
 
