@@ -3,6 +3,8 @@ from typing import List, Set
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.user.main import MainMenu
+
 
 class GokGameMenu(CallbackData, prefix="gok_game"):
     menu: str
@@ -133,6 +135,12 @@ def gok_kb() -> InlineKeyboardMarkup:
             InlineKeyboardButton(
                 text="👏 Предметы",
                 callback_data=GokProductsMenu(menu="products_all").pack(),
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="👯‍♀️ Группы",
+                callback_data=MainMenu(menu="groups").pack(),
             ),
         ],
     ]

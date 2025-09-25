@@ -75,7 +75,7 @@ def groups_kb(group_link: str) -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="🛡️ Управление",
+                text="📋 Список",
                 callback_data=GroupsMenu(menu="management").pack(),
             ),
             InlineKeyboardButton(
@@ -98,7 +98,7 @@ def groups_kb(group_link: str) -> InlineKeyboardMarkup:
 
 
 def group_management_kb(
-    groups: list, current_page: int = 1, page_size: int = 8
+    groups: list, current_page: int = 1, page_size: int = 8, admin_status: dict = None
 ) -> InlineKeyboardMarkup:
     """Groups selection keyboard for management."""
     buttons = []
@@ -115,9 +115,11 @@ def group_management_kb(
 
         group_id, group_name = page_groups[i]
         display_name = group_name[:30] + "..." if len(group_name) > 30 else group_name
+        is_admin = admin_status.get(group_id, False) if admin_status else False
+        emoji = "🛡️" if is_admin else "👤"
         row.append(
             InlineKeyboardButton(
-                text=f"📌 {display_name}",
+                text=f"{emoji} {display_name}",
                 callback_data=GroupManagementMenu(
                     action="select_group", group_id=group_id, page=current_page
                 ).pack(),
@@ -129,9 +131,11 @@ def group_management_kb(
             display_name = (
                 group_name[:30] + "..." if len(group_name) > 30 else group_name
             )
+            is_admin = admin_status.get(group_id, False) if admin_status else False
+            emoji = "🛡️" if is_admin else "👤"
             row.append(
                 InlineKeyboardButton(
-                    text=f"📌 {display_name}",
+                    text=f"{emoji} {display_name}",
                     callback_data=GroupManagementMenu(
                         action="select_group", group_id=group_id, page=current_page
                     ).pack(),

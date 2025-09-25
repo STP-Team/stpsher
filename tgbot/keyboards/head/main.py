@@ -35,9 +35,10 @@ def main_kb(group_link: str) -> InlineKeyboardMarkup:
                 text="🔍 Поиск сотрудников",
                 callback_data=MainMenu(menu="head_search").pack(),
             ),
-        ],
-        [
-            InlineKeyboardButton(text="👋 Пригласить бота", url=group_link),
+            InlineKeyboardButton(
+                text="👯‍♀️ Группы",
+                callback_data=MainMenu(menu="groups").pack(),
+            ),
         ],
     ]
 

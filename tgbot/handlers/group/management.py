@@ -132,7 +132,7 @@ async def handle_management_menu(callback: CallbackQuery, stp_repo: MainRequests
 
 Найдено групп: <b>{len(user_groups)}</b>
 
-<i>Выбери группу для просмотра настроек:</i>""",
+<i>Выбери группу для просмотра настроек</i>""",
             reply_markup=group_management_kb(user_groups),
         )
 
@@ -158,7 +158,7 @@ async def handle_management_pagination(
 
 Найдено групп: <b>{len(user_groups)}</b>
 
-<i>Выбери группу для просмотра настроек:</i>""",
+<i>Выбери группу для просмотра настроек</i>""",
         reply_markup=group_management_kb(user_groups, callback_data.page),
     )
 
@@ -211,7 +211,7 @@ async def handle_group_selection(
 
 🗑️ <b>Сервисные сообщения</b>: {"Настроено" if hasattr(group, "service_messages") and group.service_messages else "Не настроено"}
 
-❗ <b>Чтобы изменять настройки, получи права администратора в группе</b>""",
+<i>Для изменения настроек необходимо иметь права администратора в группе</i>""",
                 reply_markup=group_management_kb(
                     await get_user_groups(user_id, stp_repo, callback.bot),
                     callback_data.page,
@@ -256,7 +256,7 @@ async def handle_back_to_list(
 
 Найдено групп: <b>{len(user_groups)}</b>
 
-<i>Выбери группу для просмотра настроек:</i>""",
+<i>Выбери группу для просмотра настроек</i>""",
             reply_markup=group_management_kb(user_groups, callback_data.page),
         )
 
