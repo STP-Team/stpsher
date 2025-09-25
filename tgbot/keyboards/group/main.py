@@ -126,7 +126,9 @@ def group_management_kb(
 
         if i + 1 < len(page_groups):
             group_id, group_name = page_groups[i + 1]
-            display_name = group_name[:30] + "..." if len(group_name) > 30 else group_name
+            display_name = (
+                group_name[:30] + "..." if len(group_name) > 30 else group_name
+            )
             row.append(
                 InlineKeyboardButton(
                     text=f"📌 {display_name}",
