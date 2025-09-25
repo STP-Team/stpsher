@@ -5,6 +5,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu
+from tgbot.keyboards.user.schedule.main import MONTH_EMOJIS
 from tgbot.misc.helpers import get_role
 
 
@@ -701,6 +702,7 @@ def user_schedule_with_month_kb(
         # Приводим к title case для поиска в month_names
         current_month_title = current_month.lower().capitalize()
         current_month_idx = month_names.index(current_month_title) + 1
+
     except ValueError:
         # Если не найден в title case, попробуем найти по lowercase в русских месяцах
         from tgbot.misc.dicts import russian_months
@@ -736,9 +738,12 @@ def user_schedule_with_month_kb(
         )
     )
 
+    # Получаем эмодзи для месяца
+    month_emoji = MONTH_EMOJIS.get(current_month.lower(), "📅")
+
     nav_buttons.append(
         InlineKeyboardButton(
-            text=current_month,
+            text=f"{month_emoji} {current_month.capitalize()}",
             callback_data=ScheduleNavigation(
                 action="-",
                 user_id=user_id,
