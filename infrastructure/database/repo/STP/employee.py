@@ -198,11 +198,27 @@ class EmployeeRepo(BaseRepo):
             Список пользователей с указанным руководителем
         """
         try:
-            result = await self.session.execute(
-                select(Employee)
-                .where(Employee.head == head_name)
-                .order_by(Employee.fullname)
-            )
+            # Get the head's division first to check if it's НТП
+            head_user = await self.get_user(fullname=head_name)
+
+            if head_user and head_user.division and "НТП" in head_user.division:
+                # For НТП heads, get members from both НТП1 and НТП2
+                result = await self.session.execute(
+                    select(Employee)
+                    .where(
+                        Employee.head == head_name,
+                        Employee.division.in_(["НТП1", "НТП2"]),
+                    )
+                    .order_by(Employee.fullname)
+                )
+            else:
+                # For other divisions, use the standard logic
+                result = await self.session.execute(
+                    select(Employee)
+                    .where(Employee.head == head_name)
+                    .order_by(Employee.fullname)
+                )
+
             return list(result.scalars().all())
         except Exception as e:
             logger.error(

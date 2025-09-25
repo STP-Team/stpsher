@@ -1509,96 +1509,126 @@ class GroupScheduleParser(BaseExcelParser):
     ) -> List[GroupMemberInfo]:
         """Get list of group members for a head."""
         try:
-            schedule_file = self.file_manager.find_schedule_file(division)
-            if not schedule_file:
-                raise FileNotFoundError(f"Schedule file for {division} not found")
-
-            df = self.read_excel_file(schedule_file)
-            if df is None:
-                raise ValueError("Failed to read schedule file")
-
-            header_info = self._get_header_columns()
-            date_column = self.date_finder.find_date_column(df, date)
             group_members = []
 
-            for row_idx in range(header_info["header_row"] + 1, len(df)):
-                name_cell = self.utils.get_cell_value(df, row_idx, 0)
-                schedule_cell = self.utils.get_cell_value(
-                    df, row_idx, header_info.get("schedule_col", 1)
-                )
-                position_cell = self.utils.get_cell_value(
-                    df, row_idx, header_info.get("position_col", 4)
-                )
-                head_cell = self.utils.get_cell_value(
-                    df, row_idx, header_info.get("head_col", 5)
-                )
+            # For НТП divisions, process both НТП1 and НТП2 files
+            if "НТП" in division:
+                divisions_to_check = ["НТП1", "НТП2"]
+            else:
+                divisions_to_check = [division]
 
-                # Check if this person belongs to the specified head
-                if not self.utils.names_match(head_fullname, head_cell):
+            for div in divisions_to_check:
+                schedule_file = self.file_manager.find_schedule_file(div)
+                if not schedule_file:
+                    logger.warning(f"Schedule file for {div} not found")
                     continue
 
-                if not self.utils.is_valid_name(name_cell):
+                df = self.read_excel_file(schedule_file)
+                if df is None:
+                    logger.warning(f"Failed to read schedule file for {div}")
                     continue
 
-                # Get working hours for the specific date
-                working_hours = "Не указано"
-                if date_column is not None:
-                    hours_cell = self.utils.get_cell_value(df, row_idx, date_column)
-                    if hours_cell and hours_cell.strip():
-                        if self.utils.is_time_format(hours_cell):
-                            working_hours = hours_cell
-                        else:
-                            # Non-time value (vacation, day off, etc.) - skip this person
-                            continue
-                    else:
-                        # Empty cell means day off - skip this person
-                        continue
+                header_info = self._get_header_columns()
+                date_column = self.date_finder.find_date_column(df, date)
 
-                # Get user from database
-                user = None
-                try:
-                    user = await stp_repo.employee.get_user(fullname=name_cell.strip())
-                except Exception as e:
-                    logger.debug(f"Error getting user {name_cell}: {e}")
-
-                if not user:
-                    logger.debug(f"User {name_cell.strip()} not found in DB, skipping")
-                    continue
-
-                member = GroupMemberInfo(
-                    name=name_cell.strip(),
-                    user_id=user.user_id,
-                    username=user.username,
-                    schedule=schedule_cell.strip() if schedule_cell else "Не указано",
-                    position=position_cell.strip() if position_cell else "Специалист",
-                    working_hours=working_hours,
+                # Process members from this division file
+                division_members = await self._process_division_members(
+                    df, head_fullname, date, date_column, header_info, stp_repo
                 )
+                group_members.extend(division_members)
 
-                group_members.append(member)
-
-            # Fetch duty information for each member for the specified date
-            try:
-                duties = await self.duty_parser.get_duties_for_date(
-                    date, division, stp_repo
-                )
-                for member in group_members:
-                    # Check if this member is on duty
-                    for duty in duties:
-                        if self.utils.names_match(member.name, duty.name):
-                            member.duty_info = f"{duty.schedule} {duty.shift_type}"
-                            break
-            except Exception as duty_error:
-                logger.warning(f"Could not fetch duty information: {duty_error}")
-                # Continue without duty info - not critical
+            # Fetch duty information for all members
+            if group_members:
+                for div in divisions_to_check:
+                    try:
+                        duties = await self.duty_parser.get_duties_for_date(
+                            date, div, stp_repo
+                        )
+                        for member in group_members:
+                            # Check if this member is on duty (skip if already has duty info)
+                            if not hasattr(member, "duty_info") or not member.duty_info:
+                                for duty in duties:
+                                    if self.utils.names_match(member.name, duty.name):
+                                        member.duty_info = (
+                                            f"{duty.schedule} {duty.shift_type}"
+                                        )
+                                        break
+                    except Exception as duty_error:
+                        logger.warning(
+                            f"Could not fetch duty information for {div}: {duty_error}"
+                        )
 
             logger.info(
-                f"Found {len(group_members)} members in group for {head_fullname}"
+                f"Found {len(group_members)} total members for head {head_fullname} across divisions"
             )
             return self._sort_members_by_time(group_members)
 
         except Exception as e:
             logger.error(f"Error getting group members for {head_fullname}: {e}")
             return []
+
+    async def _process_division_members(
+        self, df, head_fullname: str, date: datetime, date_column, header_info, stp_repo
+    ) -> List[GroupMemberInfo]:
+        """Process members from a single division file."""
+        division_members = []
+
+        for row_idx in range(header_info["header_row"] + 1, len(df)):
+            name_cell = self.utils.get_cell_value(df, row_idx, 0)
+            schedule_cell = self.utils.get_cell_value(
+                df, row_idx, header_info.get("schedule_col", 1)
+            )
+            position_cell = self.utils.get_cell_value(
+                df, row_idx, header_info.get("position_col", 4)
+            )
+            head_cell = self.utils.get_cell_value(
+                df, row_idx, header_info.get("head_col", 5)
+            )
+
+            # Check if this person belongs to the specified head
+            if not self.utils.names_match(head_fullname, head_cell):
+                continue
+
+            if not self.utils.is_valid_name(name_cell):
+                continue
+
+            # Get working hours for the specific date
+            working_hours = "Не указано"
+            if date_column is not None:
+                hours_cell = self.utils.get_cell_value(df, row_idx, date_column)
+                if hours_cell and hours_cell.strip():
+                    if self.utils.is_time_format(hours_cell):
+                        working_hours = hours_cell
+                    else:
+                        # Non-time value (vacation, day off, etc.) - skip this person
+                        continue
+                else:
+                    # Empty cell means day off - skip this person
+                    continue
+
+            # Get user from database
+            user = None
+            try:
+                user = await stp_repo.employee.get_user(fullname=name_cell.strip())
+            except Exception as e:
+                logger.debug(f"Error getting user {name_cell}: {e}")
+
+            if not user:
+                logger.debug(f"User {name_cell.strip()} not found in DB, skipping")
+                continue
+
+            member = GroupMemberInfo(
+                name=name_cell.strip(),
+                user_id=user.user_id,
+                username=user.username,
+                schedule=schedule_cell.strip() if schedule_cell else "Не указано",
+                position=position_cell.strip() if position_cell else "Специалист",
+                working_hours=working_hours,
+            )
+
+            division_members.append(member)
+
+        return division_members
 
     async def get_group_members_for_user(
         self, user_fullname: str, date: datetime, division: str, stp_repo
