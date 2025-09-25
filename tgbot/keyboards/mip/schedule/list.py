@@ -405,7 +405,7 @@ def schedule_file_detail_kb(file_id: int, page: int) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="↩️ К списку",
+                text="↩️ Назад",
                 callback_data=ScheduleHistoryMenu(menu="history", page=page).pack(),
             ),
             InlineKeyboardButton(
@@ -454,7 +454,7 @@ def local_file_detail_kb(
         ],
         [
             InlineKeyboardButton(
-                text="↩️ К списку",
+                text="↩️ Назад",
                 callback_data=LocalFilesMenu(menu="local", page=page).pack(),
             ),
             InlineKeyboardButton(
@@ -583,7 +583,7 @@ def file_versions_list_kb(
     buttons.append(
         [
             InlineKeyboardButton(
-                text="🔙 К файлу",
+                text="🔙 Назад",
                 callback_data=LocalFilesMenu(menu="local", page=1).pack(),
             ),
             InlineKeyboardButton(

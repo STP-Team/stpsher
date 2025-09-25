@@ -34,7 +34,7 @@ def edit_user_back_kb(user_id: int) -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
-                text="↩️ К пользователю",
+                text="↩️ Назад",
                 callback_data=SearchUserResult(user_id=user_id, context="mip").pack(),
             )
         ]
@@ -76,7 +76,7 @@ def role_selection_kb(user_id: int, current_role: int) -> InlineKeyboardMarkup:
     buttons.append(
         [
             InlineKeyboardButton(
-                text="↩️ К пользователю",
+                text="↩️ Назад",
                 callback_data=SearchUserResult(user_id=user_id, context="mip").pack(),
             )
         ]

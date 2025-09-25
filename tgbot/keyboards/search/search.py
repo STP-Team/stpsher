@@ -59,6 +59,20 @@ class HeadUserCasinoToggle(CallbackData, prefix="head_user_casino"):
     context: str = "head"
 
 
+class ViewUserKPICalculator(CallbackData, prefix="view_kpi_calc"):
+    user_id: int
+    return_to: str = "search"
+    head_id: int = 0
+    context: str = "mip"
+
+
+class ViewUserKPISalary(CallbackData, prefix="view_kpi_salary"):
+    user_id: int
+    return_to: str = "search"
+    head_id: int = 0
+    context: str = "mip"
+
+
 class ScheduleNavigation(CallbackData, prefix="sched_nav"):
     """Callback data для навигации по месяцам в расписании пользователя"""
 
@@ -776,7 +790,7 @@ def user_schedule_with_month_kb(
     buttons.append(
         [
             InlineKeyboardButton(
-                text="↩️ К информации",
+                text="↩️ Назад",
                 callback_data=SearchUserResult(
                     user_id=user_id,
                     return_to=return_to,
@@ -818,11 +832,21 @@ def search_user_kpi_kb(
                 [
                     InlineKeyboardButton(
                         text="🧮 Нормативы",
-                        callback_data="noop",
+                        callback_data=ViewUserKPICalculator(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="💰 Зарплата",
-                        callback_data="noop",
+                        callback_data=ViewUserKPISalary(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
                     ),
                 ],
                 [
@@ -838,12 +862,84 @@ def search_user_kpi_kb(
                 ],
             ]
         )
+    elif current_action == "calculator":
+        buttons.extend(
+            [
+                [
+                    InlineKeyboardButton(
+                        text="🌟 Показатели",
+                        callback_data=ViewUserKPI(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="💰 Зарплата",
+                        callback_data=ViewUserKPISalary(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🔄 Обновить",
+                        callback_data=ViewUserKPICalculator(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ],
+            ]
+        )
+    elif current_action == "salary":
+        buttons.extend(
+            [
+                [
+                    InlineKeyboardButton(
+                        text="🌟 Показатели",
+                        callback_data=ViewUserKPI(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="🧮 Нормативы",
+                        callback_data=ViewUserKPICalculator(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🔄 Обновить",
+                        callback_data=ViewUserKPISalary(
+                            user_id=user_id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ],
+            ]
+        )
 
     # Кнопки навигации
     buttons.append(
         [
             InlineKeyboardButton(
-                text="↩️ К сотруднику",
+                text="↩️ Назад",
                 callback_data=SearchUserResult(
                     user_id=user_id,
                     return_to=return_to,

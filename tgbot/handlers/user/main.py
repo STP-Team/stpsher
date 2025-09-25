@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.group.whois import create_user_info_message
+from tgbot.handlers.user.search.main import user_search_router
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb
 from tgbot.misc.helpers import get_role
 
@@ -15,6 +16,9 @@ logger = logging.getLogger(__name__)
 user_router = Router()
 user_router.message.filter(F.chat.type == "private")
 user_router.callback_query.filter(F.message.chat.type == "private")
+
+# Включаем роутер поиска для пользователей
+user_router.include_router(user_search_router)
 
 
 @user_router.message(CommandStart())

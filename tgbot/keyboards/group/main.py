@@ -462,7 +462,7 @@ def group_member_detail_kb(
         ],
         [
             InlineKeyboardButton(
-                text="↩️ К составу",
+                text="↩️ Назад",
                 callback_data=GroupMembersMenu(
                     group_id=group_id,
                     page=page,

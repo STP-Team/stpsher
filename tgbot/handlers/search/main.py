@@ -24,6 +24,8 @@ from tgbot.keyboards.search.search import (
     SearchFilterToggleMenu,
     SearchUserResult,
     ViewUserKPI,
+    ViewUserKPICalculator,
+    ViewUserKPISalary,
     ViewUserSchedule,
     get_month_name_by_index,
     head_user_status_select_kb,
@@ -605,6 +607,181 @@ async def navigate_user_schedule(
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
+@search_router.callback_query(ViewUserKPICalculator.filter())
+async def view_user_kpi_calculator(
+    callback: CallbackQuery,
+    callback_data: ViewUserKPICalculator,
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
+):
+    """Просмотр калькулятора KPI пользователя (Нормативы)"""
+    from tgbot.services.salary import KPICalculator
+
+    user_id = callback_data.user_id
+    return_to = callback_data.return_to
+    head_id = callback_data.head_id
+    context = callback_data.context
+
+    try:
+        # Получаем пользователя
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Получаем KPI данные пользователя
+        user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+
+        if user_premium is None:
+            message_text = f"""🧮 <b>Калькулятор KPI: {user.fullname}</b>
+
+❌ <b>Данные KPI не найдены</b>
+
+Показатели эффективности для этого сотрудника отсутствуют в системе или не загружены.
+
+<i>Обратись к администратору для проверки данных</i>"""
+        else:
+            # Выполняем расчеты
+            csi_calculation = KPICalculator.calculate_csi_needed(
+                user.division, user_premium.csi, user_premium.csi_normative
+            )
+            flr_calculation = KPICalculator.calculate_flr_needed(
+                user.division, user_premium.flr, user_premium.flr_normative
+            )
+            gok_calculation = KPICalculator.calculate_gok_needed(
+                user.division, user_premium.gok, user_premium.gok_normative
+            )
+            target_calculation = KPICalculator.calculate_target_needed(
+                user_premium.target,
+                user_premium.target_goal_first,
+                user_premium.target_goal_second,
+                user_premium.target_type,
+            )
+
+            message_text = f"""🧮 <b>Калькулятор KPI: {user.fullname}</b>
+
+<b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
+
+📊 <b>Оценка клиента</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(user_premium.csi)} ({SalaryFormatter.format_percentage(user_premium.csi_normative_rate)})
+План: {SalaryFormatter.format_value(user_premium.csi_normative)}
+
+<b>Для премии:</b>
+{csi_calculation}</blockquote>
+
+🔧 <b>FLR</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(user_premium.flr)} ({SalaryFormatter.format_percentage(user_premium.flr_normative_rate)})
+План: {SalaryFormatter.format_value(user_premium.flr_normative)}
+
+<b>Для премии:</b>
+{flr_calculation}</blockquote>
+
+⚖️ <b>ГОК</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(round(user_premium.gok))} ({SalaryFormatter.format_percentage(user_premium.gok_normative_rate)})
+План: {SalaryFormatter.format_value(round(user_premium.gok_normative))}
+
+<b>Для премии:</b>
+{gok_calculation}</blockquote>
+
+🎯 <b>Цель</b>
+<blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(round((user_premium.target_goal_first / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_first else (user_premium.target / user_premium.target_goal_first * 100) if user_premium.target_goal_first and user_premium.target_goal_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((user_premium.target_goal_second / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_second else (user_premium.target / user_premium.target_goal_second * 100) if user_premium.target_goal_second and user_premium.target_goal_second > 0 else 0))})
+План: {SalaryFormatter.format_value(round(user_premium.target_goal_first))} / {SalaryFormatter.format_value(round(user_premium.target_goal_second))}
+
+Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель
+
+<b>Для премии:</b>
+{target_calculation}</blockquote>
+
+<i>Выгружено: {user_premium.updated_at.strftime("%d.%m.%y %H:%M") if user_premium.updated_at else "—"}</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=search_user_kpi_kb(
+                user_id, return_to, head_id, "calculator", context=context
+            ),
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении калькулятора KPI пользователя {user_id}: {e}"
+        )
+        await callback.answer("❌ Ошибка при получении данных", show_alert=True)
+
+
+@search_router.callback_query(ViewUserKPISalary.filter())
+async def view_user_kpi_salary(
+    callback: CallbackQuery,
+    callback_data: ViewUserKPISalary,
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
+):
+    """Просмотр расчета зарплаты пользователя (Зарплата)"""
+    from tgbot.services.salary import SalaryCalculator
+
+    user_id = callback_data.user_id
+    return_to = callback_data.return_to
+    head_id = callback_data.head_id
+    context = callback_data.context
+
+    try:
+        # Получаем пользователя
+        user = await stp_repo.employee.get_user(user_id=user_id)
+        if not user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Получаем KPI данные пользователя
+        user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+
+        if user_premium is None:
+            message_text = f"""💰 <b>Расчет зарплаты: {user.fullname}</b>
+
+❌ <b>Данные KPI не найдены</b>
+
+Показатели эффективности для этого сотрудника отсутствуют в системе или не загружены.
+
+<i>Обратись к администратору для проверки данных</i>"""
+        else:
+            try:
+                salary_result = await SalaryCalculator.calculate_salary(
+                    user=user, premium_data=user_premium
+                )
+
+                # Format the result using centralized formatter
+                message_text = f"""💰 <b>Расчет зарплаты: {user.fullname}</b>
+
+<b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
+
+{SalaryFormatter.format_salary_message(salary_result, user_premium)}"""
+            except Exception as calc_error:
+                message_text = f"""💰 <b>Расчет зарплаты: {user.fullname}</b>
+
+<b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
+
+❌ <b>Ошибка расчета</b>
+
+Произошла ошибка при расчете зарплаты: {calc_error}
+
+<i>Обратись к администратору для проверки данных</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=search_user_kpi_kb(
+                user_id, return_to, head_id, "salary", context=context
+            ),
+            disable_web_page_preview=True,
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении расчета зарплаты пользователя {user_id}: {e}"
+        )
+        await callback.answer("❌ Ошибка при получении данных", show_alert=True)
+
+
 @search_router.callback_query(ViewUserKPI.filter())
 async def view_user_kpi(
     callback: CallbackQuery,
@@ -880,16 +1057,17 @@ async def toggle_head_user_casino(
     return_to = callback_data.return_to
     head_id = callback_data.head_id
     context = callback_data.context
+    viewer = user  # Сохраняем информацию о просматривающем пользователе (голове)
 
     try:
         # Получаем пользователя
-        user = await stp_repo.employee.get_user(user_id=user_id)
-        if not user:
+        target_user = await stp_repo.employee.get_user(user_id=user_id)
+        if not target_user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
         # Проверяем, что руководитель может изменять доступ к казино
-        if user.role not in [1, 3]:
+        if target_user.role not in [1, 3]:
             await callback.answer(
                 "❌ Доступ к казино можно изменять только для специалистов и дежурных",
                 show_alert=True,
@@ -897,9 +1075,9 @@ async def toggle_head_user_casino(
             return
 
         # Переключаем доступ к казино
-        new_casino_status = not user.is_casino_allowed
+        new_casino_status = not target_user.is_casino_allowed
         await stp_repo.employee.update_user(
-            user_id=user.user_id, is_casino_allowed=new_casino_status
+            user_id=target_user.user_id, is_casino_allowed=new_casino_status
         )
 
         status_text = "разрешен" if new_casino_status else "запрещен"
@@ -919,7 +1097,7 @@ async def toggle_head_user_casino(
                 context=context,
             ),
             stp_repo,
-            user,
+            viewer,
         )
 
     except Exception as e:
@@ -1066,24 +1244,25 @@ async def process_role_change(
     """Обработка изменения роли пользователя (только для МИП)"""
     user_id = callback_data.user_id
     new_role = callback_data.role
+    viewer = user  # Сохраняем информацию о просматривающем пользователе (МИП)
 
     try:
         # Получаем данные пользователя
-        user = await stp_repo.employee.get_user(user_id=user_id)
-        if not user:
+        target_user = await stp_repo.employee.get_user(user_id=user_id)
+        if not target_user:
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
         # Проверяем, что роль действительно изменилась
-        if user.role == new_role:
+        if target_user.role == new_role:
             await callback.answer("❌ Пользователь уже имеет эту роль", show_alert=True)
             return
 
         # Получаем названия ролей
         old_role_name = (
-            roles[user.role]["name"]
-            if user.role in roles
-            else f"Неизвестный уровень ({user.role})"
+            roles[target_user.role]["name"]
+            if target_user.role in roles
+            else f"Неизвестный уровень ({target_user.role})"
         )
         new_role_name = (
             roles[new_role]["name"]
@@ -1115,7 +1294,7 @@ async def process_role_change(
 
         # Возвращаемся к информации о пользователе
         user_callback_data = SearchUserResult(user_id=user_id, context="mip")
-        await show_user_details(callback, user_callback_data, stp_repo, user)
+        await show_user_details(callback, user_callback_data, stp_repo, viewer)
 
     except Exception as e:
         logger.error(f"Ошибка при изменении роли пользователя {user_id}: {e}")
