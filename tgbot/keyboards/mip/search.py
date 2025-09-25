@@ -130,7 +130,7 @@ def user_detail_kb(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text="❤️ Группа",
+                    text="❤️ Моя группа",
                     callback_data=HeadGroupMenu(head_id=head_user_id, page=1).pack(),
                 )
             ]

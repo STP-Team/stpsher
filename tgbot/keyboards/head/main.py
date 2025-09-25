@@ -20,7 +20,7 @@ def main_kb(group_link: str) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(
-                text="❤️ Группа",
+                text="❤️ Моя группа",
                 callback_data=MainMenu(menu="group_management").pack(),
             ),
         ],

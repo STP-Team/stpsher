@@ -472,7 +472,7 @@ async def show_head_group(
             group_product_text = f"{group_stats['most_popular_product'][0]} ({group_stats['most_popular_product'][1]}x)"
 
         await callback.message.edit_text(
-            f"""<b>❤️ Группа: {head_name}</b>
+            f"""<b>❤️ Моя группа: {head_name}</b>
 
 <b>Сотрудников:</b> {total_users}
 <b>Общие очки:</b> {group_stats["total_points"]} баллов
