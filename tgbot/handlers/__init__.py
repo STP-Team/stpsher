@@ -12,7 +12,10 @@ from tgbot.handlers.gok.game.products import gok_game_products_router
 from tgbot.handlers.gok.main import gok_router
 from tgbot.handlers.group.admin.admin import group_admin_router
 from tgbot.handlers.group.admin.settings import group_settings_router
+from tgbot.handlers.group.cmds import group_cmds_router
 from tgbot.handlers.group.group_join import chat_member
+from tgbot.handlers.group.main import group_main_router
+from tgbot.handlers.group.management import group_management_router
 from tgbot.handlers.group.user.casino import group_casino_router
 from tgbot.handlers.group.user.main import group_user_router
 from tgbot.handlers.group.whois import whois_router
@@ -112,6 +115,9 @@ routers_list = [
     user_game_history_router,
     user_links_router,
     user_inline_router,
+    group_main_router,
+    group_cmds_router,
+    group_management_router,
     whois_router,
     group_admin_router,
     group_user_router,

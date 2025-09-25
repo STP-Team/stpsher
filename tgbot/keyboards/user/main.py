@@ -25,7 +25,7 @@ def auth_kb() -> InlineKeyboardMarkup:
     return keyboard
 
 
-def main_kb(group_link: str) -> InlineKeyboardMarkup:
+def main_kb() -> InlineKeyboardMarkup:
     """
     Клавиатура главного меню.
 
@@ -47,7 +47,10 @@ def main_kb(group_link: str) -> InlineKeyboardMarkup:
             ),
         ],
         [
-            InlineKeyboardButton(text="👋 Пригласить бота", url=group_link),
+            InlineKeyboardButton(
+                text="👯‍♀️ Группы",
+                callback_data=MainMenu(menu="groups").pack(),
+            ),
         ],
     ]
 

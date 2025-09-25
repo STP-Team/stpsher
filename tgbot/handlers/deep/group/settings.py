@@ -2,13 +2,13 @@ import logging
 
 from aiogram import Router
 from aiogram.filters import CommandObject, CommandStart
-from aiogram.types import CallbackQuery, ChatMember, Message
+from aiogram.types import CallbackQuery, Message
 from aiogram.utils.payload import decode_payload
 
 from infrastructure.database.models.STP.group import Group
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.deep import DeepLinkRegexFilter
-from tgbot.keyboards.group.settings import (
+from tgbot.keyboards.group.main import (
     GroupAccessApplyMenu,
     GroupAccessMenu,
     GroupMemberActionMenu,
@@ -17,11 +17,11 @@ from tgbot.keyboards.group.settings import (
     GroupServiceMessagesApplyMenu,
     GroupServiceMessagesMenu,
     GroupSettingsMenu,
-    group_access_keyboard,
-    group_member_detail_keyboard,
-    group_members_keyboard,
-    group_service_messages_keyboard,
-    group_settings_keyboard,
+    group_access_kb,
+    group_member_detail_kb,
+    group_members_kb,
+    group_service_messages_kb,
+    group_settings_kb,
 )
 from tgbot.misc.dicts import roles
 
@@ -40,35 +40,88 @@ pending_service_messages_changes = {}
 async def handle_settings(
     message: Message, command: CommandObject, stp_repo: MainRequestsRepo
 ):
-    payload = decode_payload(command.args)
-    group_id = payload.split("_", 1)[1]
-
-    member: ChatMember = await message.bot.get_chat_member(
-        chat_id=group_id, user_id=message.from_user.id
+    """Redirect to groups management menu with specific group selected."""
+    from tgbot.handlers.group.management import (
+        check_user_admin_status,
+        get_user_groups,
     )
+    from tgbot.keyboards.group.main import group_management_kb, group_settings_kb
 
-    if member.status in ["administrator", "creator"]:
-        group = await stp_repo.group.get_group(int(group_id))
-        group_info = await message.bot.get_chat(chat_id=group.group_id)
-        group_invite = await message.bot.create_chat_invite_link(
-            chat_id=group.group_id, name="Приглашение через СТПшер"
-        )
+    payload = decode_payload(command.args)
+    group_id = int(payload.split("_", 1)[1])
+    user_id = message.from_user.id
 
-        await message.answer(
-            f"""⚙️ <b>Настройки группы</b>: {group_info.full_name}
+    try:
+        # Check if user is in the group
+        user_groups = await get_user_groups(user_id, stp_repo, message.bot)
+        group_found = any(gid == group_id for gid, _ in user_groups)
+
+        if not group_found:
+            await message.answer(
+                """❌ <b>Группа недоступна</b>
+
+Ты не состоишь в этой группе или она была удалена.
+
+Для доступа к настройкам группы тебе необходимо:
+1. Состоять в группе
+2. Чтобы изменять настройки - иметь права администратора"""
+            )
+            return
+
+        # Get group info
+        group = await stp_repo.group.get_group(group_id)
+        if not group:
+            await message.answer("❌ Группа не найдена в базе данных")
+            return
+
+        # Check admin status
+        is_admin = await check_user_admin_status(user_id, group_id, message.bot)
+
+        chat_info = await message.bot.get_chat(chat_id=group_id)
+        group_name = chat_info.title or f"{group_id}"
+
+        if is_admin:
+            # Show full settings for admin
+            await message.answer(
+                f"""⚙️ <b>Настройки группы</b>: {group_name}
 
 <b>Обозначения</b>
 - 🟢 Опция включена
 - 🔴 Опция выключена
 
-Часть опций содержит в себе детальные настройки, открыть их можно нажав на название опции
+<i>Используй меню для управления функциями бота в группе</i>
 
-<i>Используй меню для управления функциями бота в группе</i>""",
-            reply_markup=group_settings_keyboard(group, group_invite.invite_link),
-        )
-    else:
+💡 <b>Совет:</b> Теперь все настройки групп доступны через основное меню бота в разделе "Группы"!""",
+                reply_markup=group_settings_kb(group, 1),
+            )
+        else:
+            # Show info for regular user
+            await message.answer(
+                f"""📄 <b>Информация о группе</b>: {group_name}
+
+<b>Текущие настройки</b>:
+{"🟢" if group.remove_unemployed else "🔴"} Только сотрудники
+{"🟢" if group.new_user_notify else "🔴"} Приветствие новых участников
+{"🟢" if group.is_casino_allowed else "🔴"} Казино
+
+🛡️ <b>Доступ к группе</b>: {"Настроен" if group.allowed_roles else "Открыт для всех"}
+
+🗑️ <b>Сервисные сообщения</b>: {"Настроено" if hasattr(group, "service_messages") and group.service_messages else "Не настроено"}
+
+❗ <b>Чтобы изменять настройки, получи права администратора в группе</b>
+
+💡 <b>Совет:</b> Все настройки групп теперь доступны через основное меню бота в разделе "Группы"!""",
+                reply_markup=group_management_kb(user_groups, 1),
+            )
+
+    except Exception as e:
+        logger.error(f"Error handling deep link for group {group_id}: {e}")
         await message.answer(
-            "Доступ к настройкам группы есть только у администраторов этой группы"
+            """❌ <b>Ошибка доступа</b>
+
+Произошла ошибка при доступе к настройкам группы.
+
+💡 <b>Попробуй:</b> Открой основное меню бота → "Группы" → "Управление группами" """
         )
 
 
@@ -91,17 +144,14 @@ async def _update_toggle_setting(
     updated_group = await stp_repo.group.update_group(
         group_id=group.group_id, **update_data
     )
-    group_invite = await callback.bot.create_chat_invite_link(
-        chat_id=group.group_id, name="Приглашение через СТПшер"
-    )
 
     if updated_group:
         status = "включено" if new_value else "выключено"
         await callback.answer(f"{success_message} {status}")
 
         await callback.message.edit_reply_markup(
-            reply_markup=group_settings_keyboard(
-                updated_group, group_invite.invite_link
+            reply_markup=group_settings_kb(
+                updated_group, 1
             )
         )
         logger.info(f"Successfully updated group {group.group_id} setting {field_name}")
@@ -171,8 +221,8 @@ async def handle_settings_callback(
 Если опция "Только сотрудники" отключена, и указаны уровни доступа, то:
 - В группе смогут находиться не сотрудники
 - В группу смогут попасть сотрудники только с указанными правами</blockquote>""",
-                reply_markup=group_access_keyboard(
-                    group, pending_role_changes[group.group_id]
+                reply_markup=group_access_kb(
+                    group, pending_role_changes[group.group_id], 1
                 ),
             )
 
@@ -222,7 +272,7 @@ async def handle_settings_callback(
 @username (user_id) - обычные пользователи</blockquote>
 
 <i>Нажми на участника для управления</i>""",
-                reply_markup=group_members_keyboard(
+                reply_markup=group_members_kb(
                     group_id=group.group_id,
                     employees=employees,
                     users=non_employee_users,
@@ -254,28 +304,23 @@ async def handle_settings_callback(
 • <b>Видеозвонки</b> - действия с видеозвонками</blockquote>
 
 <i>Выбери типы сообщений для удаления, затем нажми "Применить"</i>""",
-                reply_markup=group_service_messages_keyboard(
-                    group, pending_service_messages_changes[group.group_id]
+                reply_markup=group_service_messages_kb(
+                    group, pending_service_messages_changes[group.group_id], 1
                 ),
             )
 
         case "back":
             group_info = await callback.bot.get_chat(chat_id=group.group_id)
-            group_invite = await callback.bot.create_chat_invite_link(
-                chat_id=group.group_id, name="Приглашение через СТПшер"
-            )
 
             await callback.message.edit_text(
                 f"""⚙️ <b>Настройки группы</b>: {group_info.full_name}
 
 <b>Обозначения</b>
 - 🟢 Опция включена
-- 🟠 Опция выключена
-
-Часть опций содержит в себе детальные настройки, открыть их можно нажав на название опции
+- 🔴 Опция выключена
 
 <i>Используй меню для управления функциями бота в группе</i>""",
-                reply_markup=group_settings_keyboard(group, group_invite.invite_link),
+                reply_markup=group_settings_kb(group, 1),
             )
 
 
@@ -315,7 +360,7 @@ async def handle_access_callback(
 
     # Update keyboard with pending changes
     await callback.message.edit_reply_markup(
-        reply_markup=group_access_keyboard(group, pending_role_changes[group.group_id])
+        reply_markup=group_access_kb(group, pending_role_changes[group.group_id], 1)
     )
 
 
@@ -347,7 +392,7 @@ async def handle_access_apply_callback(
 
                 # Update keyboard without pending changes
                 await callback.message.edit_reply_markup(
-                    reply_markup=group_access_keyboard(updated_group)
+                    reply_markup=group_access_kb(updated_group, page=1)
                 )
                 logger.info(
                     f"Successfully applied access roles for group {group.group_id}"
@@ -367,7 +412,7 @@ async def handle_access_apply_callback(
 
         # Update keyboard with original roles
         await callback.message.edit_reply_markup(
-            reply_markup=group_access_keyboard(group)
+            reply_markup=group_access_kb(group, page=1)
         )
 
 
@@ -424,7 +469,7 @@ async def handle_members_pagination(
 @username (user_id) - обычные пользователи</blockquote>
 
 <i>Нажми на участника для управления</i>""",
-        reply_markup=group_members_keyboard(
+        reply_markup=group_members_kb(
             group_id=group.group_id,
             employees=employees,
             users=non_employee_users,
@@ -452,7 +497,7 @@ async def handle_member_detail(
         # Get employee data
         employee = await stp_repo.employee.get_user(user_id=callback_data.member_id)
         if employee:
-            from tgbot.keyboards.group.settings import short_name
+            from tgbot.keyboards.group.main import short_name
 
             member_name = short_name(employee.fullname)
             role_info = roles.get(
@@ -490,7 +535,7 @@ async def handle_member_detail(
 {member_info}
 
 <i>Выбери действие для управления участником</i>""",
-        reply_markup=group_member_detail_keyboard(
+        reply_markup=group_member_detail_kb(
             group_id=callback_data.group_id,
             member_id=callback_data.member_id,
             member_type=callback_data.member_type,
@@ -579,7 +624,7 @@ async def handle_member_action(
 @username (user_id) - обычные пользователи</blockquote>
 
 <i>Нажми на участника для управления</i>""",
-                reply_markup=group_members_keyboard(
+                reply_markup=group_members_kb(
                     group_id=group.group_id,
                     employees=employees,
                     users=non_employee_users,
@@ -640,8 +685,8 @@ async def handle_service_messages_callback(
 
     # Update keyboard with pending changes
     await callback.message.edit_reply_markup(
-        reply_markup=group_service_messages_keyboard(
-            group, pending_service_messages_changes[group.group_id]
+        reply_markup=group_service_messages_kb(
+            group, pending_service_messages_changes[group.group_id], 1
         )
     )
 
@@ -674,7 +719,7 @@ async def handle_service_messages_apply_callback(
 
                 # Update keyboard without pending changes
                 await callback.message.edit_reply_markup(
-                    reply_markup=group_service_messages_keyboard(updated_group)
+                    reply_markup=group_service_messages_kb(updated_group, page=1)
                 )
                 logger.info(
                     f"Successfully applied service messages settings for group {group.group_id}"
@@ -696,5 +741,5 @@ async def handle_service_messages_apply_callback(
 
         # Update keyboard with original categories
         await callback.message.edit_reply_markup(
-            reply_markup=group_service_messages_keyboard(group)
+            reply_markup=group_service_messages_kb(group, page=1)
         )

@@ -59,16 +59,6 @@ def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMark
     keyboard = [
         [
             InlineKeyboardButton(
-                text="🟢 Только сотрудники"
-                if group.remove_unemployed
-                else "🔴 Только сотрудники",
-                callback_data=GroupSettingsMenu(
-                    group_id=group.group_id, menu="remove_unemployed"
-                ).pack(),
-            ),
-        ],
-        [
-            InlineKeyboardButton(
                 text="🟢 Приветствие" if group.new_user_notify else "🔴 Приветствие",
                 callback_data=GroupSettingsMenu(
                     group_id=group.group_id, menu="new_user_notify"
