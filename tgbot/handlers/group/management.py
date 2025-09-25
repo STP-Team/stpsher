@@ -181,7 +181,9 @@ async def handle_management_pagination(
 Найдено групп: <b>{len(user_groups)}</b>
 
 <i>Выбери группу для просмотра настроек</i>""",
-        reply_markup=group_management_kb(user_groups, callback_data.page, admin_status=admin_status),
+        reply_markup=group_management_kb(
+            user_groups, callback_data.page, admin_status=admin_status
+        ),
     )
 
     await callback.answer()
@@ -279,7 +281,9 @@ async def handle_back_to_list(
 Найдено групп: <b>{len(user_groups)}</b>
 
 <i>Выбери группу для просмотра настроек</i>""",
-            reply_markup=group_management_kb(user_groups, callback_data.page, admin_status=admin_status),
+            reply_markup=group_management_kb(
+                user_groups, callback_data.page, admin_status=admin_status
+            ),
         )
 
     await callback.answer()
