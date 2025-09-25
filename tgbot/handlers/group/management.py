@@ -23,6 +23,7 @@ from tgbot.keyboards.group.main import (
     group_service_messages_kb,
     group_settings_kb,
 )
+from tgbot.middlewares.GroupsMiddleware import GroupsMiddleware
 from tgbot.misc.dicts import roles
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,9 @@ async def get_user_groups(
                 group_name = chat_info.title or f"{group_id}"
 
                 # Check admin status
-                is_admin = await check_user_admin_status(user_id, group_id, bot)
+                is_admin = await check_user_admin_status(
+                    user_id, group_id, bot, stp_repo
+                )
                 admin_status[group_id] = is_admin
 
                 if is_admin:
@@ -65,7 +68,9 @@ async def get_user_groups(
             except Exception as e:
                 logger.warning(f"Failed to get chat info for group {group_id}: {e}")
                 group_name = f"{group_id}"
-                is_admin = await check_user_admin_status(user_id, group_id, bot)
+                is_admin = await check_user_admin_status(
+                    user_id, group_id, bot, stp_repo
+                )
                 admin_status[group_id] = is_admin
 
                 if is_admin:
@@ -82,13 +87,20 @@ async def get_user_groups(
     return sorted_groups, admin_status
 
 
-async def check_user_admin_status(user_id: int, group_id: int, bot) -> bool:
+async def check_user_admin_status(
+    user_id: int, group_id: int, bot, stp_repo: MainRequestsRepo = None
+) -> bool:
     """Check if user is an admin of the group."""
     try:
         member_status = await bot.get_chat_member(chat_id=group_id, user_id=user_id)
         return member_status.status in ["administrator", "creator"]
     except Exception as e:
-        logger.warning(f"Failed to check admin status for group {group_id}: {e}")
+        # Check if bot was kicked from the group
+        if "bot was kicked from the supergroup chat" in str(e) and stp_repo:
+            logger.warning(f"Bot was kicked from group {group_id}, cleaning up data")
+            await GroupsMiddleware._cleanup_removed_group(group_id, stp_repo)
+        else:
+            logger.warning(f"Failed to check admin status for group {group_id}: {e}")
         return False
 
 
@@ -208,7 +220,9 @@ async def handle_group_selection(
             await callback.answer("❌ Группа не найдена в базе данных")
             return
 
-        is_admin = await check_user_admin_status(user_id, group_id, callback.bot)
+        is_admin = await check_user_admin_status(
+            user_id, group_id, callback.bot, stp_repo
+        )
         chat_info = await callback.bot.get_chat(chat_id=group_id)
         group_name = chat_info.title or f"{group_id}"
 
@@ -245,8 +259,14 @@ async def handle_group_selection(
         await callback.answer()
 
     except Exception as e:
-        logger.error(f"Error handling group selection for group {group_id}: {e}")
-        await callback.answer("❌ Ошибка при обработке запроса")
+        # Check if bot was kicked from the group
+        if "bot was kicked from the supergroup chat" in str(e):
+            logger.warning(f"Bot was kicked from group {group_id}, cleaning up data")
+            await GroupsMiddleware._cleanup_removed_group(group_id, stp_repo)
+            await callback.answer("❌ Бот был исключен из группы, данные очищены")
+        else:
+            logger.error(f"Error handling group selection for group {group_id}: {e}")
+            await callback.answer("❌ Ошибка при обработке запроса")
 
 
 @group_management_router.callback_query(
@@ -302,7 +322,7 @@ async def handle_settings_callback(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -465,7 +485,7 @@ async def handle_access_callback(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -509,7 +529,7 @@ async def handle_access_apply_callback(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -565,7 +585,7 @@ async def handle_service_messages_callback(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -622,7 +642,7 @@ async def handle_service_messages_apply_callback(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -682,7 +702,7 @@ async def handle_members_pagination(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -748,7 +768,7 @@ async def handle_member_detail(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
@@ -823,7 +843,7 @@ async def handle_member_action(
     user_id = callback.from_user.id
     group_id = callback_data.group_id
 
-    if not await check_user_admin_status(user_id, group_id, callback.bot):
+    if not await check_user_admin_status(user_id, group_id, callback.bot, stp_repo):
         await callback.answer("❌ У тебя нет прав администратора в этой группе")
         return
 
