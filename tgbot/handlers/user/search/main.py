@@ -107,8 +107,7 @@ async def show_user_specialists(
     await callback.message.edit_text(
         f"""<b>👤 Специалисты</b>
 
-Найдено специалистов: {total_users}
-Страница {page} из {total_pages}""",
+Найдено специалистов: {total_users}""",
         reply_markup=user_search_results_kb(
             page_users,
             page,
@@ -152,8 +151,7 @@ async def show_user_heads(
     await callback.message.edit_text(
         f"""<b>👑 Руководители</b>
 
-Найдено руководителей: {total_users}
-Страница {page} из {total_pages}""",
+Найдено руководителей: {total_users}""",
         reply_markup=user_search_results_kb(
             page_users,
             page,

@@ -113,7 +113,6 @@ async def game_shop(
         products_list.append("</blockquote>")
 
     message_text = f"""💎 <b>Магазин - {filter_title}</b>
-<i>Страница {page} из {total_pages}</i>
 
 <b>✨ Твой баланс:</b> {user_balance} баллов
 
