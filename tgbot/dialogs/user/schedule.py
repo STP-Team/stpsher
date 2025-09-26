@@ -6,7 +6,14 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.callbacks.common.schedule_functions import prev_month
+from tgbot.dialogs.callbacks.common.schedule_functions import (
+    do_nothing,
+    next_day,
+    next_month,
+    prev_day,
+    prev_month,
+    today,
+)
 from tgbot.dialogs.callbacks.user_functions import (
     switch_to_detailed,
 )
@@ -63,12 +70,12 @@ schedule_my_window = Window(
         Button(
             Format("{month_display}"),
             id="current_month",
-            on_click="do_nothing",
+            on_click=do_nothing,
         ),
         Button(
             Const("▶️"),
             id="next_month",
-            on_click="next_month",
+            on_click=next_month,
         ),
     ),
     Button(
@@ -91,23 +98,23 @@ schedule_duties_window = Window(
         Button(
             Const("◀️"),
             id="prev_day",
-            on_click="test",
+            on_click=prev_day,
         ),
         Button(
             Format("📅 {date_display}"),
             id="current_date",
-            on_click="test",
+            on_click=do_nothing,
         ),
         Button(
             Const("▶️"),
             id="next_day",
-            on_click="test",
+            on_click=next_day,
         ),
     ),
     Button(
         Const("📍 Сегодня"),
         id="today",
-        on_click="test",
+        on_click=today,
         when="is_today == False",
     ),
     Row(
@@ -137,23 +144,23 @@ schedule_heads_window = Window(
         Button(
             Const("◀️"),
             id="prev_day",
-            on_click="test",
+            on_click=prev_day,
         ),
         Button(
             Format("📅 {date_display}"),
             id="current_date",
-            on_click="test",
+            on_click=do_nothing,
         ),
         Button(
             Const("▶️"),
             id="next_day",
-            on_click="test",
+            on_click=next_day,
         ),
     ),
     Button(
         Const("📍 Сегодня"),
         id="today",
-        on_click="test",
+        on_click=today,
         when="is_today == False",
     ),
     Row(
@@ -175,12 +182,12 @@ schedule_my_detailed_window = Window(
         Button(
             Format("{month_display}"),
             id="current_month",
-            on_click="do_nothing",
+            on_click=do_nothing,
         ),
         Button(
             Const("▶️"),
             id="next_month",
-            on_click="next_month",
+            on_click=next_month,
         ),
     ),
     SwitchTo(

@@ -13,9 +13,8 @@ async def schedule_getter(**kwargs):
     base_data = await db_getter(**kwargs)
 
     current_month = schedule_service.get_current_month()
-    current_date = schedule_service.get_current_date()
 
-    return {**base_data, "current_month": current_month, "current_date": current_date}
+    return {**base_data, "current_month": current_month}
 
 
 async def user_schedule_getter(**kwargs):
@@ -33,9 +32,18 @@ async def user_schedule_getter(**kwargs):
 
 
 async def duty_schedule_getter(**kwargs):
-    base_data = await db_getter(**kwargs)
+    base_data = await schedule_getter(**kwargs)
 
-    current_date = base_data.get("current_date")
+    dialog_manager = kwargs.get("dialog_manager")
+    current_date_str = (
+        dialog_manager.dialog_data.get("current_date") if dialog_manager else None
+    )
+
+    if current_date_str:
+        current_date = datetime.datetime.fromisoformat(current_date_str)
+    else:
+        current_date = schedule_service.get_current_date()
+
     user = cast(Employee, cast(object, base_data.get("user")))
     stp_repo = cast(MainRequestsRepo, cast(object, base_data.get("stp_repo")))
 
@@ -50,16 +58,24 @@ async def duty_schedule_getter(**kwargs):
     return {
         **base_data,
         "duties_text": duties_text,
-        "current_date": current_date,
         "date_display": date_display,
         "is_today": is_today,
     }
 
 
 async def head_schedule_getter(**kwargs):
-    base_data = await db_getter(**kwargs)
+    base_data = await schedule_getter(**kwargs)
 
-    current_date = base_data.get("current_date")
+    dialog_manager = kwargs.get("dialog_manager")
+    current_date_str = (
+        dialog_manager.dialog_data.get("current_date") if dialog_manager else None
+    )
+
+    if current_date_str:
+        current_date = datetime.datetime.fromisoformat(current_date_str)
+    else:
+        current_date = schedule_service.get_current_date()
+
     user = cast(Employee, cast(object, base_data.get("user")))
     stp_repo = cast(MainRequestsRepo, cast(object, base_data.get("stp_repo")))
 
@@ -74,7 +90,6 @@ async def head_schedule_getter(**kwargs):
     return {
         **base_data,
         "heads_text": heads_text,
-        "current_date": current_date,
         "date_display": date_display,
         "is_today": is_today,
     }
