@@ -3,7 +3,12 @@ import re
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
@@ -11,6 +16,7 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
+    HeadGroupMenu,
     SelectUserRole,
     edit_user_back_kb,
     role_selection_kb,
@@ -22,6 +28,8 @@ from tgbot.keyboards.search.search import (
     HeadUserStatusSelect,
     ScheduleNavigation,
     SearchFilterToggleMenu,
+    SearchHeadGroupMemberDetail,
+    SearchHeadGroupMembers,
     SearchUserResult,
     ViewUserKPI,
     ViewUserKPICalculator,
@@ -30,6 +38,7 @@ from tgbot.keyboards.search.search import (
     get_month_name_by_index,
     head_user_status_select_kb,
     search_back_kb,
+    search_head_group_kb,
     search_results_kb,
     search_user_kpi_kb,
     toggle_filter,
@@ -414,11 +423,11 @@ async def show_user_details(
 
         # Определяем возможности редактирования в зависимости от контекста и роли
         if context == "mip" and viewer_role >= 6:  # МИП может редактировать всех
-            can_edit = target_user.role in [1, 2, 3]
+            can_edit = target_user.role in [1, 3]  # Исключаем руководителей (роль 2)
         elif (
             context == "head" and viewer_role == 2
-        ):  # Руководитель может редактировать только специалистов и дежурных, но не других руководителей
-            can_edit = target_user.role in [1, 3]
+        ):  # Руководитель может редактировать только специалистов и дежурных
+            can_edit = target_user.role in [1, 3]  # Исключаем руководителей (роль 2)
         else:
             can_edit = False
 
@@ -1399,3 +1408,395 @@ async def process_role_change(
     except Exception as e:
         logger.error(f"Ошибка при изменении роли пользователя {user_id}: {e}")
         await callback.answer("❌ Ошибка при сохранении роли", show_alert=True)
+
+
+@search_router.callback_query(HeadGroupMenu.filter())
+async def show_head_group(
+    callback: CallbackQuery,
+    callback_data: HeadGroupMenu,
+    stp_repo: MainRequestsRepo,
+    user: Employee,
+):
+    """Обработчик просмотра группы руководителя из поиска"""
+    head_id = callback_data.head_id
+
+    # Определяем контекст в зависимости от роли пользователя
+    if user.role == 10:  # root
+        context = "root"
+    elif user.role == 6:  # МИП
+        context = "mip"
+    elif user.role == 2:  # Руководитель
+        context = "head"
+    else:  # Обычные пользователи
+        context = "user"
+
+    try:
+        # Получаем информацию о руководителе
+        head_user = await stp_repo.employee.get_user(user_id=head_id)
+        if not head_user:
+            await callback.answer("❌ Руководитель не найден", show_alert=True)
+            return
+
+        # Получаем всех сотрудников этого руководителя
+        group_members = await stp_repo.employee.get_users_by_head(head_user.fullname)
+
+        # Показываем интерактивную группу с участниками
+        total_members = len(group_members) if group_members else 0
+
+        # Подсчитываем статистику по ролям
+        specialists = (
+            len([m for m in group_members if m.role == 1]) if group_members else 0
+        )
+        duty_members = (
+            len([m for m in group_members if m.role == 3]) if group_members else 0
+        )
+        trainees = (
+            len([m for m in group_members if m.is_trainee]) if group_members else 0
+        )
+        authorized = (
+            len([m for m in group_members if m.user_id]) if group_members else 0
+        )
+
+        message_text = f"""👥 <b>Группа руководителя</b>
+
+<b>Руководитель:</b> <a href='t.me/{head_user.username}'>{head_user.fullname}</a>
+<b>Подразделение:</b> {head_user.position or "Не указано"} {head_user.division or "Не указано"}
+
+👤 <b>Участники группы: {total_members}</b>
+
+<blockquote><b>Обозначения:</b>
+🔒 - не авторизован в боте
+👮 - дежурный
+👶🏻 - стажер
+🔨 - root
+
+<b>Состав группы:</b>
+• Специалисты: {specialists}
+• Дежурные: {duty_members}
+• Стажеры: {trainees}
+• Авторизованы в боте: {authorized}</blockquote>
+
+<i>Нажми на участника для просмотра подробной информации</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=search_head_group_kb(
+                head_id=head_id, members=group_members or [], page=1, context=context
+            ),
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении информации о группе руководителя {head_id}: {e}"
+        )
+        await callback.answer(
+            "❌ Ошибка при получении данных о группе", show_alert=True
+        )
+
+
+@search_router.callback_query(SearchHeadGroupMembers.filter())
+async def search_head_group_pagination(
+    callback: CallbackQuery,
+    callback_data: SearchHeadGroupMembers,
+    stp_repo: MainRequestsRepo,
+):
+    """Обработчик пагинации группы руководителя из поиска"""
+    head_id = callback_data.head_id
+    page = callback_data.page
+    context = callback_data.context
+
+    try:
+        # Получаем информацию о руководителе
+        head_user = await stp_repo.employee.get_user(user_id=head_id)
+        if not head_user:
+            await callback.answer("❌ Руководитель не найден", show_alert=True)
+            return
+
+        # Получаем всех сотрудников этого руководителя
+        group_members = await stp_repo.employee.get_users_by_head(head_user.fullname)
+
+        # Показываем запрошенную страницу группы
+        total_members = len(group_members) if group_members else 0
+
+        # Подсчитываем статистику по ролям
+        specialists = (
+            len([m for m in group_members if m.role == 1]) if group_members else 0
+        )
+        duty_members = (
+            len([m for m in group_members if m.role == 3]) if group_members else 0
+        )
+        trainees = (
+            len([m for m in group_members if m.is_trainee]) if group_members else 0
+        )
+        authorized = (
+            len([m for m in group_members if m.user_id]) if group_members else 0
+        )
+
+        message_text = f"""👥 <b>Группа руководителя</b>
+
+<b>Руководитель:</b> <a href='t.me/{head_user.username}'>{head_user.fullname}</a>
+<b>Подразделение:</b> {head_user.position or "Не указано"} {head_user.division or "Не указано"}
+
+👤 <b>Участники группы: {total_members}</b>
+
+<blockquote><b>Обозначения:</b>
+🔒 - не авторизован в боте
+👮 - дежурный
+👶🏻 - стажер
+🔨 - root
+
+<b>Состав группы:</b>
+• Специалисты: {specialists}
+• Дежурные: {duty_members}
+• Стажеры: {trainees}
+• Авторизованы в боте: {authorized}</blockquote>
+
+<i>Нажми на участника для просмотра подробной информации</i>"""
+
+        await callback.message.edit_text(
+            message_text,
+            reply_markup=search_head_group_kb(
+                head_id=head_id, members=group_members or [], page=page, context=context
+            ),
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при пагинации группы руководителя {head_id}: {e}")
+        await callback.answer(
+            "❌ Ошибка при получении данных о группе", show_alert=True
+        )
+
+
+@search_router.callback_query(SearchHeadGroupMemberDetail.filter())
+async def search_head_group_member_detail(
+    callback: CallbackQuery,
+    callback_data: SearchHeadGroupMemberDetail,
+    stp_repo: MainRequestsRepo,
+    user: Employee,
+):
+    """Обработчик просмотра участника группы руководителя из поиска"""
+    head_id = callback_data.head_id
+    member_id = callback_data.member_id
+    page = callback_data.page
+    context = callback_data.context
+    viewer_role = user.role  # Роль пользователя, который смотрит информацию
+
+    try:
+        # Получаем участника группы
+        member = await stp_repo.employee.get_user(user_id=member_id)
+        if not member:
+            # Попробуем найти по main_id
+            member = await stp_repo.employee.get_user(main_id=member_id)
+            if not member:
+                await callback.answer("❌ Участник не найден", show_alert=True)
+                return
+
+        # Получаем руководителя для контекста
+        user_head = (
+            await stp_repo.employee.get_user(fullname=member.head)
+            if member.head
+            else None
+        )
+
+        # Получаем статистику пользователя (только для роли 2 и выше)
+        stats = None
+        if viewer_role >= 2:
+            stats = await SearchService.get_user_statistics(member_id, stp_repo)
+
+        # Формирование информации о пользователе в зависимости от роли смотрящего
+        user_info = SearchService.format_user_info_role_based(
+            member, user_head, stats, viewer_role
+        )
+
+        # Дополнительная информация для руководителей (только для роли 2 и выше)
+        if member.role == 2 and viewer_role >= 2:  # Руководитель
+            group_stats = await SearchService.get_group_statistics(
+                member.fullname, stp_repo
+            )
+            user_info += SearchService.format_head_group_info(group_stats)
+
+        # Определяем возможности редактирования в зависимости от контекста и роли
+        if context == "mip" and viewer_role >= 6:  # МИП может редактировать всех
+            can_edit = member.role in [1, 3]  # Исключаем руководителей (роль 2)
+        elif (
+            context == "head" and viewer_role == 2
+        ):  # Руководитель может редактировать только специалистов и дежурных
+            can_edit = member.role in [1, 3]  # Исключаем руководителей (роль 2)
+        else:
+            can_edit = False
+
+        is_head = member.role == 2
+        head_user_id = member.user_id if is_head else 0
+
+        # Создаем специальную клавиатуру для участника группы из поиска
+        buttons = []
+
+        # Для ролей 1 и 3 показываем только базовые кнопки навигации
+        if viewer_role in [1, 3]:
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="↩️ Назад",
+                        callback_data=SearchHeadGroupMembers(
+                            head_id=head_id, page=page, context=context
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="🏠 Домой",
+                        callback_data=MainMenu(menu="main").pack(),
+                    ),
+                ]
+            )
+        elif viewer_role == 2:
+            # Основные кнопки (расписание и KPI) для руководителей
+            action_buttons = [
+                InlineKeyboardButton(
+                    text="📅 Расписание",
+                    callback_data=ViewUserSchedule(
+                        user_id=member.user_id or member.id,
+                        return_to="search",
+                        head_id=head_id,
+                        context=context,
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🌟 KPI",
+                    callback_data=ViewUserKPI(
+                        user_id=member.user_id or member.id,
+                        return_to="search",
+                        head_id=head_id,
+                        context=context,
+                    ).pack(),
+                ),
+            ]
+            buttons.append(action_buttons)
+
+            # Кнопки управления (казино и статус) для руководителей
+            if can_edit:
+                buttons.append(
+                    [
+                        InlineKeyboardButton(
+                            text="🟢 Казино"
+                            if member.is_casino_allowed
+                            else "🔴 Казино",
+                            callback_data=HeadUserCasinoToggle(
+                                user_id=member.user_id or member.id,
+                                return_to="search",
+                                head_id=head_id,
+                                context=context,
+                            ).pack(),
+                        ),
+                    ]
+                )
+                buttons.append(
+                    [
+                        InlineKeyboardButton(
+                            text="⚙️ Изменить статус",
+                            callback_data=HeadUserStatusSelect(
+                                user_id=member.user_id or member.id,
+                                return_to="search",
+                                head_id=head_id,
+                                context=context,
+                            ).pack(),
+                        )
+                    ]
+                )
+
+            # Кнопки навигации для руководителей
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="↩️ Назад",
+                        callback_data=SearchHeadGroupMembers(
+                            head_id=head_id, page=page, context=context
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="🏠 Домой",
+                        callback_data=MainMenu(menu="main").pack(),
+                    ),
+                ]
+            )
+        else:
+            # Для остальных ролей (МИП и выше) показываем полную функциональность
+            action_buttons = [
+                InlineKeyboardButton(
+                    text="📅 Расписание",
+                    callback_data=ViewUserSchedule(
+                        user_id=member.user_id or member.id,
+                        return_to="search",
+                        head_id=head_id,
+                        context=context,
+                    ).pack(),
+                ),
+                InlineKeyboardButton(
+                    text="🌟 KPI",
+                    callback_data=ViewUserKPI(
+                        user_id=member.user_id or member.id,
+                        return_to="search",
+                        head_id=head_id,
+                        context=context,
+                    ).pack(),
+                ),
+            ]
+            buttons.append(action_buttons)
+
+            # Кнопки редактирования для МИП
+            if can_edit and context == "mip":
+                from tgbot.keyboards.mip.search import EditUserMenu
+
+                edit_buttons = [
+                    InlineKeyboardButton(
+                        text="✏️ ФИО",
+                        callback_data=EditUserMenu(
+                            user_id=member.user_id, action="edit_fullname"
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="🛡️ Роль",
+                        callback_data=EditUserMenu(
+                            user_id=member.user_id, action="edit_role"
+                        ).pack(),
+                    ),
+                ]
+                buttons.append(edit_buttons)
+
+            # Кнопка группы для руководителей
+            if is_head and head_user_id:
+                buttons.append(
+                    [
+                        InlineKeyboardButton(
+                            text="👥 Группа",
+                            callback_data=HeadGroupMenu(head_id=head_user_id).pack(),
+                        )
+                    ]
+                )
+
+            # Кнопки навигации
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="↩️ Назад",
+                        callback_data=SearchHeadGroupMembers(
+                            head_id=head_id, page=page, context=context
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="🏠 Домой",
+                        callback_data=MainMenu(
+                            menu="search" if context == "mip" else "main"
+                        ).pack(),
+                    ),
+                ]
+            )
+
+        await callback.message.edit_text(
+            user_info,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка при получении информации об участнике группы {member_id}: {e}"
+        )
+        await callback.answer("❌ Ошибка при получении данных", show_alert=True)
