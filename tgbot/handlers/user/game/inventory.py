@@ -631,8 +631,9 @@ async def cancel_activation_handler(
             current_duty_user = await stp_repo.employee.get_user(
                 user_id=current_duty.user_id
             )
+            bot_info = await callback.bot.get_me()
             await send_cancel_product_email(
-                user, user_head, current_duty_user, product_info, user_product
+                user, user_head, current_duty_user, product_info, user_product, bot_username=bot_info.username
             )
 
             logger.info(
