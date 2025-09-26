@@ -630,7 +630,15 @@ async def view_user_kpi_calculator(
             return
 
         # Получаем KPI данные пользователя
-        user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+        # Для руководителей (роль 2) используем head_premium, для остальных - spec_premium
+        if user.role == 2:
+            user_premium = await kpi_repo.head_premium.get_premium(
+                fullname=user.fullname
+            )
+        else:
+            user_premium = await kpi_repo.spec_premium.get_premium(
+                fullname=user.fullname
+            )
 
         if user_premium is None:
             message_text = f"""🧮 <b>Калькулятор KPI: {user.fullname}</b>
@@ -641,24 +649,74 @@ async def view_user_kpi_calculator(
 
 <i>Обратись к администратору для проверки данных</i>"""
         else:
-            # Выполняем расчеты
-            csi_calculation = KPICalculator.calculate_csi_needed(
-                user.division, user_premium.csi, user_premium.csi_normative
-            )
-            flr_calculation = KPICalculator.calculate_flr_needed(
-                user.division, user_premium.flr, user_premium.flr_normative
-            )
-            gok_calculation = KPICalculator.calculate_gok_needed(
-                user.division, user_premium.gok, user_premium.gok_normative
-            )
-            target_calculation = KPICalculator.calculate_target_needed(
-                user_premium.target,
-                user_premium.target_goal_first,
-                user_premium.target_goal_second,
-                user_premium.target_type,
-            )
+            if user.role == 2:  # Руководитель
+                # Выполняем расчеты для руководителей
+                flr_calculation = KPICalculator.calculate_flr_needed(
+                    user.division,
+                    user_premium.flr,
+                    user_premium.flr_normative,
+                    is_head=True,
+                )
+                gok_calculation = KPICalculator.calculate_gok_needed(
+                    user.division,
+                    user_premium.gok,
+                    user_premium.gok_normative,
+                    is_head=True,
+                )
+                target_calculation = KPICalculator.calculate_target_needed(
+                    user_premium.target,
+                    user_premium.target_goal_first,
+                    user_premium.target_goal_second,
+                    user_premium.target_type,
+                    is_head=True,
+                )
 
-            message_text = f"""🧮 <b>Калькулятор KPI: {user.fullname}</b>
+                message_text = f"""🧮 <b>Калькулятор KPI: {user.fullname}</b>
+
+<b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
+
+🔧 <b>FLR</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(user_premium.flr)} ({SalaryFormatter.format_percentage(user_premium.flr_normative_rate)})
+План: {SalaryFormatter.format_value(user_premium.flr_normative)}
+
+<b>Для премии:</b>
+{flr_calculation}</blockquote>
+
+⚖️ <b>ГОК</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(round(user_premium.gok))} ({SalaryFormatter.format_percentage(user_premium.gok_normative_rate)})
+План: {SalaryFormatter.format_value(round(user_premium.gok_normative))}
+
+<b>Для премии:</b>
+{gok_calculation}</blockquote>
+
+🎯 <b>Цель</b>
+<blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(user_premium.target_result_first)} / {SalaryFormatter.format_percentage(user_premium.target_result_second)})
+План: {SalaryFormatter.format_value(round(user_premium.target_goal_first))} / {SalaryFormatter.format_value(round(user_premium.target_goal_second))}
+
+<b>Для премии:</b>
+{target_calculation}</blockquote>
+
+<i>Данные от: {user_premium.updated_at.strftime("%d.%m.%y %H:%M") if user_premium.updated_at else "—"}</i>"""
+            else:  # Специалист
+                # Выполняем расчеты для специалистов
+                csi_calculation = KPICalculator.calculate_csi_needed(
+                    user.division, user_premium.csi, user_premium.csi_normative
+                )
+                flr_calculation = KPICalculator.calculate_flr_needed(
+                    user.division, user_premium.flr, user_premium.flr_normative
+                )
+                gok_calculation = KPICalculator.calculate_gok_needed(
+                    user.division, user_premium.gok, user_premium.gok_normative
+                )
+                target_calculation = KPICalculator.calculate_target_needed(
+                    user_premium.target,
+                    user_premium.target_goal_first,
+                    user_premium.target_goal_second,
+                    user_premium.target_type,
+                )
+
+                message_text = f"""🧮 <b>Калькулятор KPI: {user.fullname}</b>
 
 <b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
 <b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
@@ -732,7 +790,15 @@ async def view_user_kpi_salary(
             return
 
         # Получаем KPI данные пользователя
-        user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+        # Для руководителей (роль 2) используем head_premium, для остальных - spec_premium
+        if user.role == 2:
+            user_premium = await kpi_repo.head_premium.get_premium(
+                fullname=user.fullname
+            )
+        else:
+            user_premium = await kpi_repo.spec_premium.get_premium(
+                fullname=user.fullname
+            )
 
         if user_premium is None:
             message_text = f"""💰 <b>Расчет зарплаты: {user.fullname}</b>
@@ -804,7 +870,15 @@ async def view_user_kpi(
 
         # Получаем KPI данные пользователя
         try:
-            premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+            # Для руководителей (роль 2) используем head_premium, для остальных - spec_premium
+            if user.role == 2:
+                premium = await kpi_repo.head_premium.get_premium(
+                    fullname=user.fullname
+                )
+            else:
+                premium = await kpi_repo.spec_premium.get_premium(
+                    fullname=user.fullname
+                )
 
             if premium is None:
                 message_text = f"""📊 <b>KPI: {user.fullname}</b>
@@ -824,7 +898,33 @@ async def view_user_kpi(
                 return
 
             # Формируем сообщение с основными показателями
-            message_text = f"""🌟 <b>Показатели</b>
+            if user.role == 2:  # Руководитель
+                message_text = f"""🌟 <b>Показатели</b>
+
+<b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
+<b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
+
+🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}
+План: {SalaryFormatter.format_value(premium.flr_normative)}</blockquote>
+
+⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}
+План: {SalaryFormatter.format_value(premium.gok_normative)}</blockquote>
+
+🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
+<blockquote>Тип: {premium.target_type or "—"}
+Факт: {SalaryFormatter.format_value(premium.target)}
+План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+
+💰 <b>Итого:</b>
+<b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
+
+{"📈 Всего чатов: " + SalaryFormatter.format_value(premium.contacts_count) if user.division == "НЦК" else "📈 Всего звонков: " + SalaryFormatter.format_value(premium.contacts_count)}
+
+<i>Выгружено: {premium.updated_at.strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>"""
+            else:  # Специалист
+                message_text = f"""🌟 <b>Показатели</b>
 
 <b>ФИО:</b> <a href="https://t.me/{user.username}">{user.fullname}</a>
 <b>Подразделение:</b> {user.position or "Не указано"} {user.division or "Не указано"}
