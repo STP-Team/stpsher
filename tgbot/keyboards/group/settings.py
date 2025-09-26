@@ -389,36 +389,6 @@ def group_members_keyboard(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def group_member_detail_keyboard(
-    group_id: int, member_id: int, member_type: str, member_name: str, page: int = 1
-) -> InlineKeyboardMarkup:
-    """
-    Keyboard for member detail view with ban option.
-    """
-    buttons = [
-        [
-            InlineKeyboardButton(
-                text="🚫 Забанить участника",
-                callback_data=GroupMemberActionMenu(
-                    group_id=group_id,
-                    member_id=member_id,
-                    action="ban",
-                    member_type=member_type,
-                    page=page,
-                ).pack(),
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text="↩️ Назад",
-                callback_data=GroupMembersMenu(group_id=group_id, page=page).pack(),
-            )
-        ],
-    ]
-
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
 def group_service_messages_keyboard(
     group: Group, pending_categories: list = None
 ) -> InlineKeyboardMarkup:

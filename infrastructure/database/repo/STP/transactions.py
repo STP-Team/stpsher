@@ -47,6 +47,7 @@ class TransactionRepo(BaseRepo):
             source_id: Идентификатор достижения или предмета (опционально)
             comment: Комментарий (опционально)
             created_by: ID администратора, создавшего транзакцию (опционально)
+            kpi_extracted_at: Дата выгрузки KPI
 
         Returns:
             Объект Transaction или None в случае ошибки

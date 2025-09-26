@@ -142,15 +142,12 @@ class SearchService:
             }
 
     @staticmethod
-    def format_user_info_base(
-        user: Employee, user_head: Employee = None, stats: dict = None
-    ) -> str:
+    def format_user_info_base(user: Employee, user_head: Employee = None) -> str:
         """
         Формирует базовую информацию о пользователе
 
         :param user: Сотрудник
         :param user_head: Руководитель (опционально)
-        :param stats: Статистика игрока (опционально)
         :return: Отформатированная строка с информацией
         """
         # Формирование основной информации о пользователе
@@ -175,7 +172,6 @@ class SearchService:
     def format_user_info_role_based(
         user: Employee,
         user_head: Employee = None,
-        stats: dict = None,
         viewer_role: int = 1,
     ) -> str:
         """
@@ -207,12 +203,12 @@ class SearchService:
 
         # Для роли 2 (руководители) показываем расширенную информацию
         elif viewer_role == 2:
-            user_info = SearchService.format_user_info_base(user, user_head, stats)
+            user_info = SearchService.format_user_info_base(user, user_head)
             return user_info
 
         # Для остальных ролей (МИП и выше) показываем полную информацию
         else:
-            user_info = SearchService.format_user_info_base(user, user_head, stats)
+            user_info = SearchService.format_user_info_base(user, user_head)
             return user_info
 
     @staticmethod

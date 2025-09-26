@@ -255,7 +255,7 @@ class GroupMemberRepo(BaseRepo):
                 return True
 
             # Если заглушен временно, проверяем время
-            current_time = datetime.utcnow()
+            current_time = datetime.now()
             if current_time >= unmute_at:
                 # Время мьюта истекло, автоматически размучиваем
                 await self.unmute_member(group_id, member_id)

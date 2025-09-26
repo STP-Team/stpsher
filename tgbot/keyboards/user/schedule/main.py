@@ -223,13 +223,12 @@ def get_month_index(month: str) -> int:
         return 0
 
 
-def get_next_month(current_month: str, available_months: List[str]) -> str:
+def get_next_month(current_month: str) -> str:
     """
     Получает следующий месяц (логически следующий, не зависит от доступности в файлах)
 
     Args:
         current_month: Текущий месяц
-        available_months: Список доступных месяцев (игнорируется для корректной навигации)
 
     Returns:
         Следующий месяц
@@ -247,13 +246,12 @@ def get_next_month(current_month: str, available_months: List[str]) -> str:
         return MONTHS_RU[next_month_index]
 
 
-def get_prev_month(current_month: str, available_months: List[str]) -> str:
+def get_prev_month(current_month: str) -> str:
     """
     Получает предыдущий месяц (логически предыдущий, не зависит от доступности в файлах)
 
     Args:
         current_month: Текущий месяц
-        available_months: Список доступных месяцев (игнорируется для корректной навигации)
 
     Returns:
         Предыдущий месяц
@@ -284,31 +282,23 @@ def schedule_with_month_kb(
     Returns:
         Объект встроенной клавиатуры
     """
-    available_months = get_available_months()
     current_month = current_month.lower()
 
     # Получаем предыдущий и следующий месяцы
-    prev_month = get_prev_month(current_month, available_months)
-    next_month = get_next_month(current_month, available_months)
+    prev_month = get_prev_month(current_month)
+    next_month = get_next_month(current_month)
 
     # Эмодзи для текущего месяца
     month_emoji = MONTH_EMOJIS.get(current_month, "📅")
 
     # Создаем ряд навигации по месяцам
-    nav_row = []
-
-    # Кнопка "Назад" (всегда показываем для навигации)
-    nav_row.append(
+    nav_row = [
         InlineKeyboardButton(
             text="◀️",
             callback_data=MonthNavigation(
                 action="prev", current_month=prev_month, schedule_type=schedule_type
             ).pack(),
-        )
-    )
-
-    # Кнопка текущего месяца (всегда присутствует)
-    nav_row.append(
+        ),
         InlineKeyboardButton(
             text=f"{month_emoji} {current_month.capitalize()}",
             callback_data=MonthNavigation(
@@ -316,18 +306,20 @@ def schedule_with_month_kb(
                 current_month=current_month,
                 schedule_type=schedule_type,
             ).pack(),
-        )
-    )
-
-    # Кнопка "Вперед" (всегда показываем для навигации)
-    nav_row.append(
+        ),
         InlineKeyboardButton(
             text="▶️",
             callback_data=MonthNavigation(
                 action="next", current_month=next_month, schedule_type=schedule_type
             ).pack(),
-        )
-    )
+        ),
+    ]
+
+    # Кнопка "Назад" (всегда показываем для навигации)
+
+    # Кнопка текущего месяца (всегда присутствует)
+
+    # Кнопка "Вперед" (всегда показываем для навигации)
 
     buttons = [
         nav_row,  # Ряд навигации по месяцам
@@ -359,12 +351,11 @@ def create_detailed_schedule_keyboard(current_month: str, schedule_type: str):
     """Создает клавиатуру для детального режима расписания"""
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-    available_months = get_available_months()
     current_month_lower = current_month.lower()
 
     # Получаем предыдущий и следующий месяцы
-    prev_month = get_prev_month(current_month_lower, available_months)
-    next_month = get_next_month(current_month_lower, available_months)
+    prev_month = get_prev_month(current_month_lower)
+    next_month = get_next_month(current_month_lower)
 
     # Эмодзи для текущего месяца
     month_emoji = MONTH_EMOJIS.get(current_month_lower, "📅")
@@ -372,20 +363,13 @@ def create_detailed_schedule_keyboard(current_month: str, schedule_type: str):
     buttons = []
 
     # Навигация по месяцам (только если есть доступные месяцы)
-    nav_row = []
-
-    # Кнопка "Назад" (всегда показываем для навигации)
-    nav_row.append(
+    nav_row = [
         InlineKeyboardButton(
             text="◀️",
             callback_data=MonthNavigation(
                 action="prev", current_month=prev_month, schedule_type=schedule_type
             ).pack(),
-        )
-    )
-
-    # Текущий месяц
-    nav_row.append(
+        ),
         InlineKeyboardButton(
             text=f"{month_emoji} {current_month.capitalize()}",
             callback_data=MonthNavigation(
@@ -393,18 +377,20 @@ def create_detailed_schedule_keyboard(current_month: str, schedule_type: str):
                 current_month=current_month_lower,
                 schedule_type=schedule_type,
             ).pack(),
-        )
-    )
-
-    # Кнопка "Вперед" (всегда показываем для навигации)
-    nav_row.append(
+        ),
         InlineKeyboardButton(
             text="▶️",
             callback_data=MonthNavigation(
                 action="next", current_month=next_month, schedule_type=schedule_type
             ).pack(),
-        )
-    )
+        ),
+    ]
+
+    # Кнопка "Назад" (всегда показываем для навигации)
+
+    # Текущий месяц
+
+    # Кнопка "Вперед" (всегда показываем для навигации)
 
     buttons.append(nav_row)
 

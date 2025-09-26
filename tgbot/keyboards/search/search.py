@@ -272,6 +272,7 @@ def search_results_kb(
     :param search_type: Тип поиска
     :param context: Контекст использования (mip, head)
     :param back_callback: Callback для кнопки "Назад"
+    :param filters: Фильтры для клавиатуры
     :return: Объект встроенной клавиатуры
     """
     from tgbot.keyboards.group.main import short_name

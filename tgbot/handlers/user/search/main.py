@@ -284,7 +284,6 @@ async def show_user_search_details(
         return
 
     user_id = callback_data.user_id
-    return_to = callback_data.return_to
 
     try:
         target_user = await stp_repo.employee.get_user(user_id=user_id)
@@ -300,12 +299,12 @@ async def show_user_search_details(
 
         # Базовая информация о пользователе (без статистики для обычных пользователей)
         user_info = SearchService.format_user_info_role_based(
-            target_user, user_head, None, user.role
+            target_user, user_head, user.role
         )
 
         await callback.message.edit_text(
             user_info,
-            reply_markup=user_user_detail_kb(target_user, return_to),
+            reply_markup=user_user_detail_kb(),
         )
 
     except Exception as e:

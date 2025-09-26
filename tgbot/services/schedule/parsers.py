@@ -1533,7 +1533,7 @@ class GroupScheduleParser(BaseExcelParser):
 
                 # Process members from this division file
                 division_members = await self._process_division_members(
-                    df, head_fullname, date, date_column, header_info, stp_repo
+                    df, head_fullname, date_column, header_info, stp_repo
                 )
                 group_members.extend(division_members)
 
@@ -1568,7 +1568,7 @@ class GroupScheduleParser(BaseExcelParser):
             return []
 
     async def _process_division_members(
-        self, df, head_fullname: str, date: datetime, date_column, header_info, stp_repo
+        self, df, head_fullname: str, date_column, header_info, stp_repo
     ) -> List[GroupMemberInfo]:
         """Process members from a single division file."""
         division_members = []

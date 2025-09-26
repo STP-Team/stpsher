@@ -148,8 +148,6 @@ class InlineSearchFilter:
     ) -> List[Employee]:
         """Поиск пользователей с применением фильтров"""
         try:
-            users = []
-
             # Приоритетный поиск по explicit фильтрам
             if filters["user_id"] is not None:
                 user = await stp_repo.employee.get_user(user_id=filters["user_id"])

@@ -212,21 +212,13 @@ def user_search_back_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def user_user_detail_kb(
-    user: Employee,
-    return_to: str = "search",
-) -> InlineKeyboardMarkup:
+def user_user_detail_kb() -> InlineKeyboardMarkup:
     """
     Клавиатура для просмотра пользователя обычными пользователями (без кнопок редактирования)
 
-    :param user: Объект пользователя
-    :param return_to: Куда возвращаться
     :return: Объект встроенной клавиатуры
     """
-    buttons = []
-
-    # Только кнопки навигации - никаких кнопок редактирования для ролей 1 и 3
-    buttons.append(
+    buttons = [
         [
             InlineKeyboardButton(
                 text="↩️ Назад", callback_data=MainMenu(menu="search").pack()
@@ -235,6 +227,6 @@ def user_user_detail_kb(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
             ),
         ]
-    )
+    ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

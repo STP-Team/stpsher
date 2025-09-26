@@ -404,14 +404,9 @@ async def show_user_details(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
-        # Получаем статистику пользователя (только для роли 2 и выше)
-        stats = None
-        if viewer_role >= 2:
-            stats = await SearchService.get_user_statistics(user_id, stp_repo)
-
         # Формирование информации о пользователе в зависимости от роли смотрящего
         user_info = SearchService.format_user_info_role_based(
-            target_user, user_head, stats, viewer_role
+            target_user, user_head, viewer_role
         )
 
         # Дополнительная информация для руководителей (только для роли 2 и выше)
@@ -1598,14 +1593,9 @@ async def search_head_group_member_detail(
             else None
         )
 
-        # Получаем статистику пользователя (только для роли 2 и выше)
-        stats = None
-        if viewer_role >= 2:
-            stats = await SearchService.get_user_statistics(member_id, stp_repo)
-
         # Формирование информации о пользователе в зависимости от роли смотрящего
         user_info = SearchService.format_user_info_role_based(
-            member, user_head, stats, viewer_role
+            member, user_head, viewer_role
         )
 
         # Дополнительная информация для руководителей (только для роли 2 и выше)

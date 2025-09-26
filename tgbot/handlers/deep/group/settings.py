@@ -488,9 +488,6 @@ async def handle_member_detail(
         await callback.answer("Не удалось найти группу в базе :(")
         return
 
-    member_name = ""
-    member_info = ""
-
     if callback_data.member_type == "employee":
         # Get employee data
         employee = await stp_repo.employee.get_user(user_id=callback_data.member_id)

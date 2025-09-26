@@ -388,7 +388,7 @@ def group_members_kb(
     current_page: int = 1,
     list_page: int = 1,
     members_per_page: int = 8,
-) -> InlineKeyboardMarkup | None:
+) -> InlineKeyboardMarkup:
     """Group members management keyboard."""
     buttons = []
 
@@ -436,6 +436,110 @@ def group_members_kb(
         )
         return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+    # Implement pagination
+    total_members = len(all_members)
+    total_pages = max(1, (total_members + members_per_page - 1) // members_per_page)
+    start_index = (current_page - 1) * members_per_page
+    end_index = min(start_index + members_per_page, total_members)
+
+    page_members = all_members[start_index:end_index]
+
+    # Add member buttons in pairs
+    for i in range(0, len(page_members), 2):
+        row = []
+
+        member = page_members[i]
+        role_emoji = (
+            roles.get(member["role"], {}).get("emoji", "👤") if member["role"] else "👤"
+        )
+        button_text = f"{role_emoji} {member['name']}"
+
+        row.append(
+            InlineKeyboardButton(
+                text=button_text,
+                callback_data=GroupMemberDetailMenu(
+                    group_id=group_id,
+                    member_id=member["id"],
+                    member_type=member["type"],
+                    page=current_page,
+                    list_page=list_page,
+                ).pack(),
+            )
+        )
+
+        if i + 1 < len(page_members):
+            member = page_members[i + 1]
+            role_emoji = (
+                roles.get(member["role"], {}).get("emoji", "👤")
+                if member["role"]
+                else "👤"
+            )
+            button_text = f"{role_emoji} {member['name']}"
+
+            row.append(
+                InlineKeyboardButton(
+                    text=button_text,
+                    callback_data=GroupMemberDetailMenu(
+                        group_id=group_id,
+                        member_id=member["id"],
+                        member_type=member["type"],
+                        page=current_page,
+                        list_page=list_page,
+                    ).pack(),
+                )
+            )
+
+        buttons.append(row)
+
+    # Add pagination controls if needed
+    if total_pages > 1:
+        pagination_row = []
+        if current_page > 1:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="◀️",
+                    callback_data=GroupMembersMenu(
+                        group_id=group_id,
+                        page=current_page - 1,
+                        list_page=list_page,
+                    ).pack(),
+                )
+            )
+
+        pagination_row.append(
+            InlineKeyboardButton(
+                text=f"{current_page}/{total_pages}", callback_data="noop"
+            )
+        )
+
+        if current_page < total_pages:
+            pagination_row.append(
+                InlineKeyboardButton(
+                    text="▶️",
+                    callback_data=GroupMembersMenu(
+                        group_id=group_id,
+                        page=current_page + 1,
+                        list_page=list_page,
+                    ).pack(),
+                )
+            )
+
+        buttons.append(pagination_row)
+
+    # Back button
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="↩️ Назад",
+                callback_data=GroupSettingsMenu(
+                    group_id=group_id, menu="back", page=list_page
+                ).pack(),
+            )
+        ]
+    )
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 
 def group_member_detail_kb(
     group_id: int,
@@ -449,11 +553,24 @@ def group_member_detail_kb(
     buttons = [
         [
             InlineKeyboardButton(
-                text="🚫 Забанить",
+                text=f"🚫 Забанить {member_name}",
                 callback_data=GroupMemberActionMenu(
                     group_id=group_id,
                     member_id=member_id,
                     action="ban",
+                    member_type=member_type,
+                    page=page,
+                    list_page=list_page,
+                ).pack(),
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=f"👢 Исключить {member_name}",
+                callback_data=GroupMemberActionMenu(
+                    group_id=group_id,
+                    member_id=member_id,
+                    action="kick",
                     member_type=member_type,
                     page=page,
                     list_page=list_page,
