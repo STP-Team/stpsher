@@ -30,6 +30,9 @@ services:
     volumes:
       - cache:/data
 
+    networks:
+      - stp_bots
+
 volumes:
   cache: { }
 

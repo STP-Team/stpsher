@@ -11,9 +11,11 @@ from aiogram.types import (
     BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
 )
+from aiogram_dialog import setup_dialogs
 
 from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
+from tgbot.dialogs.user.main import user_dialog
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
@@ -157,6 +159,8 @@ async def main():
     dp["kpi_db"] = kpi_db
 
     dp.include_routers(*routers_list)
+    dp.include_routers(user_dialog)
+    setup_dialogs(dp)
 
     register_middlewares(dp, bot_config, bot, main_db, kpi_db)
 
