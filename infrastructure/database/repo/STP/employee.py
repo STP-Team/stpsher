@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Sequence, TypedDict, Unpack
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from infrastructure.database.models import Employee
@@ -185,6 +185,70 @@ class EmployeeRepo(BaseRepo):
             return result.scalars().all()
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения пользователей по ФИО: {e}")
+            return []
+
+    async def search_users(
+        self, search_query: str, limit: int = 50
+    ) -> Sequence[Employee]:
+        """
+        Универсальный поиск пользователей по различным критериям:
+        - User ID (число)
+        - Username Telegram (начинается с @)
+        - Частичное/полное ФИО
+
+        Args:
+            search_query: Поисковый запрос
+            limit: Максимальное количество результатов
+
+        Returns:
+            Список объектов Employee
+        """
+        search_query = search_query.strip()
+        if not search_query:
+            return []
+
+        conditions = []
+
+        # Проверяем, является ли запрос числом (User ID)
+        if search_query.isdigit():
+            user_id = int(search_query)
+            conditions.append(Employee.user_id == user_id)
+
+        # Поиск по username (с @ и без @)
+        if search_query.startswith("@"):
+            # Если начинается с @, ищем без @
+            username = search_query[1:]
+            if username:  # Проверяем, что после @ что-то есть
+                conditions.append(Employee.username.ilike(f"%{username}%"))
+        else:
+            # Всегда добавляем поиск по username
+            conditions.append(Employee.username.ilike(f"%{search_query}%"))
+
+        # Поиск по частичному ФИО
+        name_parts = search_query.split()
+        if name_parts:
+            # Создаём условия для каждой части имени
+            name_conditions = []
+            for part in name_parts:
+                name_conditions.append(Employee.fullname.ilike(f"%{part}%"))
+
+            # Все части должны присутствовать в ФИО (AND)
+            if len(name_conditions) == 1:
+                conditions.append(name_conditions[0])
+            else:
+                conditions.append(and_(*name_conditions))
+
+        # Объединяем все условия через OR
+        if not conditions:
+            return []
+
+        query = select(Employee).where(or_(*conditions)).limit(limit)
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка универсального поиска пользователей: {e}")
             return []
 
     async def get_users_by_head(self, head_name: str) -> Sequence[Employee]:
