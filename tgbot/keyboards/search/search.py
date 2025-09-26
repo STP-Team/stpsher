@@ -443,32 +443,35 @@ def user_detail_kb(
             ),
         ]
         buttons.append(action_buttons)
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text="🟢 Казино" if user.is_casino_allowed else "🔴 Казино",
-                    callback_data=HeadUserCasinoToggle(
-                        user_id=user.user_id or user.id,
-                        return_to=return_to,
-                        head_id=head_id,
-                        context=context,
-                    ).pack(),
-                ),
-            ]
-        )
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text="⚙️ Изменить статус",
-                    callback_data=HeadUserStatusSelect(
-                        user_id=user.user_id or user.id,
-                        return_to=return_to,
-                        head_id=head_id,
-                        context=context,
-                    ).pack(),
-                )
-            ]
-        )
+
+        # Show edit buttons only if head can edit this user (not other heads)
+        if show_edit_buttons:
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="🟢 Казино" if user.is_casino_allowed else "🔴 Казино",
+                        callback_data=HeadUserCasinoToggle(
+                            user_id=user.user_id or user.id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    ),
+                ]
+            )
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text="⚙️ Изменить статус",
+                        callback_data=HeadUserStatusSelect(
+                            user_id=user.user_id or user.id,
+                            return_to=return_to,
+                            head_id=head_id,
+                            context=context,
+                        ).pack(),
+                    )
+                ]
+            )
 
     # Для остальных ролей (МИП и выше) показываем полную функциональность
     else:
@@ -515,6 +518,7 @@ def user_detail_kb(
             ]
             buttons.append(edit_buttons)
         elif show_edit_buttons and context == "head":
+            # Only show edit buttons for heads if they can actually edit this user
             buttons.append(
                 [
                     InlineKeyboardButton(

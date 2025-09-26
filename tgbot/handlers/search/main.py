@@ -417,7 +417,7 @@ async def show_user_details(
             can_edit = target_user.role in [1, 2, 3]
         elif (
             context == "head" and viewer_role == 2
-        ):  # Руководитель может редактировать только специалистов и дежурных
+        ):  # Руководитель может редактировать только специалистов и дежурных, но не других руководителей
             can_edit = target_user.role in [1, 3]
         else:
             can_edit = False
