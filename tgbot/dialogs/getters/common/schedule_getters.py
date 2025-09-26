@@ -53,7 +53,7 @@ async def duty_schedule_getter(**kwargs):
 
     # Format date for display
     date_display = current_date.strftime("%d.%m")
-    is_today = current_date.date() == datetime.datetime.now().date()
+    is_today = current_date.date() == schedule_service.get_current_date().date()
 
     return {
         **base_data,
@@ -85,11 +85,51 @@ async def head_schedule_getter(**kwargs):
 
     # Format date for display
     date_display = current_date.strftime("%d.%m")
-    is_today = current_date.date() == datetime.datetime.now().date()
+    is_today = current_date.date() == schedule_service.get_current_date().date()
 
     return {
         **base_data,
         "heads_text": heads_text,
+        "date_display": date_display,
+        "is_today": is_today,
+    }
+
+
+async def group_schedule_getter(**kwargs):
+    base_data = await schedule_getter(**kwargs)
+
+    dialog_manager = kwargs.get("dialog_manager")
+    current_date_str = (
+        dialog_manager.dialog_data.get("current_date") if dialog_manager else None
+    )
+
+    if current_date_str:
+        current_date = datetime.datetime.fromisoformat(current_date_str)
+    else:
+        current_date = schedule_service.get_current_date()
+
+    user = cast(Employee, cast(object, base_data.get("user")))
+    stp_repo = cast(MainRequestsRepo, cast(object, base_data.get("stp_repo")))
+
+    (
+        group_text,
+        total_pages,
+        has_prev,
+        has_next,
+    ) = await schedule_service.get_group_schedule_response(
+        user=user,
+        date=current_date,
+        stp_repo=stp_repo,
+        is_head=True if user.role == 2 else False,
+    )
+
+    # Format date for display
+    date_display = current_date.strftime("%d.%m")
+    is_today = current_date.date() == schedule_service.get_current_date().date()
+
+    return {
+        **base_data,
+        "group_text": group_text,
         "date_display": date_display,
         "is_today": is_today,
     }

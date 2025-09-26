@@ -7,8 +7,8 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.schedule_getters import schedule_service
 from tgbot.filters.role import HeadFilter
-from tgbot.handlers.user.schedule.main import ScheduleHandlerService
 from tgbot.keyboards.head.group.game_profile import (
     HeadMemberGameHistoryMenu,
     HeadMemberGameProfileMenu,
@@ -44,8 +44,6 @@ head_group_members_router.callback_query.filter(
 )
 
 logger = logging.getLogger(__name__)
-schedule_service = ScheduleHandlerService()
-
 
 @head_group_members_router.callback_query(
     GroupManagementMenu.filter(F.menu == "members")

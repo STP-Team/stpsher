@@ -1,3 +1,4 @@
+from aiogram import F
 from aiogram_dialog.widgets.kbd import (
     Button,
     Row,
@@ -7,6 +8,10 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.callbacks.common.schedule_functions import (
+    clear_and_switch_to_duties,
+    clear_and_switch_to_group,
+    clear_and_switch_to_heads,
+    clear_and_switch_to_my,
     do_nothing,
     next_day,
     next_month,
@@ -20,6 +25,7 @@ from tgbot.dialogs.callbacks.user_functions import (
 from tgbot.dialogs.getters.common.schedule_getters import (
     detailed_schedule_getter,
     duty_schedule_getter,
+    group_schedule_getter,
     head_schedule_getter,
     month_navigation_getter,
 )
@@ -31,27 +37,27 @@ schedule_window = Window(
 
 Здесь ты найдешь все, что связано с графиками"""),
     Row(
-        SwitchTo(
+        Button(
             Const("👔 Мой график"),
             id="schedule_my",
-            state=UserSG.schedule_my,
+            on_click=clear_and_switch_to_my,
         ),
-        SwitchTo(
+        Button(
             Const("❤️ Моя группа"),
             id="schedule_group",
-            state=UserSG.schedule_group,
+            on_click=clear_and_switch_to_group,
         ),
     ),
     Row(
-        SwitchTo(
+        Button(
             Const("👮‍♂️ Дежурные"),
             id="schedule_duties",
-            state=UserSG.schedule_duties,
+            on_click=clear_and_switch_to_duties,
         ),
-        SwitchTo(
+        Button(
             Const("👑 Руководители"),
             id="schedule_heads",
-            state=UserSG.schedule_heads,
+            on_click=clear_and_switch_to_heads,
         ),
     ),
     SwitchTo(Const("↩️ Назад"), id="back_to_menu", state=UserSG.menu),
@@ -115,7 +121,7 @@ schedule_duties_window = Window(
         Const("📍 Сегодня"),
         id="today",
         on_click=today,
-        when="is_today == False",
+        when=~F["is_today"],
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
@@ -126,15 +132,35 @@ schedule_duties_window = Window(
 )
 
 schedule_group_window = Window(
-    Format("""<b>❤️ Моя группа</b>
-
-Здесь будет отображаться расписание вашей группы
-<i>Функционал в разработке...</i>"""),
+    Format("{group_text}"),
+    Row(
+        Button(
+            Const("◀️"),
+            id="prev_day",
+            on_click=prev_day,
+        ),
+        Button(
+            Format("📅 {date_display}"),
+            id="current_date",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const("▶️"),
+            id="next_day",
+            on_click=next_day,
+        ),
+    ),
+    Button(
+        Const("📍 Сегодня"),
+        id="today",
+        on_click=today,
+        when=~F["is_today"],
+    ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
         SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
     ),
-    getter=db_getter,
+    getter=group_schedule_getter,
     state=UserSG.schedule_group,
 )
 
@@ -161,7 +187,7 @@ schedule_heads_window = Window(
         Const("📍 Сегодня"),
         id="today",
         on_click=today,
-        when="is_today == False",
+        when=~F["is_today"],
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
