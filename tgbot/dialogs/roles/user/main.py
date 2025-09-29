@@ -7,6 +7,8 @@ from tgbot.dialogs.getters.user.user_getters import db_getter
 from tgbot.dialogs.roles.user.game import (
     confirm_window,
     game_window,
+    inventory_detail_window,
+    inventory_window,
     shop_window,
     success_window,
 )
@@ -47,8 +49,11 @@ menu_window = Window(
 async def on_start(start_data, manager: DialogManager, **kwargs):
     """Установка значений по умолчанию при запуске диалога"""
     # Устанавливаем значение по умолчанию для фильтра магазина
-    radio: ManagedRadio = manager.find("shop_filter")
-    await radio.set_checked("available")
+    shop_filter: ManagedRadio = manager.find("shop_filter")
+    await shop_filter.set_checked("available")
+
+    inventory_filter: ManagedRadio = manager.find("inventory_filter")
+    await inventory_filter.set_checked("all")
 
 
 user_dialog = Dialog(
@@ -65,6 +70,8 @@ user_dialog = Dialog(
     shop_window,
     confirm_window,
     success_window,
+    inventory_window,
+    inventory_detail_window,
     on_start=on_start,
     getter=db_getter,
 )

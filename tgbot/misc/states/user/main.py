@@ -11,6 +11,8 @@ class UserSG(StatesGroup):
     game_shop = State()
     game_shop_confirm = State()
     game_shop_success = State()
+    game_inventory = State()
+    game_inventory_detail = State()
     search = State()
     groups = State()
     settings = State()
