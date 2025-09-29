@@ -29,9 +29,10 @@ game_window = Window(
             id="casino",
         ),
     ),
-    Button(
+    SwitchTo(
         Const("🎯 Достижения"),
         id="achievements",
+        state=UserSG.game_achievements,
     ),
     Button(
         Const("📜 История баланса"),

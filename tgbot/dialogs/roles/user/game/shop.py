@@ -66,7 +66,6 @@ shop_window = Window(
         SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
     ),
     getter=product_filter_getter,
-    preview_data=product_filter_getter,
     state=UserSG.game_shop,
 )
 

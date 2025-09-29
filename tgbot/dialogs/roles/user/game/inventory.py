@@ -75,7 +75,6 @@ inventory_window = Window(
         SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
     ),
     getter=inventory_filter_getter,
-    preview_data=inventory_filter_getter,
     state=UserSG.game_inventory,
 )
 

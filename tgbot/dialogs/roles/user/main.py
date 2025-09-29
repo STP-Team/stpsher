@@ -4,6 +4,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import db_getter
+from tgbot.dialogs.roles.user.game.achievements import achievements_window
 from tgbot.dialogs.roles.user.game.game import (
     game_window,
 )
@@ -59,6 +60,14 @@ async def on_start(start_data, manager: DialogManager, **kwargs):
     inventory_filter: ManagedRadio = manager.find("inventory_filter")
     await inventory_filter.set_checked("all")
 
+    achievement_position_filter: ManagedRadio = manager.find(
+        "achievement_position_filter"
+    )
+    await achievement_position_filter.set_checked("all")
+
+    achievement_period_filter: ManagedRadio = manager.find("achievement_period_filter")
+    await achievement_period_filter.set_checked("all")
+
 
 user_dialog = Dialog(
     menu_window,
@@ -76,6 +85,7 @@ user_dialog = Dialog(
     success_window,
     inventory_window,
     inventory_detail_window,
+    achievements_window,
     on_start=on_start,
     getter=db_getter,
 )

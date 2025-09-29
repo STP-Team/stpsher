@@ -20,6 +20,7 @@ class UserSG(StatesGroup):
 
     game = State()
     game_shop = State()
+    game_achievements = State()
     game_inventory = State()
     game_inventory_detail = State()
 
