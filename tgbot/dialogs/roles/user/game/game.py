@@ -34,9 +34,10 @@ game_window = Window(
         id="achievements",
         state=UserSG.game_achievements,
     ),
-    Button(
+    SwitchTo(
         Const("📜 История баланса"),
         id="history",
+        state=UserSG.game_history,
     ),
     SwitchTo(Const("↩️ Назад"), id="menu", state=UserSG.menu),
     getter=game_getter,

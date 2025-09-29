@@ -23,6 +23,8 @@ class UserSG(StatesGroup):
     game_achievements = State()
     game_inventory = State()
     game_inventory_detail = State()
+    game_history = State()
+    game_history_detail = State()
 
     search = State()
 

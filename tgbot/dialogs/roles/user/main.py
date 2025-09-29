@@ -8,6 +8,10 @@ from tgbot.dialogs.roles.user.game.achievements import achievements_window
 from tgbot.dialogs.roles.user.game.game import (
     game_window,
 )
+from tgbot.dialogs.roles.user.game.history import (
+    history_detail_window,
+    history_window,
+)
 from tgbot.dialogs.roles.user.game.inventory import (
     inventory_detail_window,
     inventory_window,
@@ -68,6 +72,12 @@ async def on_start(start_data, manager: DialogManager, **kwargs):
     achievement_period_filter: ManagedRadio = manager.find("achievement_period_filter")
     await achievement_period_filter.set_checked("all")
 
+    history_type_filter: ManagedRadio = manager.find("history_type_filter")
+    await history_type_filter.set_checked("all")
+
+    history_source_filter: ManagedRadio = manager.find("history_source_filter")
+    await history_source_filter.set_checked("all")
+
 
 user_dialog = Dialog(
     menu_window,
@@ -86,6 +96,8 @@ user_dialog = Dialog(
     inventory_window,
     inventory_detail_window,
     achievements_window,
+    history_window,
+    history_detail_window,
     on_start=on_start,
     getter=db_getter,
 )
