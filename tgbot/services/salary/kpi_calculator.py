@@ -2,7 +2,6 @@ import datetime
 from typing import Optional
 
 from infrastructure.database.models import Employee
-from infrastructure.database.models.KPI.spec_premium import SpecPremium
 from tgbot.services.salary import SalaryFormatter
 
 
@@ -404,24 +403,56 @@ class KPICalculator:
         return "\n".join(results)
 
     @classmethod
-    def format_requirements_message(cls, user: Employee, premium: SpecPremium) -> str:
-        csi_calculation = cls.calculate_csi_needed(
-            user.division, premium.csi, premium.csi_normative
-        )
+    def format_requirements_message(
+        cls, user: Employee, premium, is_head: bool = False
+    ) -> str:
+        csi_calculation = ""
+        if not is_head:
+            csi_calculation = cls.calculate_csi_needed(
+                user.division, premium.csi, premium.csi_normative
+            )
+
         flr_calculation = cls.calculate_flr_needed(
-            user.division, premium.flr, premium.flr_normative
+            user.division, premium.flr, premium.flr_normative, is_head=is_head
         )
         gok_calculation = cls.calculate_gok_needed(
-            user.division, premium.gok, premium.gok_normative
+            user.division, premium.gok, premium.gok_normative, is_head=is_head
         )
         target_calculation = cls.calculate_target_needed(
             premium.target,
             premium.target_goal_first,
             premium.target_goal_second,
             premium.target_type,
+            is_head=is_head,
         )
 
-        message_text = f"""🧮 <b>Калькулятор KPI</b>
+        if is_head:
+            message_text = f"""🧮 <b>Калькулятор KPI</b>
+
+🔧 <b>FLR</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(premium.flr)} ({SalaryFormatter.format_percentage(premium.flr_normative_rate)})
+План: {SalaryFormatter.format_value(premium.flr_normative)}
+
+<b>Для премии:</b>
+{flr_calculation}</blockquote>
+
+⚖️ <b>ГОК</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
+План: {SalaryFormatter.format_value(round(premium.gok_normative))}
+
+<b>Для премии:</b>
+{gok_calculation}</blockquote>
+
+🎯 <b>Цель</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(premium.target_result_first)} / {SalaryFormatter.format_percentage(premium.target_result_second)})
+План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}
+
+<b>Для премии:</b>
+{target_calculation}</blockquote>
+
+<i>Данные от: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>"""
+        else:
+            message_text = f"""🧮 <b>Калькулятор KPI</b>
 
 📊 <b>Оценка клиента</b>
 <blockquote>Текущий: {SalaryFormatter.format_value(premium.csi)} ({SalaryFormatter.format_percentage(premium.csi_normative_rate)})

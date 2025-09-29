@@ -49,28 +49,8 @@ async def kpi_getter(**kwargs):
         datetime.timezone(datetime.timedelta(hours=5))
     ).strftime("%d.%m.%y %H:%M")
 
-    # Conditional contact type text
-    contacts_text = (
-        f"📈 Всего чатов: {SalaryFormatter.format_value(premium.contacts_count)}"
-        if user.division == "НЦК"
-        else f"📈 Всего звонков: {SalaryFormatter.format_value(premium.contacts_count)}"
-    )
-
-    delay_text = (
-        f"⏰ Задержка: {SalaryFormatter.format_value(premium.delay, ' сек')}"
-        if user.division != "НЦК"
-        else ""
-    )
-
-    kpi_text = f"""🌟 <b>Показатели</b>
-
-📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}
-План: {SalaryFormatter.format_value(premium.csi_normative)}  </blockquote>
-
-🎯 <b>Отклик</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}
-План: {SalaryFormatter.format_value(round(premium.csi_response_normative))}</blockquote>
+    if user.role == 2:
+        kpi_text = f"""🌟 <b>Показатели</b>
 
 🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}
@@ -85,16 +65,61 @@ async def kpi_getter(**kwargs):
 Факт: {SalaryFormatter.format_value(premium.target)}
 План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
 
+💰 <b>Итого:</b>
+<b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
+
+{"📈 Всего чатов: " + SalaryFormatter.format_value(premium.contacts_count) if user.division == "НЦК" else "📈 Всего звонков: " + SalaryFormatter.format_value(premium.contacts_count)}
+
+<i>Выгружено: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>
+<i>Обновлено: {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M")}</i>"""
+
+    else:
+        # Conditional contact type text
+        contacts_text = (
+            f"📈 Всего чатов: {SalaryFormatter.format_value(premium.contacts_count)}"
+            if user.division == "НЦК"
+            else f"📈 Всего звонков: {SalaryFormatter.format_value(premium.contacts_count)}"
+        )
+
+        delay_text = (
+            f"⏰ Задержка: {SalaryFormatter.format_value(premium.delay, ' сек')}"
+            if user.division != "НЦК"
+            else ""
+        )
+
+        kpi_text = f"""🌟 <b>Показатели</b>
+    
+📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}
+План: {SalaryFormatter.format_value(premium.csi_normative)}  </blockquote>
+    
+🎯 <b>Отклик</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}
+План: {SalaryFormatter.format_value(round(premium.csi_response_normative))}</blockquote>
+    
+🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}
+План: {SalaryFormatter.format_value(premium.flr_normative)}</blockquote>
+    
+⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}
+План: {SalaryFormatter.format_value(premium.gok_normative)}</blockquote>
+    
+🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
+<blockquote>Тип: {premium.target_type or "—"}
+Факт: {SalaryFormatter.format_value(premium.target)}
+План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+    
 💼 <b>Дополнительно</b>
 <blockquote>Дисциплина: {SalaryFormatter.format_percentage(premium.discipline_premium)}
 Тестирование: {SalaryFormatter.format_percentage(premium.tests_premium)}
 Благодарности: {SalaryFormatter.format_percentage(premium.thanks_premium)}
 Наставничество: {SalaryFormatter.format_percentage(premium.tutors_premium)}
 Ручная правка: {SalaryFormatter.format_percentage(premium.head_adjust_premium)}</blockquote>
-
+    
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
-
+    
 {contacts_text}
 {delay_text}
 <i>Выгружено: {updated_at_str}</i>
@@ -115,7 +140,7 @@ async def kpi_requirements_getter(**kwargs):
         }
 
     requirements_text = KPICalculator.format_requirements_message(
-        user=user, premium=premium
+        user=user, premium=premium, is_head=True if user.role == 2 else False
     )
 
     return {**base_data, "requirements_text": requirements_text}

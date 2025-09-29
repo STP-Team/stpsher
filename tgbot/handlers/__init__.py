@@ -28,7 +28,6 @@ from tgbot.handlers.head.group.game.rating import head_group_game_rating_router
 from tgbot.handlers.head.group.main import head_group_router
 from tgbot.handlers.head.group.members import head_group_members_router
 from tgbot.handlers.head.group.rating import head_group_rating_router
-from tgbot.handlers.head.kpi import head_kpi_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.inline.inline import user_inline_router
 from tgbot.handlers.mip.broadcast import mip_broadcast_router
@@ -48,7 +47,6 @@ from tgbot.handlers.user.game.history import user_game_history_router
 from tgbot.handlers.user.game.inventory import user_game_inventory_router
 from tgbot.handlers.user.game.products import duty_game_products_router
 from tgbot.handlers.user.game.shop import user_game_shop_router
-from tgbot.handlers.user.kpi import user_kpi_router
 from tgbot.handlers.user.links import user_links_router
 from tgbot.handlers.user.main import user_router
 
@@ -70,7 +68,6 @@ routers_list = [
     head_game_products_router,
     head_game_filters_router,
     head_group_game_rating_router,
-    head_kpi_router,
     head_group_router,
     head_group_members_router,
     head_group_rating_router,
@@ -86,7 +83,6 @@ routers_list = [
     search_router,
     user_router,
     user_auth_router,
-    user_kpi_router,
     duty_game_products_router,
     user_game_shop_router,
     user_game_inventory_router,
