@@ -4,11 +4,15 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import db_getter
-from tgbot.dialogs.roles.user.game import (
-    confirm_window,
+from tgbot.dialogs.roles.user.game.game import (
     game_window,
+)
+from tgbot.dialogs.roles.user.game.inventory import (
     inventory_detail_window,
     inventory_window,
+)
+from tgbot.dialogs.roles.user.game.shop import (
+    confirm_window,
     shop_window,
     success_window,
 )
