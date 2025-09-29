@@ -3,9 +3,11 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.filters import on_filter_change
+from tgbot.dialogs.events.user.search import on_user_select
 from tgbot.dialogs.getters.common.search_getters import (
     search_heads_getter,
     search_specialists_getter,
+    search_user_info_getter,
 )
 from tgbot.dialogs.getters.user.user_getters import db_getter
 from tgbot.misc.states.user.main import UserSG
@@ -38,6 +40,7 @@ search_specialists_window = Window(
             id="search_specialists",
             items="specialists_list",
             item_id_getter=lambda item: item[0],
+            on_click=on_user_select,
         ),
         width=2,
         height=5,
@@ -75,6 +78,7 @@ search_heads_window = Window(
             id="search_heads",
             items="heads_list",
             item_id_getter=lambda item: item[0],
+            on_click=on_user_select,
         ),
         width=2,
         height=5,
@@ -100,3 +104,11 @@ search_heads_window = Window(
 )
 
 search_query_window = Window(state=UserSG.search_query)
+
+search_user_info_window = Window(
+    Format("{user_info}"),
+    SwitchTo(Const("↩️ Назад"), id="back", state=UserSG.search),
+    SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
+    getter=search_user_info_getter,
+    state=UserSG.search_result,
+)

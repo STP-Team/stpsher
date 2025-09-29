@@ -37,6 +37,7 @@ from tgbot.dialogs.roles.user.search import (
     search_heads_window,
     search_query_window,
     search_specialists_window,
+    search_user_info_window,
     search_window,
 )
 from tgbot.misc.states.user.main import UserSG
@@ -108,6 +109,7 @@ user_dialog = Dialog(
     search_specialists_window,
     search_heads_window,
     search_query_window,
+    search_user_info_window,
     on_start=on_start,
     getter=db_getter,
 )
