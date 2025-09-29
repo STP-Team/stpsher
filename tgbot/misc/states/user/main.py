@@ -5,6 +5,8 @@ class UserSG(StatesGroup):
     menu = State()
     schedule = State()
     kpi = State()
+    kpi_requirements = State()
+    salary = State()
     game = State()
     search = State()
     groups = State()

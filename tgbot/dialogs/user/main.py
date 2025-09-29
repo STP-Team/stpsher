@@ -5,7 +5,7 @@ from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import db_getter
 from tgbot.dialogs.user.game import game_window
-from tgbot.dialogs.user.kpi import kpi_window
+from tgbot.dialogs.user.kpi import kpi_requirements_window, kpi_window, salary_window
 from tgbot.dialogs.user.schedule import (
     schedule_duties_window,
     schedule_group_window,
@@ -43,5 +43,7 @@ user_dialog = Dialog(
     schedule_group_window,
     schedule_heads_window,
     kpi_window,
+    kpi_requirements_window,
+    salary_window,
     game_window,
 )

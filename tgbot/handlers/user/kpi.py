@@ -6,9 +6,9 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from tgbot.keyboards.user.kpi import kpi_calculator_kb, kpi_kb, kpi_salary_kb
+from tgbot.keyboards.user.kpi import kpi_calculator_kb, kpi_kb
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
+from tgbot.services.salary import KPICalculator, SalaryFormatter
 
 user_kpi_router = Router()
 user_kpi_router.message.filter(F.chat.type == "private")
@@ -140,46 +140,5 @@ async def user_kpi_calculator_cb(
 
     try:
         await callback.message.edit_text(message_text, reply_markup=kpi_calculator_kb())
-    except TelegramBadRequest:
-        await callback.answer("Обновлений нет")
-
-
-@user_kpi_router.callback_query(MainMenu.filter(F.menu == "kpi_salary"))
-async def user_kpi_salary_cb(
-    callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
-):
-    user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
-
-    if user_premium is None:
-        await callback.message.edit_text(
-            """💰 <b>Расчет зарплаты</b>
-
-Не смог найти твои показатели в премиуме :(""",
-            reply_markup=kpi_salary_kb(),
-        )
-        return
-
-    try:
-        salary_result = await SalaryCalculator.calculate_salary(
-            user=user, premium_data=user_premium
-        )
-
-        # Format the result using centralized formatter
-        message_text = SalaryFormatter.format_salary_message(
-            salary_result, user_premium
-        )
-    except Exception as e:
-        await callback.message.edit_text(
-            f"""💰 <b>Расчет зарплаты</b>
-
-Произошла ошибка при расчете: {e}""",
-            reply_markup=kpi_salary_kb(),
-        )
-        return
-
-    try:
-        await callback.message.edit_text(
-            message_text, reply_markup=kpi_salary_kb(), disable_web_page_preview=True
-        )
     except TelegramBadRequest:
         await callback.answer("Обновлений нет")

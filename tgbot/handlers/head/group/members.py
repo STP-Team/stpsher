@@ -45,6 +45,7 @@ head_group_members_router.callback_query.filter(
 
 logger = logging.getLogger(__name__)
 
+
 @head_group_members_router.callback_query(
     GroupManagementMenu.filter(F.menu == "members")
 )
