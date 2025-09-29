@@ -102,7 +102,10 @@ async def main():
 
     # Определение команд для приватных чатов
     await bot.set_my_commands(
-        commands=[BotCommand(command="start", description="Главное меню")],
+        commands=[
+            BotCommand(command="start", description="Главное меню"),
+            BotCommand(command="whois", description="Поиск сотрудников"),
+        ],
         scope=BotCommandScopeAllPrivateChats(),
     )
     await bot.set_my_commands(
