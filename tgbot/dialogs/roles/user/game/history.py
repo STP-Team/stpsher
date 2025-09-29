@@ -8,10 +8,8 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.user.game import (
-    on_filter_change,
-    on_transaction_click,
-)
+from tgbot.dialogs.events.common.filters import on_filter_change
+from tgbot.dialogs.events.user.history import on_transaction_click
 from tgbot.dialogs.getters.user.game_getters import (
     history_detail_getter,
     history_filter_getter,

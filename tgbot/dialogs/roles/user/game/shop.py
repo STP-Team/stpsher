@@ -10,12 +10,12 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.user.game import (
+from tgbot.dialogs.events.common.filters import on_filter_change
+from tgbot.dialogs.events.user.inventory import use_product
+from tgbot.dialogs.events.user.shop import (
     on_confirm_purchase,
-    on_filter_change,
     on_product_click,
     on_sell_product,
-    use_product,
 )
 from tgbot.dialogs.getters.user.game_getters import (
     confirmation_getter,
@@ -42,7 +42,7 @@ shop_window = Window(
             Format("{pos}. {item[1]}"),
             id="product",
             items="products",
-            item_id_getter=lambda item: item[0],  # Идентификатор предмета
+            item_id_getter=lambda item: item[0],
             on_click=on_product_click,
         ),
         width=2,

@@ -33,6 +33,12 @@ from tgbot.dialogs.roles.user.schedule import (
     schedule_my_window,
     schedule_window,
 )
+from tgbot.dialogs.roles.user.search import (
+    search_heads_window,
+    search_query_window,
+    search_specialists_window,
+    search_window,
+)
 from tgbot.misc.states.user.main import UserSG
 
 menu_window = Window(
@@ -98,6 +104,10 @@ user_dialog = Dialog(
     achievements_window,
     history_window,
     history_detail_window,
+    search_window,
+    search_specialists_window,
+    search_heads_window,
+    search_query_window,
     on_start=on_start,
     getter=db_getter,
 )

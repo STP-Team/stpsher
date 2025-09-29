@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.user.game import on_filter_change
+from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.getters.user.game_getters import achievements_filter_getter
 from tgbot.misc.states.user.main import UserSG
 

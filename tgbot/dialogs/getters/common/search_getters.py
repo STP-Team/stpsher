@@ -1,0 +1,114 @@
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.db_getters import db_getter
+from tgbot.misc.helpers import get_role
+
+
+def short_name(full_name: str) -> str:
+    """Extract short name from full name."""
+    clean_name = full_name.split("(")[0].strip()
+    parts = clean_name.split()
+
+    if len(parts) >= 2:
+        return " ".join(parts[:2])
+    return clean_name
+
+
+async def main_search_getter(**kwargs):
+    base_data = await db_getter(**kwargs)
+    stp_repo: MainRequestsRepo = base_data.get("stp_repo")
+
+    specialists = await stp_repo.employee.get_users(roles=[1, 3])
+    total_specialists = len(specialists)
+
+    heads = await stp_repo.employee.get_users(roles=2)
+    total_heads = len(heads)
+
+    return {
+        **base_data,
+        "specialists": specialists,
+        "total_specialists": total_specialists,
+        "heads": heads,
+        "total_heads": total_heads,
+    }
+
+
+async def search_specialists_getter(**kwargs):
+    base_data = await main_search_getter(**kwargs)
+    specialists = base_data.get("specialists")
+
+    # Получаем выбранное направление в фильтре
+    dialog_manager = kwargs.get("dialog_manager")
+    selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
+
+    # Устанавливаем стандартное значение если не указано иное
+    if "search_divisions" not in dialog_manager.dialog_data:
+        dialog_manager.dialog_data["search_divisions"] = "all"
+
+    # Фильтруем руководителей по направлению если выбран фильтр
+    if selected_division != "all":
+        specialists = [s for s in specialists if s.division == selected_division]
+
+    sorted_specialists = sorted(specialists, key=lambda k: k.fullname)
+
+    formatted_specialists = []
+    for specialist in sorted_specialists:
+        role_info = get_role(specialist.role)
+        formatted_specialists.append(
+            (specialist.id, short_name(specialist.fullname), role_info["emoji"])
+        )
+
+    # Получаем все уникальные направления специалистов
+    all_specialists = base_data.get("specialists")
+    divisions = list(set(s.division for s in all_specialists if s.division))
+    divisions.sort()
+
+    # Добавляем доступные направления в качестве фильтра
+    division_options = [("all", "Все")] + [(div, div) for div in divisions]
+
+    return {
+        **base_data,
+        "specialists_list": formatted_specialists,
+        "division_options": division_options,
+        "selected_division": selected_division,
+        "total_specialists": len(formatted_specialists),
+    }
+
+
+async def search_heads_getter(**kwargs):
+    base_data = await main_search_getter(**kwargs)
+    all_heads = base_data.get("heads")
+
+    # Получаем выбранное направление в фильтре
+    dialog_manager = kwargs.get("dialog_manager")
+    selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
+
+    # Устанавливаем стандартное значение если не указано иное
+    if "search_divisions" not in dialog_manager.dialog_data:
+        dialog_manager.dialog_data["search_divisions"] = "all"
+
+    # Фильтруем руководителей по направлению если выбран фильтр
+    if selected_division != "all":
+        all_heads = [s for s in all_heads if s.division == selected_division]
+
+    sorted_heads = sorted(all_heads, key=lambda k: k.fullname)
+
+    formatted_heads = []
+    for head in sorted_heads:
+        role_info = get_role(head.role)
+        formatted_heads.append((head.id, short_name(head.fullname), role_info["emoji"]))
+
+    # Получаем все уникальные направления руководителей
+    all_heads = base_data.get("heads")
+    divisions = list(set(s.division for s in all_heads if s.division))
+    divisions.sort()
+
+    # Добавляем доступные направления в качестве фильтра
+    division_options = [("all", "Все")] + [(div, div) for div in divisions]
+
+    return {
+        **base_data,
+        "heads_list": formatted_heads,
+        "division_options": division_options,
+        "selected_division": selected_division,
+        "total_heads": len(formatted_heads),
+    }

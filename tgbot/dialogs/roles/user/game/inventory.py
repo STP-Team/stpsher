@@ -9,8 +9,8 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.user.game import (
-    on_filter_change,
+from tgbot.dialogs.events.common.filters import on_filter_change
+from tgbot.dialogs.events.user.inventory import (
     on_inventory_cancel_activation,
     on_inventory_product_click,
     on_inventory_sell_product,
@@ -49,7 +49,7 @@ inventory_window = Window(
             Format("{item[1]}"),
             id="inventory_product",
             items="products",
-            item_id_getter=lambda item: item[0],  # ID покупки для обработчика клика
+            item_id_getter=lambda item: item[0],
             on_click=on_inventory_product_click,
         ),
         width=2,

@@ -7,6 +7,7 @@ class UserSG(StatesGroup):
     groups = State()
     settings = State()
 
+    # Графики
     schedule = State()
     schedule_my = State()
     schedule_my_detailed = State()
@@ -14,10 +15,12 @@ class UserSG(StatesGroup):
     schedule_duties = State()
     schedule_heads = State()
 
+    # KPI
     kpi = State()
     kpi_requirements = State()
     salary = State()
 
+    # Игра
     game = State()
     game_shop = State()
     game_achievements = State()
@@ -26,7 +29,11 @@ class UserSG(StatesGroup):
     game_history = State()
     game_history_detail = State()
 
+    # Поиск
     search = State()
+    search_specialists = State()
+    search_heads = State()
+    search_query = State()
 
     # Действия
     game_shop_confirm = State()

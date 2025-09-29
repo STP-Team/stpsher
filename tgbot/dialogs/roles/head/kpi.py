@@ -2,7 +2,7 @@ from aiogram_dialog import Window
 from aiogram_dialog.widgets.kbd import Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.getters.common.kpi import (
+from tgbot.dialogs.getters.common.kpi_getters import (
     kpi_getter,
     kpi_requirements_getter,
     salary_getter,
