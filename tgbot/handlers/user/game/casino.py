@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.casino import IsCasinoAllowed
+from tgbot.keyboards.mip.game.main import GameMenu
 from tgbot.keyboards.user.game.casino import (
     CasinoMenu,
     back_to_casino_kb,
@@ -16,7 +17,6 @@ from tgbot.keyboards.user.game.casino import (
     casino_main_kb,
     play_again_kb,
 )
-from tgbot.keyboards.user.game.main import GameMenu
 
 user_game_casino_router = Router()
 user_game_casino_router.message.filter(
