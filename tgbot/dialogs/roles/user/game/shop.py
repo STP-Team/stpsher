@@ -15,6 +15,7 @@ from tgbot.dialogs.events.user.game import (
     on_filter_change,
     on_product_click,
     on_sell_product,
+    use_product,
 )
 from tgbot.dialogs.getters.user.game_getters import (
     confirmation_getter,
@@ -83,17 +84,14 @@ confirm_window = Window(
 • Останется: {balance_after_purchase} баллов
 
 <i>Купленные предметы можно найти в <b>🎒 Инвентаре</b></i>"""),
+    Button(
+        Const("✅ Купить"),
+        id="confirm_buy",
+        on_click=on_confirm_purchase,
+    ),
     Row(
-        Button(
-            Const("✅ Купить"),
-            id="confirm_buy",
-            on_click=on_confirm_purchase,
-        ),
-        SwitchTo(
-            Const("❌ Отмена"),
-            id="cancel_buy",
-            state=UserSG.game_shop,
-        ),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=UserSG.game_shop),
+        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
     ),
     getter=confirmation_getter,
     state=UserSG.game_shop_confirm,
@@ -115,15 +113,19 @@ success_window = Window(
 <i>🎯 Ты можешь использовать его сейчас или позже в <b>🎒 Инвентаре</b></i>"""),
     Row(
         Button(
+            Const("🎯 Использовать"),
+            id="use_product",
+            on_click=use_product,
+        ),
+        Button(
             Const("💸 Продать"),
             id="sell_product",
             on_click=on_sell_product,
         ),
-        SwitchTo(
-            Const("🛒 В магазин"),
-            id="back_to_shop",
-            state=UserSG.game_shop,
-        ),
+    ),
+    Row(
+        SwitchTo(Const("🎒 Инвентарь"), id="inventory", state=UserSG.game_inventory),
+        SwitchTo(Const("💎 Магазин"), id="inventory", state=UserSG.game_shop),
     ),
     Row(
         SwitchTo(Const("🏮 К игре"), id="to_game", state=UserSG.game),

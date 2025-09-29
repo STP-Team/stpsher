@@ -13,7 +13,7 @@ class UserSG(StatesGroup):
     schedule_group = State()
     schedule_duties = State()
     schedule_heads = State()
-    
+
     kpi = State()
     kpi_requirements = State()
     salary = State()
@@ -28,4 +28,3 @@ class UserSG(StatesGroup):
     # Действия
     game_shop_confirm = State()
     game_shop_success = State()
-

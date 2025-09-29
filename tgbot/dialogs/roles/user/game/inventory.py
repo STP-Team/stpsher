@@ -14,7 +14,7 @@ from tgbot.dialogs.events.user.game import (
     on_inventory_cancel_activation,
     on_inventory_product_click,
     on_inventory_sell_product,
-    on_inventory_use_product,
+    use_product,
 )
 from tgbot.dialogs.getters.user.game_getters import (
     inventory_detail_getter,
@@ -102,7 +102,7 @@ inventory_detail_window = Window(
     Button(
         Const("🎯 Использовать"),
         id="use_product",
-        on_click=on_inventory_use_product,
+        on_click=use_product,
         when="can_use",
     ),
     Button(

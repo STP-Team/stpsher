@@ -183,26 +183,38 @@ async def on_inventory_product_click(
     await dialog_manager.switch_to(UserSG.game_inventory_detail)
 
 
-async def on_inventory_use_product(
-    callback, widget, dialog_manager: DialogManager, **kwargs
-):
+async def use_product(callback, widget, dialog_manager: DialogManager, **kwargs):
     """
-    Обработчик использования предмета из инвентаря
+    Обработчик использования предмета из инвентаря или после покупки
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    product_info = dialog_manager.dialog_data["selected_inventory_product"]
-    user_product_id = product_info["user_product_id"]
+
+    # Проверяем, откуда вызвана функция - из success окна или из инвентаря
+    if dialog_manager.current_context().state == UserSG.game_shop_success:
+        # Используем данные только что купленного предмета
+        new_purchase = dialog_manager.dialog_data["new_purchase"]
+        product_info = dialog_manager.dialog_data["selected_product"]
+        user_product_id = new_purchase["id"]
+        product_name = product_info["name"]
+    else:
+        # Используем данные предмета из инвентаря
+        product_info = dialog_manager.dialog_data["selected_inventory_product"]
+        user_product_id = product_info["user_product_id"]
+        product_name = product_info["product_name"]
 
     try:
         success = await stp_repo.purchase.use_purchase(user_product_id)
 
         if success:
             await callback.answer(
-                f"✅ Предмет {product_info['product_name']} отправлен на рассмотрение!",
+                f"✅ Предмет {product_name} отправлен на рассмотрение!",
                 show_alert=True,
             )
-            # Обновляем данные предмета и возвращаемся к инвентарю
-            await dialog_manager.switch_to(UserSG.game_inventory)
+            # Обновляем данные предмета и возвращаемся
+            if dialog_manager.current_context().state == UserSG.game_shop_success:
+                await dialog_manager.switch_to(UserSG.game_shop)
+            else:
+                await dialog_manager.switch_to(UserSG.game_inventory)
         else:
             await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
 
