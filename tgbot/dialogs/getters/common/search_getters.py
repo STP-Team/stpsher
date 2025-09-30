@@ -124,19 +124,13 @@ async def search_user_info_getter(**kwargs):
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
     if not selected_user_id:
-        return {
-            **base_data,
-            "user_info": "❌ Пользователь не выбран"
-        }
+        return {**base_data, "user_info": "❌ Пользователь не выбран"}
 
     try:
         # Получаем информацию о пользователе
         user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
         if not user:
-            return {
-                **base_data,
-                "user_info": "❌ Пользователь не найден"
-            }
+            return {**base_data, "user_info": "❌ Пользователь не найден"}
 
         # Получаем руководителя если есть
         user_head = None
@@ -160,13 +154,10 @@ async def search_user_info_getter(**kwargs):
             if group_stats["total_users"] > 0:
                 user_info += SearchService.format_head_group_info(group_stats)
 
-        return {
-            **base_data,
-            "user_info": user_info
-        }
+        return {**base_data, "user_info": user_info}
 
     except Exception as e:
         return {
             **base_data,
-            "user_info": f"❌ Ошибка при получении информации: {str(e)}"
+            "user_info": f"❌ Ошибка при получении информации: {str(e)}",
         }

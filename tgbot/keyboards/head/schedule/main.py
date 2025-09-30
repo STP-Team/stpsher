@@ -2,8 +2,8 @@
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from tgbot.keyboards.common.schedule import ScheduleMenu
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.keyboards.user.schedule.main import ScheduleMenu
 
 
 def schedule_kb_head() -> InlineKeyboardMarkup:

@@ -5,13 +5,13 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
-from tgbot.handlers.user.schedule.main import schedule_service
-from tgbot.keyboards.user.schedule.main import (
+from tgbot.keyboards.common.schedule import (
+    HeadNavigation,
     ScheduleMenu,
     get_yekaterinburg_date,
-    HeadNavigation,
     heads_kb,
 )
+from tgbot.services.schedule.schedule_handlers import schedule_service
 
 logger = logging.getLogger(__name__)
 

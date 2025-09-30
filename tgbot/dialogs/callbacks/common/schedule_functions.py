@@ -2,10 +2,8 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
-from tgbot.handlers.user.schedule.main import ScheduleHandlerService
 from tgbot.misc.states.user.main import UserSG
-
-schedule_service = ScheduleHandlerService()
+from tgbot.services.schedule.schedule_handlers import schedule_service
 
 
 async def prev_day(
@@ -46,7 +44,7 @@ async def today(callback: CallbackQuery, button: Button, dialog_manager: DialogM
 async def prev_month(
     callback: CallbackQuery, button: Button, dialog_manager: DialogManager
 ):
-    from tgbot.keyboards.user.schedule.main import get_prev_month
+    from tgbot.keyboards.common.schedule import get_prev_month
 
     current_month = dialog_manager.dialog_data.get("current_month", "сентябрь")
     prev_month_name = get_prev_month(current_month)
@@ -56,7 +54,7 @@ async def prev_month(
 async def next_month(
     callback: CallbackQuery, button: Button, dialog_manager: DialogManager
 ):
-    from tgbot.keyboards.user.schedule.main import get_next_month
+    from tgbot.keyboards.common.schedule import get_next_month
 
     current_month = dialog_manager.dialog_data.get("current_month", "сентябрь")
     next_month_name = get_next_month(current_month)

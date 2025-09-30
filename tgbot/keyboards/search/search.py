@@ -4,8 +4,8 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from infrastructure.database.models import Employee
+from tgbot.keyboards.common.schedule import MONTH_EMOJIS
 from tgbot.keyboards.user.main import MainMenu
-from tgbot.keyboards.user.schedule.main import MONTH_EMOJIS
 from tgbot.misc.helpers import get_role
 
 

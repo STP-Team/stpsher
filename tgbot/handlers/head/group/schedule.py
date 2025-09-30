@@ -4,9 +4,9 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.head.schedule.group import head_group_schedule_service
-from tgbot.handlers.user.schedule.main import schedule_service
+from tgbot.keyboards.common.schedule import get_yekaterinburg_date, group_schedule_kb
 from tgbot.keyboards.head.group.main import GroupManagementMenu
-from tgbot.keyboards.user.schedule.main import get_yekaterinburg_date, group_schedule_kb
+from tgbot.services.schedule.schedule_handlers import schedule_service
 
 head_group_schedule_router = Router()
 head_group_schedule_router.message.filter(F.chat.type == "private", HeadFilter())

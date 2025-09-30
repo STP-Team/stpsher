@@ -42,7 +42,6 @@ from tgbot.handlers.root.main import root_router
 from tgbot.handlers.search.main import search_router
 from tgbot.handlers.user.auth.main import user_auth_router
 from tgbot.handlers.user.game.casino import user_game_casino_router
-from tgbot.handlers.user.links import user_links_router
 from tgbot.handlers.user.main import user_router
 
 routers_list = [
@@ -79,7 +78,6 @@ routers_list = [
     user_router,
     user_auth_router,
     user_game_casino_router,
-    user_links_router,
     user_inline_router,
     group_main_router,
     group_cmds_router,

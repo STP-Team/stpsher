@@ -13,7 +13,6 @@ from aiogram.types import (
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.mip.search import (
     EditUserMenu,
     HeadGroupMenu,
@@ -50,6 +49,7 @@ from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import get_role
 from tgbot.misc.states.search import EditEmployee, SearchEmployee
 from tgbot.services.salary import SalaryFormatter
+from tgbot.services.schedule.schedule_handlers import schedule_service
 from tgbot.services.search import SearchService
 
 search_router = Router()

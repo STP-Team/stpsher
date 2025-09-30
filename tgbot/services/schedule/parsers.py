@@ -17,8 +17,8 @@ from pandas import DataFrame
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.keyboards.common.schedule import get_yekaterinburg_date
 
-from ...keyboards.user.schedule.main import get_yekaterinburg_date
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
@@ -759,7 +759,7 @@ class DutyScheduleParser(BaseDutyParser):
                     start_minutes, end_minutes = self.utils.parse_time_range(
                         duty.schedule
                     )
-                    current_datetime = get_yekaterinburg_date()
+                    current_datetime = date
                     current_time_minutes = (
                         current_datetime.hour * 60 + current_datetime.minute
                     )
@@ -804,7 +804,7 @@ class DutyScheduleParser(BaseDutyParser):
                     start_minutes, end_minutes = self.utils.parse_time_range(
                         duty.schedule
                     )
-                    current_datetime = get_yekaterinburg_date()
+                    current_datetime = date()
                     current_time_minutes = (
                         current_datetime.hour * 60 + current_datetime.minute
                     )

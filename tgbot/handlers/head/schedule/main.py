@@ -5,9 +5,9 @@ from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
-from tgbot.handlers.user.schedule.main import schedule_service
-from tgbot.keyboards.user.main import MainMenu
 from tgbot.keyboards.head.schedule.main import schedule_kb_head
+from tgbot.keyboards.user.main import MainMenu
+from tgbot.services.schedule.schedule_handlers import schedule_service
 
 logger = logging.getLogger(__name__)
 

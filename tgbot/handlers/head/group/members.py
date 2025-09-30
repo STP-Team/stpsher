@@ -7,7 +7,6 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.schedule_getters import schedule_service
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game_profile import (
     HeadMemberGameHistoryMenu,
@@ -36,6 +35,7 @@ from tgbot.keyboards.head.group.members_kpi import head_member_kpi_kb
 from tgbot.keyboards.head.group.members_status import head_member_status_select_kb
 from tgbot.misc.helpers import get_role
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
+from tgbot.services.schedule.schedule_handlers import schedule_service
 
 head_group_members_router = Router()
 head_group_members_router.message.filter(F.chat.type == "private", HeadFilter())

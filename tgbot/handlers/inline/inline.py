@@ -18,8 +18,8 @@ from tgbot.filters.role import (
     RootFilter,
     SpecialistFilter,
 )
-from tgbot.handlers.user.schedule.main import ScheduleHandlerService
 from tgbot.misc.helpers import get_role
+from tgbot.services.schedule.schedule_handlers import ScheduleHandlerService
 
 logger = logging.getLogger(__name__)
 
