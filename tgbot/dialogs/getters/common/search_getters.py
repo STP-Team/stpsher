@@ -115,6 +115,23 @@ async def search_heads_getter(**kwargs):
     }
 
 
+async def search_results_getter(**kwargs):
+    """Получение результатов поиска"""
+    base_data = await db_getter(**kwargs)
+
+    dialog_manager = kwargs.get("dialog_manager")
+    search_results = dialog_manager.dialog_data.get("search_results", [])
+    search_query = dialog_manager.dialog_data.get("search_query", "")
+    total_found = dialog_manager.dialog_data.get("total_found", 0)
+
+    return {
+        **base_data,
+        "search_results": search_results,
+        "search_query": search_query,
+        "total_found": total_found,
+    }
+
+
 async def search_user_info_getter(**kwargs):
     """Получение информации о выбранном пользователе"""
     base_data = await db_getter(**kwargs)
@@ -129,6 +146,8 @@ async def search_user_info_getter(**kwargs):
     try:
         # Получаем информацию о пользователе
         user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+        if not user:
+            user = await stp_repo.employee.get_user(user_id=int(selected_user_id))
         if not user:
             return {**base_data, "user_info": "❌ Пользователь не найден"}
 

@@ -15,8 +15,8 @@ from aiogram_dialog import setup_dialogs
 
 from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
-from tgbot.dialogs.roles.head.main import head_dialog
-from tgbot.dialogs.roles.user.main import user_dialog
+from tgbot.dialogs.menus.head.main import head_dialog
+from tgbot.dialogs.menus.user.main import user_dialog
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware

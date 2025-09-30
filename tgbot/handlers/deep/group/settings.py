@@ -201,7 +201,7 @@ async def handle_settings_callback(
             )
 
         case "access":
-            # Initialize pending changes with current roles
+            # Initialize pending changes with current menus
             pending_role_changes[group.group_id] = (group.allowed_roles or []).copy()
 
             await callback.message.edit_text(
@@ -254,7 +254,7 @@ async def handle_settings_callback(
 
             total_members = len(employees) + len(non_employee_users)
 
-            # Create role legend from roles dict
+            # Create role legend from menus dict
             role_legend = []
             for role_id, role_info in roles.items():
                 if role_id not in [0, 10]:  # Skip unauthorized and root
@@ -333,7 +333,7 @@ async def handle_access_callback(
         await callback.answer("Не удалось найти группу в базе :(")
         return
 
-    # Get current pending roles for this group
+    # Get current pending menus for this group
     if group.group_id not in pending_role_changes:
         pending_role_changes[group.group_id] = (group.allowed_roles or []).copy()
 
@@ -408,7 +408,7 @@ async def handle_access_apply_callback(
 
         await callback.answer("❌ Изменения отменены")
 
-        # Update keyboard with original roles
+        # Update keyboard with original menus
         await callback.message.edit_reply_markup(
             reply_markup=group_access_kb(group, page=1)
         )
@@ -451,7 +451,7 @@ async def handle_members_pagination(
 
     total_members = len(employees) + len(non_employee_users)
 
-    # Create role legend from roles dict
+    # Create role legend from menus dict
     role_legend = []
     for role_id, role_info in roles.items():
         if role_id not in [0, 10]:  # Skip unauthorized and root

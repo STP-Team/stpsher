@@ -35,6 +35,8 @@ class UserSG(StatesGroup):
     search_heads = State()
     search_query = State()
     search_result = State()
+    search_no_results = State()
+    search_user_detail = State()
 
     # Действия
     game_shop_confirm = State()

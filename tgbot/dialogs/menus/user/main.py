@@ -4,29 +4,29 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import db_getter
-from tgbot.dialogs.roles.user.game.achievements import achievements_window
-from tgbot.dialogs.roles.user.game.game import (
+from tgbot.dialogs.menus.user.game.achievements import achievements_window
+from tgbot.dialogs.menus.user.game.game import (
     game_window,
 )
-from tgbot.dialogs.roles.user.game.history import (
+from tgbot.dialogs.menus.user.game.history import (
     history_detail_window,
     history_window,
 )
-from tgbot.dialogs.roles.user.game.inventory import (
+from tgbot.dialogs.menus.user.game.inventory import (
     inventory_detail_window,
     inventory_window,
 )
-from tgbot.dialogs.roles.user.game.shop import (
+from tgbot.dialogs.menus.user.game.shop import (
     confirm_window,
     shop_window,
     success_window,
 )
-from tgbot.dialogs.roles.user.kpi import (
+from tgbot.dialogs.menus.user.kpi import (
     kpi_requirements_window,
     kpi_window,
     salary_window,
 )
-from tgbot.dialogs.roles.user.schedule import (
+from tgbot.dialogs.menus.user.schedule import (
     schedule_duties_window,
     schedule_group_window,
     schedule_heads_window,
@@ -34,9 +34,11 @@ from tgbot.dialogs.roles.user.schedule import (
     schedule_my_window,
     schedule_window,
 )
-from tgbot.dialogs.roles.user.search import (
+from tgbot.dialogs.menus.user.search import (
     search_heads_window,
+    search_no_results_window,
     search_query_window,
+    search_results_window,
     search_specialists_window,
     search_user_info_window,
     search_window,
@@ -66,7 +68,7 @@ menu_window = Window(
 async def on_start(start_data, manager: DialogManager, **kwargs):
     """Установка значений по умолчанию при запуске диалога"""
     # Устанавливаем значение по умолчанию для фильтра магазина
-    schedule_mode: ManagedRadio = start_data.get("schedule_mode")
+    schedule_mode: ManagedRadio = manager.find("schedule_mode")
     await schedule_mode.set_checked("compact")
 
     shop_filter: ManagedRadio = manager.find("shop_filter")
@@ -114,6 +116,8 @@ user_dialog = Dialog(
     search_specialists_window,
     search_heads_window,
     search_query_window,
+    search_results_window,
+    search_no_results_window,
     search_user_info_window,
     on_start=on_start,
     getter=db_getter,
