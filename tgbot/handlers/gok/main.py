@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @gok_router.message(CommandStart())
-async def gok_start_cmd(message: Message, dialog_manager: DialogManager):
+async def gok_start(message: Message, dialog_manager: DialogManager):
     try:
         await dialog_manager.done()
     except NoContextError:

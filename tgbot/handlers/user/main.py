@@ -21,9 +21,7 @@ user_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_router.message(CommandStart())
-async def user_start_cmd(
-    message: Message, user: Employee, dialog_manager: DialogManager
-):
+async def user_start(message: Message, user: Employee, dialog_manager: DialogManager):
     if not user:
         await message.answer(
             """👋 Привет

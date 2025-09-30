@@ -13,7 +13,7 @@ root_router.callback_query.filter(F.message.chat.type == "private", RootFilter()
 
 
 @root_router.message(CommandStart())
-async def admin_start_cmd(message: Message, dialog_manager: DialogManager):
+async def root_start(message: Message, dialog_manager: DialogManager):
     try:
         await dialog_manager.done()
     except NoContextError:

@@ -14,7 +14,7 @@ head_router.callback_query.filter(F.message.chat.type == "private", HeadFilter()
 
 
 @head_router.message(CommandStart())
-async def admin_start_cmd(
+async def head_start(
     message: Message, user: Employee, dialog_manager: DialogManager, **kwargs
 ):
     try:
