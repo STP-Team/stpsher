@@ -142,7 +142,7 @@ class PurchaseRepo(BaseRepo):
         return total or 0  # Если покупка не найдена - возвращаем 0
 
     async def get_review_purchases_for_activation(
-        self, manager_role: int, division: str = None
+        self, manager_role: int, division: str | list[str] | None
     ) -> list[PurchaseDetailedParams]:
         """
         Получаем список покупок, ожидающих активации
@@ -160,7 +160,12 @@ class PurchaseRepo(BaseRepo):
 
         # Добавляем фильтр по division если указан
         if division:
-            select_stmt = select_stmt.where(Employee.division == division)
+            if isinstance(division, list):
+                # Для списка подразделений используем in_
+                select_stmt = select_stmt.where(Employee.division.in_(division))
+            else:
+                # Для одного подразделения используем like
+                select_stmt = select_stmt.where(Employee.division.like(division))
 
         select_stmt = select_stmt.order_by(
             Purchase.bought_at.asc()

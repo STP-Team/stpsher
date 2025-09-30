@@ -80,7 +80,7 @@ async def use_product(callback, widget, dialog_manager: DialogManager, **kwargs)
             )
             # Обновляем данные предмета и возвращаемся
             if dialog_manager.current_context().state == UserSG.game_shop_success:
-                await dialog_manager.switch_to(UserSG.game_shop)
+                await dialog_manager.switch_to(UserSG.game_products)
             else:
                 await dialog_manager.switch_to(UserSG.game_inventory)
         else:

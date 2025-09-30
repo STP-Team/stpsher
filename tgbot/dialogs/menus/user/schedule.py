@@ -23,14 +23,14 @@ from tgbot.dialogs.callbacks.common.schedule_functions import (
 from tgbot.dialogs.callbacks.user_functions import (
     on_mode_select,
 )
-from tgbot.dialogs.getters.common.schedule_getters import (
+from tgbot.dialogs.getters.common.db import db_getter
+from tgbot.dialogs.getters.common.schedule import (
     detailed_schedule_getter,
     duty_schedule_getter,
     group_schedule_getter,
     head_schedule_getter,
     month_navigation_getter,
 )
-from tgbot.dialogs.getters.user.user_getters import db_getter
 from tgbot.misc.states.dialogs.user import UserSG
 
 schedule_window = Window(

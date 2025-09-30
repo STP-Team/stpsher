@@ -14,8 +14,11 @@ from tgbot.dialogs.events.common.activations import (
     on_approve_activation,
     on_reject_activation,
 )
-from tgbot.dialogs.getters.user.game_getters import activations_getter
-from tgbot.dialogs.getters.user.user_getters import activation_detail_getter, db_getter
+from tgbot.dialogs.getters.common.activations import (
+    activation_detail_getter,
+    activations_getter,
+)
+from tgbot.dialogs.getters.common.db import db_getter
 
 
 def create_activations_windows(state_group, menu_state):

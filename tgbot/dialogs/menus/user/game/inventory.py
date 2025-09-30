@@ -16,22 +16,10 @@ from tgbot.dialogs.events.user.inventory import (
     on_inventory_sell_product,
     use_product,
 )
-from tgbot.dialogs.getters.user.game_getters import (
-    inventory_detail_getter,
-    inventory_filter_getter,
-)
+from tgbot.dialogs.filters.user.game.inventory import inventory_filter_getter
+from tgbot.dialogs.getters.user.game.inventory import inventory_detail_getter
+from tgbot.misc.helpers import get_status_emoji
 from tgbot.misc.states.dialogs.user import UserSG
-
-
-def get_status_emoji(status: str) -> str:
-    """Возвращает эмодзи в зависимости от статуса"""
-    status_emojis = {
-        "stored": "📦",
-        "review": "⏳",
-        "used_up": "🔒",
-    }
-    return status_emojis.get(status, "❓")
-
 
 game_inventory_window = Window(
     Format("""🎒 <b>Инвентарь</b>

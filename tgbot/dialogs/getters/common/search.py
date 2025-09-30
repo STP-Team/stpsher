@@ -1,5 +1,5 @@
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.db_getters import db_getter
+from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.misc.helpers import get_role
 from tgbot.services.search import SearchService
 

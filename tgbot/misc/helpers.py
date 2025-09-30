@@ -19,3 +19,13 @@ def get_role(role_id: int = None, role_name: str = None, return_id: bool = False
                 return r_id if return_id else data
 
     return None
+
+
+def get_status_emoji(status: str) -> str:
+    """Возвращает эмодзи в зависимости от статуса предмета"""
+    status_emojis = {
+        "stored": "📦",
+        "review": "⏳",
+        "used_up": "🔒",
+    }
+    return status_emojis.get(status, "❓")

@@ -1,4 +1,4 @@
-from tgbot.dialogs.menus.common.activations import create_activations_windows
+from tgbot.dialogs.menus.common.game.activations import create_activations_windows
 from tgbot.misc.states.dialogs.user import UserSG
 
 (

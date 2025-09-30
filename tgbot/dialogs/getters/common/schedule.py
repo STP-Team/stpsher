@@ -3,7 +3,7 @@ from typing import cast
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.user.user_getters import db_getter
+from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.services.schedule.schedule_handlers import schedule_service
 
 

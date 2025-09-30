@@ -15,8 +15,10 @@ game_window = Window(
         state=MipSG.game_products_activation,
     ),
     Row(
-        SwitchTo(Const("🎯 Достижения"), id="achievements", state=MipSG.groups),
-        SwitchTo(Const("👏 Предметы"), id="products", state=MipSG.groups),
+        SwitchTo(
+            Const("🎯 Достижения"), id="achievements", state=MipSG.game_achievements
+        ),
+        SwitchTo(Const("👏 Предметы"), id="products", state=MipSG.game_products),
     ),
     SwitchTo(Const("↩️ Назад"), id="menu", state=MipSG.menu),
     state=MipSG.game,

@@ -1,0 +1,86 @@
+from infrastructure.database.models import Employee
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.db import db_getter
+from tgbot.dialogs.getters.common.search import short_name
+
+
+async def activations_getter(**kwargs):
+    """
+    Получение списка предметов для активации на основе роли пользователя
+    """
+    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
+    user: Employee = kwargs.get("user")
+
+    # Получаем покупки, ожидающие активации с manager_role, соответствующей роли пользователя
+    if user.role == 3:
+        activations = await stp_repo.purchase.get_review_purchases_for_activation(
+            manager_role=user.role,
+            division="НЦК" if user.division == "НЦК" else ["НТП", "НТП1"],
+        )
+    else:
+        activations = await stp_repo.purchase.get_review_purchases_for_activation(
+            manager_role=user.role, division=None
+        )
+
+    formatted_activations = []
+    for counter, purchase_details in enumerate(activations, start=1):
+        purchase = purchase_details.user_purchase
+        product = purchase_details.product_info
+
+        # Получаем информацию о пользователе, который купил предмет
+        purchase_user = await stp_repo.employee.get_user(user_id=purchase.user_id)
+        if user.username:
+            user_name = (
+                f"<a href='t.me/'{purchase_user.username}>{short_name(purchase_user.fullname)}</a>"
+                if purchase_user
+                else f"ID: {purchase.user_id}"
+            )
+        else:
+            user_name = (
+                short_name(purchase_user.fullname)
+                if purchase_user
+                else f"ID: {purchase.user_id}"
+            )
+
+        formatted_activations.append(
+            (
+                purchase.id,  # ID для обработчика клика
+                product.name,
+                product.description,
+                purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
+                user_name,
+                purchase_user.division if purchase_user else "Неизвестно",
+                purchase_user.username if purchase_user else None,
+                purchase_user.user_id if purchase_user else purchase.user_id,
+            )
+        )
+
+    return {
+        "activations": formatted_activations,
+        "total_activations": len(formatted_activations),
+    }
+
+
+async def activation_detail_getter(**kwargs):
+    """
+    Getter for activation detail window that includes dialog_data
+    """
+    base_data = await db_getter(**kwargs)
+    dialog_manager = kwargs.get("dialog_manager")
+
+    # Получаем selected_activation из dialog_data
+    selected_activation = dialog_manager.dialog_data.get("selected_activation", {})
+
+    # Подготавливаем данные с вычисленными значениями
+    if selected_activation:
+        # Вычисляем следующий номер активации
+        next_usage_count = selected_activation.get("usage_count", 0) + 1
+        selected_activation = {
+            **selected_activation,
+            "next_usage_count": next_usage_count,
+        }
+
+    return {
+        **base_data,
+        "selected_activation": selected_activation,
+    }

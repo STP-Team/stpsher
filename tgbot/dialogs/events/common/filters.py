@@ -8,6 +8,8 @@ async def on_filter_change(callback, widget, dialog_manager, item_id, **kwargs):
         dialog_manager.dialog_data["purchases_filter"] = item_id
     elif widget.widget_id == "achievement_position_filter":
         dialog_manager.dialog_data["achievement_position_filter"] = item_id
+    elif widget.widget_id == "achievement_division_filter":
+        dialog_manager.dialog_data["achievement_division_filter"] = item_id
     elif widget.widget_id == "achievement_period_filter":
         dialog_manager.dialog_data["achievement_period_filter"] = item_id
     elif widget.widget_id == "history_type_filter":

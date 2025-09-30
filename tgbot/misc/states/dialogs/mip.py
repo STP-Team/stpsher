@@ -7,6 +7,14 @@ class MipSG(StatesGroup):
     groups = State()
     game = State()
 
+    # Игра
+    game_achievements = State()
+    game_products = State()
+    game_shop = State()
+    game_shop_confirm = State()
+    game_shop_success = State()
+    game_inventory = State()
+
     # Активация предметов
     game_products_activation = State()
     game_activation_detail = State()

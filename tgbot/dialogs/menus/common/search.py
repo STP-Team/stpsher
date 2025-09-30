@@ -16,13 +16,13 @@ from tgbot.dialogs.events.user.search import (
     on_search_query,
     on_user_select,
 )
-from tgbot.dialogs.getters.common.search_getters import (
+from tgbot.dialogs.getters.common.db import db_getter
+from tgbot.dialogs.getters.common.search import (
     search_heads_getter,
     search_results_getter,
     search_specialists_getter,
     search_user_info_getter,
 )
-from tgbot.dialogs.getters.user.user_getters import db_getter
 
 
 def create_search_windows(state_group, menu_state):

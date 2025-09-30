@@ -4,7 +4,7 @@ from infrastructure.database.models import Employee
 from infrastructure.database.models.KPI.head_premium import HeadPremium
 from infrastructure.database.models.KPI.spec_premium import SpecPremium
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from tgbot.dialogs.getters.common.db_getters import db_getter
+from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 

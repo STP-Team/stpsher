@@ -117,7 +117,7 @@ async def on_sell_product(callback, widget, dialog_manager: DialogManager, **kwa
                 f"✅ Продано: {product_info['name']}.\nВозвращено: {product_info['cost']} баллов"
             )
             # Возвращаемся в магазин
-            await dialog_manager.switch_to(UserSG.game_shop)
+            await dialog_manager.switch_to(UserSG.game_products)
         else:
             await callback.answer("❌ Ошибка при продаже предмета", show_alert=True)
 

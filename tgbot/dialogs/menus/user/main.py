@@ -3,7 +3,7 @@ from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.getters.user.user_getters import db_getter
+from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.user.game.achievements import game_achievements_window
 from tgbot.dialogs.menus.user.game.activations import (
     game_activation_detail_window,

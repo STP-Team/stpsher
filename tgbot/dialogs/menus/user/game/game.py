@@ -6,7 +6,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.getters.user.user_getters import game_getter
+from tgbot.dialogs.getters.user.game.game import game_getter
 from tgbot.misc.states.dialogs.user import UserSG
 
 game_window = Window(
@@ -17,7 +17,7 @@ game_window = Window(
 <blockquote expandable><b>✨ Баланс</b>
 Всего заработано: {achievements_sum} баллов
 Всего потрачено: {purchases_sum} баллов</blockquote>"""),
-    SwitchTo(Const("💎 Магазин"), id="shop", state=UserSG.game_shop),
+    SwitchTo(Const("💎 Магазин"), id="shop", state=UserSG.game_products),
     SwitchTo(
         Const("✍️ Активация предметов"),
         id="products_activation",

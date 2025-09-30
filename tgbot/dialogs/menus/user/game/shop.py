@@ -1,72 +1,23 @@
-from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.kbd import (
     Button,
-    Radio,
     Row,
-    ScrollingGroup,
-    Select,
     SwitchTo,
 )
-from aiogram_dialog.widgets.text import Const, Format, List
+from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.user.inventory import use_product
 from tgbot.dialogs.events.user.shop import (
     on_confirm_purchase,
-    on_product_click,
     on_sell_product,
 )
-from tgbot.dialogs.getters.user.game_getters import (
-    confirmation_getter,
-    product_filter_getter,
-    success_getter,
-)
+from tgbot.dialogs.getters.common.game.shop import role_based_product_filter_getter
+from tgbot.dialogs.getters.user.game.shop import confirmation_getter, success_getter
+from tgbot.dialogs.menus.common.game.products import create_products_window
 from tgbot.misc.states.dialogs.user import UserSG
 
-game_shop_window = Window(
-    Format("""💎 <b>Магазин</b>
-
-<b>✨ Твой баланс:</b> {user_balance} баллов\n"""),
-    List(
-        Format("""{pos}. <b>{item[1]}</b>
-<blockquote>💵 Стоимость: {item[3]} баллов
-📝 Описание: {item[2]}
-📍 Активаций: {item[3]}</blockquote>\n"""),
-        items="products",
-        id="shop_products",
-        page_size=4,
-    ),
-    ScrollingGroup(
-        Select(
-            Format("{pos}. {item[1]}"),
-            id="product",
-            items="products",
-            item_id_getter=lambda item: item[0],
-            on_click=on_product_click,
-        ),
-        width=2,
-        height=2,
-        hide_on_single_page=True,
-        id="shop_scroll",
-        on_page_changed=sync_scroll("shop_products"),
-    ),
-    Row(
-        Radio(
-            Format("🔘 {item[1]}"),
-            Format("⚪️ {item[1]}"),
-            id="shop_filter",
-            item_id_getter=lambda item: item[0],
-            items=[("available", "Доступные"), ("all", "Все предметы")],
-            on_click=on_filter_change,
-        ),
-    ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=UserSG.game),
-        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
-    ),
-    getter=product_filter_getter,
-    state=UserSG.game_shop,
+game_shop_window = create_products_window(
+    UserSG, UserSG.game, role_based_product_filter_getter
 )
 
 game_shop_confirm_window = Window(
@@ -89,7 +40,7 @@ game_shop_confirm_window = Window(
         on_click=on_confirm_purchase,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=UserSG.game_shop),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=UserSG.game_products),
         SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
     ),
     getter=confirmation_getter,
@@ -124,7 +75,7 @@ game_shop_success_window = Window(
     ),
     Row(
         SwitchTo(Const("🎒 Инвентарь"), id="inventory", state=UserSG.game_inventory),
-        SwitchTo(Const("💎 Магазин"), id="inventory", state=UserSG.game_shop),
+        SwitchTo(Const("💎 Магазин"), id="inventory", state=UserSG.game_products),
     ),
     Row(
         SwitchTo(Const("🏮 К игре"), id="to_game", state=UserSG.game),

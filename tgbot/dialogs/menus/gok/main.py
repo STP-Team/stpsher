@@ -3,13 +3,15 @@ from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.getters.user.user_getters import db_getter
+from tgbot.dialogs.getters.common.db import db_getter
+from tgbot.dialogs.menus.gok.game.achievements import game_achievements_window
 from tgbot.dialogs.menus.gok.game.activations import (
     game_activation_detail_window,
     game_activations_empty_window,
     game_activations_window,
 )
 from tgbot.dialogs.menus.gok.game.game import game_window
+from tgbot.dialogs.menus.gok.game.products import game_products_window
 from tgbot.dialogs.menus.gok.search import (
     search_heads_window,
     search_no_results_window,
@@ -51,6 +53,8 @@ async def on_start(start_data, dialog_manager: DialogManager, **kwargs):
 gok_dialog = Dialog(
     menu_window,
     game_window,
+    game_products_window,
+    game_achievements_window,
     game_activations_window,
     game_activation_detail_window,
     game_activations_empty_window,
