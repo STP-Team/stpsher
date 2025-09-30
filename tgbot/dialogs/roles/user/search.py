@@ -107,8 +107,10 @@ search_query_window = Window(state=UserSG.search_query)
 
 search_user_info_window = Window(
     Format("{user_info}"),
-    SwitchTo(Const("↩️ Назад"), id="back", state=UserSG.search),
-    SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=UserSG.search),
+        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
+    ),
     getter=search_user_info_getter,
     state=UserSG.search_result,
 )

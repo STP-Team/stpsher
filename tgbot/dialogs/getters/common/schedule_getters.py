@@ -135,6 +135,7 @@ async def group_schedule_getter(**kwargs):
 
 async def month_navigation_getter(**kwargs):
     from tgbot.keyboards.common.schedule import MONTH_EMOJIS, get_yekaterinburg_date
+    from tgbot.misc.states.user.main import UserSG
 
     dialog_manager = kwargs.get("dialog_manager")
     current_month = dialog_manager.dialog_data.get("current_month")
@@ -156,12 +157,28 @@ async def month_navigation_getter(**kwargs):
         user=user, month=current_month, compact=True, stp_repo=stp_repo
     )
 
+    # Determine current mode for button text
+    current_state = dialog_manager.current_context().state
+    is_detailed_mode = current_state == UserSG.schedule_my_detailed
+    button_text = "📋 Кратко" if is_detailed_mode else "📋 Подробнее"
+
+    mode_options = [
+        ("compact", "Кратко"),
+        ("detailed", "Детально"),
+    ]
+
+    selected_mode = "detailed" if is_detailed_mode else "compact"
+
     return {
         **base_data,
         "current_month": current_month,
         "month_emoji": month_emoji,
         "month_display": f"{month_emoji} {current_month.capitalize()}",
         "schedule_text": schedule_text,
+        "detail_button_text": button_text,
+        "is_detailed_mode": is_detailed_mode,
+        "mode_options": mode_options,
+        "selected_mode": selected_mode,
     }
 
 

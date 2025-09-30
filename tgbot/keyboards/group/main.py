@@ -185,7 +185,7 @@ def group_management_kb(
         if current_page > 1:
             pagination_row.append(
                 InlineKeyboardButton(
-                    text="◀️",
+                    text="<",
                     callback_data=GroupManagementMenu(
                         action="page", page=current_page - 1
                     ).pack(),
@@ -201,7 +201,7 @@ def group_management_kb(
         if current_page < total_pages:
             pagination_row.append(
                 InlineKeyboardButton(
-                    text="▶️",
+                    text=">",
                     callback_data=GroupManagementMenu(
                         action="page", page=current_page + 1
                     ).pack(),
@@ -497,7 +497,7 @@ def group_members_kb(
         if current_page > 1:
             pagination_row.append(
                 InlineKeyboardButton(
-                    text="◀️",
+                    text="<",
                     callback_data=GroupMembersMenu(
                         group_id=group_id,
                         page=current_page - 1,
@@ -515,7 +515,7 @@ def group_members_kb(
         if current_page < total_pages:
             pagination_row.append(
                 InlineKeyboardButton(
-                    text="▶️",
+                    text=">",
                     callback_data=GroupMembersMenu(
                         group_id=group_id,
                         page=current_page + 1,

@@ -1,6 +1,7 @@
 from aiogram import F
 from aiogram_dialog.widgets.kbd import (
     Button,
+    Radio,
     Row,
     SwitchTo,
 )
@@ -20,7 +21,7 @@ from tgbot.dialogs.callbacks.common.schedule_functions import (
     today,
 )
 from tgbot.dialogs.callbacks.user_functions import (
-    switch_to_detailed,
+    on_mode_select,
 )
 from tgbot.dialogs.getters.common.schedule_getters import (
     detailed_schedule_getter,
@@ -69,7 +70,7 @@ schedule_my_window = Window(
     Format("{schedule_text}"),
     Row(
         Button(
-            Const("◀️"),
+            Const("<"),
             id="prev_month",
             on_click=prev_month,
         ),
@@ -79,15 +80,20 @@ schedule_my_window = Window(
             on_click=do_nothing,
         ),
         Button(
-            Const("▶️"),
+            Const(">"),
             id="next_month",
             on_click=next_month,
         ),
     ),
-    Button(
-        Const("📋 Подробнее"),
-        id="detailed",
-        on_click=switch_to_detailed,
+    Row(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="schedule_mode",
+            item_id_getter=lambda item: item[0],
+            items="mode_options",
+            on_click=on_mode_select,
+        ),
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
@@ -98,11 +104,49 @@ schedule_my_window = Window(
 )
 
 
+schedule_my_detailed_window = Window(
+    Format("{schedule_text}"),
+    Row(
+        Button(
+            Const("<"),
+            id="prev_month",
+            on_click=prev_month,
+        ),
+        Button(
+            Format("{month_display}"),
+            id="current_month",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_month",
+            on_click=next_month,
+        ),
+    ),
+    Row(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="mode_selector",
+            item_id_getter=lambda item: item[0],
+            items="mode_options",
+            on_click=on_mode_select,
+        ),
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
+        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
+    ),
+    getter=detailed_schedule_getter,
+    state=UserSG.schedule_my_detailed,
+)
+
+
 schedule_duties_window = Window(
     Format("{duties_text}"),
     Row(
         Button(
-            Const("◀️"),
+            Const("<"),
             id="prev_day",
             on_click=prev_day,
         ),
@@ -112,7 +156,7 @@ schedule_duties_window = Window(
             on_click=do_nothing,
         ),
         Button(
-            Const("▶️"),
+            Const(">"),
             id="next_day",
             on_click=next_day,
         ),
@@ -135,7 +179,7 @@ schedule_group_window = Window(
     Format("{group_text}"),
     Row(
         Button(
-            Const("◀️"),
+            Const("<"),
             id="prev_day",
             on_click=prev_day,
         ),
@@ -145,7 +189,7 @@ schedule_group_window = Window(
             on_click=do_nothing,
         ),
         Button(
-            Const("▶️"),
+            Const(">"),
             id="next_day",
             on_click=next_day,
         ),
@@ -168,7 +212,7 @@ schedule_heads_window = Window(
     Format("{heads_text}"),
     Row(
         Button(
-            Const("◀️"),
+            Const("<"),
             id="prev_day",
             on_click=prev_day,
         ),
@@ -178,7 +222,7 @@ schedule_heads_window = Window(
             on_click=do_nothing,
         ),
         Button(
-            Const("▶️"),
+            Const(">"),
             id="next_day",
             on_click=next_day,
         ),
@@ -195,36 +239,4 @@ schedule_heads_window = Window(
     ),
     getter=head_schedule_getter,
     state=UserSG.schedule_heads,
-)
-
-schedule_my_detailed_window = Window(
-    Format("{schedule_text}"),
-    Row(
-        Button(
-            Const("◀️"),
-            id="prev_month",
-            on_click=prev_month,
-        ),
-        Button(
-            Format("{month_display}"),
-            id="current_month",
-            on_click=do_nothing,
-        ),
-        Button(
-            Const("▶️"),
-            id="next_month",
-            on_click=next_month,
-        ),
-    ),
-    SwitchTo(
-        Const("📋 Кратко"),
-        id="compact",
-        state=UserSG.schedule_my,
-    ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
-        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
-    ),
-    getter=detailed_schedule_getter,
-    state=UserSG.schedule_my_detailed,
 )

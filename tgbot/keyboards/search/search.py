@@ -744,7 +744,7 @@ def user_schedule_with_month_kb(
 
     nav_buttons.append(
         InlineKeyboardButton(
-            text="◀️",
+            text="<",
             callback_data=ScheduleNavigation(
                 action="prev",
                 user_id=user_id,
@@ -775,7 +775,7 @@ def user_schedule_with_month_kb(
 
     nav_buttons.append(
         InlineKeyboardButton(
-            text="▶️",
+            text=">",
             callback_data=ScheduleNavigation(
                 action="next",
                 user_id=user_id,

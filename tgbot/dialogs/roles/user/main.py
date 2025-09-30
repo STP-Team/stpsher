@@ -30,6 +30,7 @@ from tgbot.dialogs.roles.user.schedule import (
     schedule_duties_window,
     schedule_group_window,
     schedule_heads_window,
+    schedule_my_detailed_window,
     schedule_my_window,
     schedule_window,
 )
@@ -65,6 +66,9 @@ menu_window = Window(
 async def on_start(start_data, manager: DialogManager, **kwargs):
     """Установка значений по умолчанию при запуске диалога"""
     # Устанавливаем значение по умолчанию для фильтра магазина
+    schedule_mode: ManagedRadio = start_data.get("schedule_mode")
+    await schedule_mode.set_checked("compact")
+
     shop_filter: ManagedRadio = manager.find("shop_filter")
     await shop_filter.set_checked("available")
 
@@ -90,6 +94,7 @@ user_dialog = Dialog(
     menu_window,
     schedule_window,
     schedule_my_window,
+    schedule_my_detailed_window,
     schedule_duties_window,
     schedule_group_window,
     schedule_heads_window,
