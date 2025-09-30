@@ -437,23 +437,34 @@ async def use_product_handler(
             show_alert=True,
         )
 
-        # Determine notification recipients based on work shift
+        # Determine notification recipients based on work shift and manager_role
         manager_ids = []
 
         if user_has_work_shift:
-            # For all divisions with work shift, notify only current duty officers
-            duty_scheduler = DutyScheduleParser()
-            current_senior = await duty_scheduler.get_current_senior_duty(
-                user.division, stp_repo
-            )
-            current_helper = await duty_scheduler.get_current_helper_duty(
-                user.division, stp_repo
-            )
+            manager_role = user_product_detail.product_info.manager_role
 
-            if current_senior and current_senior.user_id != user.user_id:
-                manager_ids.append(current_senior.user_id)
-            if current_helper and current_helper.user_id != user.user_id:
-                manager_ids.append(current_helper.user_id)
+            if manager_role == 3:
+                # For manager_role 3, notify only current duty officers
+                duty_scheduler = DutyScheduleParser()
+                current_senior = await duty_scheduler.get_current_senior_duty(
+                    user.division, stp_repo
+                )
+                current_helper = await duty_scheduler.get_current_helper_duty(
+                    user.division, stp_repo
+                )
+
+                if current_senior and current_senior.user_id != user.user_id:
+                    manager_ids.append(current_senior.user_id)
+                if current_helper and current_helper.user_id != user.user_id:
+                    manager_ids.append(current_helper.user_id)
+            elif manager_role in [5, 6]:
+                # For manager_role 5 or 6, notify users with the same role
+                users_with_role = await stp_repo.employee.get_users_by_role(
+                    manager_role
+                )
+                for role_user in users_with_role:
+                    if role_user.user_id != user.user_id:
+                        manager_ids.append(role_user.user_id)
 
         if manager_ids:
             notification_text = f"""<b>🔔 Новый предмет на активацию</b>
