@@ -15,8 +15,10 @@ game_window = Window(
         state=GokSG.game_products_activation,
     ),
     Row(
-        SwitchTo(Const("🎯 Достижения"), id="achievements", state=GokSG.groups),
-        SwitchTo(Const("👏 Предметы"), id="products", state=GokSG.groups),
+        SwitchTo(
+            Const("🎯 Достижения"), id="achievements", state=GokSG.game_achievements
+        ),
+        SwitchTo(Const("👏 Предметы"), id="products", state=GokSG.game_products),
     ),
     SwitchTo(Const("↩️ Назад"), id="menu", state=GokSG.menu),
     state=GokSG.game,

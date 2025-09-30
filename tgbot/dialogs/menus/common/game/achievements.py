@@ -19,7 +19,6 @@ def create_achievements_windows(state_group, menu_state, achievements_filter_get
     """Create achievements windows for a given state group with role-based filtering"""
 
     is_user_role = state_group == UserSG
-    print(is_user_role)
 
     # Создаем фильтр для первой категории (позиция или подразделение)
     if is_user_role:

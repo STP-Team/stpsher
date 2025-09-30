@@ -5,8 +5,6 @@ class GokSG(StatesGroup):
     # Меню
     menu = State()
     game = State()
-    achievement = State()
-    products = State()
     groups = State()
 
     # Игра

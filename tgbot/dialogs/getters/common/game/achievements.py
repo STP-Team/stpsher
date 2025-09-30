@@ -15,8 +15,8 @@ async def role_based_achievements_filter_getter(**kwargs):
     is_user_role = user and user.role in [1, 3]
 
     # Определяем параметры для загрузки достижений в зависимости от роли
-    if user and user.role == 6:  # GOK role
-        # Для GOK показываем все достижения из всех подразделений
+    if user and user.role in [5, 6]:  # GOK role
+        # Для ГОК и МИП показываем все достижения из всех подразделений
         base_data = await achievements_getter(**kwargs)
     else:
         # Для специалистов (role 1 или 3) показываем достижения своего подразделения
@@ -30,10 +30,10 @@ async def role_based_achievements_filter_getter(**kwargs):
 
     # Фильтруем достижения по роли пользователя
     if user:
-        if user.role == 6:  # GOK role
+        if user.role in [5, 6]:  # GOK role
             # Показываем все достижения без фильтрации по подразделению
             achievements = all_achievements
-        elif user.role in [1, 3]:  # Specialist roles
+        elif is_user_role:  # Specialist roles
             # Фильтруем по подразделению как раньше
             if "НТП1" in user.division:
                 allowed_positions = [
@@ -144,9 +144,19 @@ async def role_based_achievements_filter_getter(**kwargs):
         user = kwargs.get("user")
 
         if stp_repo and user:
-            # Для GOK получаем все достижения, для остальных - по подразделению
-            if user.role == 6:
-                original_data = await stp_repo.achievement.get_achievements()
+            # Для ГОК и МИП получаем достижения в зависимости от выбранного фильтра подразделения
+            if user.role in [5, 6]:
+                # Если выбран конкретный фильтр подразделения, используем его
+                if selected_filter == "nck":
+                    original_data = await stp_repo.achievement.get_achievements(
+                        division="НЦК"
+                    )
+                elif selected_filter == "ntp":
+                    original_data = await stp_repo.achievement.get_achievements(
+                        division="НТП"
+                    )
+                else:
+                    original_data = await stp_repo.achievement.get_achievements()
             else:
                 normalized_division = "НЦК" if "НЦК" in user.division else "НТП"
                 original_data = await stp_repo.achievement.get_achievements(

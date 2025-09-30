@@ -3,6 +3,9 @@ async def on_filter_change(callback, widget, dialog_manager, item_id, **kwargs):
     Обработчик нажатия на фильтр
     """
     if widget.widget_id == "shop_filter":
+        # Сохраняем фильтр под ключом виджета для правильной работы с разными типами фильтров
+        dialog_manager.dialog_data["shop_filter"] = item_id
+        # Для обратной совместимости также сохраняем в product_filter
         dialog_manager.dialog_data["product_filter"] = item_id
     elif widget.widget_id == "inventory_filter":
         dialog_manager.dialog_data["purchases_filter"] = item_id
