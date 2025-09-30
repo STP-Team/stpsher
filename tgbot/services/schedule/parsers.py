@@ -818,6 +818,14 @@ class DutyScheduleParser(BaseDutyParser):
                         "Файл графика дежурных 'Старшинство_НТП.xlsx' не найден"
                     )
                 schedule_file = duty_file
+            # For НЦК division, use separate seniority file
+            elif division == "НЦК":
+                duty_file = self.file_manager.uploads_folder / "Старшинство_НЦК.xlsx"
+                if not duty_file.exists():
+                    raise FileNotFoundError(
+                        "Файл графика дежурных 'Старшинство_НЦК.xlsx' не найден"
+                    )
+                schedule_file = duty_file
             else:
                 schedule_file = self.file_manager.find_schedule_file(division)
                 if not schedule_file:
@@ -832,8 +840,8 @@ class DutyScheduleParser(BaseDutyParser):
             except Exception as e:
                 logger.warning(f"Failed to read schedule with primary sheet name: {e}")
 
-                # For НТП divisions, try different sheet name patterns
-                if division in ["НТП", "НТП1", "НТП2"]:
+                # For НТП and НЦК divisions, try different sheet name patterns
+                if division in ["НТП", "НТП1", "НТП2", "НЦК"]:
                     # Try just the month name
                     month_names = [
                         "Январь",
@@ -853,31 +861,15 @@ class DutyScheduleParser(BaseDutyParser):
                     try:
                         df = self.read_excel_file(schedule_file, month_name)
                         logger.debug(
-                            f"Successfully read НТП duty sheet with name: {month_name}"
+                            f"Successfully read {division} duty sheet with name: {month_name}"
                         )
                     except Exception as e2:
                         logger.warning(
-                            f"Failed to read НТП duty sheet with month name '{month_name}': {e2}"
+                            f"Failed to read {division} duty sheet with month name '{month_name}': {e2}"
                         )
                         df = None
                 else:
-                    # Try alternative English month names for НЦК
-                    english_months = {
-                        1: "January",
-                        2: "February",
-                        3: "March",
-                        4: "April",
-                        5: "May",
-                        6: "June",
-                        7: "July",
-                        8: "August",
-                        9: "September",
-                        10: "October",
-                        11: "November",
-                        12: "December",
-                    }
-                    alt_sheet_name = f"Дежурство {english_months[date.month]}"
-                    df = self.read_excel_file(schedule_file, alt_sheet_name)
+                    df = None
 
             if df is None:
                 logger.debug(
@@ -986,6 +978,14 @@ class DutyScheduleParser(BaseDutyParser):
                         "Файл графика дежурных 'Старшинство_НТП.xlsx' не найден"
                     )
                 schedule_file = duty_file
+            # For НЦК division, use separate seniority file
+            elif division == "НЦК":
+                duty_file = self.file_manager.uploads_folder / "Старшинство_НЦК.xlsx"
+                if not duty_file.exists():
+                    raise FileNotFoundError(
+                        "Файл графика дежурных 'Старшинство_НЦК.xlsx' не найден"
+                    )
+                schedule_file = duty_file
             else:
                 schedule_file = self.file_manager.find_schedule_file(division)
                 if not schedule_file:
@@ -1000,8 +1000,8 @@ class DutyScheduleParser(BaseDutyParser):
             except Exception as e:
                 logger.warning(f"Failed to read schedule with primary sheet name: {e}")
 
-                # For НТП divisions, try different sheet name patterns
-                if division in ["НТП", "НТП1", "НТП2"]:
+                # For НТП and НЦК divisions, try different sheet name patterns
+                if division in ["НТП", "НТП1", "НТП2", "НЦК"]:
                     # Try just the month name
                     month_names = [
                         "Январь",
@@ -1021,31 +1021,15 @@ class DutyScheduleParser(BaseDutyParser):
                     try:
                         df = self.read_excel_file(schedule_file, month_name)
                         logger.debug(
-                            f"Successfully read НТП duty sheet with name: {month_name}"
+                            f"Successfully read {division} duty sheet with name: {month_name}"
                         )
                     except Exception as e2:
                         logger.warning(
-                            f"Failed to read НТП duty sheet with month name '{month_name}': {e2}"
+                            f"Failed to read {division} duty sheet with month name '{month_name}': {e2}"
                         )
                         df = None
                 else:
-                    # Try alternative English month names for НЦК
-                    english_months = {
-                        1: "January",
-                        2: "February",
-                        3: "March",
-                        4: "April",
-                        5: "May",
-                        6: "June",
-                        7: "July",
-                        8: "August",
-                        9: "September",
-                        10: "October",
-                        11: "November",
-                        12: "December",
-                    }
-                    alt_sheet_name = f"Дежурство {english_months[date.month]}"
-                    df = self.read_excel_file(schedule_file, alt_sheet_name)
+                    df = None
 
             if df is None:
                 logger.debug(
