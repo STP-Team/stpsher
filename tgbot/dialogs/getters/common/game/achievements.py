@@ -12,7 +12,7 @@ async def role_based_achievements_filter_getter(**kwargs):
     """
     dialog_manager = kwargs.get("dialog_manager")
     user = kwargs.get("user")
-    is_user_role = user and user.role == 1
+    is_user_role = user and user.role in [1, 3]
 
     # Определяем параметры для загрузки достижений в зависимости от роли
     if user and user.role == 6:  # GOK role
