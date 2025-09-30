@@ -6,10 +6,6 @@ import pytz
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
-from tgbot.keyboards.common.schedule import (
-    get_yekaterinburg_date,
-    schedule_kb,
-)
 from tgbot.keyboards.user.main import auth_kb
 from tgbot.misc.dicts import russian_months
 from tgbot.services.schedule.exceptions import (
@@ -59,9 +55,6 @@ class ScheduleHandlerService:
         callback: CallbackQuery, error: Exception, fallback_markup=None
     ) -> None:
         """Обработка ошибок расписания"""
-        if fallback_markup is None:
-            fallback_markup = schedule_kb()
-
         if isinstance(error, UserNotFoundError):
             error_msg = "❌ Пользователь не найден в расписании"
         elif isinstance(error, ScheduleFileNotFoundError):
@@ -125,7 +118,7 @@ class ScheduleHandlerService:
     ) -> str:
         """Получает расписание дежурных"""
         if date is None:
-            date = get_yekaterinburg_date()
+            date = schedule_service.get_current_date()
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
@@ -150,7 +143,7 @@ class ScheduleHandlerService:
             duties = active_duties
 
         # Check if today's date is selected to highlight current duties
-        today = get_yekaterinburg_date().date()
+        today = schedule_service.get_current_date()
         highlight_current = (date.date() == today) and stp_repo
 
         # Get formatted duties schedule with optional current duty highlighting
@@ -163,7 +156,7 @@ class ScheduleHandlerService:
     ) -> str:
         """Получает расписание руководителей групп"""
         if date is None:
-            date = get_yekaterinburg_date()
+            date = schedule_service.get_current_date()
 
         heads = await self.head_parser.get_heads_for_date(date, division, stp_repo)
 
@@ -188,7 +181,7 @@ class ScheduleHandlerService:
         :return: (текст, общее количество страниц, есть предыдущая, есть следующая)
         """
         if date is None:
-            date = get_yekaterinburg_date()
+            date = schedule_service.get_current_date()
 
         try:
             if is_head:

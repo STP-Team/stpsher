@@ -7,7 +7,6 @@ import pandas as pd
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.keyboards.common.schedule import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
 
 logger = logging.getLogger(__name__)

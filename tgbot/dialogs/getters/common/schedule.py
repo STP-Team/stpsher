@@ -4,6 +4,7 @@ from typing import cast
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.getters.common.db import db_getter
+from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.services.schedule.schedule_handlers import schedule_service
 
 
@@ -134,20 +135,18 @@ async def group_schedule_getter(**kwargs):
 
 
 async def month_navigation_getter(**kwargs):
-    from tgbot.keyboards.common.schedule import MONTH_EMOJIS, get_yekaterinburg_date
     from tgbot.misc.states.dialogs.user import UserSG
 
     dialog_manager = kwargs.get("dialog_manager")
     current_month = dialog_manager.dialog_data.get("current_month")
 
     if not current_month:
-        current_month_index = get_yekaterinburg_date().month - 1
-        from tgbot.keyboards.common.schedule import MONTHS_RU
+        current_month_index = schedule_service.get_current_date().month - 1
 
-        current_month = MONTHS_RU[current_month_index]
+        current_month = russian_months[current_month_index + 1]
         dialog_manager.dialog_data["current_month"] = current_month
 
-    month_emoji = MONTH_EMOJIS.get(current_month.lower(), "📅")
+    month_emoji = months_emojis.get(current_month.lower(), "📅")
 
     base_data = await db_getter(**kwargs)
     user: Employee = base_data.get("user")

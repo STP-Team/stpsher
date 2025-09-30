@@ -12,12 +12,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+import pytz
 from openpyxl import load_workbook
 from pandas import DataFrame
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.keyboards.common.schedule import get_yekaterinburg_date
 
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
@@ -741,7 +741,8 @@ class DutyScheduleParser(BaseDutyParser):
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
         """Get current senior duty for division based on current time."""
-        date = get_yekaterinburg_date()
+        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+        date = datetime.now(yekaterinburg_tz)
 
         try:
             # Get all duties for today
@@ -786,7 +787,8 @@ class DutyScheduleParser(BaseDutyParser):
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
         """Get current helper duty for division based on current time."""
-        date = get_yekaterinburg_date()
+        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+        date = datetime.now(yekaterinburg_tz)
 
         try:
             # Get all duties for today
