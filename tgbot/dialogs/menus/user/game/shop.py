@@ -24,7 +24,7 @@ from tgbot.dialogs.getters.user.game_getters import (
 )
 from tgbot.misc.states.dialogs.user import UserSG
 
-shop_window = Window(
+game_shop_window = Window(
     Format("""💎 <b>Магазин</b>
 
 <b>✨ Твой баланс:</b> {user_balance} баллов\n"""),
@@ -69,7 +69,7 @@ shop_window = Window(
     state=UserSG.game_shop,
 )
 
-confirm_window = Window(
+game_shop_confirm_window = Window(
     Format("""<b>🎯 Покупка предмета:</b> {product_name}
 
 <b>📝 Описание</b>
@@ -96,7 +96,7 @@ confirm_window = Window(
     state=UserSG.game_shop_confirm,
 )
 
-success_window = Window(
+game_shop_success_window = Window(
     Format("""<b>✅ Приобретен предмет:</b> {product_name}
 
 <b>📍 Количество активаций:</b> {product_count}

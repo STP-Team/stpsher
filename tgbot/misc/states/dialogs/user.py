@@ -23,6 +23,9 @@ class UserSG(StatesGroup):
     # Игра
     game = State()
     game_shop = State()
+    game_products_activation = State()
+    game_activation_detail = State()
+    game_activations_empty = State()
     game_achievements = State()
     game_inventory = State()
     game_inventory_detail = State()

@@ -2,6 +2,7 @@ from html import escape
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.search_getters import short_name
 
 
 # Хелперы
@@ -661,4 +662,55 @@ async def history_detail_getter(**kwargs):
         "source_name": source_name,
         "created_at": transaction_info["created_at"],
         "comment": transaction_info["comment"],
+    }
+
+
+async def activations_getter(**kwargs):
+    """
+    Получение списка предметов для активации на основе роли пользователя
+    """
+    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
+    user: Employee = kwargs.get("user")
+
+    # Получаем покупки, ожидающие активации с manager_role, соответствующей роли пользователя
+    review_purchases = await stp_repo.purchase.get_review_purchases_for_activation(
+        manager_role=user.role
+    )
+
+    formatted_activations = []
+    for counter, purchase_details in enumerate(review_purchases, start=1):
+        purchase = purchase_details.user_purchase
+        product = purchase_details.product_info
+
+        # Получаем информацию о пользователе, который купил предмет
+        purchase_user = await stp_repo.employee.get_user(user_id=purchase.user_id)
+        if user.username:
+            user_name = (
+                f"<a href='t.me/'{purchase_user.username}>{short_name(purchase_user.fullname)}</a>"
+                if purchase_user
+                else f"ID: {purchase.user_id}"
+            )
+        else:
+            user_name = (
+                short_name(purchase_user.fullname)
+                if purchase_user
+                else f"ID: {purchase.user_id}"
+            )
+
+        formatted_activations.append(
+            (
+                purchase.id,  # ID для обработчика клика
+                product.name,
+                product.description,
+                purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
+                user_name,
+                purchase_user.division if purchase_user else "Неизвестно",
+                purchase_user.username if purchase_user else None,
+                purchase_user.user_id if purchase_user else purchase.user_id,
+            )
+        )
+
+    return {
+        "activations": formatted_activations,
+        "total_activations": len(formatted_activations),
     }

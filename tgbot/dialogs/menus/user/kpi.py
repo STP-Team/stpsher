@@ -45,7 +45,7 @@ kpi_requirements_window = Window(
     state=UserSG.kpi_requirements,
 )
 
-salary_window = Window(
+kpi_salary_window = Window(
     Format("{salary_text}"),
     Row(
         SwitchTo(Const("🌟 Показатели"), id="kpi", state=UserSG.kpi),

@@ -4,27 +4,32 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import db_getter
-from tgbot.dialogs.menus.user.game.achievements import achievements_window
+from tgbot.dialogs.menus.user.game.achievements import game_achievements_window
+from tgbot.dialogs.menus.user.game.activations import (
+    game_activation_detail_window,
+    game_activations_empty_window,
+    game_activations_window,
+)
 from tgbot.dialogs.menus.user.game.game import (
     game_window,
 )
 from tgbot.dialogs.menus.user.game.history import (
-    history_detail_window,
-    history_window,
+    game_gistory_detail_window,
+    game_history_window,
 )
 from tgbot.dialogs.menus.user.game.inventory import (
-    inventory_detail_window,
-    inventory_window,
+    game_inventory_detail_window,
+    game_inventory_window,
 )
 from tgbot.dialogs.menus.user.game.shop import (
-    confirm_window,
-    shop_window,
-    success_window,
+    game_shop_confirm_window,
+    game_shop_success_window,
+    game_shop_window,
 )
 from tgbot.dialogs.menus.user.kpi import (
     kpi_requirements_window,
+    kpi_salary_window,
     kpi_window,
-    salary_window,
 )
 from tgbot.dialogs.menus.user.schedule import (
     schedule_duties_window,
@@ -105,16 +110,19 @@ user_dialog = Dialog(
     schedule_heads_window,
     kpi_window,
     kpi_requirements_window,
-    salary_window,
+    kpi_salary_window,
     game_window,
-    shop_window,
-    confirm_window,
-    success_window,
-    inventory_window,
-    inventory_detail_window,
-    achievements_window,
-    history_window,
-    history_detail_window,
+    game_activations_window,
+    game_activation_detail_window,
+    game_activations_empty_window,
+    game_shop_window,
+    game_shop_confirm_window,
+    game_shop_success_window,
+    game_inventory_window,
+    game_inventory_detail_window,
+    game_achievements_window,
+    game_history_window,
+    game_gistory_detail_window,
     search_window,
     search_specialists_window,
     search_heads_window,

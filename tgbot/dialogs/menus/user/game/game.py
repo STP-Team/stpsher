@@ -18,6 +18,12 @@ game_window = Window(
 Всего заработано: {achievements_sum} баллов
 Всего потрачено: {purchases_sum} баллов</blockquote>"""),
     SwitchTo(Const("💎 Магазин"), id="shop", state=UserSG.game_shop),
+    SwitchTo(
+        Const("✍️ Активация предметов"),
+        id="products_activation",
+        when="is_duty",
+        state=UserSG.game_products_activation,
+    ),
     Row(
         SwitchTo(
             Const("🎒 Инвентарь"),

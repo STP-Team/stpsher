@@ -21,4 +21,30 @@ async def game_getter(**kwargs):
         "achievements_sum": achievements_sum,
         "purchases_sum": purchases_sum,
         "level_info": level_info,
+        "is_duty": user.role == 3,
+    }
+
+
+async def activation_detail_getter(**kwargs):
+    """
+    Getter for activation detail window that includes dialog_data
+    """
+    base_data = await db_getter(**kwargs)
+    dialog_manager = kwargs.get("dialog_manager")
+
+    # Получаем selected_activation из dialog_data
+    selected_activation = dialog_manager.dialog_data.get("selected_activation", {})
+
+    # Подготавливаем данные с вычисленными значениями
+    if selected_activation:
+        # Вычисляем следующий номер активации
+        next_usage_count = selected_activation.get("usage_count", 0) + 1
+        selected_activation = {
+            **selected_activation,
+            "next_usage_count": next_usage_count,
+        }
+
+    return {
+        **base_data,
+        "selected_activation": selected_activation,
     }

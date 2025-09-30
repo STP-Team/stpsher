@@ -5,9 +5,12 @@ class MipSG(StatesGroup):
     # Меню
     menu = State()
     groups = State()
+    game = State()
 
     # Активация предметов
-    products_activation = State()
+    game_products_activation = State()
+    game_activation_detail = State()
+    game_activations_empty = State()
 
     # Поиск
     search = State()

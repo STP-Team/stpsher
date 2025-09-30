@@ -34,7 +34,7 @@ menu_window = Window(
     SwitchTo(
         Const("✍️ Активация предметов"),
         id="products_activation",
-        state=HeadSG.products_activation,
+        state=HeadSG.game_products_activation,
     ),
     Row(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=HeadSG.search),

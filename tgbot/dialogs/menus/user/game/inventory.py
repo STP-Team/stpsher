@@ -33,7 +33,7 @@ def get_status_emoji(status: str) -> str:
     return status_emojis.get(status, "❓")
 
 
-inventory_window = Window(
+game_inventory_window = Window(
     Format("""🎒 <b>Инвентарь</b>
 
 Здесь ты найдешь все свои покупки, а так же их статус и многое другое
@@ -79,7 +79,7 @@ inventory_window = Window(
 )
 
 
-inventory_detail_window = Window(
+game_inventory_detail_window = Window(
     Format("""
 <b>🛍️ Предмет:</b> {product_name}
 

@@ -16,7 +16,7 @@ from tgbot.dialogs.getters.user.game_getters import (
 )
 from tgbot.misc.states.dialogs.user import UserSG
 
-history_window = Window(
+game_history_window = Window(
     Format("""📜 <b>История баланса</b>
 
 Здесь отображается вся история операций с баллами
@@ -75,7 +75,7 @@ history_window = Window(
     state=UserSG.game_history,
 )
 
-history_detail_window = Window(
+game_gistory_detail_window = Window(
     Format("""<b>📊 Детали транзакции</b>
 
 <b>📈 Операция</b>

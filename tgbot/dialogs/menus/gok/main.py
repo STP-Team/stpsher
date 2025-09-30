@@ -4,6 +4,12 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import db_getter
+from tgbot.dialogs.menus.gok.game.activations import (
+    game_activation_detail_window,
+    game_activations_empty_window,
+    game_activations_window,
+)
+from tgbot.dialogs.menus.gok.game.game import game_window
 from tgbot.dialogs.menus.gok.search import (
     search_heads_window,
     search_no_results_window,
@@ -26,15 +32,7 @@ menu_window = Window(
 • Активировать покупки специалистов
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
-    SwitchTo(
-        Const("✍️ Активация предметов"),
-        id="products_activation",
-        state=GokSG.products_activation,
-    ),
-    Row(
-        SwitchTo(Const("🎯 Достижения"), id="achievements", state=GokSG.groups),
-        SwitchTo(Const("👏 Предметы"), id="products", state=GokSG.groups),
-    ),
+    SwitchTo(Const("🏮 Игра"), id="game", state=GokSG.game),
     Row(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=GokSG.search),
         SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=GokSG.groups),
@@ -52,6 +50,10 @@ async def on_start(start_data, dialog_manager: DialogManager, **kwargs):
 
 gok_dialog = Dialog(
     menu_window,
+    game_window,
+    game_activations_window,
+    game_activation_detail_window,
+    game_activations_empty_window,
     search_window,
     search_specialists_window,
     search_heads_window,

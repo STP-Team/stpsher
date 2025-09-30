@@ -15,7 +15,7 @@ from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.getters.user.game_getters import achievements_filter_getter
 from tgbot.misc.states.dialogs.user import UserSG
 
-achievements_window = Window(
+game_achievements_window = Window(
     Format("""🎯 <b>Достижения</b>
 
 Здесь отображаются все возможные достижения, которые можно получить

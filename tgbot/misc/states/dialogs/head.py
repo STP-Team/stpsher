@@ -24,7 +24,7 @@ class HeadSG(StatesGroup):
     my_group = State()
 
     # Активация предметов
-    products_activation = State()
+    game_products_activation = State()
 
     # Поиск
     search = State()
