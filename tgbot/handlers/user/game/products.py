@@ -27,7 +27,10 @@ logger = logging.getLogger(__name__)
     GameMenu.filter(F.menu == "products_activation")
 )
 async def duty_products_activation(
-    callback: CallbackQuery, callback_data: GameMenu, user: Employee, stp_repo: MainRequestsRepo
+    callback: CallbackQuery,
+    callback_data: GameMenu,
+    user: Employee,
+    stp_repo: MainRequestsRepo,
 ):
     """
     Обработчик меню покупок для активации дежурными
