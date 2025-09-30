@@ -2,7 +2,7 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 from tgbot.services.schedule.schedule_handlers import schedule_service
 
 

@@ -1,4 +1,4 @@
-# tgbot/keyboards/head/main.py (обновить существующий файл)
+# tgbot/keyboards/head/user.py (обновить существующий файл)
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 

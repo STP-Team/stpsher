@@ -15,7 +15,9 @@ from aiogram_dialog import setup_dialogs
 
 from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
+from tgbot.dialogs.menus.gok.main import gok_dialog
 from tgbot.dialogs.menus.head.main import head_dialog
+from tgbot.dialogs.menus.mip.main import mip_dialog
 from tgbot.dialogs.menus.user.main import user_dialog
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
@@ -163,7 +165,7 @@ async def main():
     dp["kpi_db"] = kpi_db
 
     dp.include_routers(*routers_list)
-    dp.include_routers(user_dialog, head_dialog)
+    dp.include_routers(user_dialog, head_dialog, mip_dialog, gok_dialog)
     setup_dialogs(dp)
 
     register_middlewares(dp, bot_config, bot, main_db, kpi_db)

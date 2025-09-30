@@ -7,7 +7,7 @@ from tgbot.dialogs.getters.common.kpi_getters import (
     kpi_requirements_getter,
     salary_getter,
 )
-from tgbot.misc.states.head import HeadSG
+from tgbot.misc.states.dialogs.head import HeadSG
 
 kpi_window = Window(
     Format("{kpi_text}"),

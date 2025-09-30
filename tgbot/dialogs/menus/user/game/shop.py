@@ -22,7 +22,7 @@ from tgbot.dialogs.getters.user.game_getters import (
     product_filter_getter,
     success_getter,
 )
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 shop_window = Window(
     Format("""💎 <b>Магазин</b>

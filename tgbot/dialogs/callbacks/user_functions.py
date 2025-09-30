@@ -2,7 +2,7 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, Radio
 
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 
 async def on_mode_select(

@@ -135,7 +135,7 @@ async def group_schedule_getter(**kwargs):
 
 async def month_navigation_getter(**kwargs):
     from tgbot.keyboards.common.schedule import MONTH_EMOJIS, get_yekaterinburg_date
-    from tgbot.misc.states.user.main import UserSG
+    from tgbot.misc.states.dialogs.user import UserSG
 
     dialog_manager = kwargs.get("dialog_manager")
     current_month = dialog_manager.dialog_data.get("current_month")

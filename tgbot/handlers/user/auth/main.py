@@ -9,7 +9,7 @@ from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.user.main import user_start_cmd
 from tgbot.misc.helpers import generate_auth_code
-from tgbot.misc.states.user.auth import Authorization
+from tgbot.misc.states.dialogs.user import Authorization
 from tgbot.services.mailing import send_auth_email
 
 logger = logging.getLogger(__name__)

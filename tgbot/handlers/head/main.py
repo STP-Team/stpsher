@@ -6,7 +6,7 @@ from aiogram_dialog.api.exceptions import NoContextError
 
 from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
-from tgbot.misc.states.head import HeadSG
+from tgbot.misc.states.dialogs.head import HeadSG
 
 head_router = Router()
 head_router.message.filter(F.chat.type == "private", HeadFilter())

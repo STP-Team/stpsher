@@ -11,7 +11,7 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.group.whois import create_user_info_message
 from tgbot.keyboards.user.main import auth_kb
 from tgbot.misc.helpers import get_role
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ user_router.callback_query.filter(F.message.chat.type == "private")
 
 @user_router.message(CommandStart())
 async def user_start_cmd(
-    message: Message, user: Employee, dialog_manager: DialogManager, **kwargs
+    message: Message, user: Employee, dialog_manager: DialogManager
 ):
     if not user:
         await message.answer(

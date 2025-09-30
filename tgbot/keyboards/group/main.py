@@ -310,7 +310,7 @@ def group_access_kb(
     # Create role buttons in specific order - put Специалист first
     role_buttons = []
 
-    # Order menus: Специалист first, then others
+    # Order dialogs: Специалист first, then others
     role_order = [1, 2, 3, 4, 5, 6]  # Специалист first, then others
 
     for role_id in role_order:

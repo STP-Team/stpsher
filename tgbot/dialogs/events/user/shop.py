@@ -1,7 +1,7 @@
 from aiogram_dialog import DialogManager
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 
 async def on_product_click(

@@ -20,7 +20,7 @@ from tgbot.dialogs.getters.user.game_getters import (
     inventory_detail_getter,
     inventory_filter_getter,
 )
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 
 def get_status_emoji(status: str) -> str:

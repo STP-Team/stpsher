@@ -7,7 +7,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.getters.user.user_getters import game_getter
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 game_window = Window(
     Format("""🏮 <b>Игра</b>

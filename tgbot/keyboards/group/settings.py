@@ -111,7 +111,7 @@ def group_settings_keyboard(group: Group, group_link: str) -> InlineKeyboardMark
 def group_access_keyboard(
     group: Group, pending_roles: list = None
 ) -> InlineKeyboardMarkup:
-    """Create keyboard for group access menus settings."""
+    """Create keyboard for group access dialogs settings."""
     if pending_roles is None:
         pending_roles = group.allowed_roles or []
 

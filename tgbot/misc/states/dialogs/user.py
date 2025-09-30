@@ -41,3 +41,9 @@ class UserSG(StatesGroup):
     # Действия
     game_shop_confirm = State()
     game_shop_success = State()
+
+
+class Authorization(StatesGroup):
+    email = State()
+    auth_code = State()
+    fullname = State()

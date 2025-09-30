@@ -9,7 +9,16 @@ from tgbot.dialogs.menus.head.kpi import (
     kpi_window,
     salary_window,
 )
-from tgbot.misc.states.head import HeadSG
+from tgbot.dialogs.menus.head.search import (
+    head_search_heads_window,
+    head_search_no_results_window,
+    head_search_query_window,
+    head_search_results_window,
+    head_search_specialists_window,
+    head_search_user_info_window,
+    head_search_window,
+)
+from tgbot.misc.states.dialogs.head import HeadSG
 
 menu_window = Window(
     Format("""👋 Привет, <b>{user.fullname}</b>!
@@ -36,4 +45,16 @@ menu_window = Window(
 )
 
 
-head_dialog = Dialog(menu_window, kpi_window, kpi_requirements_window, salary_window)
+head_dialog = Dialog(
+    menu_window,
+    kpi_window,
+    kpi_requirements_window,
+    salary_window,
+    head_search_window,
+    head_search_specialists_window,
+    head_search_heads_window,
+    head_search_query_window,
+    head_search_results_window,
+    head_search_no_results_window,
+    head_search_user_info_window,
+)

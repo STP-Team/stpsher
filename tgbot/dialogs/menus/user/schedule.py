@@ -31,7 +31,7 @@ from tgbot.dialogs.getters.common.schedule_getters import (
     month_navigation_getter,
 )
 from tgbot.dialogs.getters.user.user_getters import db_getter
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 schedule_window = Window(
     Format("""<b>📅 Меню графиков</b>

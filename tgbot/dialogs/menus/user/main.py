@@ -43,7 +43,7 @@ from tgbot.dialogs.menus.user.search import (
     search_user_info_window,
     search_window,
 )
-from tgbot.misc.states.user.main import UserSG
+from tgbot.misc.states.dialogs.user import UserSG
 
 menu_window = Window(
     Format("""👋 Привет, <b>{user.fullname}</b>!
@@ -90,6 +90,9 @@ async def on_start(start_data, manager: DialogManager, **kwargs):
 
     history_source_filter: ManagedRadio = manager.find("history_source_filter")
     await history_source_filter.set_checked("all")
+
+    search_divisions: ManagedRadio = manager.find("search_divisions")
+    await search_divisions.set_checked("all")
 
 
 user_dialog = Dialog(

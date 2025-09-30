@@ -804,7 +804,7 @@ class DutyScheduleParser(BaseDutyParser):
                     start_minutes, end_minutes = self.utils.parse_time_range(
                         duty.schedule
                     )
-                    current_datetime = date()
+                    current_datetime = date.now()
                     current_time_minutes = (
                         current_datetime.hour * 60 + current_datetime.minute
                     )
