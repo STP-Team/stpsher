@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import DutyFilter
-from tgbot.keyboards.user.game.main import GameMenu
+from tgbot.keyboards.mip.game.main import GameMenu
 from tgbot.keyboards.user.game.products import (
     DutyPurchaseActionMenu,
     DutyPurchaseActivationMenu,
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
     GameMenu.filter(F.menu == "products_activation")
 )
 async def duty_products_activation(
-    callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
+    callback: CallbackQuery, callback_data: GameMenu, user: Employee, stp_repo: MainRequestsRepo
 ):
     """
     Обработчик меню покупок для активации дежурными
@@ -36,7 +36,7 @@ async def duty_products_activation(
     """
 
     # Достаём номер страницы из callback data, стандартно = 1
-    page = 1
+    page = getattr(callback_data, "page", 1)
 
     # Получаем покупки ожидающие активации с manager_role == 3 (Дежурный)
     review_purchases = await stp_repo.purchase.get_review_purchases_for_activation(
