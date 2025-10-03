@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import DutyFilter
-from tgbot.keyboards.mip.game.main import GameMenu
+from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.products import (
     DutyPurchaseActionMenu,
     DutyPurchaseActivationMenu,
