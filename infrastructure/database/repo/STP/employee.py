@@ -34,8 +34,7 @@ class EmployeeRepo(BaseRepo):
         fullname: Optional[str] = None,
         email: Optional[str] = None,
     ) -> Optional[Employee]:
-        """
-        Поиск пользователя в БД по фильтрам
+        """Поиск пользователя в БД по фильтрам
 
         Args:
             main_id: Primary Key
@@ -76,8 +75,7 @@ class EmployeeRepo(BaseRepo):
     async def get_users(
         self, roles: Optional[int | list[int]] = None
     ) -> Sequence[Employee] | None:
-        """
-        Получить пользователей по роли/ролям
+        """Получить пользователей по роли/ролям
 
         Args:
             roles: Роль (int) или список ролей (list[int]) для фильтрации.
@@ -108,8 +106,7 @@ class EmployeeRepo(BaseRepo):
             return None
 
     async def get_unauthorized_users(self, head_name: str = None) -> Sequence[Employee]:
-        """
-        Получить список неавторизованных пользователей
+        """Получить список неавторизованных пользователей
         Неавторизованные пользователи - те, у которых отсутствует user_id (не связан с Telegram)
 
         Args:
@@ -157,8 +154,7 @@ class EmployeeRepo(BaseRepo):
     async def get_users_by_fio_parts(
         self, fullname: str, limit: int = 10
     ) -> Sequence[Employee]:
-        """
-        Поиск пользователей по частичному совпадению ФИО
+        """Поиск пользователей по частичному совпадению ФИО
         Возвращает список пользователей для случаев, когда найдено несколько совпадений
 
         Args:
@@ -190,8 +186,7 @@ class EmployeeRepo(BaseRepo):
     async def search_users(
         self, search_query: str, limit: int = 50
     ) -> Sequence[Employee]:
-        """
-        Универсальный поиск пользователей по различным критериям:
+        """Универсальный поиск пользователей по различным критериям:
         - User ID (число)
         - Username Telegram (начинается с @)
         - Частичное/полное ФИО
@@ -252,8 +247,7 @@ class EmployeeRepo(BaseRepo):
             return []
 
     async def get_users_by_head(self, head_name: str) -> Sequence[Employee]:
-        """
-        Получить всех пользователей с указанным руководителем
+        """Получить всех пользователей с указанным руководителем
 
         Args:
             head_name: Имя руководителя
@@ -303,8 +297,7 @@ class EmployeeRepo(BaseRepo):
     async def get_users_by_role(
         self, role: int, division: str = None
     ) -> Sequence[Employee]:
-        """
-        Получить пользователей с определенной ролью
+        """Получить пользователей с определенной ролью
 
         Args:
             role: Роль пользователя
@@ -334,8 +327,7 @@ class EmployeeRepo(BaseRepo):
             return []
 
     async def delete_user(self, fullname: str = None, user_id: int = None) -> int:
-        """
-        Удаление пользователей из БД по полному имени или user_id
+        """Удаление пользователей из БД по полному имени или user_id
 
         Args:
             fullname: Полное ФИО пользователя для удаления (опционально)

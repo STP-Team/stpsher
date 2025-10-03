@@ -1,3 +1,5 @@
+"""Генерация окна инвентаря для специалистов."""
+
 from aiogram_dialog.widgets.kbd import (
     Button,
     Radio,

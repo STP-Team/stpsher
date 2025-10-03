@@ -1,16 +1,28 @@
+"""Обработчики событий активации предметов."""
+
+import logging
+
+from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
+from aiogram_dialog.api.internal import Widget
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
+logger = logging.getLogger(__name__)
+
 
 async def on_activation_click(
-    callback, widget, dialog_manager: DialogManager, item_id, **kwargs
-):
-    """
-    Обработчик нажатия на активацию - переход к детальному просмотру
-    """
+    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, item_id
+) -> None:
+    """Обработчик нажатия на предмет в меню активации предмета.
 
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранного варианта
+    """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     try:
@@ -78,17 +90,23 @@ async def on_activation_click(
         await dialog_manager.switch_to(getattr(state_group, "game_activation_detail"))
 
     except Exception as e:
-        print(f"Error in on_activation_click: {e}")
+        logger.error(
+            f"[Активация предметов] Ошибка при просмотре подробностей об активации предмета: {e}"
+        )
         await callback.answer(
             "❌ Ошибка получения информации об активации", show_alert=True
         )
 
 
 async def on_approve_activation(
-    callback, widget, dialog_manager: DialogManager, **kwargs
-):
-    """
-    Обработчик подтверждения активации
+    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager
+) -> None:
+    """Обработчик подтверждения активации предмета.
+
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалогов
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
@@ -138,15 +156,21 @@ async def on_approve_activation(
         await dialog_manager.switch_to(getattr(state_group, "game_products_activation"))
 
     except Exception as e:
-        print(f"Error in on_approve_activation: {e}")
+        logger.error(
+            f"[Активация предметов] Ошибка при подтверждении активации предмета: {e}"
+        )
         await callback.answer("❌ Ошибка при подтверждении активации", show_alert=True)
 
 
 async def on_reject_activation(
-    callback, widget, dialog_manager: DialogManager, **kwargs
-):
-    """
-    Обработчик отклонения активации
+    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager
+) -> None:
+    """Обработчик отмены активации предмета.
+
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
@@ -184,5 +208,5 @@ async def on_reject_activation(
         await dialog_manager.switch_to(getattr(state_group, "game_products_activation"))
 
     except Exception as e:
-        print(f"Error in on_reject_activation: {e}")
+        logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
         await callback.answer("❌ Ошибка при отклонении активации", show_alert=True)

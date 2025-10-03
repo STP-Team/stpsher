@@ -1,3 +1,5 @@
+"""Генерация общих функций для поиска."""
+
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -16,7 +18,6 @@ from tgbot.dialogs.events.user.search import (
     on_search_query,
     on_user_select,
 )
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.getters.common.search import (
     search_heads_getter,
     search_results_getter,
@@ -26,8 +27,15 @@ from tgbot.dialogs.getters.common.search import (
 
 
 def create_search_windows(state_group, menu_state):
-    """Create search windows for a given state group"""
+    """Создает окна для управления поиском.
 
+    Args:
+        state_group: Группа состояний, используемая для переключения окон
+        menu_state: Состояние главного меню
+
+    Returns:
+        Сгенерированный список окон для поиска
+    """
     search_window = Window(
         Format("""🕵🏻 <b>Поиск сотрудника</b>
 
@@ -44,7 +52,6 @@ def create_search_windows(state_group, menu_state):
         ),
         SwitchTo(Const("🕵🏻 Поиск"), id="game", state=state_group.search_query),
         SwitchTo(Const("↩️ Назад"), id="menu", state=menu_state),
-        getter=db_getter,
         state=state_group.search,
     )
 

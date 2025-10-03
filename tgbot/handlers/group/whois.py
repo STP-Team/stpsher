@@ -16,7 +16,6 @@ whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     """Создание сообщения с информацией о пользователе (аналогично inline search)"""
-
     # Определяем уровень доступа и эмодзи
     role_info = get_role(user.role)
 
@@ -49,7 +48,6 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
 @whois_router.message(Command("whois"))
 async def whois_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /whois для получения информации о пользователе"""
-
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(
@@ -124,7 +122,6 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
 @whois_router.message(Command("whois", magic=F.args))
 async def whois_with_args(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /whois с аргументом для поиска по имени"""
-
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(

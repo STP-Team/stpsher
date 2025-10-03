@@ -17,8 +17,7 @@ class GameBalanceRatingMenu(CallbackData, prefix="game_balance_rating"):
 def rating_menu_kb(
     current_period: str = "day", current_metric: str = "csi"
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура рейтинга группы с выбором метрик и периода.
+    """Клавиатура рейтинга группы с выбором метрик и периода.
 
     :param current_period: Текущий выбранный период
     :param current_metric: Текущая выбранная метрика
@@ -78,8 +77,7 @@ def rating_menu_kb(
 
 
 def game_balance_rating_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура для рейтинга баланса игроков
+    """Клавиатура для рейтинга баланса игроков
 
     :return: Объект встроенной клавиатуры для рейтинга баланса игроков
     """

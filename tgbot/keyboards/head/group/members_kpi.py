@@ -13,9 +13,7 @@ class HeadMemberKPIMenu(CallbackData, prefix="head_member_kpi"):
 def head_member_kpi_kb(
     member_id: int, page: int = 1, current_action: str = "main"
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для KPI участника группы
-    """
+    """Клавиатура для KPI участника группы"""
     from tgbot.keyboards.head.group.members import HeadMemberDetailMenu
 
     buttons = []

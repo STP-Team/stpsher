@@ -6,8 +6,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Employee(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность пользователя в БД
+    """Модель, представляющая сущность пользователя в БД
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.

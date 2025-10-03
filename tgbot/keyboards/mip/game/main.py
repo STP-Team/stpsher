@@ -38,8 +38,7 @@ class PurchaseActionMenu(CallbackData, prefix="purchase_action"):
 
 
 def parse_filters(filters_str: str) -> Set[str]:
-    """
-    Парсит фильтры
+    """Парсит фильтры
     :param filters_str: Список фильтров
     :return:
     """
@@ -53,8 +52,7 @@ def parse_filters(filters_str: str) -> Set[str]:
 
 
 def filters_to_string(filters_set: Set[str]) -> str:
-    """
-    Конвертирует список фильтров в строку, разделенную запятыми
+    """Конвертирует список фильтров в строку, разделенную запятыми
     :param filters_set: Сет фильтров
     :return:
     """
@@ -62,8 +60,7 @@ def filters_to_string(filters_set: Set[str]) -> str:
 
 
 def toggle_filter(current_filters: str, filter_to_toggle: str) -> str:
-    """
-    Включает или выключает фильтры и возвращает новый список фильтров
+    """Включает или выключает фильтры и возвращает новый список фильтров
     :param current_filters: Текущие активные фильтры
     :param filter_to_toggle: Изменяемые фильтры
     :return:
@@ -85,8 +82,7 @@ def toggle_filter(current_filters: str, filter_to_toggle: str) -> str:
 def create_filters_row(
     menu: str, current_filters: str, page: int = 1
 ) -> List[InlineKeyboardButton]:
-    """
-    Создает строку кнопок для клавиатуры с фильтрами по направлению
+    """Создает строку кнопок для клавиатуры с фильтрами по направлению
     :param menu: Меню, для которого добавляется фильтр
     :param current_filters: Текущие активные фильтры
     :param page: Текущая открытая страница
@@ -117,9 +113,7 @@ def create_filters_row(
 
 
 def game_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура меню МИП для достижений и предметов
-    """
+    """Клавиатура меню МИП для достижений и предметов"""
     buttons = [
         [
             InlineKeyboardButton(

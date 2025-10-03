@@ -12,8 +12,7 @@ class BroadcastMenu(CallbackData, prefix="broadcast"):
 
 
 def broadcast_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура меню рассылки.
+    """Клавиатура меню рассылки.
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """
@@ -32,8 +31,7 @@ def broadcast_kb() -> InlineKeyboardMarkup:
 
 
 def broadcast_type_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура выбора типа рассылки
+    """Клавиатура выбора типа рассылки
 
     :return: Объект встроенной клавиатуры
     """
@@ -64,8 +62,7 @@ def broadcast_type_kb() -> InlineKeyboardMarkup:
 
 
 def division_selection_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура выбора подразделения
+    """Клавиатура выбора подразделения
 
     :return: Объект встроенной клавиатуры
     """
@@ -96,8 +93,7 @@ def division_selection_kb() -> InlineKeyboardMarkup:
 def heads_selection_kb(
     heads: List[Tuple[str, int]], selected_heads: List[int] = None
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура выбора руководителей
+    """Клавиатура выбора руководителей
 
     :param heads: Список кортежей (имя, user_id) руководителей
     :param selected_heads: Список ID выбранных руководителей
@@ -168,8 +164,7 @@ def heads_selection_kb(
 
 
 def confirmation_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура подтверждения рассылки
+    """Клавиатура подтверждения рассылки
 
     :return: Объект встроенной клавиатуры
     """

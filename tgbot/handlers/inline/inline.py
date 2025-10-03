@@ -42,8 +42,7 @@ class InlineSearchFilter:
 
     @staticmethod
     def detect_search_type(search_term: str) -> tuple[str, str]:
-        """
-        Определяет тип поискового запроса
+        """Определяет тип поискового запроса
 
         Returns:
             tuple: (search_type, cleaned_value)
@@ -74,8 +73,7 @@ class InlineSearchFilter:
 
     @staticmethod
     def parse_search_query(query: str) -> dict:
-        """
-        Парсинг поискового запроса с поддержкой фильтров
+        """Парсинг поискового запроса с поддержкой фильтров
 
         Примеры запросов:
         - "Иванов" - обычный поиск

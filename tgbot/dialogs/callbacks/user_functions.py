@@ -1,33 +1,35 @@
+"""Функции для окон специалистов."""
+
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.kbd import Button, Radio
+from aiogram_dialog.api.internal import Widget
 
 from tgbot.misc.states.dialogs.head import HeadSG
 from tgbot.misc.states.dialogs.user import UserSG
 
 
 async def on_mode_select(
-    callback: CallbackQuery, radio: Radio, dialog_manager: DialogManager, item_id: str
-):
+    _callback: CallbackQuery,
+    _widget: Widget,
+    dialog_manager: DialogManager,
+    item_id: str,
+    **_kwargs,
+) -> None:
+    """Изменение режима отображения графика.
+
+    Доступные режимы:
+    - Краткий
+    - Детальный
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Данные от виджета
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранного режима
+    """
     current_state = dialog_manager.current_context().state
 
-    if item_id == "compact":
-        if current_state == UserSG.schedule_my_detailed:
-            await dialog_manager.switch_to(UserSG.schedule_my)
-        elif current_state == HeadSG.schedule_my_detailed:
-            await dialog_manager.switch_to(HeadSG.schedule_my)
-    elif item_id == "detailed":
-        if current_state == UserSG.schedule_my:
-            await dialog_manager.switch_to(UserSG.schedule_my_detailed)
-        elif current_state == HeadSG.schedule_my:
-            await dialog_manager.switch_to(HeadSG.schedule_my_detailed)
+    dialog_manager.dialog_data["schedule_mode"] = item_id
 
-
-async def switch_to_detailed(
-    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
-):
-    current_state = dialog_manager.current_context().state
-    if current_state == UserSG.schedule_my:
-        await dialog_manager.switch_to(UserSG.schedule_my_detailed)
-    else:
-        await dialog_manager.switch_to(UserSG.schedule_my)
+    if current_state in (UserSG.schedule_my, HeadSG.schedule_my):
+        await dialog_manager.switch_to(current_state)

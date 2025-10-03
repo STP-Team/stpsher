@@ -72,9 +72,7 @@ class SalaryCalculator:
     def _calculate_night_hours(
         start_hour: int, start_min: int, end_hour: int, end_min: int
     ) -> float:
-        """
-        Подсчет ночных часов (с 22:00 до 06:00) по локальному времени сотрудника
-        """
+        """Подсчет ночных часов (с 22:00 до 06:00) по локальному времени сотрудника"""
         start_minutes = start_hour * 60 + start_min
         end_minutes = end_hour * 60 + end_min
 

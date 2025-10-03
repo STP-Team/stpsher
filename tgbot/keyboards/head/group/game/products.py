@@ -8,9 +8,7 @@ from tgbot.keyboards.user.main import MainMenu
 def head_products_paginated_kb(
     current_page: int, total_pages: int, filters: str = "НЦК,НТП"
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура пагинации для всех возможных предметов с фильтрами
-    """
+    """Клавиатура пагинации для всех возможных предметов с фильтрами"""
     buttons = []
 
     # Пагинация

@@ -6,8 +6,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Achievement(Base, TableNameMixin):
-    """
-    Класс, представляющий сущность достижения в БД.
+    """Класс, представляющий сущность достижения в БД.
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.

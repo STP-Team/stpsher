@@ -1,13 +1,13 @@
-from sqlalchemy import BIGINT, Enum, Text, TIMESTAMP, func, Integer, String, JSON
+from typing import List, Optional
+
+from sqlalchemy import BIGINT, JSON, TIMESTAMP, Enum, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
-from typing import Optional, List
 
 from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Broadcast(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность рассылки в БД
+    """Модель, представляющая сущность рассылки в БД
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор рассылки.

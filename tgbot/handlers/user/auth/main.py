@@ -7,7 +7,6 @@ from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.handlers.user.main import user_start_cmd
 from tgbot.misc.helpers import generate_auth_code
 from tgbot.misc.states.dialogs.user import Authorization
 from tgbot.services.mailing import send_auth_email
@@ -154,12 +153,13 @@ async def user_auth_fullname(
                 message_id=state_data.get("bot_message_id"),
                 text="""<b>✅ Успешная авторизация</b>
 
-Супер, авторизация пройдена. Теперь у тебя есть доступ ко всем ботам СТП 🥳""",
+Супер, авторизация пройдена. Теперь у тебя есть доступ ко всем ботам СТП 🥳
+
+Нажми на /start для запуска бота""",
             )
             logger.info(
                 f"[Авторизация] Пользователь {message.from_user.username} ({message.from_user.id}) успешно авторизовался"
             )
-            await user_start_cmd(message=message, user=db_user)
             return
         else:
             await message.bot.edit_message_text(

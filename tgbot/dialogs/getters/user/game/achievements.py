@@ -1,22 +1,28 @@
+"""Геттеры для меню списка достижений специалистов."""
+
 from html import escape
+from typing import Any, Dict
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 
-async def achievements_getter(**kwargs):
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
+async def achievements_getter(stp_repo: MainRequestsRepo, **_kwargs) -> Dict[str, Any]:
+    """Геттер получения списка достижений.
 
-    if "division" in kwargs:
+    Returns:
+        Словарь отформатированных к отображению достижений
+    """
+    if "division" in _kwargs:
         achievements_list = await stp_repo.achievement.get_achievements(
-            division=kwargs["division"]
+            division=_kwargs["division"]
         )
     else:
         achievements_list = await stp_repo.achievement.get_achievements()
 
     formatted_achievements = []
     for achievement in achievements_list:
-        period = "Неизвестно"  # Default value
+        period = "Неизвестно"  # Стандартное значение
         match achievement.period:
             case "d":
                 period = "Раз в день"
@@ -46,13 +52,19 @@ async def achievements_getter(**kwargs):
     }
 
 
-async def user_achievements_getter(**kwargs):
-    """
-    Получение достижений для конкретного подразделения пользователя
-    """
-    user: Employee = kwargs.get("user")
+async def user_achievements_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **kwargs
+) -> Dict[str, Any]:
+    """Получение достижений для конкретного подразделения пользователя.
 
-    # Передаем division пользователя в базовый getter
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
+
+    Returns:
+        Возвращает словарь доступных достижений для направления сотрудника
+    """
+    # Передаем направление пользователя в базовый getter
     return await achievements_getter(
-        division="НЦК" if "НЦК" in user.division else "НТП", **kwargs
+        stp_repo=stp_repo, division="НЦК" if "НЦК" in user.division else "НТП", **kwargs
     )

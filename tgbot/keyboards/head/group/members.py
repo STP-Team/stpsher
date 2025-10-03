@@ -94,8 +94,7 @@ def head_group_members_kb(
     current_page: int = 1,
     members_per_page: int = 8,
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для отображения участников группы с пагинацией.
+    """Клавиатура для отображения участников группы с пагинацией.
     Отображает 2 участника в ряд, по умолчанию 8 участников на страницу (4 ряда).
     """
     buttons = []
@@ -255,9 +254,7 @@ def head_group_members_kb(
 def head_member_detail_kb(
     user: Employee, page: int = 1, member_role: int = None
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для детального просмотра участника группы
-    """
+    """Клавиатура для детального просмотра участника группы"""
     buttons = [
         [
             InlineKeyboardButton(
@@ -330,9 +327,7 @@ def get_month_name_by_index(month_idx: int) -> str:
 def head_member_schedule_kb(
     member_id: int, current_month: str, page: int = 1, is_detailed: bool = False
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для просмотра расписания участника группы с навигацией по месяцам
-    """
+    """Клавиатура для просмотра расписания участника группы с навигацией по месяцам"""
     # Получаем индекс текущего месяца
     current_month_idx = 1
     for month_idx, month_name in russian_months.items():

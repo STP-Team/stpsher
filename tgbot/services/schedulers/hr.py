@@ -1,5 +1,4 @@
-"""
-HR-планировщик для управления кадровыми процессами
+"""HR-планировщик для управления кадровыми процессами
 
 Содержит задачи по обработке увольнений, уведомлениям об авторизации
 и другим кадровым операциям.
@@ -24,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class HRScheduler(BaseScheduler):
-    """
-    Планировщик HR-задач
+    """Планировщик HR-задач
 
     Управляет задачами связанными с кадровыми процессами:
     - Обработка увольнений из Excel файлов
@@ -101,8 +99,7 @@ class HRScheduler(BaseScheduler):
 
 # Функции для работы с увольнениями
 def parse_dismissal_date(date_str: str) -> datetime:
-    """
-    Парсинг даты увольнения из формата '04.авг' или '25.июл'
+    """Парсинг даты увольнения из формата '04.авг' или '25.июл'
 
     Args:
         date_str: Строка даты в формате 'день.месяц_сокр'
@@ -143,8 +140,7 @@ def parse_dismissal_date(date_str: str) -> datetime:
 
 
 def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
-    """
-    Получение списка уволенных сотрудников из Excel файлов
+    """Получение списка уволенных сотрудников из Excel файлов
 
     Returns:
         Список ФИО уволенных сотрудников, дата увольнения которых совпадает с текущей датой
@@ -235,8 +231,7 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
 
 
 async def process_fired_users(session_pool, bot: Bot = None):
-    """
-    Обработка уволенных сотрудников - удаление из базы и групп
+    """Обработка уволенных сотрудников - удаление из базы и групп
 
     Args:
         session_pool: Пул сессий БД из bot.py
@@ -286,8 +281,7 @@ async def process_fired_users(session_pool, bot: Bot = None):
 async def remove_fired_users_from_groups(
     session_pool, bot: Bot, fired_users: List[str]
 ):
-    """
-    Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
+    """Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
 
     Args:
         session_pool: Пул сессий БД
@@ -403,9 +397,7 @@ async def remove_fired_users_from_groups(
 
 # Функции для работы с авторизацией
 async def notify_to_unauthorized_users(session_pool, bot: Bot):
-    """
-    Уведомление руководителей о неавторизованных пользователях в их группах
-    """
+    """Уведомление руководителей о неавторизованных пользователях в их группах"""
     try:
         async with session_pool() as session:
             stp_repo = MainRequestsRepo(session)
@@ -443,8 +435,7 @@ async def notify_to_unauthorized_users(session_pool, bot: Bot):
 
 
 async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]:
-    """
-    Группирует неавторизованных пользователей по их руководителям
+    """Группирует неавторизованных пользователей по их руководителям
 
     Args:
         unauthorized_users: Список неавторизованных пользователей
@@ -480,8 +471,7 @@ async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]
 async def send_notifications_to_supervisors(
     unauthorized_by_head: Dict[str, List], bot: Bot, stp_repo: MainRequestsRepo
 ) -> Dict[str, bool]:
-    """
-    Отправляет уведомления руководителям об их неавторизованных подчиненных
+    """Отправляет уведомления руководителям об их неавторизованных подчиненных
 
     Args:
         unauthorized_by_head: Словарь с группировкой пользователей по руководителям
@@ -530,8 +520,7 @@ async def send_notifications_to_supervisors(
 
 
 def create_notification_message(head_name: str, unauthorized_subordinates: List) -> str:
-    """
-    Создает текст уведомления для руководителя
+    """Создает текст уведомления для руководителя
 
     Args:
         head_name: Имя руководителя
@@ -576,8 +565,7 @@ def create_notification_message(head_name: str, unauthorized_subordinates: List)
 
 
 def format_unauthorized_users_summary(unauthorized_users: List) -> str:
-    """
-    Форматирует краткую сводку о неавторизованных пользователях для логов
+    """Форматирует краткую сводку о неавторизованных пользователях для логов
 
     Args:
         unauthorized_users: Список неавторизованных пользователей

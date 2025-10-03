@@ -45,11 +45,9 @@ def register_middlewares(
     main_session_pool=None,
     kpi_session_pool=None,
 ):
-    """
-    Alternative setup with more selective middleware application.
+    """Alternative setup with more selective middleware application.
     Use this if you want different middleware chains for different event types.
     """
-
     config_middleware = ConfigMiddleware(config)
     database_middleware = DatabaseMiddleware(
         config=config,
@@ -74,8 +72,7 @@ def register_middlewares(
 
 
 def get_storage(config):
-    """
-    Return storage based on the provided configuration.
+    """Return storage based on the provided configuration.
 
     Args:
         config (Config): The configuration object.

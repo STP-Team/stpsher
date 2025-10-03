@@ -1,114 +1,147 @@
-import datetime
-from typing import cast
+from datetime import datetime
+from typing import Any, Dict
+
+from aiogram_dialog import DialogManager
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.misc.dicts import months_emojis, russian_months
+from tgbot.misc.dicts import months_emojis
 from tgbot.services.schedule.schedule_handlers import schedule_service
 
 
-async def schedule_getter(**kwargs):
-    base_data = await db_getter(**kwargs)
+async def user_schedule_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер навигации по месяцам для расписания сотрудника.
 
-    current_month = schedule_service.get_current_month()
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
 
-    return {**base_data, "current_month": current_month}
+    Returns:
+        Возвращает словарь для смены месяца графика
+    """
+    # Get month from dialog_data or use current month as default
+    current_month = dialog_manager.dialog_data.get(
+        "current_month", schedule_service.get_current_month()
+    )
 
+    month_emoji = months_emojis.get(current_month.lower(), "📅")
 
-async def user_schedule_getter(**kwargs):
-    schedule_data = await schedule_getter(**kwargs)
+    # Get mode from dialog_data, default to compact
+    dialog_data = dialog_manager.dialog_data
+    selected_mode = dialog_data.get("schedule_mode", "compact")
+    is_detailed_mode = selected_mode == "detailed"
+    button_text = "📋 Кратко" if is_detailed_mode else "📋 Подробнее"
 
-    user = cast(Employee, cast(object, schedule_data.get("user")))
-    stp_repo = cast(MainRequestsRepo, cast(object, schedule_data.get("stp_repo")))
-    current_month = schedule_data.get("current_month")
+    mode_options = [
+        ("compact", "Кратко"),
+        ("detailed", "Детально"),
+    ]
 
     schedule_text = await schedule_service.get_user_schedule_response(
-        user=user, month=current_month, compact=True, stp_repo=stp_repo
+        user=user, month=current_month, compact=not is_detailed_mode, stp_repo=stp_repo
     )
 
-    return {**schedule_data, "schedule_text": schedule_text}
+    return {
+        "current_month": current_month,
+        "month_emoji": month_emoji,
+        "month_display": f"{month_emoji} {current_month.capitalize()}",
+        "schedule_text": schedule_text,
+        "detail_button_text": button_text,
+        "is_detailed_mode": is_detailed_mode,
+        "mode_options": mode_options,
+        "selected_mode": selected_mode,
+    }
 
 
-async def duty_schedule_getter(**kwargs):
-    base_data = await schedule_getter(**kwargs)
+async def duty_schedule_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения расписания дежурных.
 
-    dialog_manager = kwargs.get("dialog_manager")
-    current_date_str = (
-        dialog_manager.dialog_data.get("current_date") if dialog_manager else None
-    )
+    Стандартно возвращает расписание на текущий день
 
-    if current_date_str:
-        current_date = datetime.datetime.fromisoformat(current_date_str)
-    else:
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с текстом графика дежурных
+    """
+    current_date_str = dialog_manager.dialog_data.get("current_date")
+    if current_date_str is None:
         current_date = schedule_service.get_current_date()
-
-    user = cast(Employee, cast(object, base_data.get("user")))
-    stp_repo = cast(MainRequestsRepo, cast(object, base_data.get("stp_repo")))
+    else:
+        current_date = datetime.fromisoformat(current_date_str)
 
     duties_text = await schedule_service.get_duties_response(
         division=user.division, date=current_date, stp_repo=stp_repo
     )
 
-    # Format date for display
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == schedule_service.get_current_date().date()
 
     return {
-        **base_data,
         "duties_text": duties_text,
         "date_display": date_display,
         "is_today": is_today,
     }
 
 
-async def head_schedule_getter(**kwargs):
-    base_data = await schedule_getter(**kwargs)
+async def head_schedule_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения расписания руководителей.
 
-    dialog_manager = kwargs.get("dialog_manager")
-    current_date_str = (
-        dialog_manager.dialog_data.get("current_date") if dialog_manager else None
-    )
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
 
-    if current_date_str:
-        current_date = datetime.datetime.fromisoformat(current_date_str)
-    else:
+    Returns:
+        Словарь с текстом графика руководителей
+    """
+    current_date_str = dialog_manager.dialog_data.get("current_date")
+    if current_date_str is None:
         current_date = schedule_service.get_current_date()
-
-    user = cast(Employee, cast(object, base_data.get("user")))
-    stp_repo = cast(MainRequestsRepo, cast(object, base_data.get("stp_repo")))
+    else:
+        current_date = datetime.fromisoformat(current_date_str)
 
     heads_text = await schedule_service.get_heads_response(
         division=user.division, date=current_date, stp_repo=stp_repo
     )
 
-    # Format date for display
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == schedule_service.get_current_date().date()
 
     return {
-        **base_data,
         "heads_text": heads_text,
         "date_display": date_display,
         "is_today": is_today,
     }
 
 
-async def group_schedule_getter(**kwargs):
-    base_data = await schedule_getter(**kwargs)
+async def group_schedule_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения расписания группы сотрудника.
 
-    dialog_manager = kwargs.get("dialog_manager")
-    current_date_str = (
-        dialog_manager.dialog_data.get("current_date") if dialog_manager else None
-    )
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
 
-    if current_date_str:
-        current_date = datetime.datetime.fromisoformat(current_date_str)
-    else:
+    Returns:
+        Словарь с текстом графика группы сотрудника
+    """
+    current_date_str = dialog_manager.dialog_data.get("current_date")
+    if current_date_str is None:
         current_date = schedule_service.get_current_date()
-
-    user = cast(Employee, cast(object, base_data.get("user")))
-    stp_repo = cast(MainRequestsRepo, cast(object, base_data.get("stp_repo")))
+    else:
+        current_date = datetime.fromisoformat(current_date_str)
 
     (
         group_text,
@@ -122,74 +155,11 @@ async def group_schedule_getter(**kwargs):
         is_head=True if user.role == 2 else False,
     )
 
-    # Format date for display
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == schedule_service.get_current_date().date()
 
     return {
-        **base_data,
         "group_text": group_text,
         "date_display": date_display,
         "is_today": is_today,
     }
-
-
-async def month_navigation_getter(**kwargs):
-    from tgbot.misc.states.dialogs.user import UserSG
-
-    dialog_manager = kwargs.get("dialog_manager")
-    current_month = dialog_manager.dialog_data.get("current_month")
-
-    if not current_month:
-        current_month_index = schedule_service.get_current_date().month - 1
-
-        current_month = russian_months[current_month_index + 1]
-        dialog_manager.dialog_data["current_month"] = current_month
-
-    month_emoji = months_emojis.get(current_month.lower(), "📅")
-
-    base_data = await db_getter(**kwargs)
-    user: Employee = base_data.get("user")
-    stp_repo: MainRequestsRepo = base_data.get("stp_repo")
-
-    schedule_text = await schedule_service.get_user_schedule_response(
-        user=user, month=current_month, compact=True, stp_repo=stp_repo
-    )
-
-    # Determine current mode for button text
-    current_state = dialog_manager.current_context().state
-    is_detailed_mode = current_state == UserSG.schedule_my_detailed
-    button_text = "📋 Кратко" if is_detailed_mode else "📋 Подробнее"
-
-    mode_options = [
-        ("compact", "Кратко"),
-        ("detailed", "Детально"),
-    ]
-
-    selected_mode = "detailed" if is_detailed_mode else "compact"
-
-    return {
-        **base_data,
-        "current_month": current_month,
-        "month_emoji": month_emoji,
-        "month_display": f"{month_emoji} {current_month.capitalize()}",
-        "schedule_text": schedule_text,
-        "detail_button_text": button_text,
-        "is_detailed_mode": is_detailed_mode,
-        "mode_options": mode_options,
-        "selected_mode": selected_mode,
-    }
-
-
-async def detailed_schedule_getter(**kwargs):
-    schedule_data = await month_navigation_getter(**kwargs)
-
-    user: Employee = schedule_data.get("user")
-    stp_repo: MainRequestsRepo = schedule_data.get("stp_repo")
-    current_month = schedule_data.get("current_month")
-
-    schedule_text = await schedule_service.get_user_schedule_response(
-        user=user, month=current_month, compact=False, stp_repo=stp_repo
-    )
-
-    return {**schedule_data, "schedule_text": schedule_text}

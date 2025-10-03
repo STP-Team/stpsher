@@ -24,8 +24,7 @@ class GroupParams(TypedDict, total=False):
 
 class GroupRepo(BaseRepo):
     async def get_group(self, group_id: int) -> Optional[Group]:
-        """
-        Получить группу по идентификатору
+        """Получить группу по идентификатору
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -43,8 +42,7 @@ class GroupRepo(BaseRepo):
             return None
 
     async def get_groups_by_inviter(self, invited_by: int) -> Sequence[Group]:
-        """
-        Получить все группы, добавленные определенным пользователем
+        """Получить все группы, добавленные определенным пользователем
 
         Args:
             invited_by: Идентификатор пользователя, который пригласил бота
@@ -64,8 +62,7 @@ class GroupRepo(BaseRepo):
             return []
 
     async def get_all_groups(self) -> Sequence[Group]:
-        """
-        Получить все группы
+        """Получить все группы
 
         Returns:
             Список всех групп
@@ -80,8 +77,7 @@ class GroupRepo(BaseRepo):
     async def add_group(
         self, group_id: int, invited_by: int, remove_unemployed: bool = True
     ) -> Optional[Group]:
-        """
-        Добавить новую группу
+        """Добавить новую группу
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -132,8 +128,7 @@ class GroupRepo(BaseRepo):
             return None
 
     async def delete_group(self, group_id: int) -> bool:
-        """
-        Удалить группу
+        """Удалить группу
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -161,8 +156,7 @@ class GroupRepo(BaseRepo):
             return False
 
     async def sync_groups_with_bot_chats(self, bot) -> int:
-        """
-        Синхронизация групп из БД с чатами, где бот имеет права администратора
+        """Синхронизация групп из БД с чатами, где бот имеет права администратора
         Добавляет отсутствующие группы в БД
 
         Args:

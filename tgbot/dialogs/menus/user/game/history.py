@@ -1,3 +1,5 @@
+"""Генерация окна истории баланса для специалистов."""
+
 from aiogram_dialog.widgets.kbd import (
     Radio,
     Row,

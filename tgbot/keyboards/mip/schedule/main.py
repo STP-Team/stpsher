@@ -9,8 +9,7 @@ class ScheduleMenu(CallbackData, prefix="schedule_menu"):
 
 
 def schedule_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура меню графиков.
+    """Клавиатура меню графиков.
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """

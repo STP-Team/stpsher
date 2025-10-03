@@ -1,3 +1,5 @@
+"""Middleware для операций с пользователями."""
+
 import logging
 from typing import Any, Awaitable, Callable, Dict, Union
 
@@ -13,10 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class UsersMiddleware(BaseMiddleware):
-    """
-    Middleware responsible for user access control and banning logic.
-    Checks if user exists in database and has sufficient permissions.
-    """
+    """Middleware, отвечающий за контроль пользователей."""
 
     async def __call__(
         self,
@@ -26,14 +25,13 @@ class UsersMiddleware(BaseMiddleware):
         event: Union[Message, CallbackQuery, InlineQuery],
         data: Dict[str, Any],
     ) -> Any:
-        # Get user and repos from previous middleware (DatabaseMiddleware)
         user: Employee = data.get("user")
         stp_repo: MainRequestsRepo = data.get("stp_repo")
 
         if user:
             await self._update_username(user, event, stp_repo)
 
-        # Continue to the next middleware/handler
+        # Продолжаем к следующему middleware/обработчику
         result = await handler(event, data)
         return result
 
@@ -43,11 +41,12 @@ class UsersMiddleware(BaseMiddleware):
         event: Union[Message, CallbackQuery, InlineQuery],
         stp_repo: MainRequestsRepo,
     ):
-        """
-        Обновление юзернейма пользователя если он отличается от записанного
-        :param user:
-        :param event:
-        :return:
+        """Обновление юзернейма пользователя если он отличается от сохраненного.
+
+        Args:
+            user: Экземпляр пользователя с моделью Employee
+            event: Событие
+            stp_repo: Репозиторий операций с базой STP
         """
         if not user:
             return

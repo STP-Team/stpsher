@@ -1,18 +1,27 @@
+"""Геттеры показателей и нормативов."""
+
 import datetime
+from typing import Any, Dict
 
 from infrastructure.database.models import Employee
 from infrastructure.database.models.KPI.head_premium import HeadPremium
 from infrastructure.database.models.KPI.spec_premium import SpecPremium
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 
-async def base_kpi_data(**kwargs):
-    base_data = await db_getter(**kwargs)
-    user: Employee = base_data.get("user")
-    kpi_repo: KPIRequestsRepo = base_data.get("kpi_repo")
+async def base_kpi_data(
+    user: Employee, kpi_repo: KPIRequestsRepo, **kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения базовой информации о премии пользователя.
 
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        kpi_repo: Репозиторий операций с базой KPI
+
+    Returns:
+        Словарь с информацией о премии пользователя
+    """
     if user.role == 2:
         premium: HeadPremium = await kpi_repo.head_premium.get_premium(
             fullname=user.fullname
@@ -22,17 +31,23 @@ async def base_kpi_data(**kwargs):
             fullname=user.fullname
         )
 
-    return {**base_data, "premium": premium}
+    return {"premium": premium}
 
 
-async def kpi_getter(**kwargs):
-    base_data = await base_kpi_data(**kwargs)
-    user: Employee = base_data.get("user")
-    premium: HeadPremium | SpecPremium = base_data.get("premium")
+async def kpi_getter(
+    user: Employee, premium: SpecPremium | HeadPremium = None, **kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения показателей KPI сотрудника.
 
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        premium: Показатели премии сотрудника с моделью SpecPremium или HeadPremium
+
+    Returns:
+        Словарь с текстом сообщения о показателях пользователя
+    """
     if not premium:
         return {
-            **base_data,
             "kpi_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
         }
 
@@ -74,7 +89,6 @@ async def kpi_getter(**kwargs):
 <i>Обновлено: {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M")}</i>"""
 
     else:
-        # Conditional contact type text
         contacts_text = (
             f"📈 Всего чатов: {SalaryFormatter.format_value(premium.contacts_count)}"
             if user.division == "НЦК"
@@ -91,7 +105,7 @@ async def kpi_getter(**kwargs):
     
 📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}
-План: {SalaryFormatter.format_value(premium.csi_normative)}  </blockquote>
+План: {SalaryFormatter.format_value(premium.csi_normative)}</blockquote>
     
 🎯 <b>Отклик</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}
@@ -125,36 +139,48 @@ async def kpi_getter(**kwargs):
 <i>Выгружено: {updated_at_str}</i>
 <i>Обновлено: {current_time_str}</i>"""
 
-    return {**base_data, "kpi_text": kpi_text}
+    return {"kpi_text": kpi_text}
 
 
-async def kpi_requirements_getter(**kwargs):
-    base_data = await base_kpi_data(**kwargs)
-    user: Employee = base_data.get("user")
-    premium = base_data.get("premium")
+async def kpi_requirements_getter(
+    user: Employee, premium: SpecPremium | HeadPremium = None, **kwargs
+) -> Dict[str, Any]:
+    """Геттер для расчета необходимых показателей для выполнения нормативов.
 
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        premium: Показатели премии сотрудника с моделью SpecPremium или HeadPremium
+
+    Returns:
+        Словарь с текстом сообщения о выполнении нормативов пользователем
+    """
     if not premium:
         return {
-            **base_data,
-            "requirements_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
+            "requirements_text": "🧮 <b>Нормативы</b>\n\nНе смог найти твои показатели в премиуме :(",
         }
 
     requirements_text = KPICalculator.format_requirements_message(
         user=user, premium=premium, is_head=True if user.role == 2 else False
     )
 
-    return {**base_data, "requirements_text": requirements_text}
+    return {"requirements_text": requirements_text}
 
 
-async def salary_getter(**kwargs):
-    base_data = await base_kpi_data(**kwargs)
-    user: Employee = base_data.get("user")
-    premium = base_data.get("premium")
+async def salary_getter(
+    user: Employee, premium: SpecPremium | HeadPremium = None, **kwargs
+) -> Dict[str, Any]:
+    """Геттер для расчета заработной платы сотрудника.
 
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        premium: Показатели премии сотрудника с моделью SpecPremium или HeadPremium
+
+    Returns:
+        Словарь с текстом сообщения о зарплате сотрудника
+    """
     if not premium:
         return {
-            **base_data,
-            "salary_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
+            "salary_text": "💰 <b>Зарплата</b>\n\nНе смог найти твои показатели в премиуме :(",
         }
 
     salary_result = await SalaryCalculator.calculate_salary(
@@ -163,4 +189,4 @@ async def salary_getter(**kwargs):
 
     salary_text = SalaryFormatter.format_salary_message(salary_result, premium)
 
-    return {**base_data, "salary_text": salary_text}
+    return {"salary_text": salary_text}

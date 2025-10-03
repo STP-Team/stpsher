@@ -1,14 +1,25 @@
+"""Геттеры для меню истории баланса специалистов."""
+
+from typing import Any, Dict
+
+from aiogram_dialog import DialogManager
+
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 
-async def history_getter(**kwargs):
-    """
-    Получение истории транзакций пользователя
-    """
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
-    user: Employee = kwargs.get("user")
+async def history_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения истории транзакций пользователя.
 
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+
+    Returns:
+        Словарь с информацией о транзакциях пользователя
+    """
     user_transactions = await stp_repo.transaction.get_user_transactions(
         user_id=user.user_id
     )
@@ -54,12 +65,18 @@ async def history_getter(**kwargs):
     }
 
 
-async def history_detail_getter(**kwargs):
+async def history_detail_getter(
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер информации для детального просмотра транзакции.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с деталями выбранной транзакции пользователя
     """
-    Геттер для окна детального просмотра транзакции
-    """
-    dialog_manager = kwargs.get("dialog_manager")
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
     transaction_info = dialog_manager.dialog_data.get("selected_transaction")
 
     if not transaction_info:

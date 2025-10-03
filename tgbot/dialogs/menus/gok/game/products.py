@@ -1,3 +1,5 @@
+"""Генерация окна предметов для ГОК."""
+
 from tgbot.dialogs.getters.common.game.shop import role_based_product_filter_getter
 from tgbot.dialogs.menus.common.game.products import create_products_window
 from tgbot.misc.states.dialogs.gok import GokSG

@@ -1,6 +1,4 @@
-"""
-User processing service for handling Excel-based user data changes.
-"""
+"""User processing service for handling Excel-based user data changes."""
 
 import logging
 import re
@@ -78,8 +76,7 @@ def extract_division_from_filename(filename: str) -> str:
 
 
 def get_users_from_excel(file_name: str) -> List[Dict[str, str]]:
-    """
-    Extract users from Excel file with structure:
+    """Extract users from Excel file with structure:
     ДАТА → График Город ПРМ Должность Руководитель 1 смена...
 
     Args:
@@ -231,8 +228,7 @@ def _is_valid_fullname(fullname_cell: str) -> bool:
 
 
 async def process_fired_users_with_stats(files_list: list[str], session_pool):
-    """
-    Обработка уволенных сотрудников - удаление из базы
+    """Обработка уволенных сотрудников - удаление из базы
 
     :param files_list: Список файлов для проверки
     :param session_pool: Пул сессий БД из bot.py
@@ -282,8 +278,7 @@ async def process_fired_users_with_stats(files_list: list[str], session_pool):
 
 
 async def process_user_changes(session_pool, file_name: str):
-    """
-    Процессинг изменений должности и руководителя специалиста из файла.
+    """Процессинг изменений должности и руководителя специалиста из файла.
     Returns lists of updated and new user names
 
     Args:

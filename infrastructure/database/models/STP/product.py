@@ -6,8 +6,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Product(Base, TableNameMixin):
-    """
-    Класс, представляющий сущность предмета в БД.
+    """Класс, представляющий сущность предмета в БД.
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.

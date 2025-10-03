@@ -15,8 +15,7 @@ class SpecMonthKPIRepo(BaseRepo):
         self,
         fullname: str,
     ) -> Optional[SpecMonthKPI]:
-        """
-        Поиск показателей специалиста за месяц в БД по ФИО
+        """Поиск показателей специалиста за месяц в БД по ФИО
 
         Args:
             fullname: ФИО специалиста в БД
@@ -37,8 +36,7 @@ class SpecMonthKPIRepo(BaseRepo):
         self,
         fullnames: list[str],
     ) -> Sequence[SpecMonthKPI]:
-        """
-        Поиск показателей специалистов за месяц в БД по списку ФИО
+        """Поиск показателей специалистов за месяц в БД по списку ФИО
 
         Args:
             fullnames: Список ФИО специалистов в БД

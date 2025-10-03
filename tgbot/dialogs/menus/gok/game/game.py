@@ -1,3 +1,5 @@
+"""Генерация окна игрового профиля для ГОК."""
+
 from aiogram_dialog.widgets.kbd import (
     Row,
     SwitchTo,

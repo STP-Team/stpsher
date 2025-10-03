@@ -1,6 +1,4 @@
-"""
-Data models for schedule operations.
-"""
+"""Data models for schedule operations."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -8,9 +6,7 @@ from typing import Optional
 
 @dataclass
 class DayInfo:
-    """
-    Информация о дне в графике
-    """
+    """Информация о дне в графике"""
 
     day: str
     schedule: str
@@ -27,9 +23,7 @@ class DayInfo:
 
 @dataclass
 class ScheduleStats:
-    """
-    Статистика графика
-    """
+    """Статистика графика"""
 
     total_work_days: int
     total_work_hours: float
@@ -42,9 +36,7 @@ class ScheduleStats:
 
 @dataclass
 class DutyInfo:
-    """
-    Информация о дежурном
-    """
+    """Информация о дежурном"""
 
     name: str
     user_id: int
@@ -56,9 +48,7 @@ class DutyInfo:
 
 @dataclass
 class HeadInfo:
-    """
-    Информация о руководителе группы
-    """
+    """Информация о руководителе группы"""
 
     name: str
     user_id: int

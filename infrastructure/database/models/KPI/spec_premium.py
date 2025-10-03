@@ -7,9 +7,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class SpecPremium(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность показателей премиума специалиста в БД
-    """
+    """Модель, представляющая сущность показателей премиума специалиста в БД"""
 
     __tablename__ = "SpecPremium"
 

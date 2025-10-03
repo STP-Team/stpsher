@@ -11,8 +11,7 @@ from infrastructure.database.repo.KPI.spec_week_kpi import SpecWeekKPIRepo
 
 @dataclass
 class KPIRequestsRepo:
-    """
-    Repository for handling database operations. This class holds all the repositories for the database models.
+    """Repository for handling database operations. This class holds all the repositories for the database models.
 
     You can add more repositories as properties to this class, so they will be easily accessible.
     """
@@ -21,35 +20,25 @@ class KPIRequestsRepo:
 
     @property
     def head_premium(self) -> HeadPremiumRepo:
-        """
-        The HeadPremiumRepo repository sessions are required to manage head premium operations.
-        """
+        """The HeadPremiumRepo repository sessions are required to manage head premium operations."""
         return HeadPremiumRepo(self.session)
 
     @property
     def spec_day_kpi(self) -> SpecDayKPIRepo:
-        """
-        The SpecDayKPIRepo repository sessions are required to manage specialist daily kpi operations.
-        """
+        """The SpecDayKPIRepo repository sessions are required to manage specialist daily kpi operations."""
         return SpecDayKPIRepo(self.session)
 
     @property
     def spec_week_kpi(self) -> SpecWeekKPIRepo:
-        """
-        The SpecWeekKPIRepo repository sessions are required to manage specialist weekly kpi operations.
-        """
+        """The SpecWeekKPIRepo repository sessions are required to manage specialist weekly kpi operations."""
         return SpecWeekKPIRepo(self.session)
 
     @property
     def spec_month_kpi(self) -> SpecMonthKPIRepo:
-        """
-        The SpecMonthKPIRepo repository sessions are required to manage specialist monthly kpi operations.
-        """
+        """The SpecMonthKPIRepo repository sessions are required to manage specialist monthly kpi operations."""
         return SpecMonthKPIRepo(self.session)
 
     @property
     def spec_premium(self) -> SpecPremiumRepo:
-        """
-        The SpecPremiumRepo repository sessions are required to manage specialist premium operations.
-        """
+        """The SpecPremiumRepo repository sessions are required to manage specialist premium operations."""
         return SpecPremiumRepo(self.session)

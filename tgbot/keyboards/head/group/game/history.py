@@ -28,8 +28,7 @@ def head_group_history_kb(
     transactions_per_page: int = 8,
     employee_names: dict = None,
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура истории транзакций группы для руководителей с пагинацией.
+    """Клавиатура истории транзакций группы для руководителей с пагинацией.
     Отображает 2 транзакции в ряд, по умолчанию 8 транзакций на страницу (4 ряда).
 
     Args:
@@ -214,9 +213,7 @@ def head_group_history_kb(
 
 
 def head_transaction_detail_kb(page: int = 1) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для детального просмотра транзакции группы
-    """
+    """Клавиатура для детального просмотра транзакции группы"""
     buttons = [
         [
             InlineKeyboardButton(

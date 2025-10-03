@@ -1,3 +1,5 @@
+"""Middleware для доступа к базам данных."""
+
 import logging
 from typing import Any, Awaitable, Callable, Dict, Union
 
@@ -13,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseMiddleware(BaseMiddleware):
-    """
-    Middleware responsible only for database connections and session management.
-    Provides database repositories to other middlewares and handlers.
+    """Middleware, отвечающий за подключение к базе данных и управление сессиями.
+
+    Предоставляет репозитории баз данных другим middleware и обработчикам
     """
 
     def __init__(
@@ -39,45 +41,38 @@ class DatabaseMiddleware(BaseMiddleware):
 
         while retry_count < max_retries:
             try:
-                # Use separate sessions for different databases
+                # Используем раздельные сессии для баз данных
                 async with self.stp_session_pool() as stp_session:
-                    async with self.kpi_session_pool() as kpi_session:
-                        # Create repositories for different databases
-                        stp_repo = MainRequestsRepo(
-                            stp_session
-                        )  # Для основной базы СТП
-                        kpi_repo = KPIRequestsRepo(kpi_session)  # Для основной базы СТП
+                    stp_repo = MainRequestsRepo(stp_session)
+                    data["stp_repo"] = stp_repo
+                    data["stp_session"] = stp_session
+                    data["user"] = await stp_repo.employee.get_user(
+                        user_id=event.from_user.id
+                    )
 
-                        # Получаем пользователя из БД
-                        user = await stp_repo.employee.get_user(
-                            user_id=event.from_user.id
-                        )
+                async with self.kpi_session_pool() as kpi_session:
+                    kpi_repo = KPIRequestsRepo(kpi_session)
+                    data["kpi_repo"] = kpi_repo
+                    data["kpi_session"] = kpi_session
 
-                        # Add repositories and user to data for other middlewares
-                        data["stp_repo"] = stp_repo
-                        data["stp_session"] = stp_session
-                        data["kpi_repo"] = kpi_repo
-                        data["kpi_session"] = kpi_session
-                        data["user"] = user
-
-                        # Continue to the next middleware/handler
-                        result = await handler(event, data)
-                        return result
+                # Продолжаем к следующему middleware/обработчику
+                result = await handler(event, data)
+                return result
 
             except (OperationalError, DBAPIError, DisconnectionError) as e:
                 if "Connection is busy" in str(e) or "HY000" in str(e):
                     retry_count += 1
                     logger.warning(
-                        f"[DatabaseMiddleware] Database connection error, retry {retry_count}/{max_retries}: {e}"
+                        f"[DatabaseMiddleware] Ошибка подключения к базе данных, повтор {retry_count}/{max_retries}: {e}"
                     )
                     if retry_count >= max_retries:
                         logger.error(
-                            f"[DatabaseMiddleware] All database connection attempts exhausted: {e}"
+                            f"[DatabaseMiddleware] Потрачены все попытки подключения к базе данных: {e}"
                         )
                         if isinstance(event, Message):
                             try:
                                 await event.reply(
-                                    "⚠️ Временные проблемы с базой данных. Попробуйте позже."
+                                    "⚠️ Временные проблемы с базой данных. Попробуй позже."
                                 )
                             except Exception as e:
                                 logger.error(
@@ -86,10 +81,12 @@ class DatabaseMiddleware(BaseMiddleware):
                                 pass
                         return None
                 else:
-                    logger.error(f"[DatabaseMiddleware] Critical database error: {e}")
+                    logger.error(
+                        f"[DatabaseMiddleware] Критическая ошибка базы данных: {e}"
+                    )
                     return None
             except Exception as e:
-                logger.error(f"[DatabaseMiddleware] Unexpected error: {e}")
+                logger.error(f"[DatabaseMiddleware] Неожиданная ошибка: {e}")
                 return None
 
         return None

@@ -26,9 +26,7 @@ logger = logging.getLogger(__name__)
 async def head_casino_menu(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
-    """
-    Обработчик казино меню для руководителей
-    """
+    """Обработчик казино меню для руководителей"""
     if not user:
         await callback.message.edit_text(
             "❌ <b>Ошибка</b>\n\nНе удалось найти информацию в базе данных."
@@ -78,9 +76,7 @@ async def toggle_user_casino_access(
     user: Employee,
     stp_repo: MainRequestsRepo,
 ):
-    """
-    Обработчик переключения доступа к казино для пользователя
-    """
+    """Обработчик переключения доступа к казино для пользователя"""
     if not user:
         await callback.answer("❌ Ошибка получения данных", show_alert=True)
         return
@@ -126,9 +122,7 @@ async def toggle_all_casino_access(
     user: Employee,
     stp_repo: MainRequestsRepo,
 ):
-    """
-    Обработчик массового переключения доступа к казино для всех пользователей группы
-    """
+    """Обработчик массового переключения доступа к казино для всех пользователей группы"""
     if not user:
         await callback.answer("❌ Ошибка получения данных", show_alert=True)
         return

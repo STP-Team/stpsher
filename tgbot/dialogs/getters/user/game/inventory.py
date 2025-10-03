@@ -1,15 +1,16 @@
+from typing import Any, Dict
+
+from aiogram_dialog import DialogManager
+
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.helpers import get_status_emoji
 
 
-async def inventory_getter(**kwargs):
-    """
-    Получение предметов из инвентаря пользователя
-    """
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
-    user: Employee = kwargs.get("user")
-
+async def inventory_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
+    """Получение предметов из инвентаря пользователя"""
     user_products = await stp_repo.purchase.get_user_purchases_with_details(
         user_id=user.user_id
     )
@@ -45,11 +46,10 @@ async def inventory_getter(**kwargs):
     }
 
 
-async def inventory_detail_getter(**kwargs):
-    """
-    Геттер для окна детального просмотра предмета инвентаря
-    """
-    dialog_manager = kwargs.get("dialog_manager")
+async def inventory_detail_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна детального просмотра предмета инвентаря"""
     product_info = dialog_manager.dialog_data.get("selected_inventory_product")
 
     if not product_info:

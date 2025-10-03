@@ -212,7 +212,6 @@ def format_rating_message(
     group_members: Sequence[Employee], kpi_data: list, metric: str, period: str = "day"
 ) -> str:
     """Форматирует сообщение с рейтингом группы по выбранной метрике и периоду"""
-
     # Создаем словарь KPI данных для быстрого поиска
     kpi_dict = {kpi.fullname: kpi for kpi in kpi_data}
 

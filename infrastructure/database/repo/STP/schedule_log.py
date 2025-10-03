@@ -1,8 +1,8 @@
 import logging
-from typing import Optional, Sequence, TypedDict, Unpack
 from datetime import datetime
+from typing import Optional, Sequence, TypedDict, Unpack
 
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from infrastructure.database.models.STP.schedules import Schedules
@@ -28,8 +28,7 @@ class ScheduleLogRepo(BaseRepo):
         uploaded_from: Optional[datetime] = None,
         uploaded_to: Optional[datetime] = None,
     ) -> Sequence[Schedules]:
-        """
-        Получить записи лога расписания по фильтрам.
+        """Получить записи лога расписания по фильтрам.
 
         Args:
             file_id: Идентификатор Telegram файла
@@ -65,8 +64,7 @@ class ScheduleLogRepo(BaseRepo):
     async def add_file_history(
         self, **kwargs: Unpack[ScheduleLogParams]
     ) -> Optional[Schedules]:
-        """
-        Добавить новую запись в логи расписания.
+        """Добавить новую запись в логи расписания.
 
         Args:
             kwargs: Параметры для создания записи ScheduleLog

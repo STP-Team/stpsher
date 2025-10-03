@@ -54,8 +54,7 @@ class SchedulerManager:
         )
 
     def setup_jobs(self, session_pool, bot: Bot, kpi_session_pool=None):
-        """
-        Настройка всех запланированных задач
+        """Настройка всех запланированных задач
 
         Args:
             session_pool: Пул сессий основной БД

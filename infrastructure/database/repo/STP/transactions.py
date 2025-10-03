@@ -36,8 +36,7 @@ class TransactionRepo(BaseRepo):
         created_by: Optional[int] = None,
         kpi_extracted_at: Optional[datetime] = None,
     ) -> tuple[Transaction, int] | None:
-        """
-        Добавить новую транзакцию в БД
+        """Добавить новую транзакцию в БД
 
         Args:
             user_id: Идентификатор пользователя
@@ -81,8 +80,7 @@ class TransactionRepo(BaseRepo):
             return None
 
     async def get_transaction(self, transaction_id: int) -> Optional[Transaction]:
-        """
-        Получить транзакцию по ID
+        """Получить транзакцию по ID
 
         Args:
             transaction_id: Уникальный идентификатор транзакции
@@ -102,8 +100,7 @@ class TransactionRepo(BaseRepo):
     async def get_user_transactions(
         self, user_id: int, only_achievements: bool = False
     ) -> Sequence[Transaction]:
-        """
-        Получить все транзакции пользователя
+        """Получить все транзакции пользователя
 
         Args:
             user_id: Идентификатор пользователя
@@ -128,8 +125,7 @@ class TransactionRepo(BaseRepo):
             return []
 
     async def get_transactions(self) -> Sequence[Transaction]:
-        """
-        Получить все транзакции
+        """Получить все транзакции
 
         Returns:
             Список всех транзакций
@@ -148,8 +144,7 @@ class TransactionRepo(BaseRepo):
         transaction_id: int,
         **kwargs: Unpack[TransactionParams],
     ) -> Optional[Transaction]:
-        """
-        Обновить транзакцию
+        """Обновить транзакцию
 
         Args:
             transaction_id: ID транзакции для обновления
@@ -176,8 +171,7 @@ class TransactionRepo(BaseRepo):
             return None
 
     async def delete_transaction(self, transaction_id: int) -> bool:
-        """
-        Удалить транзакцию из БД
+        """Удалить транзакцию из БД
 
         Args:
             transaction_id: ID транзакции для удаления
@@ -206,8 +200,7 @@ class TransactionRepo(BaseRepo):
             return False
 
     async def get_user_balance(self, user_id: int) -> int:
-        """
-        Вычислить баланс пользователя (сумма всех транзакций)
+        """Вычислить баланс пользователя (сумма всех транзакций)
 
         Args:
             user_id: Идентификатор пользователя
@@ -231,8 +224,7 @@ class TransactionRepo(BaseRepo):
             return 0
 
     async def get_user_achievements_sum(self, user_id: int) -> int:
-        """
-        Вычислить сумму баллов за достижения пользователя (включая ручные транзакции)
+        """Вычислить сумму баллов за достижения пользователя (включая ручные транзакции)
 
         Args:
             user_id: Идентификатор пользователя
@@ -258,8 +250,7 @@ class TransactionRepo(BaseRepo):
             return 0
 
     async def get_group_transactions(self, head_name: str) -> Sequence[Transaction]:
-        """
-        Получить все транзакции группы по имени руководителя
+        """Получить все транзакции группы по имени руководителя
 
         Args:
             head_name: ФИО руководителя
@@ -298,8 +289,7 @@ class TransactionRepo(BaseRepo):
             return []
 
     async def get_heads_ranking_by_division(self, division: str) -> list[dict]:
-        """
-        Получить рейтинг руководителей по дивизиону на основе очков за текущий месяц с 1-го числа
+        """Получить рейтинг руководителей по дивизиону на основе очков за текущий месяц с 1-го числа
 
         Args:
             division: Название дивизиона
@@ -380,8 +370,7 @@ class TransactionRepo(BaseRepo):
             return []
 
     async def get_group_all_time_top_3(self, head_name: str) -> list[dict]:
-        """
-        Получить ТОП-3 участников группы по всем баллам за все время
+        """Получить ТОП-3 участников группы по всем баллам за все время
 
         Args:
             head_name: ФИО руководителя
@@ -453,8 +442,7 @@ class TransactionRepo(BaseRepo):
             return []
 
     async def get_group_stats_by_head(self, head_name: str) -> dict:
-        """
-        Получить статистику группы по имени руководителя
+        """Получить статистику группы по имени руководителя
 
         Args:
             head_name: ФИО руководителя

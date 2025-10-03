@@ -1,16 +1,24 @@
+"""Геттеры для окон активации предметов."""
+
+from typing import Dict
+
+from aiogram_dialog import DialogManager
+
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.getters.common.search import short_name
 
 
-async def activations_getter(**kwargs):
-    """
-    Получение списка предметов для активации на основе роли пользователя
-    """
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
-    user: Employee = kwargs.get("user")
+async def activations_getter(stp_repo: MainRequestsRepo, user: Employee) -> Dict:
+    """Получение списка предметов для активации на основе роли пользователя.
 
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
+
+    Returns:
+        Словарь из предметов на активацию
+    """
     # Получаем покупки, ожидающие активации с manager_role, соответствующей роли пользователя
     if user.role == 3:
         activations = await stp_repo.purchase.get_review_purchases_for_activation(
@@ -61,13 +69,15 @@ async def activations_getter(**kwargs):
     }
 
 
-async def activation_detail_getter(**kwargs):
-    """
-    Getter for activation detail window that includes dialog_data
-    """
-    base_data = await db_getter(**kwargs)
-    dialog_manager = kwargs.get("dialog_manager")
+async def activation_detail_getter(dialog_manager: DialogManager):
+    """Геттер для расчета кол-ва использований предмета.
 
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь информации об активации предмета с кол-вом оставшихся использований предмета
+    """
     # Получаем selected_activation из dialog_data
     selected_activation = dialog_manager.dialog_data.get("selected_activation", {})
 
@@ -81,6 +91,5 @@ async def activation_detail_getter(**kwargs):
         }
 
     return {
-        **base_data,
         "selected_activation": selected_activation,
     }

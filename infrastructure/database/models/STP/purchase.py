@@ -8,8 +8,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Purchase(Base, TableNameMixin):
-    """
-    Класс, представляющий сущность покупки пользователя в БД.
+    """Класс, представляющий сущность покупки пользователя в БД.
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор пользователя.

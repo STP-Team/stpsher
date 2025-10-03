@@ -15,8 +15,7 @@ class SpecPremiumRepo(BaseRepo):
         self,
         fullname: str,
     ) -> Optional[SpecPremium]:
-        """
-        Поиск показателей премиума специалиста в БД по ФИО
+        """Поиск показателей премиума специалиста в БД по ФИО
 
         Args:
             fullname: ФИО специалиста в БД
@@ -37,8 +36,7 @@ class SpecPremiumRepo(BaseRepo):
         self,
         fullnames: list[str],
     ) -> Sequence[SpecPremium]:
-        """
-        Поиск показателей премиума специалистов в БД по списку ФИО
+        """Поиск показателей премиума специалистов в БД по списку ФИО
 
         Args:
             fullnames: Список ФИО специалистов в БД

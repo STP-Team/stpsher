@@ -1,3 +1,5 @@
+"""Генерация окна магазина предметов для специалистов."""
+
 from aiogram_dialog.widgets.kbd import (
     Button,
     Row,
@@ -48,7 +50,7 @@ game_shop_confirm_window = Window(
 )
 
 game_shop_success_window = Window(
-    Format("""<b>✅ Приобретен предмет:</b> {product_name}
+    Format(""""<b>✅ Приобретен предмет:</b> {product_name}
 
 <b>📍 Количество активаций:</b> {product_count}
 

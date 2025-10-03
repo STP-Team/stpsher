@@ -1,3 +1,4 @@
+
 from aiogram_dialog import DialogManager
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
@@ -7,9 +8,7 @@ from tgbot.misc.states.dialogs.user import UserSG
 async def on_transaction_click(
     callback, widget, dialog_manager: DialogManager, item_id, **kwargs
 ):
-    """
-    Обработчик нажатия на транзакцию - переход к детальному просмотру
-    """
+    """Обработчик нажатия на транзакцию - переход к детальному просмотру"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     try:

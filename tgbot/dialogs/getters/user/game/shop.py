@@ -1,14 +1,25 @@
+"""Геттеры для меню магазина специалистов."""
+
+from typing import Any, Dict
+
+from aiogram_dialog import DialogManager
+
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 
-async def products_getter(**kwargs):
-    """
-    Получение списка предметов для магазина
-    """
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
-    user: Employee = kwargs.get("user")
+async def products_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения списка предметов магазина.
 
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+
+    Returns:
+        Словарь из списка предметов и баланса сотрудника
+    """
     user_balance: int = await stp_repo.transaction.get_user_balance(
         user_id=user.user_id
     )
@@ -26,11 +37,17 @@ async def products_getter(**kwargs):
     }
 
 
-async def confirmation_getter(**kwargs):
+async def confirmation_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна подтверждения покупки предмета.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранном предмете для покупки
     """
-    Геттер для окна подтверждения покупки
-    """
-    dialog_manager = kwargs.get("dialog_manager")
     product_info = dialog_manager.dialog_data.get("selected_product")
     user_balance = dialog_manager.dialog_data.get("user_balance", 0)
 
@@ -49,11 +66,15 @@ async def confirmation_getter(**kwargs):
     }
 
 
-async def success_getter(**kwargs):
+async def success_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
+    """Геттер для окна успешной покупки предмета.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о приобретенном предмете и изменении баланса
     """
-    Геттер для окна успешной покупки
-    """
-    dialog_manager = kwargs.get("dialog_manager")
     product_info = dialog_manager.dialog_data.get("selected_product")
     user_balance = dialog_manager.dialog_data.get("user_balance", 0)
     new_balance = dialog_manager.dialog_data.get("new_balance", 0)

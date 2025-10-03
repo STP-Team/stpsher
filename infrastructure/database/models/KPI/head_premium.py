@@ -8,9 +8,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class HeadPremium(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность показателей руководителя за месяц в БД
-    """
+    """Модель, представляющая сущность показателей руководителя за месяц в БД"""
 
     __tablename__ = "RgPremium"
 

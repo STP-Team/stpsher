@@ -19,8 +19,7 @@ class SearchService:
     def filter_users_by_type(
         users: Sequence[Employee], search_type: str
     ) -> list[Employee]:
-        """
-        Фильтрация пользователей по типу поиска
+        """Фильтрация пользователей по типу поиска
 
         :param users: Список пользователей
         :param search_type: Тип поиска (specialists, heads, all)
@@ -143,8 +142,7 @@ class SearchService:
 
     @staticmethod
     def format_user_info_base(user: Employee, user_head: Employee = None) -> str:
-        """
-        Формирует базовую информацию о пользователе
+        """Формирует базовую информацию о пользователе
 
         :param user: Сотрудник
         :param user_head: Руководитель (опционально)
@@ -174,8 +172,7 @@ class SearchService:
         user_head: Employee = None,
         viewer_role: int = 1,
     ) -> str:
-        """
-        Формирует информацию о пользователе в зависимости от роли смотрящего
+        """Формирует информацию о пользователе в зависимости от роли смотрящего
 
         :param user: Сотрудник
         :param user_head: Руководитель (опционально)
@@ -213,8 +210,7 @@ class SearchService:
 
     @staticmethod
     def format_head_group_info(group_stats: dict) -> str:
-        """
-        Формирует информацию о группе руководителя
+        """Формирует информацию о группе руководителя
 
         :param group_stats: Статистика группы
         :return: Дополнительная информация для руководителей

@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра списка предметов."""
+
 from aiogram import F
 from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.kbd import (
@@ -20,8 +22,16 @@ from tgbot.dialogs.events.user.shop import on_product_click
 
 
 def create_products_window(state_group, menu_state, product_filter_getter):
-    """Create shop products list window for a given state group with role-based filtering"""
+    """Создает окна для просмотра списка предметов.
 
+    Args:
+        state_group: Группа состояний, используемая для переключения окон
+        menu_state: Состояние главного меню
+        product_filter_getter: Геттер для фильтрации списка предметов
+
+    Returns:
+        Отфильтрованный список предметов в зависимости от роли сотрудника
+    """
     shop_window = Window(
         Format(
             """💎 <b>Магазин</b>
@@ -81,7 +91,7 @@ def create_products_window(state_group, menu_state, product_filter_getter):
             Radio(
                 Format("🔘 {item[1]}"),
                 Format("⚪️ {item[1]}"),
-                id="shop_filter",
+                id="product_filter",
                 item_id_getter=lambda item: item[0],
                 items=[("available", "Доступные"), ("all", "Все предметы")],
                 on_click=on_filter_change,
@@ -92,7 +102,7 @@ def create_products_window(state_group, menu_state, product_filter_getter):
             Radio(
                 Format("🔘 {item[1]}"),
                 Format("⚪️ {item[1]}"),
-                id="shop_filter",
+                id="product_filter",
                 item_id_getter=lambda item: item[0],
                 items="division_radio_data",
                 on_click=on_filter_change,

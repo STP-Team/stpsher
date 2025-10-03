@@ -43,8 +43,7 @@ class PurchaseRepo(BaseRepo):
     async def add_purchase(
         self, user_id: int, product_id: int, status: str = "stored", comment: str = None
     ) -> Purchase:
-        """
-        Создаем новую покупку для пользователя
+        """Создаем новую покупку для пользователя
 
         Args:
             user_id: ID пользователя Telegram
@@ -73,9 +72,7 @@ class PurchaseRepo(BaseRepo):
         return user_purchase
 
     async def get_user_purchases(self, user_id: int) -> list[Purchase]:
-        """
-        Получаем полный список покупок пользователя
-        """
+        """Получаем полный список покупок пользователя"""
         select_stmt = select(Purchase).where(Purchase.user_id == user_id)
         result = await self.session.execute(select_stmt)
         purchases = result.scalars().all()
@@ -84,9 +81,7 @@ class PurchaseRepo(BaseRepo):
     async def get_user_purchases_with_details(
         self, user_id: int
     ) -> list[PurchaseDetailedParams]:
-        """
-        Получаем полный список покупок пользователя с информацией о каждой покупке
-        """
+        """Получаем полный список покупок пользователя с информацией о каждой покупке"""
         from infrastructure.database.models import Product
 
         select_stmt = (
@@ -107,9 +102,7 @@ class PurchaseRepo(BaseRepo):
     async def get_purchase_details(
         self, user_purchase_id: int
     ) -> PurchaseDetailedParams | None:
-        """
-        Получаем детальную информацию о конкретной покупке пользователя
-        """
+        """Получаем детальную информацию о конкретной покупке пользователя"""
         select_stmt = (
             select(Purchase, Product)
             .join(Product, Purchase.product_id == Product.id)
@@ -126,9 +119,7 @@ class PurchaseRepo(BaseRepo):
         return PurchaseDetailedParams(user_purchase=purchase, product_info=product)
 
     async def get_user_purchases_sum(self, user_id: int) -> int:
-        """
-        Получаем сумму покупок пользователя через JOIN с таблицей предметов products
-        """
+        """Получаем сумму покупок пользователя через JOIN с таблицей предметов products"""
         select_stmt = (
             select(func.sum(Product.cost))
             .select_from(Purchase)
@@ -144,8 +135,7 @@ class PurchaseRepo(BaseRepo):
     async def get_review_purchases_for_activation(
         self, manager_role: int, division: str | list[str] | None
     ) -> list[PurchaseDetailedParams]:
-        """
-        Получаем список покупок, ожидающих активации
+        """Получаем список покупок, ожидающих активации
         Фильтруем по статусу "review" и manager_role
         Опционально фильтруем по division пользователей
         """
@@ -198,8 +188,7 @@ class PurchaseRepo(BaseRepo):
         return product
 
     async def use_purchase(self, purchase_id: int) -> bool:
-        """
-        User clicks 'Использовать' button - changes status from 'stored' to 'review'
+        """User clicks 'Использовать' button - changes status from 'stored' to 'review'
 
         Returns:
             bool: True if successful, False if not available for use
@@ -225,9 +214,7 @@ class PurchaseRepo(BaseRepo):
     async def approve_purchase_usage(
         self, purchase_id: int, updated_by_user_id: int
     ) -> bool:
-        """
-        Manager approves product usage - increments usage_count and sets status back to 'stored' or 'used_up'
-        """
+        """Manager approves product usage - increments usage_count and sets status back to 'stored' or 'used_up'"""
         # Get the user purchase first
         purchase = await self.session.get(Purchase, purchase_id)
         if not purchase:
@@ -255,9 +242,7 @@ class PurchaseRepo(BaseRepo):
     async def reject_purchase_usage(
         self, purchase_id: int, updated_by_user_id: int
     ) -> bool:
-        """
-        Отмена использования предмета - возвращает статус покупки на 'stored' или 'used_up'
-        """
+        """Отмена использования предмета - возвращает статус покупки на 'stored' или 'used_up'"""
         # Get the user purchase first
         purchase = await self.session.get(Purchase, purchase_id)
         if not purchase:
@@ -281,8 +266,7 @@ class PurchaseRepo(BaseRepo):
         return True
 
     async def delete_user_purchase(self, purchase_id: int) -> bool:
-        """
-        Удаляет запись о покупке пользователя из БД (для возврата)
+        """Удаляет запись о покупке пользователя из БД (для возврата)
 
         Args:
             purchase_id: ID записи в таблице purchases
@@ -307,8 +291,7 @@ class PurchaseRepo(BaseRepo):
         return True
 
     async def get_most_bought_product(self, user_id: int) -> tuple[str, int] | None:
-        """
-        Получаем самый покупаемый предмет пользователя
+        """Получаем самый покупаемый предмет пользователя
 
         Returns:
             tuple[str, int]: (название предмета, количество использований) или None если нет предметов
@@ -331,8 +314,7 @@ class PurchaseRepo(BaseRepo):
         return most_used.name, most_used.usage_count
 
     async def get_group_purchases_stats(self, head_name: str) -> dict:
-        """
-        Получить статистику покупок для группы руководителя
+        """Получить статистику покупок для группы руководителя
 
         Args:
             head_name: Имя руководителя

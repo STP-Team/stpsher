@@ -15,8 +15,7 @@ class SpecWeekKPIRepo(BaseRepo):
         self,
         fullname: str,
     ) -> Optional[SpecWeekKPI]:
-        """
-        Поиск показателей специалиста за неделю в БД по ФИО
+        """Поиск показателей специалиста за неделю в БД по ФИО
 
         Args:
             fullname: ФИО специалиста в БД
@@ -39,8 +38,7 @@ class SpecWeekKPIRepo(BaseRepo):
         self,
         fullnames: list[str],
     ) -> Sequence[SpecWeekKPI]:
-        """
-        Поиск показателей специалистов за неделю в БД по списку ФИО
+        """Поиск показателей специалистов за неделю в БД по списку ФИО
 
         Args:
             fullnames: Список ФИО специалистов в БД

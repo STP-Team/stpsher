@@ -1,3 +1,5 @@
+"""Генерация окон графиков для специалистов."""
+
 from aiogram import F
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -23,13 +25,11 @@ from tgbot.dialogs.callbacks.common.schedule_functions import (
 from tgbot.dialogs.callbacks.user_functions import (
     on_mode_select,
 )
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.getters.common.schedule import (
-    detailed_schedule_getter,
     duty_schedule_getter,
     group_schedule_getter,
     head_schedule_getter,
-    month_navigation_getter,
+    user_schedule_getter,
 )
 from tgbot.misc.states.dialogs.user import UserSG
 
@@ -62,7 +62,6 @@ schedule_window = Window(
         ),
     ),
     SwitchTo(Const("↩️ Назад"), id="back_to_menu", state=UserSG.menu),
-    getter=db_getter,
     state=UserSG.schedule,
 )
 
@@ -99,46 +98,8 @@ schedule_my_window = Window(
         SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
         SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
     ),
-    getter=month_navigation_getter,
+    getter=user_schedule_getter,
     state=UserSG.schedule_my,
-)
-
-
-schedule_my_detailed_window = Window(
-    Format("{schedule_text}"),
-    Row(
-        Button(
-            Const("<"),
-            id="prev_month",
-            on_click=prev_month,
-        ),
-        Button(
-            Format("{month_display}"),
-            id="current_month",
-            on_click=do_nothing,
-        ),
-        Button(
-            Const(">"),
-            id="next_month",
-            on_click=next_month,
-        ),
-    ),
-    Row(
-        Radio(
-            Format("🔘 {item[1]}"),
-            Format("⚪️ {item[1]}"),
-            id="mode_selector",
-            item_id_getter=lambda item: item[0],
-            items="mode_options",
-            on_click=on_mode_select,
-        ),
-    ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=UserSG.schedule),
-        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
-    ),
-    getter=detailed_schedule_getter,
-    state=UserSG.schedule_my_detailed,
 )
 
 

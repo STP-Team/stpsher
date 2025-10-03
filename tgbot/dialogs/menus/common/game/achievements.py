@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра списка достижений."""
+
 from aiogram_dialog.widgets.kbd import (
     CurrentPage,
     FirstPage,
@@ -16,12 +18,20 @@ from tgbot.misc.states.dialogs.user import UserSG
 
 
 def create_achievements_windows(state_group, menu_state, achievements_filter_getter):
-    """Create achievements windows for a given state group with role-based filtering"""
+    """Создает окна для просмотра списка достижений.
 
-    is_user_role = state_group == UserSG
+    Args:
+        state_group: Группа состояний, используемая для переключения окон
+        menu_state: Состояние главного меню
+        achievements_filter_getter: Геттер для фильтрации списка достижений
 
-    # Создаем фильтр для первой категории (позиция или подразделение)
-    if is_user_role:
+    Returns:
+        Отфильтрованный список достижений в зависимости от роли сотрудника
+    """
+    is_user = state_group == UserSG
+
+    # Создаем фильтр для первой категории (должность или подразделение)
+    if is_user:
         first_filter = Radio(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),

@@ -13,8 +13,7 @@ async def send_message(
     disable_notification: bool = False,
     reply_markup: InlineKeyboardMarkup = None,
 ) -> bool:
-    """
-    Safe messages sender
+    """Safe messages sender
 
     :param bot: Bot instance.
     :param user_id: user id. If str - must contain only digits.
@@ -57,8 +56,7 @@ async def broadcast(
     disable_notification: bool = False,
     reply_markup: InlineKeyboardMarkup = None,
 ) -> int:
-    """
-    Simple broadcaster.
+    """Simple broadcaster.
     :param bot: Bot instance.
     :param users: List of users.
     :param text: Text of the message.

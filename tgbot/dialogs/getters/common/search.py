@@ -1,5 +1,7 @@
+from aiogram_dialog import DialogManager
+
+from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.misc.helpers import get_role
 from tgbot.services.search import SearchService
 
@@ -14,10 +16,7 @@ def short_name(full_name: str) -> str:
     return clean_name
 
 
-async def main_search_getter(**kwargs):
-    base_data = await db_getter(**kwargs)
-    stp_repo: MainRequestsRepo = base_data.get("stp_repo")
-
+async def main_search_getter(stp_repo: MainRequestsRepo, **kwargs):
     specialists = await stp_repo.employee.get_users(roles=[1, 3])
     total_specialists = len(specialists)
 
@@ -25,7 +24,6 @@ async def main_search_getter(**kwargs):
     total_heads = len(heads)
 
     return {
-        **base_data,
         "specialists": specialists,
         "total_specialists": total_specialists,
         "heads": heads,
@@ -33,12 +31,10 @@ async def main_search_getter(**kwargs):
     }
 
 
-async def search_specialists_getter(**kwargs):
+async def search_specialists_getter(dialog_manager: DialogManager, **kwargs):
     base_data = await main_search_getter(**kwargs)
     specialists = base_data.get("specialists")
 
-    # Получаем выбранное направление в фильтре
-    dialog_manager = kwargs.get("dialog_manager")
     selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
 
     # Устанавливаем стандартное значение если не указано иное
@@ -75,12 +71,10 @@ async def search_specialists_getter(**kwargs):
     }
 
 
-async def search_heads_getter(**kwargs):
+async def search_heads_getter(dialog_manager: DialogManager, **kwargs):
     base_data = await main_search_getter(**kwargs)
     all_heads = base_data.get("heads")
 
-    # Получаем выбранное направление в фильтре
-    dialog_manager = kwargs.get("dialog_manager")
     selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
 
     # Устанавливаем стандартное значение если не указано иное
@@ -115,68 +109,67 @@ async def search_heads_getter(**kwargs):
     }
 
 
-async def search_results_getter(**kwargs):
+async def search_results_getter(dialog_manager: DialogManager, **kwargs):
     """Получение результатов поиска"""
-    base_data = await db_getter(**kwargs)
-
-    dialog_manager = kwargs.get("dialog_manager")
     search_results = dialog_manager.dialog_data.get("search_results", [])
     search_query = dialog_manager.dialog_data.get("search_query", "")
     total_found = dialog_manager.dialog_data.get("total_found", 0)
 
     return {
-        **base_data,
         "search_results": search_results,
         "search_query": search_query,
         "total_found": total_found,
     }
 
 
-async def search_user_info_getter(**kwargs):
+async def search_user_info_getter(
+    user: Employee,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **kwargs,
+):
     """Получение информации о выбранном пользователе"""
-    base_data = await db_getter(**kwargs)
-    stp_repo: MainRequestsRepo = base_data.get("stp_repo")
-
-    dialog_manager = kwargs.get("dialog_manager")
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
     if not selected_user_id:
-        return {**base_data, "user_info": "❌ Пользователь не выбран"}
+        return {"user_info": "❌ Пользователь не выбран"}
 
     try:
         # Получаем информацию о пользователе
-        user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
-        if not user:
-            user = await stp_repo.employee.get_user(user_id=int(selected_user_id))
-        if not user:
-            return {**base_data, "user_info": "❌ Пользователь не найден"}
+        searched_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+        if not searched_user:
+            searched_user = await stp_repo.employee.get_user(
+                user_id=int(selected_user_id)
+            )
+        if not searched_user:
+            return {"user_info": "❌ Пользователь не найден"}
 
         # Получаем руководителя если есть
-        user_head = None
-        if user.head:
-            user_head = await stp_repo.employee.get_user(fullname=user.head)
+        searched_user_head = None
+        if searched_user.head:
+            searched_user_head = await stp_repo.employee.get_user(
+                fullname=searched_user.head
+            )
 
         # Получаем роль текущего пользователя из базовых данных
-        current_user = base_data.get("user")
-        viewer_role = current_user.role if current_user else 1
+        viewer_role = user.role if user else 1
 
         # Формируем информацию о пользователе с учетом роли просматривающего
         user_info = SearchService.format_user_info_role_based(
-            user, user_head, viewer_role
+            searched_user, searched_user_head, viewer_role
         )
 
         # Добавляем статистику для руководителей если просматривает пользователь с ролью 2
-        if user.role == 2 and viewer_role >= 2:
+        if searched_user.role == 2 and viewer_role >= 2:
             group_stats = await SearchService.get_group_statistics_by_id(
-                user.user_id, stp_repo
+                searched_user.user_id, stp_repo
             )
             if group_stats["total_users"] > 0:
                 user_info += SearchService.format_head_group_info(group_stats)
 
-        return {**base_data, "user_info": user_info}
+        return {"user_info": user_info}
 
     except Exception as e:
         return {
-            **base_data,
             "user_info": f"❌ Ошибка при получении информации: {str(e)}",
         }

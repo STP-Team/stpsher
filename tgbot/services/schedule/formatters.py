@@ -1,6 +1,4 @@
-"""
-Schedule formatting functionality.
-"""
+"""Schedule formatting functionality."""
 
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -361,8 +359,7 @@ class ScheduleFormatter:
 
     @staticmethod
     def get_gender_emoji(name: str) -> str:
-        """
-        Определение пола по имени
+        """Определение пола по имени
         :param name: Полные ФИО или отчество
         :return: Эмодзи с отображением пола
         """

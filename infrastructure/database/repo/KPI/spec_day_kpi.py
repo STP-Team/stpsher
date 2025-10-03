@@ -15,8 +15,7 @@ class SpecDayKPIRepo(BaseRepo):
         self,
         fullname: str,
     ) -> Optional[SpecDayKPI]:
-        """
-        Поиск показателей специалиста за день в БД по ФИО
+        """Поиск показателей специалиста за день в БД по ФИО
 
         Args:
             fullname: ФИО специалиста в БД
@@ -37,8 +36,7 @@ class SpecDayKPIRepo(BaseRepo):
         self,
         fullnames: list[str],
     ) -> Sequence[SpecDayKPI]:
-        """
-        Поиск показателей специалистов за день в БД по списку ФИО
+        """Поиск показателей специалистов за день в БД по списку ФИО
 
         Args:
             fullnames: Список ФИО специалистов в БД

@@ -6,8 +6,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Group(Base, TableNameMixin):
-    """
-    Класс, представляющий сущность группы в БД.
+    """Класс, представляющий сущность группы в БД.
 
     Attributes:
         group_id (Mapped[int]): Идентификатор группы Telegram.

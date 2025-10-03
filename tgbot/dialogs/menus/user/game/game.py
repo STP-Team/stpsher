@@ -1,3 +1,5 @@
+"""Генерация окна игрового профиля для специалистов."""
+
 from aiogram_dialog.widgets.kbd import (
     Button,
     Row,

@@ -9,8 +9,7 @@ class GroupManagementMenu(CallbackData, prefix="group_mgmt"):
 
 
 def group_management_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура управления группой.
+    """Клавиатура управления группой.
 
     :return: Объект встроенной клавиатуры для управления группой
     """

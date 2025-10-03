@@ -1,3 +1,7 @@
+from aiogram_dialog import DialogManager
+
+from infrastructure.database.models import Employee
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.filters.common.game_filters import (
     get_position_callback_key,
     get_position_display_name,
@@ -6,23 +10,23 @@ from tgbot.dialogs.filters.common.game_filters import (
 from tgbot.dialogs.getters.user.game.achievements import achievements_getter
 
 
-async def role_based_achievements_filter_getter(**kwargs):
-    """
-    Фильтрует достижения в зависимости от роли пользователя и выбранных фильтров
-    """
-    dialog_manager = kwargs.get("dialog_manager")
-    user = kwargs.get("user")
+async def role_based_achievements_filter_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+):
+    """Фильтрует достижения в зависимости от роли пользователя и выбранных фильтров"""
     is_user_role = user and user.role in [1, 3]
 
     # Определяем параметры для загрузки достижений в зависимости от роли
     if user and user.role in [5, 6]:  # GOK role
         # Для ГОК и МИП показываем все достижения из всех подразделений
-        base_data = await achievements_getter(**kwargs)
+        base_data = await achievements_getter(stp_repo=stp_repo, **kwargs)
     else:
         # Для специалистов (role 1 или 3) показываем достижения своего подразделения
-        # Передаем division пользователя в базовый getter
+        # Передаем направление пользователя в базовый getter
         base_data = await achievements_getter(
-            division="НЦК" if user and "НЦК" in user.division else "НТП", **kwargs
+            stp_repo=stp_repo,
+            division="НЦК" if user and "НЦК" in user.division else "НТП",
+            **kwargs,
         )
 
     # Получаем все достижения для определения доступных позиций
@@ -140,9 +144,6 @@ async def role_based_achievements_filter_getter(**kwargs):
 
     # Дополнительно фильтруем по периоду
     if selected_period != "all":
-        stp_repo = kwargs.get("stp_repo")
-        user = kwargs.get("user")
-
         if stp_repo and user:
             # Для ГОК и МИП получаем достижения в зависимости от выбранного фильтра подразделения
             if user.role in [5, 6]:

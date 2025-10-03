@@ -7,9 +7,7 @@ from tgbot.misc.states.dialogs.user import UserSG
 async def on_product_click(
     callback, widget, dialog_manager: DialogManager, item_id, **kwargs
 ):
-    """
-    Обработчик нажатия на продукт - переход к подтверждению покупки
-    """
+    """Обработчик нажатия на продукт - переход к подтверждению покупки"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user = dialog_manager.middleware_data["user"]
 
@@ -50,9 +48,7 @@ async def on_product_click(
 async def on_confirm_purchase(
     callback, widget, dialog_manager: DialogManager, **kwargs
 ):
-    """
-    Обработчик подтверждения покупки
-    """
+    """Обработчик подтверждения покупки"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user = dialog_manager.middleware_data["user"]
     product_info = dialog_manager.dialog_data["selected_product"]
@@ -93,9 +89,7 @@ async def on_confirm_purchase(
 
 
 async def on_sell_product(callback, widget, dialog_manager: DialogManager, **kwargs):
-    """
-    Обработчик продажи предмета
-    """
+    """Обработчик продажи предмета"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user = dialog_manager.middleware_data["user"]
     new_purchase = dialog_manager.dialog_data["new_purchase"]

@@ -46,7 +46,6 @@ async def private_whois_command(
     message: Message, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Команда /whois для приватных сообщений - работает с пересланными сообщениями и аргументами"""
-
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(
@@ -383,7 +382,6 @@ async def handle_forwarded_message(
     message: Message, user: Employee, stp_repo: MainRequestsRepo
 ):
     """Автоматически показывает информацию о пользователе при пересылке его сообщения"""
-
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(
@@ -438,7 +436,6 @@ async def handle_forwarded_message(
 @user_router.message(F.forward_sender_name)
 async def handle_forwarded_message_privacy(message: Message, user: Employee):
     """Обрабатывает пересланные сообщения с включенным режимом конфиденциальности"""
-
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(
@@ -477,7 +474,6 @@ async def handle_forwarded_message_privacy(message: Message, user: Employee):
 @user_router.message(F.forward_from_chat)
 async def handle_forwarded_message_from_chat(message: Message, user: Employee):
     """Обрабатывает сообщения, пересланные из чатов/каналов"""
-
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(

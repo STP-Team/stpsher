@@ -1,8 +1,8 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from tgbot.keyboards.user.main import MainMenu
 from tgbot.keyboards.head.group.members import HeadMemberDetailMenu
+from tgbot.keyboards.user.main import MainMenu
 
 
 class HeadMemberGameProfileMenu(CallbackData, prefix="head_member_game_profile"):
@@ -26,9 +26,7 @@ class HeadMemberTransactionDetailMenu(
 
 
 def head_member_game_profile_kb(member_id: int, page: int = 1) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для игрового профиля участника группы
-    """
+    """Клавиатура для игрового профиля участника группы"""
     buttons = [
         [
             InlineKeyboardButton(
@@ -62,9 +60,7 @@ def head_member_game_history_kb(
     page: int = 1,
     transactions_per_page: int = 8,
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура истории транзакций участника группы с пагинацией
-    """
+    """Клавиатура истории транзакций участника группы с пагинацией"""
     buttons = []
 
     if not transactions:
@@ -238,9 +234,7 @@ def head_member_game_history_kb(
 def head_member_transaction_detail_kb(
     member_id: int, history_page: int = 1, page: int = 1
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для детального просмотра транзакции участника
-    """
+    """Клавиатура для детального просмотра транзакции участника"""
     buttons = [
         [
             InlineKeyboardButton(

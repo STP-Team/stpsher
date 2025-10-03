@@ -198,8 +198,7 @@ def group_members_keyboard(
     current_page: int = 1,
     members_per_page: int = 8,
 ) -> InlineKeyboardMarkup:
-    """
-    Keyboard for displaying group members with pagination.
+    """Keyboard for displaying group members with pagination.
     Shows employees first with role emojis, then non-employees.
     """
     buttons = []

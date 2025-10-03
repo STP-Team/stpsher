@@ -28,8 +28,7 @@ class BroadcastRepo(BaseRepo):
         broadcast_type: Optional[str] = None,
         target: Optional[str] = None,
     ) -> Optional[Broadcast]:
-        """
-        Поиск рассылки в БД по фильтрам
+        """Поиск рассылки в БД по фильтрам
 
         Args:
             broadcast_id: Уникальный идентификатор рассылки
@@ -71,8 +70,7 @@ class BroadcastRepo(BaseRepo):
         broadcast_type: Optional[str] = None,
         target: Optional[str] = None,
     ) -> Sequence[Broadcast] | None:
-        """
-        Получить список рассылок по фильтрам
+        """Получить список рассылок по фильтрам
 
         Args:
             user_id: Идентификатор владельца рассылки
@@ -109,8 +107,7 @@ class BroadcastRepo(BaseRepo):
         broadcast_id: int,
         **kwargs: Unpack[BroadcastParams],
     ) -> Optional[Broadcast]:
-        """
-        Обновление рассылки в БД
+        """Обновление рассылки в БД
 
         Args:
             broadcast_id: Идентификатор рассылки для обновления
@@ -139,8 +136,7 @@ class BroadcastRepo(BaseRepo):
         return broadcast
 
     async def delete_broadcast(self, broadcast_id: int) -> bool:
-        """
-        Удаление рассылки из БД по идентификатору
+        """Удаление рассылки из БД по идентификатору
 
         Args:
             broadcast_id: ID рассылки для удаления
@@ -176,8 +172,7 @@ class BroadcastRepo(BaseRepo):
         text: str,
         recipients: Optional[List[int]] = None,
     ) -> Optional[Broadcast]:
-        """
-        Создание новой рассылки
+        """Создание новой рассылки
 
         Args:
             user_id: Идентификатор владельца рассылки

@@ -1,3 +1,5 @@
+"""Генерация окон показателей для специалистов."""
+
 from aiogram_dialog import Window
 from aiogram_dialog.widgets.kbd import Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format

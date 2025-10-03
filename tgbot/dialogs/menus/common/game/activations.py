@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра списка предметов на активацию."""
+
 from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -18,12 +20,18 @@ from tgbot.dialogs.getters.common.activations import (
     activation_detail_getter,
     activations_getter,
 )
-from tgbot.dialogs.getters.common.db import db_getter
 
 
 def create_activations_windows(state_group, menu_state):
-    """Create activation windows for a given state group"""
+    """Создает окна для просмотра списка предметов на активацию.
 
+    Args:
+        state_group: Группа состояний, используемая для переключения окон
+        menu_state: Состояние главного меню
+
+    Returns:
+        Сгенерированный список окон для активации предметов
+    """
     activations_list_window = Window(
         Format("""✍️ <b>Активация предметов</b>
 
@@ -106,7 +114,6 @@ def create_activations_windows(state_group, menu_state):
 
 Нет предметов, ожидающих активации 😊"""),
         SwitchTo(Const("↩️ Назад"), id="menu", state=menu_state),
-        getter=db_getter,
         state=state_group.game_activations_empty,
     )
 

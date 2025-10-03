@@ -4,7 +4,6 @@ from aiogram.fsm.state import State, StatesGroup
 class UserSG(StatesGroup):
     # Меню
     menu = State()
-    groups = State()
     settings = State()
 
     # Графики
@@ -44,6 +43,16 @@ class UserSG(StatesGroup):
     # Действия
     game_shop_confirm = State()
     game_shop_success = State()
+
+    # Группы
+    groups = State()
+    groups_list = State()
+    groups_list_detail = State()
+    groups_cmds = State()
+    groups_access = State()
+    groups_service_messages = State()
+    groups_members = State()
+    groups_remove_bot = State()
 
 
 class Authorization(StatesGroup):

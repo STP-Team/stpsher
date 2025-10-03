@@ -1,13 +1,11 @@
-"""
-Schedule services package for parsing and formatting various types of schedules.
-"""
+"""Schedule services package for parsing and formatting various types of schedules."""
 
 from .exceptions import (
+    InvalidDataError,
+    MonthNotFoundError,
     ScheduleError,
     ScheduleFileNotFoundError,
     UserNotFoundError,
-    MonthNotFoundError,
-    InvalidDataError,
 )
 from .formatters import ScheduleFormatter
 from .managers import MonthManager, ScheduleFileManager
@@ -17,7 +15,7 @@ from .models import (
     HeadInfo,
     ScheduleStats,
 )
-from .parsers import ScheduleParser, DutyScheduleParser, HeadScheduleParser
+from .parsers import DutyScheduleParser, HeadScheduleParser, ScheduleParser
 
 __all__ = [
     # Core classes

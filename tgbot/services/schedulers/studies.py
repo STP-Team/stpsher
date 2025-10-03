@@ -1,5 +1,4 @@
-"""
-Studies scheduler for managing study session notifications.
+"""Studies scheduler for managing study session notifications.
 
 Handles notifications for participants when there's less than a week before study dates.
 """
@@ -21,8 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class StudiesScheduler(BaseScheduler):
-    """
-    Studies scheduler for managing study session notifications
+    """Studies scheduler for managing study session notifications
 
     Manages notifications for study participants when there's less than a week
     before the study date.
@@ -60,8 +58,7 @@ class StudiesScheduler(BaseScheduler):
 
 
 async def check_upcoming_studies(session_pool, bot: Bot):
-    """
-    Check for upcoming studies and notify participants if less than a week away
+    """Check for upcoming studies and notify participants if less than a week away
 
     Args:
         session_pool: Database session pool
@@ -140,8 +137,7 @@ async def check_upcoming_studies(session_pool, bot: Bot):
 async def send_study_notifications(
     sessions: List[StudySession], session_pool, bot: Bot
 ) -> dict:
-    """
-    Send notifications to study participants
+    """Send notifications to study participants
 
     Args:
         sessions: List of upcoming study sessions
@@ -234,8 +230,7 @@ async def send_study_notifications(
 async def create_study_notification_message(
     session: StudySession, stp_repo, time_diff: timedelta
 ) -> str:
-    """
-    Create notification message for study participant
+    """Create notification message for study participant
 
     Args:
         session: Study session object
@@ -297,8 +292,7 @@ async def create_study_notification_message(
 
 
 def format_studies_notification_summary(sessions: List[StudySession]) -> str:
-    """
-    Format brief summary of upcoming studies for logs
+    """Format brief summary of upcoming studies for logs
 
     Args:
         sessions: List of upcoming study sessions

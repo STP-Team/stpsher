@@ -1,12 +1,11 @@
+from aiogram_dialog import DialogManager
+
 from tgbot.dialogs.getters.user.game.history import history_getter
 
 
-async def history_filter_getter(**kwargs):
-    """
-    Фильтрует транзакции в зависимости от выбранных радио-фильтров (тип и источник)
-    """
+async def history_filter_getter(dialog_manager: DialogManager, **kwargs):
+    """Фильтрует транзакции в зависимости от выбранных радио-фильтров (тип и источник)"""
     base_data = await history_getter(**kwargs)
-    dialog_manager = kwargs.get("dialog_manager")
 
     # Проверяем текущий выбор фильтров (стандартно на 'all')
     type_filter = dialog_manager.dialog_data.get("history_type_filter", "all")

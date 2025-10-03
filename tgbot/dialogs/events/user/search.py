@@ -20,9 +20,7 @@ def get_state_group_from_dialog_manager(dialog_manager):
 
 
 async def on_user_select(callback, widget, dialog_manager, item_id, **kwargs):
-    """
-    Обработчик выбора пользователя из списка поиска
-    """
+    """Обработчик выбора пользователя из списка поиска"""
     dialog_manager.dialog_data["selected_user_id"] = item_id
 
     # Store the current state as the previous state for back navigation
@@ -35,9 +33,7 @@ async def on_user_select(callback, widget, dialog_manager, item_id, **kwargs):
 
 
 async def on_search_query(message, widget, dialog_manager, text: str):
-    """
-    Обработчик поискового запроса из текстового поля
-    """
+    """Обработчик поискового запроса из текстового поля"""
     search_query = text.strip()
 
     if not search_query or len(search_query) < 2:
@@ -88,9 +84,7 @@ async def on_search_query(message, widget, dialog_manager, text: str):
 
 
 async def on_back_from_user_detail(callback, widget, dialog_manager, **kwargs):
-    """
-    Обработчик возврата назад из детального просмотра пользователя
-    """
+    """Обработчик возврата назад из детального просмотра пользователя"""
     # Get the previous state from dialog data
     previous_state = dialog_manager.dialog_data.get("previous_state")
 

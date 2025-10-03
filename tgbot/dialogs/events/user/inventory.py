@@ -7,9 +7,7 @@ from tgbot.misc.states.dialogs.user import UserSG
 async def on_inventory_product_click(
     callback, widget, dialog_manager: DialogManager, item_id, **kwargs
 ):
-    """
-    Обработчик нажатия на предмет в инвентаре - переход к детальному просмотру
-    """
+    """Обработчик нажатия на предмет в инвентаре - переход к детальному просмотру"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     try:
@@ -52,9 +50,7 @@ async def on_inventory_product_click(
 
 
 async def use_product(callback, widget, dialog_manager: DialogManager, **kwargs):
-    """
-    Обработчик использования предмета из инвентаря или после покупки
-    """
+    """Обработчик использования предмета из инвентаря или после покупки"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     # Проверяем, откуда вызвана функция - из success окна или из инвентаря
@@ -94,9 +90,7 @@ async def use_product(callback, widget, dialog_manager: DialogManager, **kwargs)
 async def on_inventory_sell_product(
     callback, widget, dialog_manager: DialogManager, **kwargs
 ):
-    """
-    Обработчик продажи предмета из инвентаря
-    """
+    """Обработчик продажи предмета из инвентаря"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user = dialog_manager.middleware_data["user"]
     product_info = dialog_manager.dialog_data["selected_inventory_product"]
@@ -130,9 +124,7 @@ async def on_inventory_sell_product(
 async def on_inventory_cancel_activation(
     callback, widget, dialog_manager: DialogManager, **kwargs
 ):
-    """
-    Обработчик отмены активации предмета из инвентаря
-    """
+    """Обработчик отмены активации предмета из инвентаря"""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     product_info = dialog_manager.dialog_data["selected_inventory_product"]
     user_product_id = product_info["user_product_id"]

@@ -7,9 +7,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class SpecDayKPI(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность показателей специалиста за день в БД
-    """
+    """Модель, представляющая сущность показателей специалиста за день в БД"""
 
     __tablename__ = "KpiDay"
 
@@ -65,9 +63,7 @@ class SpecDayKPI(Base, TableNameMixin):
 
 
 class SpecWeekKPI(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность показателей специалиста за неделю в БД
-    """
+    """Модель, представляющая сущность показателей специалиста за неделю в БД"""
 
     __tablename__ = "KpiWeek"
 
@@ -123,9 +119,7 @@ class SpecWeekKPI(Base, TableNameMixin):
 
 
 class SpecMonthKPI(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность показателей специалиста за месяц в БД
-    """
+    """Модель, представляющая сущность показателей специалиста за месяц в БД"""
 
     __tablename__ = "KpiMonth"
 

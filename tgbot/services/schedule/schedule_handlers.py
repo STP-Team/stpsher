@@ -170,8 +170,7 @@ class ScheduleHandlerService:
         stp_repo=None,
         is_head: bool = False,
     ) -> tuple[str, int, bool, bool]:
-        """
-        Получает групповое расписание для пользователя или руководителя
+        """Получает групповое расписание для пользователя или руководителя
 
         :param user: Пользователь
         :param date: Дата (по умолчанию сегодня)

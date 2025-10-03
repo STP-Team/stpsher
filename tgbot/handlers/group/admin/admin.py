@@ -24,8 +24,7 @@ group_admin_router.message.filter(
 
 
 def parse_duration(duration_str: str) -> Optional[timedelta]:
-    """
-    Парсит строку длительности в timedelta
+    """Парсит строку длительности в timedelta
     Поддерживает форматы: 1h, 30m, 7d, 1ч, 30м, 7д
     """
     if not duration_str:

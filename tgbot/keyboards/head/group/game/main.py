@@ -15,9 +15,7 @@ class HeadGameMenu(CallbackData, prefix="head_game"):
 
 
 def head_game_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура игрового меню для руководителей
-    """
+    """Клавиатура игрового меню для руководителей"""
     buttons = [
         [
             InlineKeyboardButton(

@@ -1,26 +1,24 @@
-async def on_filter_change(callback, widget, dialog_manager, item_id, **kwargs):
+"""Обработчики для функционала фильтров."""
+
+from aiogram.types import CallbackQuery
+from aiogram_dialog import DialogManager
+from aiogram_dialog.widgets.kbd import ManagedRadio
+
+
+async def on_filter_change(
+    callback: CallbackQuery,
+    widget: ManagedRadio,
+    dialog_manager: DialogManager,
+    item_id: str,
+    **_kwargs,
+) -> None:
+    """Универсальных обработчик фильтров для различных меню.
+
+    Args:
+        callback: Callback query от Telegram
+        widget: Данные виджета Radio
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранного фильтра
     """
-    Обработчик нажатия на фильтр
-    """
-    if widget.widget_id == "shop_filter":
-        # Сохраняем фильтр под ключом виджета для правильной работы с разными типами фильтров
-        dialog_manager.dialog_data["shop_filter"] = item_id
-        # Для обратной совместимости также сохраняем в product_filter
-        dialog_manager.dialog_data["product_filter"] = item_id
-    elif widget.widget_id == "inventory_filter":
-        dialog_manager.dialog_data["purchases_filter"] = item_id
-    elif widget.widget_id == "achievement_position_filter":
-        dialog_manager.dialog_data["achievement_position_filter"] = item_id
-    elif widget.widget_id == "achievement_division_filter":
-        dialog_manager.dialog_data["achievement_division_filter"] = item_id
-    elif widget.widget_id == "achievement_period_filter":
-        dialog_manager.dialog_data["achievement_period_filter"] = item_id
-    elif widget.widget_id == "history_type_filter":
-        dialog_manager.dialog_data["history_type_filter"] = item_id
-    elif widget.widget_id == "history_source_filter":
-        dialog_manager.dialog_data["history_source_filter"] = item_id
-    elif widget.widget_id == "search_divisions":
-        dialog_manager.dialog_data["search_divisions"] = item_id
-    elif widget.widget_id == "search_roles":
-        dialog_manager.dialog_data["search_roles"] = item_id
+    dialog_manager.dialog_data[widget.widget_id] = item_id
     await callback.answer()

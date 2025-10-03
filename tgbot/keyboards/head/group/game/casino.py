@@ -18,9 +18,7 @@ class HeadCasinoToggleAll(CallbackData, prefix="head_casino_all"):
 def head_casino_management_kb(
     group_members: list[Employee],
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура управления казино для руководителей
-    """
+    """Клавиатура управления казино для руководителей"""
     buttons = []
 
     # Если есть участники, добавляем кнопку управления всеми

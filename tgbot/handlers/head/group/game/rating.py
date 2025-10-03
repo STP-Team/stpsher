@@ -24,7 +24,6 @@ async def format_balance_rating_message(
     group_members, stp_repo: MainRequestsRepo
 ) -> str:
     """Форматирует сообщение с рейтингом группы по балансу"""
-
     # Собираем данные о балансе для всех участников группы
     balance_data = []
 

@@ -15,8 +15,7 @@ class HeadPremiumRepo(BaseRepo):
         self,
         fullname: str,
     ) -> Optional[HeadPremium]:
-        """
-        Поиск показателей премиума руководителя в БД по ФИО
+        """Поиск показателей премиума руководителя в БД по ФИО
 
         Args:
             fullname: ФИО руководителя в БД
@@ -39,8 +38,7 @@ class HeadPremiumRepo(BaseRepo):
         self,
         fullnames: list[str],
     ) -> Sequence[HeadPremium]:
-        """
-        Поиск показателей премиума руководителей в БД по списку ФИО
+        """Поиск показателей премиума руководителей в БД по списку ФИО
 
         Args:
             fullnames: Список ФИО руководителей в БД

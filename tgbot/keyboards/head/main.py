@@ -4,8 +4,7 @@ from tgbot.keyboards.user.main import MainMenu
 
 
 def main_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура главного меню.
+    """Клавиатура главного меню.
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """

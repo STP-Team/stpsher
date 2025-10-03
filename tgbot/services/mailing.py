@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 async def send_email(
     to_addrs: list[str] | str, subject: str, body: str, html: bool = True
 ):
-    """
-    Отправка email
+    """Отправка email
 
     Args:
         to_addrs: Список адресов для отправки письма

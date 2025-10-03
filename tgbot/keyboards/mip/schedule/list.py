@@ -60,9 +60,7 @@ class RestoreConfirmMenu(CallbackData, prefix="restore_confirm"):
 def list_db_files_paginated_kb(
     current_page: int, total_pages: int, page_files: Sequence[Schedules] = None
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура пагинации для файлов графиков в базе данных с кнопками выбора файлов.
-    """
+    """Клавиатура пагинации для файлов графиков в базе данных с кнопками выбора файлов."""
     buttons = []
 
     # Добавляем кнопки для выбора файлов (максимум 2 в ряд)
@@ -181,8 +179,7 @@ def list_db_files_paginated_kb(
 def list_db_files_kb(
     schedule_files: Sequence[Schedules],
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура меню файлов графиков в базе данных (legacy compatibility).
+    """Клавиатура меню файлов графиков в базе данных (legacy compatibility).
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """
@@ -219,9 +216,7 @@ def list_local_files_paginated_kb(
     page_files: list[str] = None,
     all_files: list[str] = None,
 ) -> InlineKeyboardMarkup:
-    """
-    Пагинированная клавиатура для локальных файлов графиков с кнопками выбора файлов.
-    """
+    """Пагинированная клавиатура для локальных файлов графиков с кнопками выбора файлов."""
     buttons = []
 
     # Добавляем кнопки для выбора файлов (максимум 2 в ряд)
@@ -352,8 +347,7 @@ def list_local_files_paginated_kb(
 def list_local_files_kb(
     schedule_files: list[str],
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура меню файлов графиков локальных файлов (legacy compatibility).
+    """Клавиатура меню файлов графиков локальных файлов (legacy compatibility).
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """
@@ -385,9 +379,7 @@ def list_local_files_kb(
 
 
 def schedule_file_detail_kb(file_id: int, page: int) -> InlineKeyboardMarkup:
-    """
-    Клавиатура детального просмотра файла с возможностью восстановления.
-    """
+    """Клавиатура детального просмотра файла с возможностью восстановления."""
     buttons = [
         [
             InlineKeyboardButton(
@@ -420,9 +412,7 @@ def schedule_file_detail_kb(file_id: int, page: int) -> InlineKeyboardMarkup:
 def local_file_detail_kb(
     file_index: int, filename: str, page: int
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура детального просмотра локального файла с возможностью удаления, переименования и восстановления.
-    """
+    """Клавиатура детального просмотра локального файла с возможностью удаления, переименования и восстановления."""
     buttons = [
         [
             InlineKeyboardButton(
@@ -490,9 +480,7 @@ def file_versions_list_kb(
     current_page: int = 1,
     total_pages: int = 1,
 ) -> InlineKeyboardMarkup:
-    """
-    Пагинированная клавиатура для выбора версий файла для восстановления.
-    """
+    """Пагинированная клавиатура для выбора версий файла для восстановления."""
     buttons = []
 
     # Add version selection buttons (max 1 per row for clarity)
@@ -598,9 +586,7 @@ def file_versions_list_kb(
 def restore_confirmation_kb(
     file_id: int, filename: str, page: int = 1
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура подтверждения восстановления файла.
-    """
+    """Клавиатура подтверждения восстановления файла."""
     buttons = [
         [
             InlineKeyboardButton(

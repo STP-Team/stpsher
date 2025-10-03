@@ -1,3 +1,8 @@
+"""Генерация диалога для руководителей."""
+
+import logging
+from typing import Any
+
 from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
@@ -13,7 +18,6 @@ from tgbot.dialogs.menus.head.schedule import (
     schedule_duties_window,
     schedule_group_window,
     schedule_heads_window,
-    schedule_my_detailed_window,
     schedule_my_window,
     schedule_window,
 )
@@ -27,6 +31,9 @@ from tgbot.dialogs.menus.head.search import (
     head_search_window,
 )
 from tgbot.misc.states.dialogs.head import HeadSG
+
+logger = logging.getLogger(__name__)
+
 
 menu_window = Window(
     Format("""👋 Привет, <b>{user.fullname}</b>!
@@ -48,34 +55,46 @@ menu_window = Window(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=HeadSG.search),
         SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=HeadSG.groups),
     ),
-    getter=db_getter,
     state=HeadSG.menu,
 )
 
 
-async def on_start(start_data, manager: DialogManager, **kwargs):
-    """Установка значений по умолчанию при запуске диалога"""
-    # Устанавливаем значение по умолчанию для фильтра магазина
-    schedule_mode: ManagedRadio = manager.find("mode_selector")
-    await schedule_mode.set_checked("compact")
+async def on_start(_start_data: Any, dialog_manager: DialogManager, **_kwargs):
+    """Установка параметров диалога по умолчанию при запуске.
 
-    achievement_position_filter: ManagedRadio = manager.find(
-        "achievement_position_filter"
-    )
-    await achievement_position_filter.set_checked("all")
+    Args:
+        _start_data: Дополнительные параметры запуска диалога
+        dialog_manager: Менеджер диалога
+    """
+    try:
+        # Стандартный режим отображения графика на "Кратко"
+        schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+        await schedule_mode.set_checked("compact")
 
-    achievement_period_filter: ManagedRadio = manager.find("achievement_period_filter")
-    await achievement_period_filter.set_checked("all")
+        # TODO вернуть при добавлении игрового меню
+        # # Фильтр достижений по должностям на "Все"
+        # achievement_division_filter: ManagedRadio = dialog_manager.find(
+        #     "achievement_division_filter"
+        # )
+        # await achievement_division_filter.set_checked("all")
+        #
+        # # Фильтр достижений по периоду начисления на "Все"
+        # achievement_period_filter: ManagedRadio = dialog_manager.find(
+        #     "achievement_period_filter"
+        # )
+        # await achievement_period_filter.set_checked("all")
 
-    search_divisions: ManagedRadio = manager.find("search_divisions")
-    await search_divisions.set_checked("all")
+        # Фильтр поиска по направлению на "Все"
+        search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
+        await search_divisions.set_checked("all")
+    except Exception as e:
+        logger.error(f"[Диалоги] Ошибка установки стандартных значений диалога: {e}")
 
 
 head_dialog = Dialog(
     menu_window,
     schedule_window,
     schedule_my_window,
-    schedule_my_detailed_window,
     schedule_duties_window,
     schedule_group_window,
     schedule_heads_window,

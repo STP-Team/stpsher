@@ -1,14 +1,13 @@
+from aiogram_dialog import DialogManager
+
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 
-async def role_based_products_getter(**kwargs):
-    """
-    Получение списка предметов для магазина с учетом роли пользователя
-    """
-    stp_repo: MainRequestsRepo = kwargs.get("stp_repo")
-    user: Employee = kwargs.get("user")
-
+async def role_based_products_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
+):
+    """Получение списка предметов для магазина с учетом роли пользователя"""
     user_balance: int = await stp_repo.transaction.get_user_balance(
         user_id=user.user_id
     )
@@ -40,13 +39,11 @@ async def role_based_products_getter(**kwargs):
     }
 
 
-async def role_based_product_filter_getter(**kwargs):
-    """
-    Фильтрует предметы в зависимости от выбранного радио-фильтра с учетом роли
-    """
-    base_data = await role_based_products_getter(**kwargs)
-    dialog_manager = kwargs.get("dialog_manager")
-    user: Employee = kwargs.get("user")
+async def role_based_product_filter_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+):
+    """Фильтрует предметы в зависимости от выбранного радио-фильтра с учетом роли"""
+    base_data = await role_based_products_getter(user=user, stp_repo=stp_repo, **kwargs)
 
     is_user_role = user.role in [1, 3]
 
@@ -86,11 +83,11 @@ async def role_based_product_filter_getter(**kwargs):
     # Для администраторов/ГОК/МИП - фильтруем по подразделению
     else:
         # Проверяем текущий выбор фильтра подразделения
-        selected_division = dialog_manager.dialog_data.get("shop_filter", "all")
+        selected_division = dialog_manager.dialog_data.get("product_filter", "all")
 
         # Устанавливаем стандартный фильтр если не установлено иное
-        if "shop_filter" not in dialog_manager.dialog_data:
-            dialog_manager.dialog_data["shop_filter"] = "all"
+        if "product_filter" not in dialog_manager.dialog_data:
+            dialog_manager.dialog_data["product_filter"] = "all"
             selected_division = "all"
 
         # Фильтруем по подразделению
@@ -106,7 +103,7 @@ async def role_based_product_filter_getter(**kwargs):
         return {
             "products": filtered_products,
             "user_balance": user_balance,
-            "shop_filter": selected_division,
+            "product_filter": selected_division,
             "is_user": False,
             "division_radio_data": division_radio_data,
         }

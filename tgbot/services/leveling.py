@@ -2,9 +2,7 @@ from typing import Tuple
 
 
 class LevelingSystem:
-    """
-    Система уровней, основанная на достижении определенных этапов, с отслеживанием прогресса
-    """
+    """Система уровней, основанная на достижении определенных этапов, с отслеживанием прогресса"""
 
     # Определяем пул уровней: (минимальный уровень, кол-во баллов за уровень)
     milestones = [
@@ -22,8 +20,7 @@ class LevelingSystem:
 
     @classmethod
     def calculate_level(cls, achievements_sum: int) -> int:
-        """
-        Рассчитываем уровень пользователя исходя из количества заработанных баллов за достижения
+        """Рассчитываем уровень пользователя исходя из количества заработанных баллов за достижения
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
@@ -66,8 +63,7 @@ class LevelingSystem:
 
     @classmethod
     def get_level_progress(cls, achievements_sum: int) -> Tuple[int, int, int, int]:
-        """
-        Рассчитываем детальный прогресс уровня пользователя
+        """Рассчитываем детальный прогресс уровня пользователя
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
@@ -107,8 +103,7 @@ class LevelingSystem:
 
     @classmethod
     def _get_total_points_for_level(cls, target_level: int) -> int:
-        """
-        Рассчитать общее количество баллов, необходимое для достижения определенного уровня
+        """Рассчитать общее количество баллов, необходимое для достижения определенного уровня
 
         Args:
             target_level: Целевой уровень для расчета необходимого кол-ва баллов
@@ -146,8 +141,7 @@ class LevelingSystem:
 
     @classmethod
     def get_points_for_next_level(cls, achievements_sum: int) -> int:
-        """
-        Хелпер для расчета очков для следующего уровня
+        """Хелпер для расчета очков для следующего уровня
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
@@ -160,8 +154,7 @@ class LevelingSystem:
 
     @classmethod
     def get_level_info_text(cls, achievements_sum: int, user_balance: int) -> str:
-        """
-        Форматирует текст, отображающий прогресс уровня для меню пользователя
+        """Форматирует текст, отображающий прогресс уровня для меню пользователя
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
@@ -199,8 +192,7 @@ class LevelingSystem:
 
     @classmethod
     def _create_progress_bar(cls, percent: int, length: int = 12) -> str:
-        """
-        Создаем визуальную строку с прогрессом уровня
+        """Создаем визуальную строку с прогрессом уровня
         :param percent: Процент прогресса
         :param length: Длина строки прогресса
         :return:
@@ -211,8 +203,7 @@ class LevelingSystem:
 
     @classmethod
     def _get_milestone_info(cls, current_level: int) -> str:
-        """
-        Получает информацию о том, к какому этапу относится текущий уровень
+        """Получает информацию о том, к какому этапу относится текущий уровень
 
         Args:
             current_level: Текущий уровень пользователя

@@ -1,3 +1,5 @@
+"""Генерация окон поиска для руководителей."""
+
 from tgbot.dialogs.menus.common.search import create_search_windows
 from tgbot.misc.states.dialogs.head import HeadSG
 

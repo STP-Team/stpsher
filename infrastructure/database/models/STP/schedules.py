@@ -1,14 +1,14 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import BIGINT, Integer, String, Text, TIMESTAMP, func
+
+from sqlalchemy import BIGINT, TIMESTAMP, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Schedules(Base, TableNameMixin):
-    """
-    Модель, представляющая сущность лога расписания в БД
+    """Модель, представляющая сущность лога расписания в БД
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор записи.

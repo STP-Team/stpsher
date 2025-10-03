@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 class GroupMemberRepo(BaseRepo):
     async def add_member(self, group_id: int, member_id: int) -> Optional[GroupMember]:
-        """
-        Добавить участника в группу
+        """Добавить участника в группу
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -36,8 +35,7 @@ class GroupMemberRepo(BaseRepo):
             return None
 
     async def remove_member(self, group_id: int, member_id: int) -> bool:
-        """
-        Удалить участника из группы
+        """Удалить участника из группы
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -62,8 +60,7 @@ class GroupMemberRepo(BaseRepo):
             return False
 
     async def get_group_members(self, group_id: int) -> Sequence[GroupMember]:
-        """
-        Получить всех участников группы
+        """Получить всех участников группы
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -81,8 +78,7 @@ class GroupMemberRepo(BaseRepo):
             return []
 
     async def get_member_groups(self, member_id: int) -> Sequence[GroupMember]:
-        """
-        Получить все группы участника
+        """Получить все группы участника
 
         Args:
             member_id: Идентификатор участника Telegram
@@ -100,8 +96,7 @@ class GroupMemberRepo(BaseRepo):
             return []
 
     async def is_member(self, group_id: int, member_id: int) -> bool:
-        """
-        Проверить является ли пользователь участником группы
+        """Проверить является ли пользователь участником группы
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -124,8 +119,7 @@ class GroupMemberRepo(BaseRepo):
             return False
 
     async def get_member_count(self, group_id: int) -> int:
-        """
-        Получить количество участников группы
+        """Получить количество участников группы
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -143,8 +137,7 @@ class GroupMemberRepo(BaseRepo):
             return 0
 
     async def remove_all_members(self, group_id: int) -> bool:
-        """
-        Удалить всех участников из группы
+        """Удалить всех участников из группы
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -166,8 +159,7 @@ class GroupMemberRepo(BaseRepo):
     async def mute_member(
         self, group_id: int, member_id: int, unmute_at: Optional[datetime] = None
     ) -> bool:
-        """
-        Заглушить участника в группе
+        """Заглушить участника в группе
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -195,8 +187,7 @@ class GroupMemberRepo(BaseRepo):
             return False
 
     async def unmute_member(self, group_id: int, member_id: int) -> bool:
-        """
-        Разглушить участника в группе
+        """Разглушить участника в группе
 
         Args:
             group_id: Идентификатор группы Telegram
@@ -223,8 +214,7 @@ class GroupMemberRepo(BaseRepo):
             return False
 
     async def is_member_muted(self, group_id: int, member_id: int) -> bool:
-        """
-        Проверить заглушен ли участник в группе
+        """Проверить заглушен ли участник в группе
 
         Args:
             group_id: Идентификатор группы Telegram

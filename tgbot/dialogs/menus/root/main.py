@@ -1,3 +1,7 @@
+"""Генерация диалога для root."""
+
+from typing import Any
+
 from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
@@ -25,13 +29,18 @@ menu_window = Window(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=RootSG.search),
         SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=RootSG.groups),
     ),
-    getter=db_getter,
     state=RootSG.menu,
 )
 
 
-async def on_start(start_data, dialog_manager: DialogManager, **kwargs):
-    """Установка значений по умолчанию при запуске диалога"""
+async def on_start(start_data: Any, dialog_manager: DialogManager, **_kwargs):
+    """Установка параметров диалога по умолчанию при запуске.
+
+    Args:
+        on_start: Дополнительные параметры запуска диалога
+        dialog_manager: Менеджер диалога
+    """
+    # Фильтр поиска по направлению на "Все"
     search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
     await search_divisions.set_checked("all")
 

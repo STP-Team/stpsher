@@ -21,9 +21,7 @@ class ScheduleChangeDetector:
     async def process_schedule_changes(
         self, new_file_name: str, old_file_name: str, bot, stp_repo: MainRequestsRepo
     ) -> tuple[list[Any], list[str]]:
-        """
-        Процессинг изменений в графике между старым и новым графиками и отправка уведомлений.
-        """
+        """Процессинг изменений в графике между старым и новым графиками и отправка уведомлений."""
         try:
             logger.info(
                 f"[График] Проверяем изменения графика: {old_file_name} -> {new_file_name}"
@@ -67,8 +65,7 @@ class ScheduleChangeDetector:
     async def _detect_schedule_changes(
         self, new_file_name: str, old_file_name: str, stp_repo: MainRequestsRepo
     ) -> List[Dict]:
-        """
-        Обнаружение изменений в графике между старым и новым файлами.
+        """Обнаружение изменений в графике между старым и новым файлами.
         Читает каждый файл только один раз и извлекает полные расписания всех пользователей.
         """
         try:
@@ -126,8 +123,7 @@ class ScheduleChangeDetector:
     def _extract_all_user_schedules_complete(
         self, file_path: Path
     ) -> Dict[str, Dict[str, str]]:
-        """
-        Извлекает полные расписания всех пользователей из Excel файла за один проход.
+        """Извлекает полные расписания всех пользователей из Excel файла за один проход.
         Использует ту же логику, что и рабочие парсеры, но для всех месяцев сразу.
         """
         schedules = {}
@@ -436,8 +432,7 @@ class ScheduleChangeDetector:
     async def _send_change_notification(
         self, bot, user_id: int, user_changes: Dict
     ) -> bool:
-        """
-        Send a clean, simple notification to user about schedule changes.
+        """Send a clean, simple notification to user about schedule changes.
 
         Args:
             bot: Bot instance

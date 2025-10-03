@@ -1,3 +1,5 @@
+"""Генерация окна активаций предметов для ГОК."""
+
 from tgbot.dialogs.menus.common.game.activations import create_activations_windows
 from tgbot.misc.states.dialogs.gok import GokSG
 

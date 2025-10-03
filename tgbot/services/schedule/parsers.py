@@ -1,6 +1,4 @@
-"""
-Optimized and refactored schedule parsers with common utilities.
-"""
+"""Optimized and refactored schedule parsers with common utilities."""
 
 import calendar
 import logging

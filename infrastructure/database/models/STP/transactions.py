@@ -10,8 +10,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Transaction(Base, TableNameMixin):
-    """
-    Класс, представляющий сущность транзакции пользователя в БД.
+    """Класс, представляющий сущность транзакции пользователя в БД.
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор транзакции.

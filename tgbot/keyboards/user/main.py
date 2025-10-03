@@ -7,8 +7,7 @@ class MainMenu(CallbackData, prefix="menu"):
 
 
 def auth_kb() -> InlineKeyboardMarkup:
-    """
-    Клавиатура авторизации.
+    """Клавиатура авторизации.
 
     :return: Объект встроенной клавиатуры для возврата главного меню
     """

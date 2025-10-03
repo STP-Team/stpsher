@@ -1,5 +1,4 @@
-"""
-Планировщик достижений и наград
+"""Планировщик достижений и наград
 
 Содержит задачи по проверке и вручению достижений пользователям,
 обработке игровых механик и периодических наград.
@@ -24,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class AchievementScheduler(BaseScheduler):
-    """
-    Планировщик достижений и наград
+    """Планировщик достижений и наград
 
     Управляет задачами связанными с игровыми механиками:
     - Проверка новых достижений
@@ -154,8 +152,7 @@ class AchievementScheduler(BaseScheduler):
 
 # Функции для работы с достижениями
 async def check_daily_achievements(session_pool, kpi_session_pool, bot: Bot):
-    """
-    Проверка и вручение ежедневных достижений
+    """Проверка и вручение ежедневных достижений
 
     Args:
         session_pool: Пул сессий основной БД
@@ -220,8 +217,7 @@ async def check_daily_achievements(session_pool, kpi_session_pool, bot: Bot):
 
 
 async def check_weekly_achievements(session_pool, kpi_session_pool, bot: Bot):
-    """
-    Проверка и вручение еженедельных достижений
+    """Проверка и вручение еженедельных достижений
 
     Args:
         session_pool: Пул сессий основной БД
@@ -286,8 +282,7 @@ async def check_weekly_achievements(session_pool, kpi_session_pool, bot: Bot):
 
 
 async def check_monthly_achievements(session_pool, kpi_session_pool, bot: Bot):
-    """
-    Проверка и вручение ежемесячных достижений
+    """Проверка и вручение ежемесячных достижений
 
     Args:
         session_pool: Пул сессий основной БД
@@ -355,8 +350,7 @@ async def check_monthly_achievements(session_pool, kpi_session_pool, bot: Bot):
 async def _check_user_daily_achievements(
     stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo, user, achievements_list: List
 ) -> List[Dict]:
-    """
-    Проверка ежедневных достижений для конкретного пользователя
+    """Проверка ежедневных достижений для конкретного пользователя
 
     Args:
         stp_repo: Репозиторий основной БД
@@ -461,8 +455,7 @@ async def _check_user_daily_achievements(
 async def _check_user_weekly_achievements(
     stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo, user, achievements_list: List
 ) -> List[Dict]:
-    """
-    Проверка еженедельных достижений для конкретного пользователя
+    """Проверка еженедельных достижений для конкретного пользователя
 
     Args:
         stp_repo: Репозиторий основной БД
@@ -567,8 +560,7 @@ async def _check_user_weekly_achievements(
 async def _check_user_monthly_achievements(
     stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo, user, achievements_list: List
 ) -> List[Dict]:
-    """
-    Проверка ежемесячных достижений для конкретного пользователя
+    """Проверка ежемесячных достижений для конкретного пользователя
 
     Args:
         stp_repo: Репозиторий основной БД
@@ -673,8 +665,7 @@ async def _check_user_monthly_achievements(
 async def _award_achievements(
     stp_repo: MainRequestsRepo, user, achievements: List[Dict], bot: Bot
 ):
-    """
-    Вручение достижений пользователю
+    """Вручение достижений пользователю
 
     Args:
         stp_repo: Репозиторий БД
@@ -743,8 +734,7 @@ async def _award_achievements(
 async def _get_user_achievements_today(
     stp_repo: MainRequestsRepo, user_id: int
 ) -> Sequence[Transaction] | list[Any]:
-    """
-    Получает достижения пользователя за сегодня
+    """Получает достижения пользователя за сегодня
 
     Args:
         stp_repo: Репозиторий БД
@@ -778,8 +768,7 @@ async def _get_user_achievements_today(
 async def _get_user_achievements_this_week(
     stp_repo: MainRequestsRepo, user_id: int
 ) -> Sequence[Transaction] | list[Any]:
-    """
-    Получает достижения пользователя за текущую неделю
+    """Получает достижения пользователя за текущую неделю
 
     Args:
         stp_repo: Репозиторий БД
@@ -816,8 +805,7 @@ async def _get_user_achievements_this_week(
 async def _get_user_achievements_this_month(
     stp_repo: MainRequestsRepo, user_id: int
 ) -> Sequence[Transaction] | list[Any]:
-    """
-    Получает достижения пользователя за текущий месяц
+    """Получает достижения пользователя за текущий месяц
 
     Args:
         stp_repo: Репозиторий БД
@@ -853,8 +841,7 @@ async def _get_user_achievements_this_month(
 async def _get_user_achievements_by_kpi_date(
     stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date
 ) -> Sequence[Transaction] | list:
-    """
-    Получает достижения пользователя с определенным kpi_extracted_at
+    """Получает достижения пользователя с определенным kpi_extracted_at
 
     Args:
         stp_repo: Репозиторий БД
@@ -887,8 +874,7 @@ async def _get_user_achievements_by_kpi_date(
 async def _get_user_achievements_last_n_days(
     stp_repo: MainRequestsRepo, user_id: int, n_days: int
 ) -> Sequence[Transaction] | list:
-    """
-    Получает достижения пользователя за последние n дней
+    """Получает достижения пользователя за последние n дней
 
     Args:
         stp_repo: Репозиторий БД
@@ -922,8 +908,7 @@ async def _get_user_achievements_last_n_days(
 
 
 def _user_matches_achievement_criteria(user, achievement) -> bool:
-    """
-    Проверяет соответствие пользователя критериям достижения
+    """Проверяет соответствие пользователя критериям достижения
 
     Args:
         user: Пользователь
@@ -965,8 +950,7 @@ def _user_matches_achievement_criteria(user, achievement) -> bool:
 
 
 async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
-    """
-    Проверяет соответствие KPI пользователя критериям достижения
+    """Проверяет соответствие KPI пользователя критериям достижения
 
     Args:
         user_kpi: KPI пользователя за день
@@ -1019,8 +1003,7 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
 
 
 def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
-    """
-    Получает актуальные значения KPI пользователя согласно критериям
+    """Получает актуальные значения KPI пользователя согласно критериям
 
     Args:
         user_kpi: KPI пользователя за день
@@ -1059,8 +1042,7 @@ def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
 
 
 def _format_kpi_values(kpi_values: Dict) -> str:
-    """
-    Форматирует KPI значения в читаемую строку
+    """Форматирует KPI значения в читаемую строку
 
     Args:
         kpi_values: Словарь с KPI значениями
@@ -1076,8 +1058,7 @@ def _format_kpi_values(kpi_values: Dict) -> str:
 
 
 def _create_achievement_message(achievement: Dict, new_balance: int = None) -> str:
-    """
-    Создание сообщения о получении достижения
+    """Создание сообщения о получении достижения
 
     Args:
         achievement: Данные о достижении
@@ -1108,8 +1089,7 @@ def _create_achievement_message(achievement: Dict, new_balance: int = None) -> s
 def _create_batch_achievements_message(
     achievements: List[Dict], total_reward: int, final_balance: int = None
 ) -> str:
-    """
-    Создание сообщения о получении нескольких достижений
+    """Создание сообщения о получении нескольких достижений
 
     Args:
         achievements: Список достижений

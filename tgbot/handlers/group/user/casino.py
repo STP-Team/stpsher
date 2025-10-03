@@ -198,7 +198,6 @@ async def play_casino_game(
 @group_casino_router.message(Command("slots"))
 async def slots_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /slots для игры в слоты в группе"""
-
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
 
@@ -227,7 +226,6 @@ async def slots_command(message: Message, user: Employee, stp_repo: MainRequests
 @group_casino_router.message(Command("dice"))
 async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /dice для игры в кости в группе"""
-
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
 
@@ -256,7 +254,6 @@ async def dice_command(message: Message, user: Employee, stp_repo: MainRequestsR
 @group_casino_router.message(Command("darts"))
 async def darts_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /darts для игры в дартс в группе"""
-
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
 
@@ -285,7 +282,6 @@ async def darts_command(message: Message, user: Employee, stp_repo: MainRequests
 @group_casino_router.message(Command("bowling"))
 async def bowling_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /bowling для игры в боулинг в группе"""
-
     # Парсим сумму из команды
     bet_amount = parse_amount(message.text)
 

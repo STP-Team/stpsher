@@ -10,9 +10,7 @@ from tgbot.keyboards.user.main import MainMenu
 def head_member_status_select_kb(
     member_id: int, page: int = 1, current_role: int = None, is_trainee: bool = False
 ) -> InlineKeyboardMarkup:
-    """
-    Клавиатура для выбора статуса участника (Стажер/Дежурный)
-    """
+    """Клавиатура для выбора статуса участника (Стажер/Дежурный)"""
     buttons = []
 
     # Кнопка для статуса "Стажер"

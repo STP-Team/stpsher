@@ -1,3 +1,7 @@
+from aiogram_dialog import DialogManager
+
+from infrastructure.database.models import Employee
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.getters.user.game.achievements import user_achievements_getter
 from tgbot.dialogs.getters.user.game.shop import products_getter
 
@@ -71,12 +75,9 @@ def get_position_from_callback(callback_key: str) -> str:
             return callback_key
 
 
-async def product_filter_getter(**kwargs):
-    """
-    Фильтрует предметы в зависимости от выбранного радио-фильтра
-    """
+async def product_filter_getter(dialog_manager: DialogManager, **kwargs):
+    """Фильтрует предметы в зависимости от выбранного радио-фильтра"""
     base_data = await products_getter(**kwargs)
-    dialog_manager = kwargs.get("dialog_manager")
 
     # Проверяем текущий выбор фильтра (стандартно на 'Доступные')
     filter_type = dialog_manager.dialog_data.get("product_filter", "available")
@@ -103,18 +104,14 @@ async def product_filter_getter(**kwargs):
     }
 
 
-async def achievements_filter_getter(**kwargs):
-    """
-    Фильтрует достижения в зависимости от выбранной позиции и периода
-    """
+async def achievements_filter_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+):
+    """Фильтрует достижения в зависимости от выбранной позиции и периода"""
     base_data = await user_achievements_getter(**kwargs)
-    dialog_manager = kwargs.get("dialog_manager")
 
     # Получаем все достижения для определения доступных позиций
     all_achievements = base_data["achievements"]
-
-    # Получаем информацию о пользователе для фильтрации
-    user = kwargs.get("user")
 
     # Фильтруем достижения по подразделению пользователя
     if user:
@@ -203,8 +200,6 @@ async def achievements_filter_getter(**kwargs):
     if selected_period != "all":
         # Нужно получить оригинальные данные для фильтрации по периоду
         # achievement[5] содержит отформатированный период, но нам нужен оригинальный
-        stp_repo = kwargs.get("stp_repo")
-        user = kwargs.get("user")
 
         if stp_repo and user:
             # Нормализуем division как в user_achievements_getter

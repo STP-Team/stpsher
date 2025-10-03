@@ -5,14 +5,11 @@ from .models import DayInfo
 
 
 class ScheduleAnalyzer:
-    """
-    Анализатор для расписаний
-    """
+    """Анализатор для расписаний"""
 
     @staticmethod
     def categorize_schedule_entry(schedule_value: str) -> str:
-        """
-        Категория смены
+        """Категория смены
         :param schedule_value: Значение клетки
         :return:
         """
