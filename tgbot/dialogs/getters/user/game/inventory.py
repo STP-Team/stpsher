@@ -1,3 +1,5 @@
+"""Геттеры для инвентаря."""
+
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
@@ -10,7 +12,15 @@ from tgbot.misc.helpers import get_status_emoji
 async def inventory_getter(
     user: Employee, stp_repo: MainRequestsRepo, **_kwargs
 ) -> Dict[str, Any]:
-    """Получение предметов из инвентаря пользователя"""
+    """Геттер получения предметов из инвентаря пользователя.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+
+    Returns:
+        Словарь со списком предметов в инвентаре пользователя
+    """
     user_products = await stp_repo.purchase.get_user_purchases_with_details(
         user_id=user.user_id
     )
@@ -49,7 +59,14 @@ async def inventory_getter(
 async def inventory_detail_getter(
     dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
-    """Геттер для окна детального просмотра предмета инвентаря"""
+    """Геттер для окна детального просмотра предмета инвентаря.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранном предмете инвентаря
+    """
     product_info = dialog_manager.dialog_data.get("selected_inventory_product")
 
     if not product_info:

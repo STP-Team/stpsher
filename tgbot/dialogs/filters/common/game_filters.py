@@ -1,3 +1,7 @@
+"""Фильтры для игровых меню."""
+
+from typing import Any, Dict
+
 from aiogram_dialog import DialogManager
 
 from infrastructure.database.models import Employee
@@ -6,8 +10,15 @@ from tgbot.dialogs.getters.user.game.achievements import user_achievements_gette
 from tgbot.dialogs.getters.user.game.shop import products_getter
 
 
-def get_position_display_name(position: str) -> str | None:
-    """Возвращает отображаемое имя для позиции"""
+def get_position_display_name(position: str) -> str:
+    """Возвращает отображаемое название для позиции для фильтров.
+
+    Args:
+        position: Должность сотрудника
+
+    Returns:
+        Сокращенное название должности
+    """
     match position:
         case "Специалист":
             return "Спец"
@@ -30,7 +41,16 @@ def get_position_display_name(position: str) -> str | None:
 
 
 def get_position_callback_key(position: str) -> str:
-    """Возвращает ключ для callback без русских символов"""
+    """Возвращает ключ для callback без русских символов.
+
+    TODO необходимо проверить нужна ли эта функция
+
+    Args:
+        position: Должность сотрудника
+
+    Returns:
+        Ключ должности для callback
+    """
     match position:
         case "Специалист":
             return "spec"
@@ -53,7 +73,14 @@ def get_position_callback_key(position: str) -> str:
 
 
 def get_position_from_callback(callback_key: str) -> str:
-    """Возвращает оригинальную позицию по ключу callback"""
+    """Возвращает оригинальную позицию по ключу callback.
+
+    Args:
+        callback_key: Ключ callback
+
+    Returns:
+        Оригинальное название должности
+    """
     match callback_key:
         case "spec":
             return "Специалист"
@@ -75,8 +102,17 @@ def get_position_from_callback(callback_key: str) -> str:
             return callback_key
 
 
-async def product_filter_getter(dialog_manager: DialogManager, **kwargs):
-    """Фильтрует предметы в зависимости от выбранного радио-фильтра"""
+async def product_filter_getter(
+    dialog_manager: DialogManager, **kwargs
+) -> dict[str, list[Any] | str | Any]:
+    """Фильтрует предметы в зависимости от выбранного фильтра.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь предметов с активным фильтром и балансом пользователя
+    """
     base_data = await products_getter(**kwargs)
 
     # Проверяем текущий выбор фильтра (стандартно на 'Доступные')
@@ -106,8 +142,17 @@ async def product_filter_getter(dialog_manager: DialogManager, **kwargs):
 
 async def achievements_filter_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
-):
-    """Фильтрует достижения в зависимости от выбранной позиции и периода"""
+) -> Dict[str, list[Any] | str | Any]:
+    """Фильтрует достижения в зависимости от выбранной позиции и периода.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь доступных достижений с фильтрацией по направлению
+    """
     base_data = await user_achievements_getter(**kwargs)
 
     # Получаем все достижения для определения доступных позиций

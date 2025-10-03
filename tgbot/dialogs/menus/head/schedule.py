@@ -1,3 +1,5 @@
+"""Генерация окон графиков для руководителей."""
+
 from aiogram import F
 from aiogram_dialog.widgets.kbd import (
     Button,

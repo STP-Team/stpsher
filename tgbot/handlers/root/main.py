@@ -13,7 +13,13 @@ root_router.callback_query.filter(F.message.chat.type == "private", RootFilter()
 
 
 @root_router.message(CommandStart())
-async def root_start(message: Message, dialog_manager: DialogManager):
+async def root_start(_message: Message, dialog_manager: DialogManager):
+    """Запуск/сброс состояния диалога для root.
+
+    Args:
+        _message: Сообщение пользователя
+        dialog_manager: Менеджер диалога
+    """
     try:
         await dialog_manager.done()
     except NoContextError:

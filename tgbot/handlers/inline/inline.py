@@ -15,7 +15,6 @@ from tgbot.filters.role import (
     DutyFilter,
     MipFilter,
     MultiRoleFilter,
-    RootFilter,
     SpecialistFilter,
 )
 from tgbot.misc.helpers import get_role
@@ -29,7 +28,7 @@ user_inline_router.inline_query.filter(
         SpecialistFilter(),
         AdministratorFilter(),
         MipFilter(),
-        RootFilter(),
+        MipFilter(),
         DutyFilter(),
     )
 )

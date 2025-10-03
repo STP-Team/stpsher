@@ -1,14 +1,28 @@
+"""Обработчики истории баланса сотрудников."""
 
+from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
+from aiogram_dialog.widgets.kbd import Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.states.dialogs.user import UserSG
 
 
 async def on_transaction_click(
-    callback, widget, dialog_manager: DialogManager, item_id, **kwargs
-):
-    """Обработчик нажатия на транзакцию - переход к детальному просмотру"""
+    callback: CallbackQuery,
+    _widget: Select,
+    dialog_manager: DialogManager,
+    item_id,
+    **_kwargs,
+) -> None:
+    """Переход к детальному просмотру информации о выбранной транзакции.
+
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранной транзакции
+    """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     try:

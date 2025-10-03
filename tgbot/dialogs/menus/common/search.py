@@ -13,7 +13,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.filters import on_filter_change
-from tgbot.dialogs.events.user.search import (
+from tgbot.dialogs.events.common.search import (
     on_back_from_user_detail,
     on_search_query,
     on_user_select,

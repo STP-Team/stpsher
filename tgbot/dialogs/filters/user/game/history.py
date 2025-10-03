@@ -1,10 +1,23 @@
+"""Фильтры истории баланса пользователя."""
+
 from aiogram_dialog import DialogManager
 
 from tgbot.dialogs.getters.user.game.history import history_getter
 
 
 async def history_filter_getter(dialog_manager: DialogManager, **kwargs):
-    """Фильтрует транзакции в зависимости от выбранных радио-фильтров (тип и источник)"""
+    """Фильтрует транзакции в зависимости от выбранных фильтров (тип и источник).
+
+    Доступные фильтры:
+    - Тип транзакции (доход/расход)
+    - Источник транзакции (достижение, покупка и пр.)
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь отфильтрованных транзакций истории баланса
+    """
     base_data = await history_getter(**kwargs)
 
     # Проверяем текущий выбор фильтров (стандартно на 'all')

@@ -106,7 +106,7 @@ async def on_toggle_is_casino_allowed(
 
 async def on_access_level_click(
     callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
-):
+) -> None:
     """Обработчик изменения настройки уровней доступа к группе.
 
     Args:
@@ -134,7 +134,7 @@ async def on_access_level_click(
 
 async def on_members_click(
     _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
-):
+) -> None:
     """Обработчик открытия списка участников группы.
 
     Args:

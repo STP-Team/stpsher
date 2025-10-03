@@ -7,8 +7,6 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
 from tgbot.misc.dicts import russian_months
-from tgbot.misc.states.dialogs.head import HeadSG
-from tgbot.misc.states.dialogs.user import UserSG
 from tgbot.services.schedule.schedule_handlers import schedule_service
 
 
@@ -131,12 +129,8 @@ async def clear_and_switch_to_my(
     # Устанавливаем режим отображения на компактный если на установлено иначе
     dialog_manager.dialog_data.setdefault("schedule_mode", "compact")
 
-    current_state = dialog_manager.current_context().state
-    match current_state:
-        case UserSG.schedule:
-            await dialog_manager.switch_to(UserSG.schedule_my)
-        case HeadSG.schedule:
-            await dialog_manager.switch_to(HeadSG.schedule_my)
+    state_group = dialog_manager.current_context().state.group
+    await dialog_manager.switch_to(state_group.schedule_my)
 
 
 async def clear_and_switch_to_duties(
@@ -156,12 +150,8 @@ async def clear_and_switch_to_duties(
         schedule_service.get_current_date().isoformat()
     )
 
-    current_state = dialog_manager.current_context().state
-    match current_state:
-        case UserSG.schedule:
-            await dialog_manager.switch_to(UserSG.schedule_duties)
-        case HeadSG.schedule:
-            await dialog_manager.switch_to(HeadSG.schedule_duties)
+    state_group = dialog_manager.current_context().state.group
+    await dialog_manager.switch_to(state_group.schedule_duties)
 
 
 async def clear_and_switch_to_group(
@@ -181,12 +171,8 @@ async def clear_and_switch_to_group(
         schedule_service.get_current_date().isoformat()
     )
 
-    current_state = dialog_manager.current_context().state
-    match current_state:
-        case UserSG.schedule:
-            await dialog_manager.switch_to(UserSG.schedule_group)
-        case HeadSG.schedule:
-            await dialog_manager.switch_to(HeadSG.schedule_group)
+    state_group = dialog_manager.current_context().state.group
+    await dialog_manager.switch_to(state_group.schedule_group)
 
 
 async def clear_and_switch_to_heads(
@@ -206,12 +192,8 @@ async def clear_and_switch_to_heads(
         schedule_service.get_current_date().isoformat()
     )
 
-    current_state = dialog_manager.current_context().state
-    match current_state:
-        case UserSG.schedule:
-            await dialog_manager.switch_to(UserSG.schedule_heads)
-        case HeadSG.schedule:
-            await dialog_manager.switch_to(HeadSG.schedule_heads)
+    state_group = dialog_manager.current_context().state.group
+    await dialog_manager.switch_to(state_group.schedule_heads)
 
 
 def get_prev_month(current_month: str) -> str:

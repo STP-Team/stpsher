@@ -1,23 +1,25 @@
-import logging
-
 from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 
-from tgbot.filters.role import GokFilter
+from tgbot.filters.role import MipFilter
 from tgbot.misc.states.dialogs.gok import GokSG
 
 gok_router = Router()
-gok_router.message.filter(F.chat.type == "private", GokFilter())
-gok_router.callback_query.filter(F.message.chat.type == "private", GokFilter())
-
-logger = logging.getLogger(__name__)
+gok_router.message.filter(F.chat.type == "private", MipFilter())
+gok_router.callback_query.filter(F.message.chat.type == "private", MipFilter())
 
 
 @gok_router.message(CommandStart())
-async def gok_start(message: Message, dialog_manager: DialogManager):
+async def gok_start(_message: Message, dialog_manager: DialogManager):
+    """Запуск/сброс состояния диалога для ГОК.
+
+    Args:
+        _message: Сообщение пользователя
+        dialog_manager: Менеджер диалога
+    """
     try:
         await dialog_manager.done()
     except NoContextError:

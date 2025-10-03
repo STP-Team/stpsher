@@ -1,4 +1,9 @@
+"""Геттеры для функций поиска."""
+
+from typing import Any, Sequence
+
 from aiogram_dialog import DialogManager
+from sqlalchemy.orm import Mapped
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
@@ -7,7 +12,14 @@ from tgbot.services.search import SearchService
 
 
 def short_name(full_name: str) -> str:
-    """Extract short name from full name."""
+    """Достает фамилию и имя из ФИО.
+
+    Args:
+        full_name: Полные ФИО
+
+    Returns:
+        Фамилия и имя
+    """
     clean_name = full_name.split("(")[0].strip()
     parts = clean_name.split()
 
@@ -16,7 +28,17 @@ def short_name(full_name: str) -> str:
     return clean_name
 
 
-async def main_search_getter(stp_repo: MainRequestsRepo, **kwargs):
+async def search_getter(
+    stp_repo: MainRequestsRepo, **_kwargs
+) -> dict[str, Sequence[Employee] | None | int]:
+    """Геттер для главного меню поиска.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+
+    Returns:
+        Словарь специалистов и руководителей
+    """
     specialists = await stp_repo.employee.get_users(roles=[1, 3])
     total_specialists = len(specialists)
 
@@ -31,8 +53,20 @@ async def main_search_getter(stp_repo: MainRequestsRepo, **kwargs):
     }
 
 
-async def search_specialists_getter(dialog_manager: DialogManager, **kwargs):
-    base_data = await main_search_getter(**kwargs)
+async def search_specialists_getter(
+    dialog_manager: DialogManager, **kwargs
+) -> dict[
+    str, list[Any] | list[tuple[Mapped[str], Mapped[str]] | tuple[str, str]] | str | int
+]:
+    """Геттер для меню поиска специалистов.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь отфильтрованного списка специалистов
+    """
+    base_data = await search_getter(**kwargs)
     specialists = base_data.get("specialists")
 
     selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
@@ -71,8 +105,20 @@ async def search_specialists_getter(dialog_manager: DialogManager, **kwargs):
     }
 
 
-async def search_heads_getter(dialog_manager: DialogManager, **kwargs):
-    base_data = await main_search_getter(**kwargs)
+async def search_heads_getter(
+    dialog_manager: DialogManager, **kwargs
+) -> dict[
+    str, list[Any] | list[tuple[Mapped[str], Mapped[str]] | tuple[str, str]] | str | int
+]:
+    """Геттер для меню поиска руководителей.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь отфильтрованного списка руководителей
+    """
+    base_data = await search_getter(**kwargs)
     all_heads = base_data.get("heads")
 
     selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
@@ -109,8 +155,17 @@ async def search_heads_getter(dialog_manager: DialogManager, **kwargs):
     }
 
 
-async def search_results_getter(dialog_manager: DialogManager, **kwargs):
-    """Получение результатов поиска"""
+async def search_results_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> dict[str, str]:
+    """Геттер для получения результатов поиска сотрудников.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с найденными сотрудниками по запросу
+    """
     search_results = dialog_manager.dialog_data.get("search_results", [])
     search_query = dialog_manager.dialog_data.get("search_query", "")
     total_found = dialog_manager.dialog_data.get("total_found", 0)
@@ -126,9 +181,18 @@ async def search_user_info_getter(
     user: Employee,
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
-    **kwargs,
-):
-    """Получение информации о выбранном пользователе"""
+    **_kwargs,
+) -> dict[str, str]:
+    """Геттер для получения информации о выбранном пользователе.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранном сотруднике
+    """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
     if not selected_user_id:

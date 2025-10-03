@@ -4,7 +4,6 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 
-from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.misc.states.dialogs.head import HeadSG
 
@@ -14,9 +13,13 @@ head_router.callback_query.filter(F.message.chat.type == "private", HeadFilter()
 
 
 @head_router.message(CommandStart())
-async def head_start(
-    message: Message, user: Employee, dialog_manager: DialogManager, **kwargs
-):
+async def head_start(_message: Message, dialog_manager: DialogManager):
+    """Запуск/сброс состояния диалога для руководителей.
+
+    Args:
+        _message: Сообщение пользователя
+        dialog_manager: Менеджер диалога
+    """
     try:
         await dialog_manager.done()
     except NoContextError:

@@ -1,3 +1,5 @@
+"""Генерация окна достижений для МИП."""
+
 from tgbot.dialogs.getters.common.game.achievements import (
     role_based_achievements_filter_getter,
 )

@@ -1,10 +1,19 @@
+"""Фильтры предметов инвентаря пользователя."""
+
 from aiogram_dialog import DialogManager
 
 from tgbot.dialogs.getters.user.game.inventory import inventory_getter
 
 
 async def inventory_filter_getter(dialog_manager: DialogManager, **kwargs):
-    """Фильтрует предметы в инвентаре в зависимости от выбранного радио-фильтра"""
+    """Фильтрует предметы в инвентаре в зависимости от выбранных фильтров.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь отфильтрованных предметов инвентаря
+    """
     base_data = await inventory_getter(**kwargs)
 
     # Проверяем текущий выбор фильтра (стандартно на 'all')
