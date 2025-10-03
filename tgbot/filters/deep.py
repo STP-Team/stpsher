@@ -1,3 +1,5 @@
+"""Фильтры для диплинков."""
+
 import re
 
 from aiogram.filters import BaseFilter, CommandObject

@@ -35,7 +35,7 @@ async def base_kpi_data(
 
 
 async def kpi_getter(
-    user: Employee, premium: SpecPremium | HeadPremium = None, **kwargs
+    user: Employee, premium: SpecPremium | HeadPremium = None, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для получения показателей KPI сотрудника.
 

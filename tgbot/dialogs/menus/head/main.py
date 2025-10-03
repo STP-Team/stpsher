@@ -59,11 +59,11 @@ menu_window = Window(
 )
 
 
-async def on_start(_start_data: Any, dialog_manager: DialogManager, **_kwargs):
+async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     """Установка параметров диалога по умолчанию при запуске.
 
     Args:
-        _start_data: Дополнительные параметры запуска диалога
+        _on_start: Дополнительные параметры запуска диалога
         dialog_manager: Менеджер диалога
     """
     try:
@@ -87,6 +87,10 @@ async def on_start(_start_data: Any, dialog_manager: DialogManager, **_kwargs):
         # Фильтр поиска по направлению на "Все"
         search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
         await search_divisions.set_checked("all")
+
+        # Фильтр групповых команд на "Пользователь"
+        groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
+        await groups_cmds_filter.set_checked("user")
     except Exception as e:
         logger.error(f"[Диалоги] Ошибка установки стандартных значений диалога: {e}")
 

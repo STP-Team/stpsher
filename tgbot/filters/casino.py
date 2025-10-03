@@ -1,3 +1,5 @@
+"""Фильтры для казино."""
+
 from aiogram.dispatcher.event.bases import CancelHandler
 from aiogram.enums import ParseMode
 from aiogram.filters import BaseFilter

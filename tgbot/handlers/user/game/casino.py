@@ -9,7 +9,6 @@ from aiogram.types import CallbackQuery
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.casino import IsCasinoAllowed
-from tgbot.keyboards.mip.game.main import GameMenu
 from tgbot.keyboards.user.game.casino import (
     CasinoMenu,
     back_to_casino_kb,
@@ -122,7 +121,6 @@ def get_bowling_result_multiplier(dice_value: int) -> tuple[str, float]:
         return f"🎳 {dice_value}", 0.0
 
 
-@user_game_casino_router.callback_query(GameMenu.filter(F.menu == "casino"))
 async def casino_main_menu(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):

@@ -9,7 +9,9 @@ from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.getters.common.search import short_name
 
 
-async def activations_getter(stp_repo: MainRequestsRepo, user: Employee) -> Dict:
+async def activations_getter(
+    stp_repo: MainRequestsRepo, user: Employee, **_kwargs
+) -> Dict:
     """Получение списка предметов для активации на основе роли пользователя.
 
     Args:
@@ -69,7 +71,7 @@ async def activations_getter(stp_repo: MainRequestsRepo, user: Employee) -> Dict
     }
 
 
-async def activation_detail_getter(dialog_manager: DialogManager):
+async def activation_detail_getter(dialog_manager: DialogManager, **_kwargs):
     """Геттер для расчета кол-ва использований предмета.
 
     Args:

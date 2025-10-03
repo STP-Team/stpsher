@@ -273,6 +273,24 @@ async def group_details_services_getter(
     }
 
 
+async def groups_cmds_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Получает данные для окна команд групп.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранном фильтре команд
+    """
+    filter_value = dialog_manager.dialog_data.get("groups_cmds_filter", "user")
+
+    return {
+        "is_user": filter_value == "user",
+    }
+
+
 async def group_remove_getter(
     dialog_manager: DialogManager, stp_repo: MainRequestsRepo, bot: Bot, **_kwargs
 ) -> Dict[str, Any]:

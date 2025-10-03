@@ -5,6 +5,7 @@ from aiogram_dialog import Window
 from aiogram_dialog.widgets.kbd import (
     Button,
     Checkbox,
+    Radio,
     Row,
     ScrollingGroup,
     Select,
@@ -13,6 +14,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
+from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.groups import (
     on_access_level_click,
     on_group_selected,
@@ -35,6 +37,7 @@ from tgbot.dialogs.getters.common.groups import (
     group_details_members_getter,
     group_details_services_getter,
     group_remove_getter,
+    groups_cmds_getter,
     groups_details_getter,
     groups_list_getter,
 )
@@ -159,11 +162,65 @@ def create_groups_window(
         getter=groups_details_getter,
     )
 
-    # Окно команд для групп (placeholder)
+    # Окно команд для групп
     groups_cmds_window = Window(
-        Const("💡 <b>Команды для групп</b>\n\n<i>В разработке...</i>"),
+        Const("💡 <b>Команды для групп</b>\n"),
+        Const(
+            text="""🙋🏻‍♂️ <b>Команды для пользователей в группах</b>
+
+<b>ℹ️ Информация о группе:</b>
+∙ <code>/admins</code> - список администраторов группы
+
+<b>💰 Баланс и рейтинг:</b>
+∙ <code>/balance</code> - посмотреть свой баланс баллов
+∙ <code>/top</code> - рейтинг участников группы по баллам
+
+<b>🎰 Игры казино:</b>
+∙ <code>/slots [сумма]</code> - игра в слоты (пример: /slots 50)
+∙ <code>/dice [сумма]</code> - игра в кости (пример: /dice 100)
+∙ <code>/darts [сумма]</code> - игра в дартс (пример: /darts 25)
+∙ <code>/bowling [сумма]</code> - игра в боулинг (пример: /bowling 75)
+
+<b>💡 Примечания:</b>
+∙ Минимальная ставка для игр - 10 баллов
+∙ Команды /balance и казино доступны только специалистам и дежурным
+∙ Казино может быть отключено администратором группы""",
+            when="is_user",
+        ),
+        Const(
+            text="""🛡️ <b>Команды для администраторов групп</b>
+
+<b>📌 Управление сообщениями:</b>
+∙ <code>/pin</code> - закрепить сообщение (в ответ на сообщение)
+∙ <code>/unpin</code> - открепить сообщение (в ответ на закрепленное сообщение)
+
+<b>👥 Управление пользователями:</b>
+∙ <code>/mute [время]</code> - замутить пользователя (в ответ на сообщение или /mute user_id)
+∙ <code>/unmute</code> - размутить пользователя (в ответ на сообщение или /unmute user_id)
+∙ <code>/ban</code> - забанить пользователя (в ответ на сообщение или /ban user_id)
+∙ <code>/unban</code> - разбанить пользователя (в ответ на сообщение или /unban user_id)
+
+<b>⚙️ Настройки группы:</b>
+∙ <code>/settings</code> - настройки группы
+
+<b>📝 Примеры времени для мута:</b>
+∙ <code>/mute 30m</code> или <code>/mute 30м</code> - на 30 минут
+∙ <code>/mute 2h</code> или <code>/mute 2ч</code> - на 2 часа
+∙ <code>/mute 7d</code> или <code>/mute 7д</code> - на 7 дней
+∙ <code>/mute</code> - навсегда""",
+            when=~F["is_user"],
+        ),
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="groups_cmds_filter",
+            item_id_getter=lambda item: item[0],
+            items=[("user", "Пользователь"), ("admin", "Администратор")],
+            on_click=on_filter_change,
+        ),
         SwitchTo(Const("↩️ Назад"), id="back", state=state_group.groups),
         state=state_group.groups_cmds,
+        getter=groups_cmds_getter,
     )
 
     # Окно настройки уровня доступа группы (placeholder)
