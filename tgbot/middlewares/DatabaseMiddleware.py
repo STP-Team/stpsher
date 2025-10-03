@@ -50,14 +50,14 @@ class DatabaseMiddleware(BaseMiddleware):
                         user_id=event.from_user.id
                     )
 
-                async with self.kpi_session_pool() as kpi_session:
-                    kpi_repo = KPIRequestsRepo(kpi_session)
-                    data["kpi_repo"] = kpi_repo
-                    data["kpi_session"] = kpi_session
+                    async with self.kpi_session_pool() as kpi_session:
+                        kpi_repo = KPIRequestsRepo(kpi_session)
+                        data["kpi_repo"] = kpi_repo
+                        data["kpi_session"] = kpi_session
 
-                # Продолжаем к следующему middleware/обработчику
-                result = await handler(event, data)
-                return result
+                        # Продолжаем к следующему middleware/обработчику
+                        result = await handler(event, data)
+                        return result
 
             except (OperationalError, DBAPIError, DisconnectionError) as e:
                 if "Connection is busy" in str(e) or "HY000" in str(e):
