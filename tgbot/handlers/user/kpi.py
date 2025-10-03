@@ -20,11 +20,20 @@ async def user_kpi_cb(
     callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
 ):
     premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
-    if premium is None:
+    if (
+        premium is None
+        or not premium.csi_premium
+        or not premium.flr_premium
+        or not premium.gok_premium
+        or not premium.tests_premium
+        or not premium.total_premium
+    ):
         await callback.message.edit_text(
             """🌟 <b>Показатели</b>
 
-Не смог найти твои показатели в премиуме :(""",
+Не смог найти твои показатели в премиуме :(
+
+<i>Вернись позже, когда показатели загрузятся</i>""",
             reply_markup=kpi_kb(),
         )
         return
@@ -77,66 +86,75 @@ async def user_kpi_cb(
 async def user_kpi_calculator_cb(
     callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
 ):
-    user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+    premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
 
-    if user_premium is None:
+    if (
+        premium is None
+        or not premium.csi_premium
+        or not premium.flr_premium
+        or not premium.gok_premium
+        or not premium.tests_premium
+        or not premium.total_premium
+    ):
         await callback.message.edit_text(
             """🧮 <b>Калькулятор KPI</b>
 
-Не смог найти твои показатели в премиуме :(""",
+Не смог найти твои показатели в премиуме :(
+
+<i>Вернись позже, когда показатели загрузятся</i>""",
             reply_markup=kpi_calculator_kb(),
         )
         return
 
     csi_calculation = KPICalculator.calculate_csi_needed(
-        user.division, user_premium.csi, user_premium.csi_normative
+        user.division, premium.csi, premium.csi_normative
     )
     flr_calculation = KPICalculator.calculate_flr_needed(
-        user.division, user_premium.flr, user_premium.flr_normative
+        user.division, premium.flr, premium.flr_normative
     )
     gok_calculation = KPICalculator.calculate_gok_needed(
-        user.division, user_premium.gok, user_premium.gok_normative
+        user.division, premium.gok, premium.gok_normative
     )
     target_calculation = KPICalculator.calculate_target_needed(
-        user_premium.target,
-        user_premium.target_goal_first,
-        user_premium.target_goal_second,
-        user_premium.target_type,
+        premium.target,
+        premium.target_goal_first,
+        premium.target_goal_second,
+        premium.target_type,
     )
 
     message_text = f"""🧮 <b>Калькулятор KPI</b>
 
 📊 <b>Оценка клиента</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(user_premium.csi)} ({SalaryFormatter.format_percentage(user_premium.csi_normative_rate)})
-План: {SalaryFormatter.format_value(user_premium.csi_normative)}
+<blockquote>Текущий: {SalaryFormatter.format_value(premium.csi)} ({SalaryFormatter.format_percentage(premium.csi_normative_rate)})
+План: {SalaryFormatter.format_value(premium.csi_normative)}
 
 <b>Для премии:</b>
 {csi_calculation}</blockquote>
 
 🔧 <b>FLR</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(user_premium.flr)} ({SalaryFormatter.format_percentage(user_premium.flr_normative_rate)})
-План: {SalaryFormatter.format_value(user_premium.flr_normative)}
+<blockquote>Текущий: {SalaryFormatter.format_value(premium.flr)} ({SalaryFormatter.format_percentage(premium.flr_normative_rate)})
+План: {SalaryFormatter.format_value(premium.flr_normative)}
 
 <b>Для премии:</b>
 {flr_calculation}</blockquote>
 
 ⚖️ <b>ГОК</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(round(user_premium.gok))} ({SalaryFormatter.format_percentage(user_premium.gok_normative_rate)})
-План: {SalaryFormatter.format_value(round(user_premium.gok_normative))}
+<blockquote>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
+План: {SalaryFormatter.format_value(round(premium.gok_normative))}
 
 <b>Для премии:</b>
 {gok_calculation}</blockquote>
 
 🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(round((user_premium.target_goal_first / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_first else (user_premium.target / user_premium.target_goal_first * 100) if user_premium.target_goal_first and user_premium.target_goal_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((user_premium.target_goal_second / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_second else (user_premium.target / user_premium.target_goal_second * 100) if user_premium.target_goal_second and user_premium.target_goal_second > 0 else 0))})
-План: {SalaryFormatter.format_value(round(user_premium.target_goal_first))} / {SalaryFormatter.format_value(round(user_premium.target_goal_second))}
+<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(round((premium.target_goal_first / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_goal_first else (premium.target / premium.target_goal_first * 100) if premium.target_goal_first and premium.target_goal_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((premium.target_goal_second / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_goal_second else (premium.target / premium.target_goal_second * 100) if premium.target_goal_second and premium.target_goal_second > 0 else 0))})
+План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}
 
 Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель
 
 <b>Для премии:</b>
 {target_calculation}</blockquote>
 
-<i>Данные от: {user_premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if user_premium.updated_at else "—"}</i>"""
+<i>Данные от: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>"""
 
     try:
         await callback.message.edit_text(message_text, reply_markup=kpi_calculator_kb())
@@ -148,26 +166,33 @@ async def user_kpi_calculator_cb(
 async def user_kpi_salary_cb(
     callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
 ):
-    user_premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+    premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
 
-    if user_premium is None:
+    if (
+        premium is None
+        or not premium.csi_premium
+        or not premium.flr_premium
+        or not premium.gok_premium
+        or not premium.tests_premium
+        or not premium.total_premium
+    ):
         await callback.message.edit_text(
             """💰 <b>Расчет зарплаты</b>
 
-Не смог найти твои показатели в премиуме :(""",
+Не смог найти твои показатели в премиуме :(
+
+<i>Вернись позже, когда показатели загрузятся</i>""",
             reply_markup=kpi_salary_kb(),
         )
         return
 
     try:
         salary_result = await SalaryCalculator.calculate_salary(
-            user=user, premium_data=user_premium
+            user=user, premium_data=premium
         )
 
         # Format the result using centralized formatter
-        message_text = SalaryFormatter.format_salary_message(
-            salary_result, user_premium
-        )
+        message_text = SalaryFormatter.format_salary_message(salary_result, premium)
     except Exception as e:
         await callback.message.edit_text(
             f"""💰 <b>Расчет зарплаты</b>
