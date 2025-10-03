@@ -26,7 +26,7 @@ async def on_user_select(
 
     # Сохраняем текущее состояние для дальнейшего возврата в текущее меню
     current_state = dialog_manager.current_context().state
-    dialog_manager.dialog_data["previous_state"] = current_state
+    dialog_manager.dialog_data["previous_state"] = str(current_state)
 
     # Определяем группу состояний для перехода
     state_group = dialog_manager.current_context().state.group
@@ -102,13 +102,5 @@ async def on_back_from_user_detail(
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
-    # Получаем предыдущее состояние поиска до открытия детального результата
-    previous_state = dialog_manager.dialog_data.get("previous_state")
-
-    if previous_state:
-        # Переходим к прошлому меню
-        await dialog_manager.switch_to(previous_state)
-    else:
-        # Фоллбек к результатам поиска если прошлое состояние не сохранено
-        state_group = dialog_manager.current_context().state.group
-        await dialog_manager.switch_to(state_group.search_result)
+    state_group = dialog_manager.current_context().state.group
+    await dialog_manager.switch_to(state_group.search_result)
