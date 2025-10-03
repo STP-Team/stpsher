@@ -304,6 +304,7 @@ async def duty_purchase_action(
         # Возвращаемся к списку покупок для активации
         await duty_products_activation(
             callback=callback,
+            callback_data=GameMenu(menu="products_activation"),
             user=user,
             stp_repo=stp_repo,
         )
