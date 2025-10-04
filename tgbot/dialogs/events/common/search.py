@@ -3,12 +3,47 @@
 import logging
 
 from aiogram.types import CallbackQuery, Message
+from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.states.common.search import Search
 
 logger = logging.getLogger(__name__)
+
+
+async def start_search_dialog(
+    _callback: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик перехода в диалог групп.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Данные виджета Button
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.start(
+        Search.menu,
+    )
+
+
+async def close_search_dialog(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик возврата к главному диалогу из диалога поиска.
+
+    Args:
+        _callback: Callback query от пользователя
+        _button: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.done()
 
 
 async def on_user_select(
@@ -28,9 +63,7 @@ async def on_user_select(
     current_state = dialog_manager.current_context().state
     dialog_manager.dialog_data["previous_state"] = str(current_state)
 
-    # Определяем группу состояний для перехода
-    state_group = dialog_manager.current_context().state.group
-    await dialog_manager.switch_to(state_group.search_user_detail)
+    await dialog_manager.switch_to(Search.details_window)
 
 
 async def on_search_query(
@@ -61,8 +94,7 @@ async def on_search_query(
             # Сохраняем поисковый запрос для отображения в окне "ничего не найдено"
             dialog_manager.dialog_data["search_query"] = search_query
             # Переходим к окну "ничего не найдено"
-            state_group = dialog_manager.current_context().state.group
-            await dialog_manager.switch_to(state_group.search_no_results)
+            await dialog_manager.switch_to(Search.query_no_results)
             return
 
         # Сортировка результатов (сначала точные совпадения)
@@ -85,14 +117,13 @@ async def on_search_query(
         dialog_manager.dialog_data["total_found"] = len(sorted_users)
 
         # Переходим к результатам поиска
-        state_group = dialog_manager.current_context().state.group
-        await dialog_manager.switch_to(state_group.search_result)
+        await dialog_manager.switch_to(Search.query_results)
 
     except Exception as e:
         logger.error(f"[Поиск] Ошибка при попытке поиска: {e}")
 
 
-async def on_back_from_user_detail(
+async def on_back_to_menu(
     _callback: CallbackQuery, _widget: Button, dialog_manager, **_kwargs
 ) -> None:
     """Обработчик возврата в меню поиска из детального просмотра пользователя.
@@ -102,5 +133,4 @@ async def on_back_from_user_detail(
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
-    state_group = dialog_manager.current_context().state.group
-    await dialog_manager.switch_to(state_group.search_result)
+    await dialog_manager.switch_to(Search.menu)

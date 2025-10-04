@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.groups import start_groups_dialog
+from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.user.game.achievements import game_achievements_window
 from tgbot.dialogs.menus.user.game.activations import (
@@ -43,15 +44,6 @@ from tgbot.dialogs.menus.user.schedule import (
     schedule_my_window,
     schedule_window,
 )
-from tgbot.dialogs.menus.user.search import (
-    search_heads_window,
-    search_no_results_window,
-    search_query_window,
-    search_results_window,
-    search_specialists_window,
-    search_user_info_window,
-    search_window,
-)
 from tgbot.dialogs.states.user import UserSG
 
 menu_window = Window(
@@ -66,7 +58,7 @@ menu_window = Window(
     ),
     SwitchTo(Const("🏮 Игра"), id="game", state=UserSG.game),
     Row(
-        SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=UserSG.search),
+        Button(Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog),
         Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=UserSG.menu,
@@ -143,13 +135,6 @@ user_dialog = Dialog(
     game_achievements_window,
     game_history_window,
     game_gistory_detail_window,
-    search_window,
-    search_specialists_window,
-    search_heads_window,
-    search_query_window,
-    search_results_window,
-    search_no_results_window,
-    search_user_info_window,
     on_start=on_start,
     getter=db_getter,
 )

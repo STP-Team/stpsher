@@ -9,6 +9,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.groups import start_groups_dialog
+from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.head.kpi import (
     kpi_requirements_window,
@@ -21,15 +22,6 @@ from tgbot.dialogs.menus.head.schedule import (
     schedule_heads_window,
     schedule_my_window,
     schedule_window,
-)
-from tgbot.dialogs.menus.head.search import (
-    head_search_heads_window,
-    head_search_no_results_window,
-    head_search_query_window,
-    head_search_results_window,
-    head_search_specialists_window,
-    head_search_user_info_window,
-    head_search_window,
 )
 from tgbot.dialogs.states.head import HeadSG
 
@@ -53,7 +45,9 @@ menu_window = Window(
         state=HeadSG.game_products_activation,
     ),
     Row(
-        SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=HeadSG.search),
+        Button(
+            Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
+        ),
         Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=HeadSG.menu,
@@ -106,13 +100,6 @@ head_dialog = Dialog(
     kpi_window,
     kpi_requirements_window,
     salary_window,
-    head_search_window,
-    head_search_specialists_window,
-    head_search_heads_window,
-    head_search_query_window,
-    head_search_results_window,
-    head_search_no_results_window,
-    head_search_user_info_window,
     on_start=on_start,
     getter=db_getter,
 )

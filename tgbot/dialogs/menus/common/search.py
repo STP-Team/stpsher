@@ -1,5 +1,6 @@
 """Генерация общих функций для поиска."""
 
+from aiogram_dialog import Dialog
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -14,7 +15,8 @@ from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.search import (
-    on_back_from_user_detail,
+    close_search_dialog,
+    on_back_to_menu,
     on_search_query,
     on_user_select,
 )
@@ -24,113 +26,101 @@ from tgbot.dialogs.getters.common.search import (
     search_specialists_getter,
     search_user_info_getter,
 )
+from tgbot.dialogs.states.common.search import Search
 
-
-def create_search_windows(state_group, menu_state):
-    """Создает окна для управления поиском.
-
-    Args:
-        state_group: Группа состояний, используемая для переключения окон
-        menu_state: Состояние главного меню
-
-    Returns:
-        Сгенерированный список окон для поиска
-    """
-    search_window = Window(
-        Format("""🕵🏻 <b>Поиск сотрудника</b>
+menu_window = Window(
+    Format("""🕵🏻 <b>Поиск сотрудника</b>
 
 <i>Выбери должность искомого человека или воспользуйся общим поиском</i>"""),
-        Row(
-            SwitchTo(
-                Const("👤 Специалисты"),
-                id="schedules",
-                state=state_group.search_specialists,
-            ),
-            SwitchTo(
-                Const("👑 Руководители"), id="kpi", state=state_group.search_heads
-            ),
+    Row(
+        SwitchTo(
+            Const("👤 Специалисты"),
+            id="schedules",
+            state=Search.specialists,
         ),
-        SwitchTo(Const("🕵🏻 Поиск"), id="game", state=state_group.search_query),
-        SwitchTo(Const("↩️ Назад"), id="menu", state=menu_state),
-        state=state_group.search,
-    )
+        SwitchTo(Const("👑 Руководители"), id="kpi", state=Search.heads),
+    ),
+    SwitchTo(Const("🕵🏻 Поиск"), id="game", state=Search.query),
+    Button(Const("↩️ Назад"), id="menu", on_click=close_search_dialog),
+    state=Search.menu,
+)
 
-    search_specialists_window = Window(
-        Format(
-            """👤 Специалисты
+specialists_window = Window(
+    Format(
+        """👤 Специалисты
 
 Найдено специалистов: {total_specialists}""",
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{item[2]} {item[1]}"),
+            id="search_specialists",
+            items="specialists_list",
+            item_id_getter=lambda item: item[0],
+            on_click=on_user_select,
         ),
-        ScrollingGroup(
-            Select(
-                Format("{item[2]} {item[1]}"),
-                id="search_specialists",
-                items="specialists_list",
-                item_id_getter=lambda item: item[0],
-                on_click=on_user_select,
-            ),
-            width=2,
-            height=5,
-            hide_on_single_page=True,
-            id="search_scroll",
+        width=2,
+        height=5,
+        hide_on_single_page=True,
+        id="search_scroll",
+    ),
+    Row(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="search_divisions",
+            item_id_getter=lambda item: item[0],
+            items="division_options",
+            on_click=on_filter_change,
         ),
-        Row(
-            Radio(
-                Format("🔘 {item[1]}"),
-                Format("⚪️ {item[1]}"),
-                id="search_divisions",
-                item_id_getter=lambda item: item[0],
-                items="division_options",
-                on_click=on_filter_change,
-            ),
-        ),
-        Row(
-            SwitchTo(Const("↩️ Назад"), id="menu", state=state_group.search),
-            SwitchTo(Const("🏠 Домой"), id="home", state=menu_state),
-        ),
-        getter=search_specialists_getter,
-        state=state_group.search_specialists,
-    )
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_specialists_getter,
+    state=Search.specialists,
+)
 
-    search_heads_window = Window(
-        Format(
-            """👑 Руководители
+heads_window = Window(
+    Format(
+        """👑 Руководители
 
 Найдено руководителей: {total_heads}""",
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{item[2]} {item[1]}"),
+            id="search_heads",
+            items="heads_list",
+            item_id_getter=lambda item: item[0],
+            on_click=on_user_select,
         ),
-        ScrollingGroup(
-            Select(
-                Format("{item[2]} {item[1]}"),
-                id="search_heads",
-                items="heads_list",
-                item_id_getter=lambda item: item[0],
-                on_click=on_user_select,
-            ),
-            width=2,
-            height=5,
-            hide_on_single_page=True,
-            id="search_scroll",
+        width=2,
+        height=5,
+        hide_on_single_page=True,
+        id="search_scroll",
+    ),
+    Row(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="search_divisions",
+            item_id_getter=lambda item: item[0],
+            items="division_options",
+            on_click=on_filter_change,
         ),
-        Row(
-            Radio(
-                Format("🔘 {item[1]}"),
-                Format("⚪️ {item[1]}"),
-                id="search_divisions",
-                item_id_getter=lambda item: item[0],
-                items="division_options",
-                on_click=on_filter_change,
-            ),
-        ),
-        Row(
-            SwitchTo(Const("↩️ Назад"), id="menu", state=state_group.search),
-            SwitchTo(Const("🏠 Домой"), id="home", state=menu_state),
-        ),
-        getter=search_heads_getter,
-        state=state_group.search_heads,
-    )
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.query),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_heads_getter,
+    state=Search.heads,
+)
 
-    search_query_window = Window(
-        Format("""🕵🏻 Поиск сотрудника
+query_window = Window(
+    Format("""🕵🏻 Поиск сотрудника
 
 Введи:
 • Часть имени/фамилии или полное ФИО
@@ -138,38 +128,38 @@ def create_search_windows(state_group, menu_state):
 • Username Telegram (@username или username)
 
 <i>Например: Иванов, 123456789, @username, username</i>"""),
-        TextInput(id="search_query", on_success=on_search_query),
-        SwitchTo(Const("↩️ Назад"), id="back", state=state_group.search),
-        state=state_group.search_query,
-    )
+    TextInput(id="search_query", on_success=on_search_query),
+    SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
+    state=Search.query,
+)
 
-    search_results_window = Window(
-        Format("""🔍 <b>Результаты поиска</b>
+query_results_window = Window(
+    Format("""🔍 <b>Результаты поиска</b>
 
 По запросу "<code>{search_query}</code>" найдено: {total_found} сотрудников"""),
-        ScrollingGroup(
-            Select(
-                Format("{item[1]}"),
-                id="search_results",
-                items="search_results",
-                item_id_getter=lambda item: item[0],
-                on_click=on_user_select,
-            ),
-            width=1,
-            height=5,
-            hide_on_single_page=True,
-            id="search_results_scroll",
+    ScrollingGroup(
+        Select(
+            Format("{item[1]}"),
+            id="search_results",
+            items="search_results",
+            item_id_getter=lambda item: item[0],
+            on_click=on_user_select,
         ),
-        Row(
-            SwitchTo(Const("↩️ Назад"), id="back", state=state_group.search),
-            SwitchTo(Const("🏠 Домой"), id="home", state=menu_state),
-        ),
-        getter=search_results_getter,
-        state=state_group.search_result,
-    )
+        width=1,
+        height=5,
+        hide_on_single_page=True,
+        id="search_results_scroll",
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_results_getter,
+    state=Search.query_results,
+)
 
-    search_no_results_window = Window(
-        Format("""❌ <b>Ничего не найдено</b>
+query_no_results_window = Window(
+    Format("""❌ <b>Ничего не найдено</b>
 
 По запросу "<code>{search_query}</code>" сотрудники не найдены.
 
@@ -178,33 +168,31 @@ def create_search_windows(state_group, menu_state):
 • Использовать только часть имени или фамилии
 • Поискать по username без @
 • Использовать числовой ID пользователя"""),
-        Row(
-            SwitchTo(
-                Const("🔄 Новый поиск"), id="new_search", state=state_group.search_query
-            ),
-            SwitchTo(Const("↩️ Назад"), id="back", state=state_group.search),
-        ),
-        SwitchTo(Const("🏠 Домой"), id="home", state=menu_state),
-        getter=search_results_getter,
-        state=state_group.search_no_results,
-    )
+    SwitchTo(Const("🔄 Новый поиск"), id="new_search", state=Search.query),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_results_getter,
+    state=Search.query_no_results,
+)
 
-    search_user_info_window = Window(
-        Format("{user_info}"),
-        Row(
-            Button(Const("↩️ Назад"), id="back", on_click=on_back_from_user_detail),
-            SwitchTo(Const("🏠 Домой"), id="home", state=menu_state),
-        ),
-        getter=search_user_info_getter,
-        state=state_group.search_user_detail,
-    )
+details_window = Window(
+    Format("{user_info}"),
+    Row(
+        Button(Const("↩️ Назад"), id="back", on_click=on_back_to_menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_user_info_getter,
+    state=Search.details_window,
+)
 
-    return (
-        search_window,
-        search_specialists_window,
-        search_heads_window,
-        search_query_window,
-        search_results_window,
-        search_no_results_window,
-        search_user_info_window,
-    )
+search_dialog = Dialog(
+    menu_window,
+    specialists_window,
+    heads_window,
+    query_window,
+    query_results_window,
+    query_no_results_window,
+    details_window,
+)
