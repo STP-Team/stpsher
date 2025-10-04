@@ -58,7 +58,9 @@ menu_window = Window(
     ),
     SwitchTo(Const("🏮 Игра"), id="game", state=UserSG.game),
     Row(
-        Button(Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog),
+        Button(
+            Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
+        ),
         Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=UserSG.menu,
@@ -103,14 +105,6 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     # # Фильтр истории баланса по источнику операции на "Все"
     # history_source_filter: ManagedRadio = dialog_manager.find("history_source_filter")
     # await history_source_filter.set_checked("all")
-
-    # Фильтр поиска по направлению на "Все"
-    # search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
-    # await search_divisions.set_checked("all")
-    #
-    # # Фильтр групповых команд на "Пользователь"
-    # groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
-    # await groups_cmds_filter.set_checked("user")
 
 
 user_dialog = Dialog(

@@ -1,9 +1,12 @@
 """Генерация общих функций для управления группами."""
 
-from aiogram_dialog import Dialog, Window
+from typing import Any
+
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Button,
     Checkbox,
+    ManagedRadio,
     Radio,
     Row,
     ScrollingGroup,
@@ -327,6 +330,19 @@ groups_remove_bot_window = Window(
     getter=group_remove_getter,
 )
 
+
+async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
+    """Установка параметров диалога по умолчанию при запуске.
+
+    Args:
+        _on_start: Дополнительные параметры запуска диалога
+        dialog_manager: Менеджер диалога
+    """
+    # Фильтр групповых команд на "Пользователь"
+    groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
+    await groups_cmds_filter.set_checked("user")
+
+
 groups_dialog = Dialog(
     groups_window,
     groups_members_window,
@@ -336,4 +352,5 @@ groups_dialog = Dialog(
     groups_access_window,
     groups_service_messages_window,
     groups_remove_bot_window,
+    on_start=on_start,
 )

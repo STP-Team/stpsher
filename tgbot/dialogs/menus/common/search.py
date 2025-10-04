@@ -1,9 +1,12 @@
 """Генерация общих функций для поиска."""
 
-from aiogram_dialog import Dialog
+from typing import Any
+
+from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
+    ManagedRadio,
     Radio,
     Row,
     ScrollingGroup,
@@ -187,6 +190,19 @@ details_window = Window(
     state=Search.details_window,
 )
 
+
+async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
+    """Установка параметров диалога по умолчанию при запуске.
+
+    Args:
+        _on_start: Дополнительные параметры запуска диалога
+        dialog_manager: Менеджер диалога
+    """
+    # Фильтр поиска по направлению на "Все"
+    search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
+    await search_divisions.set_checked("all")
+
+
 search_dialog = Dialog(
     menu_window,
     specialists_window,
@@ -195,4 +211,5 @@ search_dialog = Dialog(
     query_results_window,
     query_no_results_window,
     details_window,
+    on_start=on_start,
 )
