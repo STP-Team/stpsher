@@ -1,21 +1,14 @@
 """Генерация диалога для ГОК."""
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Row
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
+from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.menus.gok.game.achievements import game_achievements_window
-from tgbot.dialogs.menus.gok.game.activations import (
-    game_activation_detail_window,
-    game_activations_empty_window,
-    game_activations_window,
-)
-from tgbot.dialogs.menus.gok.game.game import game_window
-from tgbot.dialogs.menus.gok.game.products import game_products_window
 from tgbot.dialogs.states.gok import GokSG
 
 menu_window = Window(
@@ -29,7 +22,7 @@ menu_window = Window(
 • Активировать покупки специалистов
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
-    SwitchTo(Const("🏮 Игра"), id="game", state=GokSG.game),
+    Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
     Row(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
@@ -52,12 +45,6 @@ async def on_start(_on_start, _dialog_manager: DialogManager, **_kwargs):
 
 gok_dialog = Dialog(
     menu_window,
-    game_window,
-    game_products_window,
-    game_achievements_window,
-    game_activations_window,
-    game_activation_detail_window,
-    game_activations_empty_window,
     on_start=on_start,
     getter=db_getter,
 )

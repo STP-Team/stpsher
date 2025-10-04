@@ -20,7 +20,6 @@ async def mip_start(_message: Message, dialog_manager: DialogManager):
         _message: Сообщение пользователя
         dialog_manager: Менеджер диалога
     """
-    print("we are here")
     try:
         await dialog_manager.done()
     except NoContextError:

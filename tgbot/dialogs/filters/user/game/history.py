@@ -2,7 +2,7 @@
 
 from aiogram_dialog import DialogManager
 
-from tgbot.dialogs.getters.user.game.history import history_getter
+from tgbot.dialogs.getters.common.game.history import history_getter
 
 
 async def history_filter_getter(dialog_manager: DialogManager, **kwargs):

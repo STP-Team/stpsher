@@ -2,6 +2,7 @@
 
 from tgbot.dialogs.menus.admin.main import admin_dialog
 from tgbot.dialogs.menus.common.broadcast import broadcast_dialog
+from tgbot.dialogs.menus.common.game.menu import game_dialog
 from tgbot.dialogs.menus.common.groups import groups_dialog
 from tgbot.dialogs.menus.common.search import search_dialog
 from tgbot.dialogs.menus.gok.main import gok_dialog
@@ -19,7 +20,7 @@ dialogs_list = [
     root_dialog,
 ]
 
-common_dialogs_list = [broadcast_dialog, groups_dialog, search_dialog]
+common_dialogs_list = [game_dialog, broadcast_dialog, groups_dialog, search_dialog]
 
 __all__ = [
     "dialogs_list",

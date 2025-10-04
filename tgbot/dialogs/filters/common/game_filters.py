@@ -6,8 +6,8 @@ from aiogram_dialog import DialogManager
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.game.shop import products_getter
 from tgbot.dialogs.getters.user.game.achievements import user_achievements_getter
-from tgbot.dialogs.getters.user.game.shop import products_getter
 
 
 def get_position_display_name(position: str) -> str:
@@ -103,41 +103,77 @@ def get_position_from_callback(callback_key: str) -> str:
 
 
 async def product_filter_getter(
-    dialog_manager: DialogManager, **kwargs
+    dialog_manager: DialogManager, user: Employee, stp_repo: MainRequestsRepo, **kwargs
 ) -> dict[str, list[Any] | str | Any]:
     """Фильтрует предметы в зависимости от выбранного фильтра.
 
     Args:
         dialog_manager: Менеджер диалога
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
 
     Returns:
         Словарь предметов с активным фильтром и балансом пользователя
     """
-    base_data = await products_getter(**kwargs)
+    # Определяем роль пользователя
+    is_user = user.role in [1, 3]  # Специалисты и дежурные
+    is_manager = user.role in [5, 6]  # ГОК и МИП
 
-    # Проверяем текущий выбор фильтра (стандартно на 'Доступные')
-    filter_type = dialog_manager.dialog_data.get("product_filter", "available")
+    # Для менеджеров получаем выбранное подразделение
+    division_param = None
+    if is_manager:
+        selected_division = dialog_manager.dialog_data.setdefault(
+            "product_division_filter", "all"
+        )
+        if selected_division != "all":
+            division_map = {"nck": "НЦК", "ntp": "НТП"}
+            division_param = division_map.get(selected_division, "")
 
-    # Устанавливаем стандартный фильтр если не установлено иное
-    if "product_filter" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["product_filter"] = "available"
+    # Загружаем продукты с учетом фильтра подразделения
+    base_data = await products_getter(
+        user=user, stp_repo=stp_repo, division=division_param, **kwargs
+    )
 
     products = base_data["products"]
     user_balance = base_data["user_balance"]
 
-    if filter_type == "available":
-        # Фильтруем предметы, доступные пользователю
-        filtered_products = [
-            p for p in products if p[4] <= user_balance
-        ]  # p[4] это стоимость
-    else:  # "Все предметы"
-        filtered_products = products
+    # Для обычных пользователей фильтруем по доступности (стоимости)
+    if is_user:
+        filter_type = dialog_manager.dialog_data.setdefault(
+            "product_filter", "available"
+        )
 
-    return {
+        if filter_type == "available":
+            # Фильтруем предметы, доступные пользователю по балансу
+            filtered_products = [
+                p for p in products if p[4] <= user_balance
+            ]  # p[4] это стоимость
+        else:  # "Все предметы"
+            filtered_products = products
+    else:
+        # Для менеджеров показываем все предметы (фильтр уже применен при загрузке)
+        filtered_products = products
+        filter_type = None
+
+    # Данные для радио-кнопок подразделений (для менеджеров)
+    division_radio_data = [("all", "Все"), ("nck", "НЦК"), ("ntp", "НТП")]
+
+    result = {
         "products": filtered_products,
         "user_balance": user_balance,
-        "product_filter": filter_type,
+        "is_user": is_user,
+        "division_radio_data": division_radio_data,
     }
+
+    # Добавляем специфичные для роли данные
+    if is_user:
+        result["product_filter"] = filter_type
+    else:
+        result["product_division_filter"] = dialog_manager.dialog_data.get(
+            "product_division_filter", "all"
+        )
+
+    return result
 
 
 async def achievements_filter_getter(
@@ -153,7 +189,16 @@ async def achievements_filter_getter(
     Returns:
         Словарь доступных достижений с фильтрацией по направлению
     """
-    base_data = await user_achievements_getter(**kwargs)
+    # Для менеджеров загружаем все достижения, для пользователей - только их подразделение
+    is_manager = user.role in [5, 6]
+    if is_manager:
+        from tgbot.dialogs.getters.user.game.achievements import achievements_getter
+
+        base_data = await achievements_getter(stp_repo=stp_repo, **kwargs)
+    else:
+        base_data = await user_achievements_getter(
+            user=user, stp_repo=stp_repo, **kwargs
+        )
 
     # Получаем все достижения для определения доступных позиций
     all_achievements = base_data["achievements"]
@@ -212,43 +257,64 @@ async def achievements_filter_getter(
         ("m", "Месяц"),
     ]
 
-    # Проверяем текущий выбор фильтра позиции (стандартно на 'all')
+    # Данные для радио-кнопок подразделений (для менеджеров)
+    division_radio_data = [("all", "Все"), ("nck", "НЦК"), ("ntp", "НТП")]
+
+    # Определяем роль пользователя
+    is_user = user.role in [1, 3]
+
+    # Проверяем текущий выбор фильтра позиции (для пользователей)
     selected_position = dialog_manager.dialog_data.get(
         "achievement_position_filter", "all"
+    )
+
+    # Проверяем текущий выбор фильтра подразделения (для менеджеров)
+    selected_division = dialog_manager.dialog_data.get(
+        "achievement_division_filter", "all"
     )
 
     # Проверяем текущий выбор фильтра периода (стандартно на 'all')
     selected_period = dialog_manager.dialog_data.get("achievement_period_filter", "all")
 
-    # Устанавливаем стандартные фильтры если не установлено иное
-    if "achievement_position_filter" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["achievement_position_filter"] = "all"
-        selected_position = "all"
-
-    if "achievement_period_filter" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["achievement_period_filter"] = "all"
-        selected_period = "all"
-
-    # Фильтруем достижения по выбранной позиции
-    if selected_position == "all":
-        filtered_achievements = achievements
+    # Фильтруем достижения по выбранному фильтру в зависимости от роли
+    if is_user:
+        # Для пользователей фильтруем по позиции
+        if selected_position == "all":
+            filtered_achievements = achievements
+        else:
+            # Конвертируем callback key обратно в оригинальную позицию для фильтрации
+            actual_position = get_position_from_callback(selected_position)
+            filtered_achievements = [
+                ach
+                for ach in achievements
+                if ach[4] == actual_position  # a[4] это position
+            ]
     else:
-        # Конвертируем callback key обратно в оригинальную позицию для фильтрации
-        actual_position = get_position_from_callback(selected_position)
-        filtered_achievements = [
-            a
-            for a in achievements
-            if a[4] == actual_position  # a[4] это position
-        ]
+        # Для менеджеров фильтруем по подразделению
+        if selected_division == "all":
+            filtered_achievements = achievements
+        else:
+            # Конвертируем callback key в название подразделения
+            division_map = {"nck": "НЦК", "ntp": "НТП"}
+            actual_division = division_map.get(selected_division, "")
+            filtered_achievements = [a for a in achievements if a[6] == actual_division]
 
     # Дополнительно фильтруем по периоду
     if selected_period != "all":
         # Нужно получить оригинальные данные для фильтрации по периоду
         # achievement[5] содержит отформатированный период, но нам нужен оригинальный
 
-        if stp_repo and user:
-            # Нормализуем division как в user_achievements_getter
-            normalized_division = "НЦК" if "НЦК" in user.division else "НТП"
+        if stp_repo:
+            # Для менеджеров используем выбранное подразделение, для пользователей - их подразделение
+            if is_manager:
+                if selected_division != "all":
+                    division_map = {"nck": "НЦК", "ntp": "НТП"}
+                    normalized_division = division_map.get(selected_division)
+                else:
+                    normalized_division = None
+            else:
+                normalized_division = "НЦК" if "НЦК" in user.division else "НТП"
+
             original_data = await stp_repo.achievement.get_achievements(
                 division=normalized_division
             )
@@ -257,17 +323,20 @@ async def achievements_filter_getter(
 
             # Фильтруем по периоду
             filtered_achievements = [
-                a
-                for a in filtered_achievements
-                if period_map.get(a[0]) == selected_period  # a[0] это ID достижения
+                ach
+                for ach in filtered_achievements
+                if period_map.get(ach[0]) == selected_period
             ]
 
     return {
+        "is_user": is_user,
         "achievements": filtered_achievements,
         "position_radio_data": position_radio_data,
         "period_radio_data": period_radio_data,
+        "division_radio_data": division_radio_data,
         "achievement_position_filter": selected_position,
+        "achievement_division_filter": selected_division,
         "achievement_period_filter": selected_period,
-        "checked": selected_position,  # Explicit checked state for Position Radio
-        "checked_period": selected_period,  # Explicit checked state for Period Radio
+        "checked": selected_position,
+        "checked_period": selected_period,
     }

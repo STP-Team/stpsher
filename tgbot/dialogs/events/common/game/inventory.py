@@ -7,7 +7,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.states.user import UserSG
+from tgbot.dialogs.states.common.game import Game
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ async def on_inventory_product_click(
     }
 
     # Переходим к окну детального просмотра предмета инвентаря
-    await dialog_manager.switch_to(UserSG.game_inventory_detail)
+    await dialog_manager.switch_to(Game.inventory_details)
 
 
 async def use_product(
@@ -83,7 +83,7 @@ async def use_product(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     # Проверяем, откуда вызвана функция - из окна магазина или из инвентаря
-    if dialog_manager.current_context().state == UserSG.game_shop_success:
+    if dialog_manager.current_context().state == Game.products_success:
         # Используем данные только что купленного предмета
         new_purchase = dialog_manager.dialog_data["new_purchase"]
         product_info = dialog_manager.dialog_data["selected_product"]
@@ -104,10 +104,10 @@ async def use_product(
                 show_alert=True,
             )
             # Обновляем данные предмета и возвращаемся
-            if dialog_manager.current_context().state == UserSG.game_shop_success:
-                await dialog_manager.switch_to(UserSG.game_products)
+            if dialog_manager.current_context().state == Game.products_success:
+                await dialog_manager.switch_to(Game.products)
             else:
-                await dialog_manager.switch_to(UserSG.game_inventory)
+                await dialog_manager.switch_to(Game.inventory)
         else:
             await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
 
@@ -149,7 +149,7 @@ async def on_inventory_sell_product(
                 f"✅ Продано: {product_info['product_name']}.\nВозвращено: {product_info['product_cost']} баллов"
             )
             # Возвращаемся к инвентарю
-            await dialog_manager.switch_to(UserSG.game_inventory)
+            await dialog_manager.switch_to(Game.inventory)
         else:
             await callback.answer("❌ Ошибка при продаже предмета", show_alert=True)
 
@@ -183,7 +183,7 @@ async def on_inventory_cancel_activation(
                 f"✅ Активация предмета '{product_info['product_name']}' отменена!"
             )
             # Возвращаемся к инвентарю
-            await dialog_manager.switch_to(UserSG.game_inventory)
+            await dialog_manager.switch_to(Game.inventory)
         else:
             await callback.answer("❌ Ошибка при отмене активации", show_alert=True)
 

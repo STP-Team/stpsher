@@ -1,5 +1,3 @@
-"""Генерация окна инвентаря для специалистов."""
-
 from aiogram_dialog.widgets.kbd import (
     Button,
     Radio,
@@ -12,18 +10,19 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.filters import on_filter_change
-from tgbot.dialogs.events.user.inventory import (
+from tgbot.dialogs.events.common.game.game import close_game_dialog
+from tgbot.dialogs.events.common.game.inventory import (
     on_inventory_cancel_activation,
     on_inventory_product_click,
     on_inventory_sell_product,
     use_product,
 )
 from tgbot.dialogs.filters.user.game.inventory import inventory_filter_getter
-from tgbot.dialogs.getters.user.game.inventory import inventory_detail_getter
-from tgbot.dialogs.states.user import UserSG
+from tgbot.dialogs.getters.common.game.inventory import inventory_detail_getter
+from tgbot.dialogs.states.common.game import Game
 from tgbot.misc.helpers import get_status_emoji
 
-game_inventory_window = Window(
+inventory_window = Window(
     Format("""🎒 <b>Инвентарь</b>
 
 Здесь ты найдешь все свои покупки, а так же их статус и многое другое
@@ -61,15 +60,15 @@ game_inventory_window = Window(
         on_click=on_filter_change,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=UserSG.game),
-        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
     ),
     getter=inventory_filter_getter,
-    state=UserSG.game_inventory,
+    state=Game.inventory,
 )
 
 
-game_inventory_detail_window = Window(
+inventory_details_window = Window(
     Format("""
 <b>🛍️ Предмет:</b> {product_name}
 
@@ -107,9 +106,9 @@ game_inventory_detail_window = Window(
         when="can_cancel",
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back_to_inventory", state=UserSG.game_inventory),
-        SwitchTo(Const("🏠 Домой"), id="home", state=UserSG.menu),
+        SwitchTo(Const("↩️ Назад"), id="back_to_inventory", state=Game.inventory),
+        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
     ),
     getter=inventory_detail_getter,
-    state=UserSG.game_inventory_detail,
+    state=Game.inventory_details,
 )

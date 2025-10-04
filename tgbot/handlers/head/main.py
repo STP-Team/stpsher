@@ -13,7 +13,10 @@ head_router.callback_query.filter(F.message.chat.type == "private", HeadFilter()
 
 
 @head_router.message(CommandStart())
-async def head_start(_message: Message, dialog_manager: DialogManager):
+async def head_start(
+    _message: Message,
+    dialog_manager: DialogManager,
+):
     """Запуск/сброс состояния диалога для руководителей.
 
     Args:

@@ -2,7 +2,7 @@
 
 from aiogram_dialog import DialogManager
 
-from tgbot.dialogs.getters.user.game.inventory import inventory_getter
+from tgbot.dialogs.getters.common.game.inventory import inventory_getter
 
 
 async def inventory_filter_getter(dialog_manager: DialogManager, **kwargs):

@@ -13,7 +13,10 @@ gok_router.callback_query.filter(F.message.chat.type == "private", GokFilter())
 
 
 @gok_router.message(CommandStart())
-async def gok_start(_message: Message, dialog_manager: DialogManager):
+async def gok_start(
+    _message: Message,
+    dialog_manager: DialogManager,
+):
     """Запуск/сброс состояния диалога для ГОК.
 
     Args:

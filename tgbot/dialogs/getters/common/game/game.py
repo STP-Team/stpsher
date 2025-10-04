@@ -30,5 +30,6 @@ async def game_getter(
         "achievements_sum": achievements_sum,
         "purchases_sum": purchases_sum,
         "level_info": level_info,
-        "is_duty": user.role == 3,
+        "is_user": user.role in [1, 3],
+        "activations_access": user.role in [2, 3, 5, 6],
     }

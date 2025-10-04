@@ -23,32 +23,6 @@ class UserSG(StatesGroup):
     kpi_requirements = State()
     salary = State()
 
-    # Игра
-    game = State()
-    game_products = State()
-    game_products_activation = State()
-    game_activation_detail = State()
-    game_activations_empty = State()
-    game_achievements = State()
-    game_inventory = State()
-    game_inventory_detail = State()
-    game_history = State()
-    game_history_detail = State()
-
-    # Действия
-    game_shop_confirm = State()
-    game_shop_success = State()
-
-    # Группы
-    groups = State()
-    groups_list = State()
-    groups_list_detail = State()
-    groups_cmds = State()
-    groups_access = State()
-    groups_service_messages = State()
-    groups_members = State()
-    groups_remove_bot = State()
-
 
 class Authorization(StatesGroup):
     """Группа состояний для неавторизованных пользователей."""

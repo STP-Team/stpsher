@@ -8,6 +8,7 @@ from aiogram_dialog.api.internal import Widget
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.states.common.game import Game
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +82,8 @@ async def on_activation_click(
             "user_id": purchase_user.user_id if purchase_user else purchase.user_id,
         }
 
-        # Переходим к окну детального просмотра активации
-        # Определяем текущую группу состояний динамически
-        current_state = dialog_manager.current_context().state
-        state_group = current_state.group
-
-        # Переходим к детальному просмотру в рамках текущей группы состояний
-        await dialog_manager.switch_to(getattr(state_group, "game_activation_detail"))
+        # Переходим к детальному просмотру
+        await dialog_manager.switch_to(Game.activation_details)
 
     except Exception as e:
         logger.error(
@@ -149,11 +145,7 @@ async def on_approve_activation(
         )
 
         # Возвращаемся к списку активаций
-        # Определяем текущую группу состояний динамически
-        current_state = dialog_manager.current_context().state
-        state_group = current_state.group
-
-        await dialog_manager.switch_to(getattr(state_group, "game_products_activation"))
+        await dialog_manager.switch_to(Game.activations)
 
     except Exception as e:
         logger.error(
@@ -201,11 +193,7 @@ async def on_reject_activation(
         )
 
         # Возвращаемся к списку активаций
-        # Определяем текущую группу состояний динамически
-        current_state = dialog_manager.current_context().state
-        state_group = current_state.group
-
-        await dialog_manager.switch_to(getattr(state_group, "game_products_activation"))
+        await dialog_manager.switch_to(Game.activations)
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")

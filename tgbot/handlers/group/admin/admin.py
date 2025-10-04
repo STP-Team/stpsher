@@ -12,8 +12,8 @@ from aiogram.types import (
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.search import short_name
 from tgbot.filters.group import GroupAdminFilter
-from tgbot.keyboards.group import short_name
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
 
 from infrastructure.database.models.STP.group import Group
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.keyboards.group import short_name
+from tgbot.dialogs.getters.common.search import short_name
 
 logger = logging.getLogger(__name__)
 

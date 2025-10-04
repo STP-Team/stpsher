@@ -5,7 +5,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.states.user import UserSG
+from tgbot.dialogs.states.common.game import Game
 
 
 async def on_transaction_click(
@@ -50,4 +50,4 @@ async def on_transaction_click(
     }
 
     # Переходим к окну детального просмотра транзакции
-    await dialog_manager.switch_to(UserSG.game_history_detail)
+    await dialog_manager.switch_to(Game.history_details)

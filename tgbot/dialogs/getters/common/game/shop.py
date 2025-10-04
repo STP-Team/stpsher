@@ -1,6 +1,6 @@
-"""Геттеры для меню предметов/магазина."""
+"""Геттеры для меню магазина специалистов."""
 
-from typing import Any
+from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
 
@@ -8,28 +8,28 @@ from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
 
-async def role_based_products_getter(
-    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
-) -> dict[str, list[Any] | int]:
-    """Геттер для получения списка предметов магазина с учетом роли пользователя.
+async def products_getter(
+    user: Employee, stp_repo: MainRequestsRepo, division: str = None, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения списка предметов магазина.
 
     Args:
         user: Экземпляр пользователя с моделью Employee
         stp_repo: Репозиторий операций с базой STP
+        division: Фильтр по подразделению (опционально)
 
     Returns:
-        Словарь предметов, отфильтрованных в зависимости от роли сотрудника
+        Словарь из списка предметов и баланса сотрудника
     """
     user_balance: int = await stp_repo.transaction.get_user_balance(
         user_id=user.user_id
     )
 
-    # Определяем какие продукты показывать в зависимости от роли
-    if user.role in [5, 6]:  # ГОК и МИП
-        # Показываем все продукты из всех направлений
-        products = await stp_repo.product.get_products()
+    # Для менеджеров загружаем все продукты или фильтруем по указанному подразделению
+    # Для обычных пользователей - только их подразделение
+    if division is not None:
+        products = await stp_repo.product.get_products(division=division)
     else:
-        # Для специалистов показываем продукты своего направления
         products = await stp_repo.product.get_products(division=user.division)
 
     formatted_products = []
@@ -51,80 +51,56 @@ async def role_based_products_getter(
     }
 
 
-async def role_based_product_filter_getter(
-    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
-) -> dict[str, list[Any] | int | str | bool | list[tuple[str, str]]]:
-    """Фильтрует предметы в зависимости от выбранного фильтра.
+async def confirmation_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна подтверждения покупки предмета.
 
     Args:
-        user: Экземпляр пользователя с моделью Employee
-        stp_repo: Репозиторий операций с базой STP
         dialog_manager: Менеджер диалога
 
     Returns:
-        Словарь отфильтрованных предметов
+        Словарь с информацией о выбранном предмете для покупки
     """
-    base_data = await role_based_products_getter(user=user, stp_repo=stp_repo, **kwargs)
+    product_info = dialog_manager.dialog_data.get("selected_product")
+    user_balance = dialog_manager.dialog_data.get("user_balance", 0)
 
-    is_user = user.role in [1, 3]
+    if not product_info:
+        return {}
 
-    # Данные для радио-кнопок подразделений (для администраторов/ГОК/МИП)
-    division_radio_data = [
-        ("all", "Все"),
-        ("nck", "НЦК"),
-        ("ntp", "НТП"),
-    ]
+    balance_after_purchase = user_balance - product_info["cost"]
 
-    products = base_data["products"]
-    user_balance = base_data["user_balance"]
+    return {
+        "product_name": product_info["name"],
+        "product_description": product_info["description"],
+        "product_count": product_info["count"],
+        "product_cost": product_info["cost"],
+        "user_balance": user_balance,
+        "balance_after_purchase": balance_after_purchase,
+    }
 
-    # Для обычных пользователей (специалисты/дежурные)
-    if is_user:
-        # Проверяем текущий выбор фильтра
-        filter_type = dialog_manager.dialog_data.get("product_filter", "available")
 
-        # Устанавливаем стандартный фильтр если не установлено иное
-        if "product_filter" not in dialog_manager.dialog_data:
-            dialog_manager.dialog_data["product_filter"] = "available"
+async def success_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
+    """Геттер для окна успешной покупки предмета.
 
-        if filter_type == "available":
-            # Фильтруем предметы, доступные пользователю
-            filtered_products = [p for p in products if p[4] <= user_balance]
-        else:  # "Все предметы"
-            filtered_products = products
+    Args:
+        dialog_manager: Менеджер диалога
 
-        return {
-            "products": filtered_products,
-            "user_balance": user_balance,
-            "product_filter": filter_type,
-            "is_user": True,
-            "division_radio_data": division_radio_data,
-        }
+    Returns:
+        Словарь с информацией о приобретенном предмете и изменении баланса
+    """
+    product_info = dialog_manager.dialog_data.get("selected_product")
+    user_balance = dialog_manager.dialog_data.get("user_balance", 0)
+    new_balance = dialog_manager.dialog_data.get("new_balance", 0)
 
-    # Для администраторов/ГОК/МИП - фильтруем по подразделению
-    else:
-        # Проверяем текущий выбор фильтра подразделения
-        selected_division = dialog_manager.dialog_data.get("product_filter", "all")
+    if not product_info:
+        return {}
 
-        # Устанавливаем стандартный фильтр если не установлено иное
-        if "product_filter" not in dialog_manager.dialog_data:
-            dialog_manager.dialog_data["product_filter"] = "all"
-            selected_division = "all"
-
-        # Фильтруем по подразделению
-        if selected_division == "all":
-            filtered_products = products
-        elif selected_division == "nck":
-            filtered_products = [p for p in products if p[5] == "НЦК"]
-        elif selected_division == "ntp":
-            filtered_products = [p for p in products if p[5] == "НТП"]
-        else:
-            filtered_products = products
-
-        return {
-            "products": filtered_products,
-            "user_balance": user_balance,
-            "product_filter": selected_division,
-            "is_user": False,
-            "division_radio_data": division_radio_data,
-        }
+    return {
+        "product_name": product_info["name"],
+        "product_description": product_info["description"],
+        "product_count": product_info["count"],
+        "product_cost": product_info["cost"],
+        "user_balance": user_balance,
+        "new_balance": new_balance,
+    }

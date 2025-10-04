@@ -1,22 +1,15 @@
 """Генерация диалога для МИП."""
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Row
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
+from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.menus.mip.game.achievements import game_achievements_window
-from tgbot.dialogs.menus.mip.game.activations import (
-    game_activation_detail_window,
-    game_activations_empty_window,
-    game_activations_window,
-)
-from tgbot.dialogs.menus.mip.game.game import game_window
-from tgbot.dialogs.menus.mip.game.products import game_products_window
 from tgbot.dialogs.states.mip import MipSG
 
 menu_window = Window(
@@ -34,7 +27,7 @@ menu_window = Window(
         Button(Const("📅 Графики"), id="schedules"),
         Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
     ),
-    SwitchTo(Const("🏮 Игра"), id="game", state=MipSG.game),
+    Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
     Row(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
@@ -57,11 +50,5 @@ async def on_start(_on_start, _dialog_manager: DialogManager, **_kwargs):
 
 mip_dialog = Dialog(
     menu_window,
-    game_window,
-    game_achievements_window,
-    game_products_window,
-    game_activations_window,
-    game_activation_detail_window,
-    game_activations_empty_window,
     getter=db_getter,
 )
