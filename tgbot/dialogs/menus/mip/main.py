@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
+from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.mip.game.achievements import game_achievements_window
 from tgbot.dialogs.menus.mip.game.activations import (
@@ -44,7 +45,7 @@ menu_window = Window(
     SwitchTo(Const("🏮 Игра"), id="game", state=MipSG.game),
     Row(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=MipSG.search),
-        SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=MipSG.groups),
+        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=MipSG.menu,
 )

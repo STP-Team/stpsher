@@ -1,10 +1,11 @@
 """Генерация диалога для ГОК."""
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
+from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.gok.game.achievements import game_achievements_window
 from tgbot.dialogs.menus.gok.game.activations import (
@@ -39,7 +40,7 @@ menu_window = Window(
     SwitchTo(Const("🏮 Игра"), id="game", state=GokSG.game),
     Row(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=GokSG.search),
-        SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=GokSG.groups),
+        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=GokSG.menu,
 )

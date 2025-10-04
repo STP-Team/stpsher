@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
+from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.root.search import (
     search_heads_window,
@@ -29,7 +30,7 @@ menu_window = Window(
     Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
     Row(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=RootSG.search),
-        SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=RootSG.groups),
+        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=RootSG.menu,
 )

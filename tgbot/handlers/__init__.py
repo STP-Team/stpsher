@@ -1,4 +1,5 @@
 """Import all routers and add them to routers_list."""
+
 from tgbot.handlers.admin.main import admin_router
 from tgbot.handlers.deep.group.settings import deeplink_group
 from tgbot.handlers.gok.main import gok_router

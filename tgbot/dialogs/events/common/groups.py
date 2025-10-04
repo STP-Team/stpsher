@@ -5,10 +5,44 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.states.common.groups import Groups
 
 # Храним применяемые изменения в памяти
 pending_role_changes: dict[int, list[str]] = {}
 pending_service_messages_changes: dict[int, list[str]] = {}
+
+
+async def start_groups_dialog(
+    _callback: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик перехода в диалог групп.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Данные виджета Button
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.start(
+        Groups.menu,
+    )
+
+
+async def close_group_dialog(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик возврата к главному диалогу из диалога групп.
+
+    Args:
+        _callback: Callback query от пользователя
+        _button: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.done()
 
 
 async def on_group_selected(
@@ -28,8 +62,7 @@ async def on_group_selected(
         item_id: Идентификатор выбранной группы
     """
     dialog_manager.dialog_data["selected_group_id"] = int(item_id)
-    current_state = dialog_manager.current_context().state.group
-    await dialog_manager.switch_to(current_state.groups_list_detail)
+    await dialog_manager.switch_to(Groups.group_details)
 
 
 async def _toggle_group_setting(
@@ -128,8 +161,7 @@ async def on_access_level_click(
     # Инициализируем временные изменения
     pending_role_changes[group_id] = (group.allowed_roles or []).copy()
 
-    current_state = dialog_manager.current_context().state.group
-    await dialog_manager.switch_to(current_state.groups_access)
+    await dialog_manager.switch_to(Groups.settings_access)
 
 
 async def on_members_click(
@@ -147,8 +179,7 @@ async def on_members_click(
     if not group_id:
         return
 
-    current_state = dialog_manager.current_context().state.group
-    await dialog_manager.switch_to(current_state.groups_members)
+    await dialog_manager.switch_to(Groups.settings_members)
 
 
 async def on_remove_bot_click(
@@ -166,8 +197,7 @@ async def on_remove_bot_click(
     if not group_id:
         return
 
-    current_state = dialog_manager.current_context().state.group
-    await dialog_manager.switch_to(current_state.groups_remove_bot)
+    await dialog_manager.switch_to(Groups.settings_remove)
 
 
 async def _initialize_pending_service_messages(

@@ -3,10 +3,11 @@
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
+from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.menus.user.game.achievements import game_achievements_window
 from tgbot.dialogs.menus.user.game.activations import (
@@ -29,16 +30,6 @@ from tgbot.dialogs.menus.user.game.shop import (
     game_shop_confirm_window,
     game_shop_success_window,
     game_shop_window,
-)
-from tgbot.dialogs.menus.user.groups import (
-    groups_access_window,
-    groups_cmds_window,
-    groups_list_detail_window,
-    groups_list_window,
-    groups_members_window,
-    groups_remove_bot_window,
-    groups_service_messages_window,
-    groups_window,
 )
 from tgbot.dialogs.menus.user.kpi import (
     kpi_requirements_window,
@@ -76,7 +67,7 @@ menu_window = Window(
     SwitchTo(Const("🏮 Игра"), id="game", state=UserSG.game),
     Row(
         SwitchTo(Const("🕵🏻 Поиск сотрудника"), id="search", state=UserSG.search),
-        SwitchTo(Const("👯‍♀️ Группы"), id="groups", state=UserSG.groups),
+        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     state=UserSG.menu,
 )
@@ -159,14 +150,6 @@ user_dialog = Dialog(
     search_results_window,
     search_no_results_window,
     search_user_info_window,
-    groups_window,
-    groups_list_window,
-    groups_list_detail_window,
-    groups_cmds_window,
-    groups_access_window,
-    groups_service_messages_window,
-    groups_members_window,
-    groups_remove_bot_window,
     on_start=on_start,
     getter=db_getter,
 )

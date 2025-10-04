@@ -31,6 +31,21 @@ async def start_broadcast_dialog(
     )
 
 
+async def close_broadcast_dialog(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик возврата к главному диалогу из диалога рассылки.
+
+    Args:
+        _callback: Callback query от пользователя
+        _button: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.done()
+
+
 async def on_broadcast_message_during_progress(
     _message: Message,
     _widget: MessageInput,
@@ -253,21 +268,6 @@ async def on_broadcast_send(
 
     # Переходим к окну результатов
     await dialog_manager.switch_to(Broadcast.new_broadcast_result)
-
-
-async def on_broadcast_close(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога рассылки.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()
 
 
 async def on_broadcast_back_to_menu(
