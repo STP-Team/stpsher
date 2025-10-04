@@ -14,7 +14,7 @@ from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.filters import on_filter_change
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 
 def create_achievements_windows(state_group, menu_state, achievements_filter_getter):

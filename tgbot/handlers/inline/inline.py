@@ -11,7 +11,7 @@ from aiogram.types import (
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import (
-    AdministratorFilter,
+    AdminFilter,
     DutyFilter,
     MipFilter,
     MultiRoleFilter,
@@ -26,7 +26,7 @@ user_inline_router = Router()
 user_inline_router.inline_query.filter(
     MultiRoleFilter(
         SpecialistFilter(),
-        AdministratorFilter(),
+        AdminFilter(),
         MipFilter(),
         MipFilter(),
         DutyFilter(),

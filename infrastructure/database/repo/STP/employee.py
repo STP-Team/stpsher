@@ -34,7 +34,7 @@ class EmployeeRepo(BaseRepo):
         fullname: Optional[str] = None,
         email: Optional[str] = None,
     ) -> Optional[Employee]:
-        """Поиск пользователя в БД по фильтрам
+        """Поиск пользователя в БД по фильтрам.
 
         Args:
             main_id: Primary Key
@@ -292,6 +292,21 @@ class EmployeeRepo(BaseRepo):
             return result.scalars().all()
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения администраторов: {e}")
+            return []
+
+    async def get_heads(self) -> Sequence[Employee]:
+        """Получает список руководителей.
+
+        Returns:
+            Возвращает список пользователей с ролью 2
+        """
+        query = select(Employee).where(Employee.role == 2).order_by(Employee.fullname)
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения руководителей: {e}")
             return []
 
     async def get_users_by_role(

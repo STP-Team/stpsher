@@ -1,7 +1,7 @@
 """Генерация окон управления группами для специалистов."""
 
 from tgbot.dialogs.menus.common.groups import create_groups_window
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 (
     groups_window,

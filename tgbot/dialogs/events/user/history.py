@@ -5,7 +5,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 
 async def on_transaction_click(

@@ -4,8 +4,8 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 
+from tgbot.dialogs.states.mip import MipSG
 from tgbot.filters.role import MipFilter
-from tgbot.misc.states.dialogs.mip import MipSG
 
 mip_router = Router()
 mip_router.message.filter(F.chat.type == "private", MipFilter())
@@ -20,6 +20,7 @@ async def mip_start(_message: Message, dialog_manager: DialogManager):
         _message: Сообщение пользователя
         dialog_manager: Менеджер диалога
     """
+    print("we are here")
     try:
         await dialog_manager.done()
     except NoContextError:

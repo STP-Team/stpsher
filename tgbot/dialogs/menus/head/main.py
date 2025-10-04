@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -30,7 +30,7 @@ from tgbot.dialogs.menus.head.search import (
     head_search_user_info_window,
     head_search_window,
 )
-from tgbot.misc.states.dialogs.head import HeadSG
+from tgbot.dialogs.states.head import HeadSG
 
 logger = logging.getLogger(__name__)
 
@@ -66,33 +66,33 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
         _on_start: Дополнительные параметры запуска диалога
         dialog_manager: Менеджер диалога
     """
-    try:
-        # Стандартный режим отображения графика на "Кратко"
-        schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
-        await schedule_mode.set_checked("compact")
-
-        # TODO вернуть при добавлении игрового меню
-        # # Фильтр достижений по должностям на "Все"
-        # achievement_division_filter: ManagedRadio = dialog_manager.find(
-        #     "achievement_division_filter"
-        # )
-        # await achievement_division_filter.set_checked("all")
-        #
-        # # Фильтр достижений по периоду начисления на "Все"
-        # achievement_period_filter: ManagedRadio = dialog_manager.find(
-        #     "achievement_period_filter"
-        # )
-        # await achievement_period_filter.set_checked("all")
-
-        # Фильтр поиска по направлению на "Все"
-        search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
-        await search_divisions.set_checked("all")
-
-        # Фильтр групповых команд на "Пользователь"
-        groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
-        await groups_cmds_filter.set_checked("user")
-    except Exception as e:
-        logger.error(f"[Диалоги] Ошибка установки стандартных значений диалога: {e}")
+    # try:
+    #     # Стандартный режим отображения графика на "Кратко"
+    #     # schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    #     # await schedule_mode.set_checked("compact")
+    #
+    #     # TODO вернуть при добавлении игрового меню
+    #     # # Фильтр достижений по должностям на "Все"
+    #     # achievement_division_filter: ManagedRadio = dialog_manager.find(
+    #     #     "achievement_division_filter"
+    #     # )
+    #     # await achievement_division_filter.set_checked("all")
+    #     #
+    #     # # Фильтр достижений по периоду начисления на "Все"
+    #     # achievement_period_filter: ManagedRadio = dialog_manager.find(
+    #     #     "achievement_period_filter"
+    #     # )
+    #     # await achievement_period_filter.set_checked("all")
+    #
+    #     # Фильтр поиска по направлению на "Все"
+    #     # search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
+    #     # await search_divisions.set_checked("all")
+    #     #
+    #     # # Фильтр групповых команд на "Пользователь"
+    #     # groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
+    #     # await groups_cmds_filter.set_checked("user")
+    # except Exception as e:
+    #     logger.error(f"[Диалоги] Ошибка установки стандартных значений диалога: {e}")
 
 
 head_dialog = Dialog(

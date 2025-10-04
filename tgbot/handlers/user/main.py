@@ -8,10 +8,10 @@ from aiogram_dialog.api.exceptions import NoContextError
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.states.user import UserSG
 from tgbot.handlers.group.whois import create_user_info_message
 from tgbot.keyboards.user.main import auth_kb
 from tgbot.misc.helpers import get_role
-from tgbot.misc.states.dialogs.user import UserSG
 
 logger = logging.getLogger(__name__)
 

@@ -1,17 +1,20 @@
+"""Группы состояний МИП."""
+
 from aiogram.fsm.state import State, StatesGroup
 
 
-class GokSG(StatesGroup):
-    """Группа состояний ГОК."""
+class MipSG(StatesGroup):
+    """Группа состояний МИП."""
 
     # Меню
     menu = State()
-    game = State()
     groups = State()
+    game = State()
 
     # Игра
     game_achievements = State()
     game_products = State()
+    game_shop = State()
     game_shop_confirm = State()
     game_shop_success = State()
     game_inventory = State()

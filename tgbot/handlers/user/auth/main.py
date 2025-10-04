@@ -7,8 +7,8 @@ from aiogram.types import CallbackQuery, Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.states.user import Authorization
 from tgbot.misc.helpers import generate_auth_code
-from tgbot.misc.states.dialogs.user import Authorization
 from tgbot.services.mailing import send_auth_email
 
 logger = logging.getLogger(__name__)

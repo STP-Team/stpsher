@@ -1,7 +1,7 @@
 """Генерация диалога для ГОК."""
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -23,7 +23,7 @@ from tgbot.dialogs.menus.gok.search import (
     search_user_info_window,
     search_window,
 )
-from tgbot.misc.states.dialogs.gok import GokSG
+from tgbot.dialogs.states.gok import GokSG
 
 menu_window = Window(
     Format("""👋 Привет, <b>{user.fullname}</b>!
@@ -45,7 +45,7 @@ menu_window = Window(
 )
 
 
-async def on_start(_on_start, dialog_manager: DialogManager, **kwargs):
+async def on_start(_on_start, dialog_manager: DialogManager, **_kwargs):
     """Установка параметров диалога по умолчанию при запуске.
 
     Args:
@@ -53,12 +53,12 @@ async def on_start(_on_start, dialog_manager: DialogManager, **kwargs):
         dialog_manager: Менеджер диалога
     """
     # Фильтр поиска по направлению на "Все"
-    search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
-    await search_divisions.set_checked("all")
-
-    # Фильтр групповых команд на "Пользователь"
-    groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
-    await groups_cmds_filter.set_checked("user")
+    # search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
+    # await search_divisions.set_checked("all")
+    #
+    # # Фильтр групповых команд на "Пользователь"
+    # groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
+    # await groups_cmds_filter.set_checked("user")
 
 
 gok_dialog = Dialog(

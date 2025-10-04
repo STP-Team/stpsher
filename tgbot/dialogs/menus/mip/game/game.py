@@ -7,7 +7,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.misc.states.dialogs.mip import MipSG
+from tgbot.dialogs.states.mip import MipSG
 
 game_window = Window(
     Format("""🏮 <b>Игра</b>

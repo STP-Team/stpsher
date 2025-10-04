@@ -1,3 +1,5 @@
+"""Группы состояний пользователей и дежурных."""
+
 from aiogram.fsm.state import State, StatesGroup
 
 
@@ -58,6 +60,8 @@ class UserSG(StatesGroup):
 
 
 class Authorization(StatesGroup):
+    """Группа состояний для неавторизованных пользователей."""
+
     email = State()
     auth_code = State()
     fullname = State()

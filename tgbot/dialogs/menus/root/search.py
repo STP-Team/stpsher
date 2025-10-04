@@ -1,7 +1,7 @@
 """Генерация окон поиска для root."""
 
 from tgbot.dialogs.menus.common.search import create_search_windows
-from tgbot.misc.states.dialogs.root import RootSG
+from tgbot.dialogs.states.root import RootSG
 
 (
     search_window,

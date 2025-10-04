@@ -1,7 +1,7 @@
 """Генерация окон поиска для специалистов."""
 
 from tgbot.dialogs.menus.common.search import create_search_windows
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 (
     search_window,

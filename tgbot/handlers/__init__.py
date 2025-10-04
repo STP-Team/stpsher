@@ -1,5 +1,5 @@
 """Import all routers and add them to routers_list."""
-
+from tgbot.handlers.admin.main import admin_router
 from tgbot.handlers.deep.group.settings import deeplink_group
 from tgbot.handlers.gok.main import gok_router
 from tgbot.handlers.group.admin.admin import group_admin_router
@@ -19,6 +19,7 @@ from tgbot.handlers.head.group.members import head_group_members_router
 from tgbot.handlers.head.group.rating import head_group_rating_router
 from tgbot.handlers.head.main import head_router
 from tgbot.handlers.inline.inline import user_inline_router
+from tgbot.handlers.mip.main import mip_router
 from tgbot.handlers.root.main import root_router
 from tgbot.handlers.user.auth.main import user_auth_router
 from tgbot.handlers.user.game.casino import user_game_casino_router
@@ -26,8 +27,10 @@ from tgbot.handlers.user.main import user_router
 
 routers_list = [
     deeplink_group,
+    admin_router,
     root_router,
     gok_router,
+    mip_router,
     head_router,
     head_game_history_router,
     head_group_game_rating_router,

@@ -4,8 +4,8 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 
+from tgbot.dialogs.states.root import RootSG
 from tgbot.filters.role import RootFilter
-from tgbot.misc.states.dialogs.root import RootSG
 
 root_router = Router()
 root_router.message.filter(F.chat.type == "private", RootFilter())

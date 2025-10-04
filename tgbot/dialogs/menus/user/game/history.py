@@ -14,7 +14,7 @@ from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.user.history import on_transaction_click
 from tgbot.dialogs.filters.user.game.history import history_filter_getter
 from tgbot.dialogs.getters.user.game.history import history_detail_getter
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 game_history_window = Window(
     Format("""📜 <b>История баланса</b>

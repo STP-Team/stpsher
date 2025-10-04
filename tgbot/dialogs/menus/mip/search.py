@@ -1,7 +1,7 @@
 """Генерация окон поиска для МИП."""
 
 from tgbot.dialogs.menus.common.search import create_search_windows
-from tgbot.misc.states.dialogs.mip import MipSG
+from tgbot.dialogs.states.mip import MipSG
 
 (
     search_window,

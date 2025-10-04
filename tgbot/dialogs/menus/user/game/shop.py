@@ -16,7 +16,7 @@ from tgbot.dialogs.events.user.shop import (
 from tgbot.dialogs.getters.common.game.shop import role_based_product_filter_getter
 from tgbot.dialogs.getters.user.game.shop import confirmation_getter, success_getter
 from tgbot.dialogs.menus.common.game.products import create_products_window
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 game_shop_window = create_products_window(
     UserSG, UserSG.game, role_based_product_filter_getter

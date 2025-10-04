@@ -41,11 +41,11 @@ from tgbot.dialogs.getters.common.groups import (
     groups_details_getter,
     groups_list_getter,
 )
-from tgbot.misc.states.dialogs.gok import GokSG
-from tgbot.misc.states.dialogs.head import HeadSG
-from tgbot.misc.states.dialogs.mip import MipSG
-from tgbot.misc.states.dialogs.root import RootSG
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.gok import GokSG
+from tgbot.dialogs.states.head import HeadSG
+from tgbot.dialogs.states.mip import MipSG
+from tgbot.dialogs.states.root import RootSG
+from tgbot.dialogs.states.user import UserSG
 
 
 def create_groups_window(

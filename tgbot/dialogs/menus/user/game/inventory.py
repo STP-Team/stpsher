@@ -20,8 +20,8 @@ from tgbot.dialogs.events.user.inventory import (
 )
 from tgbot.dialogs.filters.user.game.inventory import inventory_filter_getter
 from tgbot.dialogs.getters.user.game.inventory import inventory_detail_getter
+from tgbot.dialogs.states.user import UserSG
 from tgbot.misc.helpers import get_status_emoji
-from tgbot.misc.states.dialogs.user import UserSG
 
 game_inventory_window = Window(
     Format("""🎒 <b>Инвентарь</b>

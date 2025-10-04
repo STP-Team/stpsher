@@ -1,7 +1,7 @@
 """Генерация окна активаций предметов для дежурных."""
 
 from tgbot.dialogs.menus.common.game.activations import create_activations_windows
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 (
     game_activations_window,

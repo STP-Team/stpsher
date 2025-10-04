@@ -1,7 +1,7 @@
-"""Генерация окон поиска для ГОК."""
+"""Генерация окон поиска для root."""
 
 from tgbot.dialogs.menus.common.search import create_search_windows
-from tgbot.dialogs.states.gok import GokSG
+from tgbot.dialogs.states.admin import AdminSG
 
 (
     search_window,
@@ -11,4 +11,4 @@ from tgbot.dialogs.states.gok import GokSG
     search_results_window,
     search_no_results_window,
     search_user_info_window,
-) = create_search_windows(GokSG, GokSG.menu)
+) = create_search_windows(AdminSG, AdminSG.menu)

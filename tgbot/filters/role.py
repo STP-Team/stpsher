@@ -30,7 +30,7 @@ class RootFilter(BaseFilter):
         return user.role == get_role(role_name="root", return_id=True)
 
 
-class AdministratorFilter(BaseFilter):
+class AdminFilter(BaseFilter):
     """Фильтр проверки роли Администратор.
 
     Проверяет является ли пользователь администратором.

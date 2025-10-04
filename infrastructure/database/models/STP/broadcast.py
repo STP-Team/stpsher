@@ -7,7 +7,7 @@ from infrastructure.database.models.base import Base, TableNameMixin
 
 
 class Broadcast(Base, TableNameMixin):
-    """Модель, представляющая сущность рассылки в БД
+    """Модель, представляющая сущность рассылки в БД.
 
     Attributes:
         id (Mapped[int]): Уникальный идентификатор рассылки.
@@ -17,16 +17,6 @@ class Broadcast(Base, TableNameMixin):
         text (Mapped[str]): Текст рассылки.
         recipients (Mapped[Optional[List[int]]]): Список user_id, получивших рассылку.
         created_at (Mapped[TIMESTAMP]): Время создания рассылки.
-
-    Methods:
-        __repr__(): Returns a string representation of the Broadcast object.
-
-    Inherited Attributes:
-        Inherits from Base and TableNameMixin classes, which provide additional attributes and functionality.
-
-    Inherited Methods:
-        Inherits methods from Base and TableNameMixin classes, which provide additional functionality.
-
     """
 
     __tablename__ = "broadcasts"
@@ -55,3 +45,21 @@ class Broadcast(Base, TableNameMixin):
 
     def __repr__(self):
         return f"<Broadcast {self.id} user_id={self.user_id} type={self.type} target={self.target} recipients={len(self.recipients or [])} created_at={self.created_at}>"
+
+    def to_dict(self):
+        """Преобразует объект Broadcast в словарь для использования в aiogram-dialog виджетах."""
+        recipients_count = len(self.recipients or [])
+        created_at_str = (
+            self.created_at.strftime("%d.%m.%Y %H:%M") if self.created_at else ""
+        )
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "type": self.type,
+            "target": self.target,
+            "text": self.text,
+            "recipients": self.recipients,
+            "recipients_count": recipients_count,
+            "created_at": self.created_at,
+            "display": f"📤 {self.target} ({recipients_count} чел.) — {created_at_str}",
+        }

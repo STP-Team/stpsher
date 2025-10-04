@@ -4,8 +4,8 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
 
-from tgbot.misc.states.dialogs.head import HeadSG
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.head import HeadSG
+from tgbot.dialogs.states.user import UserSG
 
 
 async def on_mode_select(

@@ -3,7 +3,7 @@
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import ManagedRadio, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -61,7 +61,7 @@ from tgbot.dialogs.menus.user.search import (
     search_user_info_window,
     search_window,
 )
-from tgbot.misc.states.dialogs.user import UserSG
+from tgbot.dialogs.states.user import UserSG
 
 menu_window = Window(
     Format("""👋 Привет, <b>{user.fullname}</b>!
@@ -89,45 +89,45 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
         _on_start: Дополнительные параметры запуска диалога
         dialog_manager: Менеджер диалога
     """
-    # Стандартный режим отображения графика на "Кратко"
-    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
-    await schedule_mode.set_checked("compact")
-
-    # Фильтр предметов магазина на "Доступные"
-    product_filter: ManagedRadio = dialog_manager.find("product_filter")
-    await product_filter.set_checked("available")
-
-    # Фильтр инвентаря на "Все"
-    inventory_filter: ManagedRadio = dialog_manager.find("inventory_filter")
-    await inventory_filter.set_checked("all")
-
-    # Фильтр достижений по должностям на "Все"
-    achievement_position_filter: ManagedRadio = dialog_manager.find(
-        "achievement_position_filter"
-    )
-    await achievement_position_filter.set_checked("all")
-
-    # Фильтр достижений по периоду начисления на "Все"
-    achievement_period_filter: ManagedRadio = dialog_manager.find(
-        "achievement_period_filter"
-    )
-    await achievement_period_filter.set_checked("all")
-
-    # Фильтр истории баланса по типу операции на "Все"
-    history_type_filter: ManagedRadio = dialog_manager.find("history_type_filter")
-    await history_type_filter.set_checked("all")
-
-    # Фильтр истории баланса по источнику операции на "Все"
-    history_source_filter: ManagedRadio = dialog_manager.find("history_source_filter")
-    await history_source_filter.set_checked("all")
+    # # Стандартный режим отображения графика на "Кратко"
+    # schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    # await schedule_mode.set_checked("compact")
+    #
+    # # Фильтр предметов магазина на "Доступные"
+    # product_filter: ManagedRadio = dialog_manager.find("product_filter")
+    # await product_filter.set_checked("available")
+    #
+    # # Фильтр инвентаря на "Все"
+    # inventory_filter: ManagedRadio = dialog_manager.find("inventory_filter")
+    # await inventory_filter.set_checked("all")
+    #
+    # # Фильтр достижений по должностям на "Все"
+    # achievement_position_filter: ManagedRadio = dialog_manager.find(
+    #     "achievement_position_filter"
+    # )
+    # await achievement_position_filter.set_checked("all")
+    #
+    # # Фильтр достижений по периоду начисления на "Все"
+    # achievement_period_filter: ManagedRadio = dialog_manager.find(
+    #     "achievement_period_filter"
+    # )
+    # await achievement_period_filter.set_checked("all")
+    #
+    # # Фильтр истории баланса по типу операции на "Все"
+    # history_type_filter: ManagedRadio = dialog_manager.find("history_type_filter")
+    # await history_type_filter.set_checked("all")
+    #
+    # # Фильтр истории баланса по источнику операции на "Все"
+    # history_source_filter: ManagedRadio = dialog_manager.find("history_source_filter")
+    # await history_source_filter.set_checked("all")
 
     # Фильтр поиска по направлению на "Все"
-    search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
-    await search_divisions.set_checked("all")
-
-    # Фильтр групповых команд на "Пользователь"
-    groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
-    await groups_cmds_filter.set_checked("user")
+    # search_divisions: ManagedRadio = dialog_manager.find("search_divisions")
+    # await search_divisions.set_checked("all")
+    #
+    # # Фильтр групповых команд на "Пользователь"
+    # groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
+    # await groups_cmds_filter.set_checked("user")
 
 
 user_dialog = Dialog(
