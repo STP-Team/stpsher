@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -61,25 +61,9 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
         _on_start: Дополнительные параметры запуска диалога
         dialog_manager: Менеджер диалога
     """
-    # try:
-    #     # Стандартный режим отображения графика на "Кратко"
-    #     # schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
-    #     # await schedule_mode.set_checked("compact")
-    #
-    #     # TODO вернуть при добавлении игрового меню
-    #     # # Фильтр достижений по должностям на "Все"
-    #     # achievement_division_filter: ManagedRadio = dialog_manager.find(
-    #     #     "achievement_division_filter"
-    #     # )
-    #     # await achievement_division_filter.set_checked("all")
-    #     #
-    #     # # Фильтр достижений по периоду начисления на "Все"
-    #     # achievement_period_filter: ManagedRadio = dialog_manager.find(
-    #     #     "achievement_period_filter"
-    #     # )
-    #     # await achievement_period_filter.set_checked("all")
-    # except Exception as e:
-    #     logger.error(f"[Диалоги] Ошибка установки стандартных значений диалога: {e}")
+    # Стандартный режим отображения графика на "Кратко"
+    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    await schedule_mode.set_checked("compact")
 
 
 head_dialog = Dialog(

@@ -3,7 +3,7 @@
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -53,9 +53,9 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
         _on_start: Дополнительные параметры запуска диалога
         dialog_manager: Менеджер диалога
     """
-    # # Стандартный режим отображения графика на "Кратко"
-    # schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
-    # await schedule_mode.set_checked("compact")
+    # Стандартный режим отображения графика на "Кратко"
+    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    await schedule_mode.set_checked("compact")
 
 
 user_dialog = Dialog(
