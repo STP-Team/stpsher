@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра истории баланса."""
+
 from aiogram_dialog.widgets.kbd import (
     Button,
     Radio,

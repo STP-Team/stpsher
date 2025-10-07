@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра списка активаций предметов."""
+
 from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -15,7 +17,7 @@ from tgbot.dialogs.events.common.activations import (
     on_reject_activation,
 )
 from tgbot.dialogs.events.common.game.game import close_game_dialog
-from tgbot.dialogs.getters.common.activations import (
+from tgbot.dialogs.getters.common.game.activations import (
     activation_detail_getter,
     activations_getter,
 )

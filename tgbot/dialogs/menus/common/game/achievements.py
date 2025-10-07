@@ -1,3 +1,5 @@
+"""Обработчики меню достижений для игры."""
+
 from aiogram import F
 from aiogram_dialog.widgets.kbd import (
     Button,

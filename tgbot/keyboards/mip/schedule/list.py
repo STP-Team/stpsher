@@ -165,7 +165,7 @@ def list_db_files_paginated_kb(
     # Навигация
     navigation_row = [
         InlineKeyboardButton(
-            text="🔙 Назад", callback_data=MainMenu(menu="schedule").pack()
+            text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
         ),
         InlineKeyboardButton(
             text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -196,7 +196,7 @@ def list_db_files_kb(
     buttons.append(
         [
             InlineKeyboardButton(
-                text="🔙 Назад", callback_data=MainMenu(menu="schedule").pack()
+                text="↩️ Назад", callback_data=MainMenu(menu="schedule").pack()
             ),
             InlineKeyboardButton(
                 text="🏠 Домой", callback_data=MainMenu(menu="main").pack()
@@ -571,7 +571,7 @@ def file_versions_list_kb(
     buttons.append(
         [
             InlineKeyboardButton(
-                text="🔙 Назад",
+                text="↩️ Назад",
                 callback_data=LocalFilesMenu(menu="local", page=1).pack(),
             ),
             InlineKeyboardButton(

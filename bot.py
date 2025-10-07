@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 async def on_startup():
-    """Функция запуска бота"""
+    """Функция, активируемая при запуске основного процесса бота."""
     pass
 
 
@@ -40,9 +40,15 @@ def register_middlewares(
     bot: Bot,
     main_session_pool=None,
     kpi_session_pool=None,
-):
-    """Alternative setup with more selective middleware application.
-    Use this if you want different middleware chains for different event types.
+) -> None:
+    """Установка middleware для определенных ивентов.
+
+    Args:
+        dp: Диспетчер ивентов
+        config: Конфигурация
+        bot: Экземпляр бота
+        main_session_pool: Сессия с базой данных STP
+        kpi_session_pool: Сессия с базой данных KPI
     """
     config_middleware = ConfigMiddleware(config)
     database_middleware = DatabaseMiddleware(
@@ -67,15 +73,14 @@ def register_middlewares(
         dp.chat_member.outer_middleware(middleware)
 
 
-def get_storage(config):
-    """Return storage based on the provided configuration.
+def get_storage(config) -> RedisStorage | MemoryStorage:
+    """Возвращает хранилище исходя из конфигурации.
 
     Args:
-        config (Config): The configuration object.
+        config: Объект конфигурации
 
     Returns:
-        Storage: The storage object based on the configuration.
-
+        Хранилище RedisStorage или MemoryStorage
     """
     if config.tg_bot.use_redis:
         return RedisStorage.from_url(
@@ -86,7 +91,8 @@ def get_storage(config):
         return MemoryStorage()
 
 
-async def main():
+async def main() -> None:
+    """Основная функция запуска бота."""
     setup_logging()
 
     storage = get_storage(bot_config)
@@ -147,14 +153,14 @@ async def main():
 
     dp = Dispatcher(storage=storage)
 
-    # Create engines for different databases
+    # Создаем движки для доступа к базам
     main_db_engine = create_engine(bot_config.db, db_name=bot_config.db.main_db)
     kpi_db_engine = create_engine(bot_config.db, db_name=bot_config.db.kpi_db)
 
     main_db = create_session_pool(main_db_engine)
     kpi_db = create_session_pool(kpi_db_engine)
 
-    # Store session pools in dispatcher
+    # Храним сессии в диспетчере
     dp["main_db"] = main_db
     dp["kpi_db"] = kpi_db
 
@@ -165,7 +171,7 @@ async def main():
 
     register_middlewares(dp, bot_config, bot, main_db, kpi_db)
 
-    # Setup all scheduled jobs using the new scheduler manager
+    # Запуск планировщика и добавление задач
     scheduler_manager = SchedulerManager()
     scheduler_manager.setup_jobs(main_db, bot, kpi_db)
     scheduler_manager.start()

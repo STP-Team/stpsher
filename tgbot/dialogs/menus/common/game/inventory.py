@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра инвентаря."""
+
 from aiogram_dialog.widgets.kbd import (
     Button,
     Radio,

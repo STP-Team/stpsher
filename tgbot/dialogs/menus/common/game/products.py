@@ -1,3 +1,5 @@
+"""Генерация общих функций для просмотра списка предметов."""
+
 from aiogram import F
 from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.kbd import (
