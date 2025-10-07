@@ -179,3 +179,146 @@ async def on_restore_selected(
     except Exception as e:
         logger.error(f"Ошибка восстановления файла: {e}")
         await _callback.answer("Не удалось восстановить файл", show_alert=True)
+
+
+async def on_history_file_selected(
+    _callback: CallbackQuery,
+    _widget: Select,
+    dialog_manager: DialogManager,
+    item_id: str,
+) -> None:
+    """Обработчик выбора файла из истории загрузок.
+
+    Args:
+        _callback: Callback query от пользователя
+        _widget: Select виджет
+        dialog_manager: Менеджер диалога
+        item_id: ID выбранного файла (database record id)
+    """
+    dialog_manager.dialog_data["selected_history_file"] = item_id
+    await dialog_manager.switch_to(Files.history_details)
+
+
+async def on_download_local_file(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик скачивания локального файла.
+
+    Args:
+        _callback: Callback query от пользователя
+        _button: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    bot: Bot = dialog_manager.middleware_data.get("bot")
+    file_name = dialog_manager.dialog_data.get("selected_file")
+
+    if not bot or not file_name:
+        await _callback.answer("Ошибка скачивания", show_alert=True)
+        return
+
+    file_path = Path("uploads") / file_name
+
+    if not file_path.exists():
+        await _callback.answer("Файл не найден", show_alert=True)
+        return
+
+    try:
+        from aiogram.types import FSInputFile
+
+        file = FSInputFile(file_path)
+        await bot.send_document(_callback.from_user.id, file)
+        await _callback.answer("Файл отправлен", show_alert=False)
+    except Exception as e:
+        logger.error(f"Ошибка отправки файла: {e}")
+        await _callback.answer("Не удалось отправить файл", show_alert=True)
+
+
+async def on_download_history_file(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик скачивания файла из истории.
+
+    Args:
+        _callback: Callback query от пользователя
+        _button: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    bot: Bot = dialog_manager.middleware_data.get("bot")
+    history_file_id = dialog_manager.dialog_data.get("selected_history_file")
+
+    if not bot or not history_file_id:
+        await _callback.answer("Ошибка скачивания", show_alert=True)
+        return
+
+    # Получаем информацию о файле из dialog_data
+    from tgbot.dialogs.getters.common.files import get_history_file_details
+
+    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    file_info_data = await get_history_file_details(
+        stp_repo=stp_repo, dialog_manager=dialog_manager
+    )
+    file_info = file_info_data.get("file_info")
+
+    if not file_info or not file_info.get("file_id"):
+        await _callback.answer("Файл не найден", show_alert=True)
+        return
+
+    try:
+        await bot.send_document(
+            _callback.from_user.id, file_info["file_id"], caption=file_info["name"]
+        )
+        await _callback.answer("Файл отправлен", show_alert=False)
+    except Exception as e:
+        logger.error(f"Ошибка отправки файла: {e}")
+        await _callback.answer("Не удалось отправить файл", show_alert=True)
+
+
+async def on_restore_history_file(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик восстановления файла из истории в локальную папку.
+
+    Args:
+        _callback: Callback query от пользователя
+        _button: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    bot: Bot = dialog_manager.middleware_data.get("bot")
+    history_file_id = dialog_manager.dialog_data.get("selected_history_file")
+
+    if not bot or not history_file_id:
+        await _callback.answer("Ошибка восстановления", show_alert=True)
+        return
+
+    # Получаем информацию о файле из dialog_data
+    from tgbot.dialogs.getters.common.files import get_history_file_details
+
+    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    file_info_data = await get_history_file_details(
+        stp_repo=stp_repo, dialog_manager=dialog_manager
+    )
+    file_info = file_info_data.get("file_info")
+
+    if not file_info or not file_info.get("file_id"):
+        await _callback.answer("Файл не найден", show_alert=True)
+        return
+
+    try:
+        # Скачиваем файл из Telegram
+        file = await bot.get_file(file_info["file_id"])
+        file_path = Path("uploads") / file_info["name"]
+        await bot.download_file(file.file_path, file_path)
+
+        await _callback.answer(
+            f"Файл {file_info['name']} восстановлен", show_alert=True
+        )
+        await dialog_manager.switch_to(Files.history)
+    except Exception as e:
+        logger.error(f"Ошибка восстановления файла: {e}")
+        await _callback.answer("Не удалось восстановить файл", show_alert=True)

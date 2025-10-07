@@ -12,8 +12,8 @@ from aiogram.types import (
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.search import short_name
 from tgbot.filters.group import GroupAdminFilter
+from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +200,7 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
         # Получаем информацию о заглушенном пользователе для красивого отображения
         employee = await stp_repo.employee.get_user(user_id=target_user_id)
         if employee:
-            display_name = short_name(employee.fullname)
+            display_name = format_fullname(employee.fullname)
         else:
             display_name = target_user_name
 
@@ -280,7 +280,7 @@ async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
         # Получаем информацию о разглушенном пользователе для красивого отображения
         employee = await stp_repo.employee.get_user(user_id=target_user_id)
         if employee:
-            display_name = short_name(employee.fullname)
+            display_name = format_fullname(employee.fullname)
         else:
             display_name = target_user_name
 
@@ -335,7 +335,7 @@ async def ban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
         # Получаем информацию о забаненном пользователе для красивого отображения
         employee = await stp_repo.employee.get_user(user_id=target_user_id)
         if employee:
-            display_name = short_name(employee.fullname)
+            display_name = format_fullname(employee.fullname)
         else:
             display_name = target_user_name
 
@@ -391,7 +391,7 @@ async def unban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo
         # Получаем информацию о разбаненном пользователе для красивого отображения
         employee = await stp_repo.employee.get_user(user_id=target_user_id)
         if employee:
-            display_name = short_name(employee.fullname)
+            display_name = format_fullname(employee.fullname)
         else:
             display_name = target_user_name
 

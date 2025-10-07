@@ -6,7 +6,7 @@ from aiogram_dialog import DialogManager
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.search import short_name
+from tgbot.misc.helpers import format_fullname
 
 
 async def activations_getter(
@@ -39,18 +39,13 @@ async def activations_getter(
 
         # Получаем информацию о пользователе, который купил предмет
         purchase_user = await stp_repo.employee.get_user(user_id=purchase.user_id)
-        if user.username:
-            user_name = (
-                f"<a href='t.me/'{purchase_user.username}>{short_name(purchase_user.fullname)}</a>"
-                if purchase_user
-                else f"ID: {purchase.user_id}"
-            )
-        else:
-            user_name = (
-                short_name(purchase_user.fullname)
-                if purchase_user
-                else f"ID: {purchase.user_id}"
-            )
+        purchase_user_text = format_fullname(
+            purchase_user.fullname,
+            True,
+            True,
+            purchase_user.username,
+            purchase_user.user_id,
+        )
 
         formatted_activations.append(
             (
@@ -58,7 +53,7 @@ async def activations_getter(
                 product.name,
                 product.description,
                 purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
-                user_name,
+                purchase_user_text,
                 purchase_user.division if purchase_user else "Неизвестно",
                 purchase_user.username if purchase_user else None,
                 purchase_user.user_id if purchase_user else purchase.user_id,

@@ -6,7 +6,7 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import get_role, format_fullname
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,15 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     if user.head:
         if user_head and user_head.username:
             message_parts.append(
-                f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+                f"<b>👑 Руководитель:</b> {
+                    format_fullname(
+                        user_head.fullname,
+                        True,
+                        True,
+                        user_head.username,
+                        user_head.user_id,
+                    )
+                }"
             )
         else:
             message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")

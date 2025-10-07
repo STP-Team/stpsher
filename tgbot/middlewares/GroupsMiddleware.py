@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
 
 from infrastructure.database.models.STP.group import Group
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.search import short_name
+from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)
 
@@ -539,7 +539,15 @@ class GroupsMiddleware(BaseMiddleware):
                 # Формируем сообщение для сотрудника
                 notification_text = (
                     f"👋 <b>Добро пожаловать в группу!</b>\n\n"
-                    f"{short_name(employee.fullname)} присоединился к группе\n"
+                    f"{
+                        format_fullname(
+                            employee.fullname,
+                            True,
+                            True,
+                            employee.username,
+                            employee.user_id,
+                        )
+                    } присоединился к группе\n"
                     f"<i>Должность: {employee.position + ' ' + employee.division or 'Не указана'}</i>"
                 )
             else:
@@ -601,7 +609,7 @@ class GroupsMiddleware(BaseMiddleware):
             if user:
                 notification_text = (
                     f"🚫 <b>Пользователь заблокирован</b>\n\n"
-                    f"{short_name(user.fullname)} {reason_text}\n\n"
+                    f"{format_fullname(user.fullname, True, user.username, user.user_id)} {reason_text}\n\n"
                     f"<i>Причина: недостаточно прав доступа к группе</i>"
                 )
             else:

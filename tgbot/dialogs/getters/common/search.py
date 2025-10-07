@@ -7,25 +7,8 @@ from sqlalchemy.orm import Mapped
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import format_fullname, get_role
 from tgbot.services.search import SearchService
-
-
-def short_name(full_name: str) -> str:
-    """Достает фамилию и имя из ФИО.
-
-    Args:
-        full_name: Полные ФИО
-
-    Returns:
-        Фамилия и имя
-    """
-    clean_name = full_name.split("(")[0].strip()
-    parts = clean_name.split()
-
-    if len(parts) >= 2:
-        return " ".join(parts[:2])
-    return clean_name
 
 
 async def search_getter(
@@ -85,7 +68,11 @@ async def search_specialists_getter(
     for specialist in sorted_specialists:
         role_info = get_role(specialist.role)
         formatted_specialists.append(
-            (specialist.id, short_name(specialist.fullname), role_info["emoji"])
+            (
+                specialist.id,
+                format_fullname(specialist.fullname, True, True),
+                role_info["emoji"],
+            )
         )
 
     # Получаем все уникальные направления специалистов
@@ -136,7 +123,13 @@ async def search_heads_getter(
     formatted_heads = []
     for head in sorted_heads:
         role_info = get_role(head.role)
-        formatted_heads.append((head.id, short_name(head.fullname), role_info["emoji"]))
+        formatted_heads.append(
+            (
+                head.id,
+                format_fullname(head.fullname, True, True),
+                role_info["emoji"],
+            )
+        )
 
     # Получаем все уникальные направления руководителей
     all_heads = base_data.get("heads")

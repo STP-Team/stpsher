@@ -17,7 +17,7 @@ from tgbot.filters.role import (
     MultiRoleFilter,
     SpecialistFilter,
 )
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import format_fullname, get_role
 from tgbot.services.schedule.schedule_handlers import ScheduleHandlerService
 
 logger = logging.getLogger(__name__)
@@ -349,7 +349,15 @@ def create_user_result_item(
     if user.head:
         if user_head:
             message_parts.append(
-                f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+                f"<b>👑 Руководитель:</b> {
+                    format_fullname(
+                        user_head.fullname,
+                        True,
+                        True,
+                        user_head.username,
+                        user_head.user_id,
+                    )
+                }"
             )
         else:
             message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")

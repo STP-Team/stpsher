@@ -3,16 +3,17 @@ import logging
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 from sqlalchemy import select
-
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.history import (
     HeadTransactionDetailMenu,
     head_group_history_kb,
     head_transaction_detail_kb,
 )
 from tgbot.keyboards.head.group.game.main import HeadGameMenu
+
+from infrastructure.database.models import Employee
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.role import HeadFilter
+from tgbot.misc.helpers import format_fullname
 
 head_game_history_router = Router()
 head_game_history_router.callback_query.filter(
@@ -136,7 +137,7 @@ async def head_transaction_detail_view(
     message_text = f"""<b>📊 Детали транзакции группы</b>
 
 <b>👤 Сотрудник</b>
-<a href='t.me/{employee.username}'>{employee.fullname}</a>
+{format_fullname(employee.fullname, True, True, employee.username, employee.user_id)}
 
 <b>📈 Операция</b>
 {type_emoji} {type_text} <b>{transaction.amount}</b> баллов

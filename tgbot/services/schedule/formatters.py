@@ -358,21 +358,6 @@ class ScheduleFormatter:
         )
 
     @staticmethod
-    def get_gender_emoji(name: str) -> str:
-        """Определение пола по имени
-        :param name: Полные ФИО или отчество
-        :return: Эмодзи с отображением пола
-        """
-        parts = name.split()
-        if len(parts) >= 3:
-            patronymic = parts[2]
-            if patronymic.endswith("на"):
-                return "👩‍💼"
-            elif patronymic.endswith(("ич", "ович", "евич")):
-                return "👨‍💼"
-        return "👨‍💼"
-
-    @staticmethod
     def format_detailed_with_duties(
         month: str,
         schedule_data_with_duties: Dict[str, Tuple[str, Optional[str]]],

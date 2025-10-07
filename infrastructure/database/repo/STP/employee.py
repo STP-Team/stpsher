@@ -105,6 +105,28 @@ class EmployeeRepo(BaseRepo):
             logger.error(f"[БД] Ошибка получения списка пользователей: {e}")
             return None
 
+    async def get_users_by_ids(self, user_ids: list[int]) -> dict[int, Employee]:
+        """Получить пользователей по списку user_id
+
+        Args:
+            user_ids: Список Telegram user_id для поиска
+
+        Returns:
+            Словарь {user_id: Employee}, позволяет быстро получить пользователя по ID
+        """
+        if not user_ids:
+            return {}
+
+        query = select(Employee).where(Employee.user_id.in_(user_ids))
+
+        try:
+            result = await self.session.execute(query)
+            users = result.scalars().all()
+            return {user.user_id: user for user in users}
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения пользователей по списку ID: {e}")
+            return {}
+
     async def get_unauthorized_users(self, head_name: str = None) -> Sequence[Employee]:
         """Получить список неавторизованных пользователей
         Неавторизованные пользователи - те, у которых отсутствует user_id (не связан с Telegram)

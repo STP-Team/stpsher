@@ -12,6 +12,7 @@ from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.misc.helpers import format_fullname
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedule.studies_parser import StudiesScheduleParser, StudySession
 from tgbot.services.schedulers.base import BaseScheduler
@@ -262,10 +263,13 @@ async def create_study_notification_message(
     if session.trainer:
         try:
             trainer_user = await stp_repo.employee.get_user(fullname=session.trainer)
-            if trainer_user and trainer_user.username:
-                trainer_text = (
-                    f"<a href='t.me/{trainer_user.username}'>{session.trainer}</a>"
-                )
+            trainer_text = format_fullname(
+                trainer_user.fullname,
+                True,
+                True,
+                trainer_user.username,
+                trainer_user.user_id,
+            )
         except Exception as e:
             logger.warning(
                 f"[Обучения] Could not get trainer info for {session.trainer}: {e}"

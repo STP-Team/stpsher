@@ -1,9 +1,9 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from tgbot.keyboards.head.group.main import group_management_kb
 
 from tgbot.filters.role import HeadFilter
-from tgbot.keyboards.head.group.main import group_management_kb
-from tgbot.keyboards.user.main import MainMenu
+from tgbot.keyboards.auth import MainMenu
 
 head_group_router = Router()
 head_group_router.message.filter(F.chat.type == "private", HeadFilter())

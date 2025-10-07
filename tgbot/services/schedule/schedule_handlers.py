@@ -6,7 +6,7 @@ import pytz
 from aiogram.types import CallbackQuery
 
 from infrastructure.database.models import Employee
-from tgbot.keyboards.user.main import auth_kb
+from tgbot.keyboards.auth import auth_kb
 from tgbot.misc.dicts import russian_months
 from tgbot.services.schedule.exceptions import (
     ScheduleError,

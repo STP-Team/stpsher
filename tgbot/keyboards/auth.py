@@ -1,9 +1,4 @@
-from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-
-
-class MainMenu(CallbackData, prefix="menu"):
-    menu: str
 
 
 def auth_kb() -> InlineKeyboardMarkup:

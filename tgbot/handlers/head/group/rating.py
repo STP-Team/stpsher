@@ -5,14 +5,15 @@ from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
 from sqlalchemy import Sequence
+from tgbot.keyboards.head.group.game.rating import RatingMenu, rating_menu_kb
+from tgbot.keyboards.head.group.main import GroupManagementMenu
+from tgbot.keyboards.head.group.members import short_name
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
-from tgbot.keyboards.head.group.game.rating import RatingMenu, rating_menu_kb
-from tgbot.keyboards.head.group.main import GroupManagementMenu
-from tgbot.keyboards.head.group.members import short_name
+from tgbot.misc.helpers import format_fullname
 
 head_group_rating_router = Router()
 head_group_rating_router.message.filter(F.chat.type == "private", HeadFilter())
@@ -196,7 +197,11 @@ def format_target_rating_message(
             contacts_count = getattr(period_kpi, "contacts_count", 0) or 0
             contact_type = "чатов" if member.division == "НЦК" else "звонков"
 
-            message += f"{position_emoji} <b><a href='t.me/{member.username}'>{short_name(member.fullname)}</a></b>\n"
+            message += f"{position_emoji} <b>{
+                format_fullname(
+                    member.fullname, True, True, member.username, member.user_id
+                )
+            }</b>\n"
             message += f"{value_str} | {contacts_count} {contact_type}\n"
 
         message += "\n"  # Разделитель между группами

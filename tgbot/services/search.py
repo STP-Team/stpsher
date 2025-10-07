@@ -3,7 +3,7 @@ from typing import Sequence
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import format_fullname, get_role
 from tgbot.services.leveling import LevelingSystem
 
 logger = logging.getLogger(__name__)
@@ -154,7 +154,15 @@ class SearchService:
 <b>💼 Должность:</b> {user.position} {user.division}"""
 
         if user_head:
-            user_info += f"\n<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+            user_info += f"\n<b>👑 Руководитель:</b> {
+                format_fullname(
+                    user_head.fullname,
+                    True,
+                    True,
+                    user_head.username,
+                    user_head.user_id,
+                )
+            }"
 
         if user.username:
             user_info += f"\n\n<b>📱 Telegram:</b> @{user.username}"
@@ -187,7 +195,15 @@ class SearchService:
             user_info += f"<b>💼 Должность:</b> {user.position or 'Не указано'}\n"
 
             if user_head:
-                user_info += f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>\n\n"
+                user_info += f"<b>👑 Руководитель:</b> {
+                    format_fullname(
+                        user_head.fullname,
+                        True,
+                        True,
+                        user_head.username,
+                        user_head.user_id,
+                    )
+                }\n\n"
 
             user_info += f"<b>📱 Telegram:</b> @{user.username or 'не указан'}\n"
 

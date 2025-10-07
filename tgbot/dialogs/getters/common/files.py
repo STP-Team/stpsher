@@ -5,7 +5,7 @@ from pathlib import Path
 from aiogram_dialog import DialogManager
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.search import short_name
+from tgbot.misc.helpers import format_fullname
 
 
 async def get_local_files(**kwargs) -> dict:
@@ -75,8 +75,15 @@ async def get_local_file_details(
         uploaded_by_user = await stp_repo.employee.get_user(
             user_id=latest.uploaded_by_user_id
         )
-        print(uploaded_by_user)
-        file_info["uploaded_by_fullname"] = uploaded_by_user.fullname
+        uploaded_by_text = format_fullname(
+            uploaded_by_user.fullname,
+            True,
+            True,
+            uploaded_by_user.username,
+            uploaded_by_user.user_id,
+        )
+        print(uploaded_by_text)
+        file_info["uploaded_by_fullname"] = uploaded_by_text
         file_info["uploaded_at"] = latest.uploaded_at.strftime("%d.%m.%Y %H:%M")
 
     return {
@@ -96,11 +103,21 @@ async def get_file_history(
 
     db_records = await stp_repo.upload.get_files_history(file_name=file_name)
 
+    # Собираем все user_id и получаем пользователей одним запросом
+    user_ids = [record.uploaded_by_user_id for record in db_records]
+    users_map = await stp_repo.employee.get_users_by_ids(user_ids)
+
     history = []
     for record in db_records:
-        uploaded_by_user = await stp_repo.employee.get_user(
-            user_id=record.uploaded_by_user_id
+        uploaded_by_user = users_map.get(record.uploaded_by_user_id)
+        fullname = format_fullname(
+            uploaded_by_user.fullname,
+            True,
+            True,
+            uploaded_by_user.username,
+            uploaded_by_user.user_id,
         )
+
         history.append(
             (
                 record.id,  # item[0] - database record id (для item_id)
@@ -113,7 +130,7 @@ async def get_file_history(
                 ),  # item[3] - дата загрузки
                 record.uploaded_by_user_id,  # item[4] - кто загрузил
                 record.file_id,  # item[5] - Telegram file_id
-                short_name(uploaded_by_user.fullname),  # item[6]
+                fullname,  # item[6]
             )
         )
 
@@ -121,3 +138,77 @@ async def get_file_history(
     dialog_manager.dialog_data["history"] = history
 
     return {"history": history}
+
+
+async def get_all_files_history(stp_repo: MainRequestsRepo, **_kwargs) -> dict:
+    """Получает список всех загруженных файлов из БД."""
+    db_records = await stp_repo.upload.get_files_history()
+
+    # Собираем все user_id и получаем пользователей одним запросом
+    user_ids = [record.uploaded_by_user_id for record in db_records]
+    users_map = await stp_repo.employee.get_users_by_ids(user_ids)
+
+    files = []
+    for record in db_records:
+        uploaded_by_user = users_map.get(record.uploaded_by_user_id)
+        uploaded_by_text = format_fullname(
+            uploaded_by_user.fullname,
+            True,
+            True,
+            uploaded_by_user.username,
+            uploaded_by_user.user_id,
+        )
+
+        files.append(
+            (
+                record.id,  # item[0] - database record id (для item_id)
+                record.file_name,  # item[1] - имя файла
+                f"{record.file_size / 1024:.2f} KB"
+                if record.file_size
+                else "Н/Д",  # item[2] - размер
+                record.uploaded_at.strftime(
+                    "%d.%m.%Y %H:%M"
+                ),  # item[3] - дата загрузки
+                record.uploaded_by_user_id,  # item[4] - кто загрузил
+                record.file_id,  # item[5] - Telegram file_id
+                uploaded_by_text,  # item[6] - имя пользователя
+            )
+        )
+
+    return {"files": files}
+
+
+async def get_history_file_details(
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> dict:
+    """Получает детальную информацию о файле из истории загрузок."""
+    history_file_id = dialog_manager.dialog_data.get("selected_history_file")
+
+    if not history_file_id:
+        return {"file_info": None}
+
+    # Получаем информацию о файле из БД
+    record = await stp_repo.upload.get_file_by_id(int(history_file_id))
+
+    if not record:
+        return {"file_info": None}
+
+    uploaded_user = await stp_repo.employee.get_user(user_id=record.uploaded_by_user_id)
+    uploaded_by_text = format_fullname(
+        uploaded_user.fullname,
+        True,
+        True,
+        uploaded_user.username,
+        record.uploaded_by_user_id,
+    )
+
+    file_info = {
+        "id": record.id,
+        "name": record.file_name,
+        "size": f"{record.file_size / 1024:.2f} KB" if record.file_size else "Н/Д",
+        "uploaded_at": record.uploaded_at.strftime("%d.%m.%Y %H:%M"),
+        "uploaded_by_fullname": uploaded_by_text,
+        "file_id": record.file_id,
+    }
+
+    return {"file_info": file_info}

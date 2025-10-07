@@ -3,13 +3,13 @@ import logging
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
+from tgbot.keyboards.head.group.game.main import HeadGameMenu
+from tgbot.keyboards.head.group.game.rating import game_balance_rating_kb
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
-from tgbot.keyboards.head.group.game.main import HeadGameMenu
-from tgbot.keyboards.head.group.game.rating import game_balance_rating_kb
-from tgbot.keyboards.head.group.members import short_name
+from tgbot.misc.helpers import format_fullname
 
 head_group_game_rating_router = Router()
 head_group_game_rating_router.message.filter(F.chat.type == "private", HeadFilter())
@@ -55,13 +55,11 @@ async def format_balance_rating_message(
             else:
                 position_emoji = f"{i}."
 
-            # Формируем строку рейтинга
-            if member.username:
-                member_link = f"<a href='t.me/{member.username}'>{short_name(member.fullname)}</a>"
-            else:
-                member_link = short_name(member.fullname)
-
-            message += f"{position_emoji} <b>{member_link}</b>\n"
+            message += f"{position_emoji} <b>{
+                format_fullname(
+                    member.fullname, True, False, member.username, member.user_id
+                )
+            }</b>\n"
             message += f"{balance} баллов\n"
 
     return message

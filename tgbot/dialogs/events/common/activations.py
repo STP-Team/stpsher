@@ -9,6 +9,7 @@ from aiogram_dialog.api.internal import Widget
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.game import Game
+from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)
 
@@ -47,20 +48,20 @@ async def on_activation_click(
             else None
         )
 
-        user_info = (
-            f"<a href='t.me/{purchase_user.username}'>{purchase_user.fullname}</a>"
-            if purchase_user and purchase_user.username
-            else purchase_user.fullname
-            if purchase_user
-            else f"ID: {purchase.user_id}"
+        user_info = format_fullname(
+            purchase_user.fullname,
+            True,
+            True,
+            purchase_user.username,
+            purchase_user.user_id,
         )
 
-        head_info = (
-            f"<a href='t.me/{purchase_user_head.username}'>{purchase_user.head}</a>"
-            if purchase_user_head and purchase_user_head.username
-            else purchase_user.head
-            if purchase_user and purchase_user.head
-            else "-"
+        head_info = format_fullname(
+            purchase_user_head.fullname,
+            True,
+            True,
+            purchase_user_head.username,
+            purchase_user_head.user_id,
         )
 
         # Сохраняем информацию о выбранной активации в dialog_data
@@ -122,9 +123,13 @@ async def on_approve_activation(
 
         # Уведомляем пользователя
         if activation_info["usage_count"] >= activation_info["product_count"]:
-            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
+            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {
+                activation_info["product_name"]
+            }
 
-Менеджер <a href='t.me/{user.username}'>{user.fullname}</a> подтвердил активацию предмета
+Менеджер {
+                format_fullname(user.fullname, True, True, user.username, user.user_id)
+            } подтвердил активацию предмета
 
 У <b>{activation_info["product_name"]}</b> не осталось использований
 
@@ -133,9 +138,13 @@ async def on_approve_activation(
             remaining_uses = (
                 activation_info["product_count"] - activation_info["usage_count"]
             )
-            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
+            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {
+                activation_info["product_name"]
+            }
 
-Менеджер <a href='t.me/{user.username}'>{user.fullname}</a> подтвердил активацию предмета
+Менеджер {
+                format_fullname(user.fullname, True, True, user.username, user.user_id)
+            } подтвердил активацию предмета
 
 📍 Осталось активаций: {remaining_uses} из {activation_info["product_count"]}"""
 
@@ -181,9 +190,13 @@ async def on_reject_activation(
         )
 
         # Уведомляем пользователя
-        employee_notify_message = f"""<b>Активация отменена:</b> {activation_info["product_name"]}
+        employee_notify_message = f"""<b>Активация отменена:</b> {
+            activation_info["product_name"]
+        }
 
-Менеджер <a href='t.me/{user.username}'>{user.fullname}</a> отменил активацию <b>{activation_info["product_name"]}</b>
+Менеджер {
+            format_fullname(user.fullname, True, True, user.username, user.user_id)
+        } отменил активацию <b>{activation_info["product_name"]}</b>
 
 <i>Использование предмета не будет засчитано</i>"""
 

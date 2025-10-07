@@ -17,6 +17,7 @@ from pandas import DataFrame
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 
+from ...misc.helpers import format_fullname
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
@@ -67,29 +68,6 @@ class CommonUtils:
             return parts1[0] == parts2[0] and parts1[1] == parts2[1]
 
         return False
-
-    @staticmethod
-    def short_name(full_name: str) -> str:
-        """Extract short name from full name."""
-        # Remove date info in parentheses if present
-        clean_name = full_name.split("(")[0].strip()
-        parts = clean_name.split()
-
-        if len(parts) >= 2:
-            return " ".join(parts[:2])
-        return clean_name
-
-    @staticmethod
-    def get_gender_emoji(name: str) -> str:
-        """Determine gender emoji based on patronymic."""
-        parts = name.split()
-        if len(parts) >= 3:
-            patronymic = parts[2]
-            if patronymic.endswith("на"):
-                return "👩‍🦰"
-            elif patronymic.endswith(("ич", "ович", "евич")):
-                return "👨"
-        return "👨"
 
     @staticmethod
     def is_time_format(text: str) -> bool:
@@ -1228,29 +1206,23 @@ class DutyScheduleParser(BaseDutyParser):
 
             # Add senior officers
             for duty in group["seniors"]:
-                gender_emoji = self.utils.get_gender_emoji(duty.name)
-                short_name = self.utils.short_name(duty.name)
-                if duty.username:
-                    lines.append(
-                        f"{gender_emoji} Дежурный - <a href='t.me/{duty.username}'>{short_name}</a>"
-                    )
-                else:
-                    lines.append(
-                        f"{gender_emoji} Дежурный - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
-                    )
+                lines.append(
+                    f"Дежурный - {
+                        format_fullname(
+                            duty.fullname, True, True, duty.username, duty.user_id
+                        )
+                    }"
+                )
 
             # Add helpers
             for duty in group["helpers"]:
-                gender_emoji = self.utils.get_gender_emoji(duty.name)
-                short_name = self.utils.short_name(duty.name)
-                if duty.username:
-                    lines.append(
-                        f"{gender_emoji} Помощник - <a href='t.me/{duty.username}'>{short_name}</a>"
-                    )
-                else:
-                    lines.append(
-                        f"{gender_emoji} Помощник - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
-                    )
+                lines.append(
+                    f"Помощник - {
+                        format_fullname(
+                            duty.fullname, True, True, duty.username, duty.user_id
+                        )
+                    }"
+                )
 
             # Check if next slot is current to decide whether to close blockquote
             next_is_current = False
@@ -1402,12 +1374,11 @@ class HeadScheduleParser(BaseExcelParser):
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
-                gender_emoji = self.utils.get_gender_emoji(head.name)
-                short_name = self.utils.short_name(head.name)
-                if head.username:
-                    head_line = f"{gender_emoji} <a href='t.me/{head.username}'>{short_name}</a>"
-                else:
-                    head_line = f"{gender_emoji} <a href='tg://user?id={head.user_id}'>{short_name}</a>"
+                head_line = f"{
+                    format_fullname(
+                        head.fullname, True, True, head.username, head.user_id
+                    )
+                }"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"
@@ -1443,15 +1414,9 @@ class GroupScheduleParser(BaseExcelParser):
 
     def _format_member_with_link(self, member: GroupMemberInfo) -> str:
         """Format member name with link and working hours."""
-        display_name = self.utils.short_name(member.name)
-
-        # Create user link
-        if member.username:
-            user_link = f"{self.utils.get_gender_emoji(member.name)} <a href='t.me/{member.username}'>{display_name}</a>"
-        elif member.user_id:
-            user_link = f"{self.utils.get_gender_emoji(member.name)} <a href='tg://user?id={member.user_id}'>{display_name}</a>"
-        else:
-            user_link = f"{self.utils.get_gender_emoji(member.name)} {display_name}"
+        user_link = format_fullname(
+            member.name, True, True, member.username, member.user_id
+        )
 
         # Add working hours
         working_hours = member.working_hours or "Не указано"

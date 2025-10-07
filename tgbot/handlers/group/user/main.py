@@ -10,8 +10,8 @@ from aiogram.types import (
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.search import short_name
 from tgbot.filters.role import DutyFilter, MultiRoleFilter, SpecialistFilter
+from tgbot.misc.helpers import format_fullname
 from tgbot.services.leveling import LevelingSystem
 
 logger = logging.getLogger(__name__)
@@ -38,10 +38,9 @@ async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
             db_user = await stp_repo.employee.get_user(user_id=user_info.id)
             if db_user:
                 # Если есть в БД, используем данные из БД с ссылкой
-                if db_user.username:
-                    display_name = f"<a href='t.me/{db_user.username}'>{short_name(db_user.fullname)}</a>"
-                else:
-                    display_name = short_name(db_user.fullname)
+                display_name = format_fullname(
+                    db_user.fullname, True, True, db_user.username, db_user.user_id
+                )
             else:
                 # Если нет в БД, используем данные из Telegram
                 display_name = (
@@ -161,10 +160,9 @@ async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
                     position_emoji = f"{i}."
 
                 # Формируем строку рейтинга
-                if employee.username:
-                    employee_link = f"<a href='t.me/{employee.username}'>{short_name(employee.fullname)}</a>"
-                else:
-                    employee_link = short_name(employee.fullname)
+                employee_link = format_fullname(
+                    employee.fullname, True, True, employee.username, employee.user_id
+                )
 
                 message_text += f"{position_emoji} <b>{employee_link}</b>\n"
                 message_text += f"{balance} баллов\n"

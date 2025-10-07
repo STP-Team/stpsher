@@ -8,7 +8,7 @@ from sqlalchemy import distinct, select
 from infrastructure.database.models import Employee
 from infrastructure.database.models.STP.broadcast import Broadcast
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.dialogs.getters.common.search import short_name
+from tgbot.misc.helpers import format_fullname
 
 
 async def broadcast_select_getter(
@@ -48,7 +48,9 @@ async def broadcast_select_getter(
 
         items = []
         for head in heads:
-            display_name = short_name(head.fullname)
+            display_name = format_fullname(
+                head.fullname, True, True, head.username, head.user_id
+            )
             items.append((head.id, display_name))
 
         # Получаем уникальные направления руководителей для фильтрации
@@ -105,7 +107,15 @@ async def broadcast_info_getter(
                     for head_id in broadcast_items:
                         head = await stp_repo.employee.get_user(main_id=int(head_id))
                         if head:
-                            short_names.append(short_name(head.fullname))
+                            short_names.append(
+                                format_fullname(
+                                    head.fullname,
+                                    True,
+                                    True,
+                                    head.username,
+                                    head.user_id,
+                                )
+                            )
                     broadcast_targets = ", ".join(short_names)
             case "all":
                 broadcast_type = "🌎 Всем"
@@ -219,11 +229,6 @@ async def broadcast_detail_getter(
 
     # Получаем информацию о создателе рассылки
     creator = await stp_repo.employee.get_user(user_id=broadcast.user_id)
-    creator_name = (
-        f"<a href='t.me/{creator.username}'>{short_name(creator.fullname)}</a>"
-        if creator
-        else "Неизвестен"
-    )
 
     return {
         "broadcast_type": broadcast_type,
@@ -231,5 +236,9 @@ async def broadcast_detail_getter(
         "broadcast_text": broadcast.text,
         "recipients_count": len(broadcast.recipients or []),
         "created_at": created_at_str,
-        "creator_name": creator_name,
+        "creator_name": {
+            format_fullname(
+                creator.fullname, True, True, creator.username, creator.user_id
+            )
+        },
     }

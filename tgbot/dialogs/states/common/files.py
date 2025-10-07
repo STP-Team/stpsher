@@ -9,11 +9,15 @@ class Files(StatesGroup):
     # Меню
     menu = State()
 
-    upload = State()  # Загрузка файлов
-    history = State()  # История загрузок
+    # Загрузка файлов
+    upload = State()
 
     # Локальные файлы
     local = State()
     local_details = State()
     rename = State()
     restore = State()
+
+    # История загрузок
+    history = State()
+    history_details = State()

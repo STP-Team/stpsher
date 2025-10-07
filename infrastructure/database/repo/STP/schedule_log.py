@@ -21,6 +21,24 @@ class ScheduleLogParams(TypedDict, total=False):
 
 
 class ScheduleLogRepo(BaseRepo):
+    async def get_file_by_id(self, file_id: int) -> Optional[Schedules]:
+        """Получить запись файла по ID.
+
+        Args:
+            file_id: ID записи в базе данных
+
+        Returns:
+            Объект Schedules или None
+        """
+        query = select(Schedules).where(Schedules.id == file_id)
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalar_one_or_none()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения файла по ID: {e}")
+            return None
+
     async def get_files_history(
         self,
         file_id: Optional[str] = None,

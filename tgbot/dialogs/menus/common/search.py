@@ -56,7 +56,7 @@ specialists_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("{item[2]} {item[1]}"),
+            Format("{item[1]}"),
             id="search_specialists",
             items="specialists_list",
             item_id_getter=lambda item: item[0],
@@ -93,7 +93,7 @@ heads_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("{item[2]} {item[1]}"),
+            Format("{item[1]}"),
             id="search_heads",
             items="heads_list",
             item_id_getter=lambda item: item[0],
