@@ -24,14 +24,12 @@ async def get_local_files(**kwargs) -> dict:
             modified_date = datetime.fromtimestamp(file_stat.st_mtime).strftime(
                 "%d.%m.%Y %H:%M"
             )
-            files.append(
-                (
-                    file_path.name,  # item[0] - имя файла
-                    f"{file_stat.st_size / 1024:.2f} KB",  # item[1] - размер
-                    file_path.suffix or "Неизвестно",  # item[2] - тип
-                    modified_date,  # item[3] - дата изменения
-                )
-            )
+            files.append((
+                file_path.name,  # item[0] - имя файла
+                f"{file_stat.st_size / 1024:.2f} KB",  # item[1] - размер
+                file_path.suffix or "Неизвестно",  # item[2] - тип
+                modified_date,  # item[3] - дата изменения
+            ))
 
     return {"files": files}
 
@@ -118,21 +116,17 @@ async def get_file_history(
             uploaded_by_user.user_id,
         )
 
-        history.append(
-            (
-                record.id,  # item[0] - database record id (для item_id)
-                record.file_name or file_name,  # item[1] - имя файла
-                f"{record.file_size / 1024:.2f} KB"
-                if record.file_size
-                else "Н/Д",  # item[2] - размер
-                record.uploaded_at.strftime(
-                    "%d.%m.%Y %H:%M"
-                ),  # item[3] - дата загрузки
-                record.uploaded_by_user_id,  # item[4] - кто загрузил
-                record.file_id,  # item[5] - Telegram file_id
-                fullname,  # item[6]
-            )
-        )
+        history.append((
+            record.id,  # item[0] - database record id (для item_id)
+            record.file_name or file_name,  # item[1] - имя файла
+            f"{record.file_size / 1024:.2f} KB"
+            if record.file_size
+            else "Н/Д",  # item[2] - размер
+            record.uploaded_at.strftime("%d.%m.%Y %H:%M"),  # item[3] - дата загрузки
+            record.uploaded_by_user_id,  # item[4] - кто загрузил
+            record.file_id,  # item[5] - Telegram file_id
+            fullname,  # item[6]
+        ))
 
     # Сохраняем историю в dialog_data для доступа в event handler
     dialog_manager.dialog_data["history"] = history
@@ -159,21 +153,17 @@ async def get_all_files_history(stp_repo: MainRequestsRepo, **_kwargs) -> dict:
             uploaded_by_user.user_id,
         )
 
-        files.append(
-            (
-                record.id,  # item[0] - database record id (для item_id)
-                record.file_name,  # item[1] - имя файла
-                f"{record.file_size / 1024:.2f} KB"
-                if record.file_size
-                else "Н/Д",  # item[2] - размер
-                record.uploaded_at.strftime(
-                    "%d.%m.%Y %H:%M"
-                ),  # item[3] - дата загрузки
-                record.uploaded_by_user_id,  # item[4] - кто загрузил
-                record.file_id,  # item[5] - Telegram file_id
-                uploaded_by_text,  # item[6] - имя пользователя
-            )
-        )
+        files.append((
+            record.id,  # item[0] - database record id (для item_id)
+            record.file_name,  # item[1] - имя файла
+            f"{record.file_size / 1024:.2f} KB"
+            if record.file_size
+            else "Н/Д",  # item[2] - размер
+            record.uploaded_at.strftime("%d.%m.%Y %H:%M"),  # item[3] - дата загрузки
+            record.uploaded_by_user_id,  # item[4] - кто загрузил
+            record.file_id,  # item[5] - Telegram file_id
+            uploaded_by_text,  # item[6] - имя пользователя
+        ))
 
     return {"files": files}
 

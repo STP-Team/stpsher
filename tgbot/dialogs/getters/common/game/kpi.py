@@ -156,7 +156,9 @@ async def kpi_requirements_getter(
     """
     if not premium:
         return {
-            "requirements_text": "🧮 <b>Нормативы</b>\n\nНе смог найти твои показатели в премиуме :(",
+            "requirements_text": """🧮 <b>Нормативы</b>
+            
+Не смог найти твои показатели в премиуме :(""",
         }
 
     requirements_text = KPICalculator.format_requirements_message(
@@ -180,7 +182,9 @@ async def salary_getter(
     """
     if not premium:
         return {
-            "salary_text": "💰 <b>Зарплата</b>\n\nНе смог найти твои показатели в премиуме :(",
+            "salary_text": """💰 <b>Зарплата</b>
+            
+Не смог найти твои показатели в премиуме :(""",
         }
 
     salary_result = await SalaryCalculator.calculate_salary(

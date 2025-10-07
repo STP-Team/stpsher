@@ -55,9 +55,9 @@ async def broadcast_select_getter(
 
         # Получаем уникальные направления руководителей для фильтрации
         all_heads = await stp_repo.employee.get_heads()
-        head_divisions = sorted(
-            {head.division for head in all_heads if head.division is not None}
-        )
+        head_divisions = sorted({
+            head.division for head in all_heads if head.division is not None
+        })
         broadcast_filters = [("all", "Все")] + [(div, div) for div in head_divisions]
 
         title = "Выбери группы руководителей для рассылки"

@@ -47,18 +47,16 @@ async def activations_getter(
             purchase_user.user_id,
         )
 
-        formatted_activations.append(
-            (
-                purchase.id,  # ID для обработчика клика
-                product.name,
-                product.description,
-                purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
-                purchase_user_text,
-                purchase_user.division if purchase_user else "Неизвестно",
-                purchase_user.username if purchase_user else None,
-                purchase_user.user_id if purchase_user else purchase.user_id,
-            )
-        )
+        formatted_activations.append((
+            purchase.id,  # ID для обработчика клика
+            product.name,
+            product.description,
+            purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
+            purchase_user_text,
+            purchase_user.division if purchase_user else "Неизвестно",
+            purchase_user.username if purchase_user else None,
+            purchase_user.user_id if purchase_user else purchase.user_id,
+        ))
 
     return {
         "activations": formatted_activations,

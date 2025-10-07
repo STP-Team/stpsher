@@ -399,13 +399,11 @@ class ScheduleChangeDetector:
                 # Очищаем название дня для отображения
                 display_day = day.replace("_", " ").replace("(", " (")
 
-                changes.append(
-                    {
-                        "day": display_day,
-                        "old_value": old_value or "выходной",
-                        "new_value": new_value or "выходной",
-                    }
-                )
+                changes.append({
+                    "day": display_day,
+                    "old_value": old_value or "выходной",
+                    "new_value": new_value or "выходной",
+                })
 
         if changes:
             logger.info(

@@ -35,17 +35,15 @@ async def achievements_getter(stp_repo: MainRequestsRepo, **_kwargs) -> Dict[str
             case _:
                 period = "Неизвестно"
 
-        formatted_achievements.append(
-            (
-                achievement.id,
-                escape(achievement.name),
-                achievement.reward,
-                escape(achievement.description),
-                achievement.position,
-                period,
-                achievement.division,
-            )
-        )
+        formatted_achievements.append((
+            achievement.id,
+            escape(achievement.name),
+            achievement.reward,
+            escape(achievement.description),
+            achievement.position,
+            period,
+            achievement.division,
+        ))
 
     return {
         "achievements": formatted_achievements,

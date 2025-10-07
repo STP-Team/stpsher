@@ -67,13 +67,11 @@ async def search_specialists_getter(
     formatted_specialists = []
     for specialist in sorted_specialists:
         role_info = get_role(specialist.role)
-        formatted_specialists.append(
-            (
-                specialist.id,
-                format_fullname(specialist.fullname, True, True),
-                role_info["emoji"],
-            )
-        )
+        formatted_specialists.append((
+            specialist.id,
+            format_fullname(specialist.fullname, True, True),
+            role_info["emoji"],
+        ))
 
     # Получаем все уникальные направления специалистов
     all_specialists = base_data.get("specialists")
@@ -123,13 +121,11 @@ async def search_heads_getter(
     formatted_heads = []
     for head in sorted_heads:
         role_info = get_role(head.role)
-        formatted_heads.append(
-            (
-                head.id,
-                format_fullname(head.fullname, True, True),
-                role_info["emoji"],
-            )
-        )
+        formatted_heads.append((
+            head.id,
+            format_fullname(head.fullname, True, True),
+            role_info["emoji"],
+        ))
 
     # Получаем все уникальные направления руководителей
     all_heads = base_data.get("heads")
@@ -216,7 +212,7 @@ async def search_user_info_getter(
             searched_user, searched_user_head, viewer_role
         )
 
-        # Добавляем статистику для руководителей если просматривает пользователь с ролью 2
+        # Статистика для руководителей если просматривает роль 2
         if searched_user.role == 2 and viewer_role >= 2:
             group_stats = await SearchService.get_group_statistics_by_id(
                 searched_user.user_id, stp_repo

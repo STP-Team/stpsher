@@ -130,14 +130,12 @@ def format_target_rating_message(
             if target_value is not None and target_value != 0 and target_value != 0.0:
                 if target_type not in target_groups:
                     target_groups[target_type] = []
-                target_groups[target_type].append(
-                    {
-                        "member": member,
-                        "premium": premium,
-                        "period_kpi": period_kpi,
-                        "target_value": target_value,
-                    }
-                )
+                target_groups[target_type].append({
+                    "member": member,
+                    "premium": premium,
+                    "period_kpi": period_kpi,
+                    "target_value": target_value,
+                })
 
     if not target_groups:
         return f"""🎖️ <b>Рейтинг группы</b>
@@ -291,9 +289,9 @@ def format_rating_message(
         message += "<i>Нет данных за выбранный период</i>\n\n"
 
     # Получаем дату последнего обновления
-    update_date = get_latest_update_date(
-        [item["kpi"] for item in ratings_data if item["kpi"]]
-    )
+    update_date = get_latest_update_date([
+        item["kpi"] for item in ratings_data if item["kpi"]
+    ])
     message += f"\n<i>Статистика от: {update_date}</i>"
 
     return message

@@ -34,16 +34,14 @@ async def products_getter(
 
     formatted_products = []
     for product in products:
-        formatted_products.append(
-            (
-                product.id,
-                product.name,
-                product.description,
-                product.count,
-                product.cost,
-                product.division,
-            )
-        )
+        formatted_products.append((
+            product.id,
+            product.name,
+            product.description,
+            product.count,
+            product.cost,
+            product.division,
+        ))
 
     return {
         "products": formatted_products,

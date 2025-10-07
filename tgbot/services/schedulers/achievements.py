@@ -422,18 +422,14 @@ async def _check_user_daily_achievements(
 
                 # Проверяем KPI критерии
                 if await _check_kpi_criteria(user_kpi, achievement.kpi):
-                    earned_achievements.append(
-                        {
-                            "id": achievement.id,
-                            "name": achievement.name,
-                            "description": achievement.description,
-                            "reward_points": achievement.reward,
-                            "kpi_values": _get_user_kpi_values(
-                                user_kpi, achievement.kpi
-                            ),
-                            "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
-                        }
-                    )
+                    earned_achievements.append({
+                        "id": achievement.id,
+                        "name": achievement.name,
+                        "description": achievement.description,
+                        "reward_points": achievement.reward,
+                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
+                        "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
+                    })
                     logger.info(
                         f"[Достижения] Пользователь {user.fullname} заработал достижение '{achievement.name}'"
                     )
@@ -527,18 +523,14 @@ async def _check_user_weekly_achievements(
 
                 # Проверяем KPI критерии
                 if await _check_kpi_criteria(user_kpi, achievement.kpi):
-                    earned_achievements.append(
-                        {
-                            "id": achievement.id,
-                            "name": achievement.name,
-                            "description": achievement.description,
-                            "reward_points": achievement.reward,
-                            "kpi_values": _get_user_kpi_values(
-                                user_kpi, achievement.kpi
-                            ),
-                            "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
-                        }
-                    )
+                    earned_achievements.append({
+                        "id": achievement.id,
+                        "name": achievement.name,
+                        "description": achievement.description,
+                        "reward_points": achievement.reward,
+                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
+                        "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
+                    })
                     logger.info(
                         f"[Достижения] Пользователь {user.fullname} заработал еженедельное достижение '{achievement.name}'"
                     )
@@ -632,18 +624,14 @@ async def _check_user_monthly_achievements(
 
                 # Проверяем KPI критерии
                 if await _check_kpi_criteria(user_kpi, achievement.kpi):
-                    earned_achievements.append(
-                        {
-                            "id": achievement.id,
-                            "name": achievement.name,
-                            "description": achievement.description,
-                            "reward_points": achievement.reward,
-                            "kpi_values": _get_user_kpi_values(
-                                user_kpi, achievement.kpi
-                            ),
-                            "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
-                        }
-                    )
+                    earned_achievements.append({
+                        "id": achievement.id,
+                        "name": achievement.name,
+                        "description": achievement.description,
+                        "reward_points": achievement.reward,
+                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
+                        "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
+                    })
                     logger.info(
                         f"[Достижения] Пользователь {user.fullname} заработал ежемесячное достижение '{achievement.name}'"
                     )

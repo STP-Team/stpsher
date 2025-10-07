@@ -6,7 +6,7 @@ from aiogram.types import Message
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.misc.helpers import get_role, format_fullname
+from tgbot.misc.helpers import format_fullname, get_role
 
 logger = logging.getLogger(__name__)
 

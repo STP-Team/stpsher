@@ -99,7 +99,7 @@ async def on_broadcast_type_selected(
             # Снимаем все отметки с элементов
             for item_id_checked in list(multiselect.get_checked()):
                 await multiselect.set_checked(item_id_checked, False)
-        except Exception as e:
+        except Exception:
             # Виджет может быть еще не инициализирован, игнорируем
             pass
 

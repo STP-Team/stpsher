@@ -152,18 +152,14 @@ async def role_based_achievements_filter_getter(
 
     # Добавляем специфичные для роли данные
     if is_user:
-        result.update(
-            {
-                "achievement_position_filter": selected_filter,
-                "checked": selected_filter,
-            }
-        )
+        result.update({
+            "achievement_position_filter": selected_filter,
+            "checked": selected_filter,
+        })
     else:
-        result.update(
-            {
-                "achievement_division_filter": selected_filter,
-                "checked": selected_filter,
-            }
-        )
+        result.update({
+            "achievement_division_filter": selected_filter,
+            "checked": selected_filter,
+        })
 
     return result

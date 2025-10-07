@@ -89,15 +89,13 @@ class ScheduleFormatter:
 
         if days_off:
             if len(days_off) <= 3:
-                days_str = ", ".join(
-                    [
-                        f"<u><b>{d.day.split()[0]}</b></u>"
-                        if effective_current_day
-                        and int(d.day.split()[0]) == effective_current_day
-                        else d.day.split()[0]
-                        for d in days_off
-                    ]
-                )
+                days_str = ", ".join([
+                    f"<u><b>{d.day.split()[0]}</b></u>"
+                    if effective_current_day
+                    and int(d.day.split()[0]) == effective_current_day
+                    else d.day.split()[0]
+                    for d in days_off
+                ])
                 lines.append(f"\n🏠 <b>Выходные:</b>\n{days_str}")
             else:
                 off_range = ScheduleFormatter._format_day_range(

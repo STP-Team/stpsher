@@ -345,14 +345,12 @@ class TransactionRepo(BaseRepo):
                 else:
                     points = 0
 
-                ranking.append(
-                    {
-                        "head_name": head.fullname,
-                        "username": head.username,
-                        "points": points,
-                        "group_size": len(members),
-                    }
-                )
+                ranking.append({
+                    "head_name": head.fullname,
+                    "username": head.username,
+                    "points": points,
+                    "group_size": len(members),
+                })
 
             # Сортируем по убыванию очков
             ranking.sort(key=lambda x: x["points"], reverse=True)
@@ -425,13 +423,11 @@ class TransactionRepo(BaseRepo):
                     (m for m in members if m.user_id == user_stats.user_id), None
                 )
                 if member:
-                    top_3_list.append(
-                        {
-                            "name": member.fullname,
-                            "username": member.username,
-                            "points": user_stats.all_time_points,
-                        }
-                    )
+                    top_3_list.append({
+                        "name": member.fullname,
+                        "username": member.username,
+                        "points": user_stats.all_time_points,
+                    })
 
             return top_3_list
 
@@ -522,13 +518,11 @@ class TransactionRepo(BaseRepo):
                     (m for m in members if m.user_id == user_stats.user_id), None
                 )
                 if member:
-                    top_3_list.append(
-                        {
-                            "name": member.fullname,
-                            "username": member.username,
-                            "points": user_stats.month_points,
-                        }
-                    )
+                    top_3_list.append({
+                        "name": member.fullname,
+                        "username": member.username,
+                        "points": user_stats.month_points,
+                    })
 
             # Вычисляем средний уровень группы на основе общей суммы очков за достижения и ручные транзакции
             achievements_sum_query = select(func.sum(Transaction.amount)).where(

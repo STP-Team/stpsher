@@ -2,10 +2,6 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
-
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.casino import (
     HeadCasinoToggleAll,
     HeadCasinoUserToggle,
@@ -13,6 +9,10 @@ from tgbot.keyboards.head.group.game.casino import (
 )
 from tgbot.keyboards.head.group.game.main import HeadGameMenu
 from tgbot.keyboards.head.group.members import short_name
+
+from infrastructure.database.models import Employee
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.role import HeadFilter
 
 head_game_casino_router = Router()
 head_game_casino_router.callback_query.filter(

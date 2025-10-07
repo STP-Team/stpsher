@@ -44,20 +44,18 @@ async def history_getter(
         date_str = transaction.created_at.strftime("%d.%m.%y")
         button_text = f"{type_emoji} {transaction.amount} {source_icon} ({date_str})"
 
-        formatted_transactions.append(
-            (
-                transaction.id,  # ID для обработчика клика
-                button_text,  # Текст кнопки
-                transaction.amount,  # Сумма
-                type_text,  # Тип операции (текст)
-                source_icon,  # Иконка источника
-                date_str,  # Дата
-                transaction.type,  # Тип операции (earn/spend)
-                transaction.source_type,  # Тип источника
-                transaction.comment or "",  # Комментарий
-                transaction.created_at.strftime("%d.%m.%Y в %H:%M"),  # Полная дата
-            )
-        )
+        formatted_transactions.append((
+            transaction.id,  # ID для обработчика клика
+            button_text,  # Текст кнопки
+            transaction.amount,  # Сумма
+            type_text,  # Тип операции (текст)
+            source_icon,  # Иконка источника
+            date_str,  # Дата
+            transaction.type,  # Тип операции (earn/spend)
+            transaction.source_type,  # Тип источника
+            transaction.comment or "",  # Комментарий
+            transaction.created_at.strftime("%d.%m.%Y в %H:%M"),  # Полная дата
+        ))
 
     return {
         "history_products": formatted_transactions,

@@ -205,14 +205,12 @@ def _extract_users_from_dataframe(
                 transfer_section_row is not None and row_idx > transfer_section_row
             )
 
-            users.append(
-                {
-                    "fullname": fullname,
-                    "position": position,
-                    "head": head,
-                    "is_in_transfer_section": is_in_transfer_section,
-                }
-            )
+            users.append({
+                "fullname": fullname,
+                "position": position,
+                "head": head,
+                "is_in_transfer_section": is_in_transfer_section,
+            })
 
     return users
 

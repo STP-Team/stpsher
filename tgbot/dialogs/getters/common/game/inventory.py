@@ -37,18 +37,16 @@ async def inventory_getter(
         usage_info = f"({product.current_usages}/{product.max_usages})"
         button_text = f"{status_emoji} {usage_info} {product_info.name} ({date_str})"
 
-        formatted_products.append(
-            (
-                user_product.id,  # ID для обработчика клика
-                button_text,  # Текст кнопки с эмодзи и статусом
-                product_info.name,
-                product_info.description,
-                product_info.cost,
-                user_product.status,
-                product.current_usages,
-                product.max_usages,
-            )
-        )
+        formatted_products.append((
+            user_product.id,  # ID для обработчика клика
+            button_text,  # Текст кнопки с эмодзи и статусом
+            product_info.name,
+            product_info.description,
+            product_info.cost,
+            user_product.status,
+            product.current_usages,
+            product.max_usages,
+        ))
 
     return {
         "total_bought": total_bought,

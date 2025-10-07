@@ -3,11 +3,6 @@ import logging
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
-
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
-from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game_profile import (
     HeadMemberGameHistoryMenu,
     HeadMemberGameProfileMenu,
@@ -33,6 +28,11 @@ from tgbot.keyboards.head.group.members import (
 )
 from tgbot.keyboards.head.group.members_kpi import head_member_kpi_kb
 from tgbot.keyboards.head.group.members_status import head_member_status_select_kb
+
+from infrastructure.database.models import Employee
+from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
+from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.filters.role import HeadFilter
 from tgbot.misc.helpers import get_role
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 from tgbot.services.schedule.schedule_handlers import schedule_service

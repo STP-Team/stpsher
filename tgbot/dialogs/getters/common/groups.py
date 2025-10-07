@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_user_groups(user_id: int, stp_repo: MainRequestsRepo, bot: Bot) -> tuple:
-    """Получает список групп, где пользователь является участником и проверяем наличие статуса админа у пользователя.
+    """Получает список групп, где пользователь является участником.
 
     Args:
         user_id: Идентификатор Telegram пользователя, запрашивающего список групп
@@ -145,7 +145,6 @@ async def groups_details_getter(
     except Exception:
         group_name = f"ID: {group_id}"
 
-    # Initialize checkbox states directly in widget data to avoid triggering on_state_changed
     widget_data = dialog_manager.dialog_data.setdefault("__aiogd_widget_data__", {})
     widget_data["new_user_notify"] = group.new_user_notify
     widget_data["is_casino_allowed"] = group.is_casino_allowed

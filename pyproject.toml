@@ -21,9 +21,12 @@ dependencies = [
     "sqlalchemy==2.0.43",
 ]
 
+[tool.ruff]
+preview = true
+
 [tool.ruff.lint]
-select = ["D"]
-ignore = ["D417"]
+select = ["D", "E", "F", "I"]
+ignore = ["D417", "E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
