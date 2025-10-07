@@ -80,7 +80,6 @@ async def get_local_file_details(
             uploaded_by_user.username,
             uploaded_by_user.user_id,
         )
-        print(uploaded_by_text)
         file_info["uploaded_by_fullname"] = uploaded_by_text
         file_info["uploaded_at"] = latest.uploaded_at.strftime("%d.%m.%Y %H:%M")
 

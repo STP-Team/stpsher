@@ -14,7 +14,7 @@ from tgbot.dialogs.states.common.files import Files
 logger = logging.getLogger(__name__)
 
 
-async def start_upload_dialog(
+async def start_files_dialog(
     _callback: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,

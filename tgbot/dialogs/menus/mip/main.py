@@ -6,7 +6,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
-from tgbot.dialogs.events.common.files import start_upload_dialog
+from tgbot.dialogs.events.common.files import start_files_dialog
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
@@ -20,7 +20,7 @@ menu_window = Window(
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
     Row(
-        Button(Const("📂 Файлы"), id="upload", on_click=start_upload_dialog),
+        Button(Const("📂 Файлы"), id="files", on_click=start_files_dialog),
         Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
     ),
     Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),

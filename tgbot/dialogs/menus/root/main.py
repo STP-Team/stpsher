@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
+from tgbot.dialogs.events.common.files import start_files_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
@@ -19,7 +20,10 @@ menu_window = Window(
 Я - бот-помощник СТП
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
-    Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
+    Row(
+        Button(Const("📂 Файлы"), id="files", on_click=start_files_dialog),
+        Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
+    ),
     Row(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
