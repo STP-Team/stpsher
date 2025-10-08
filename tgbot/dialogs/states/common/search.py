@@ -23,3 +23,5 @@ class Search(StatesGroup):
     details_access_level_window = State()
     details_schedule_window = State()
     details_kpi_window = State()
+    details_kpi_requirements_window = State()
+    details_kpi_salary_window = State()

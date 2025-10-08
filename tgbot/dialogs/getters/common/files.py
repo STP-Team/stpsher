@@ -231,9 +231,6 @@ async def get_upload_status(dialog_manager: DialogManager, **_kwargs) -> dict:
     file_replaced = data.get("upload_file_replaced", False)
     processing_results = data.get("processing_results", {})
 
-    # Progress data
-    upload_progress = data.get("upload_progress", 0)
-    upload_total_steps = data.get("upload_total_steps", 1)
     upload_progress_text = data.get("upload_progress_text", "Подготовка...")
 
     # Форматируем размер

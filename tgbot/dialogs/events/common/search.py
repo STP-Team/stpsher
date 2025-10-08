@@ -252,3 +252,22 @@ async def on_role_change(
     except Exception as e:
         logger.error(f"[Смена роли] Ошибка при изменении роли: {e}")
         await callback.answer("❌ Ошибка при изменении роли", show_alert=True)
+
+
+async def on_schedule_mode_select(
+    _callback: CallbackQuery,
+    _widget,
+    dialog_manager: DialogManager,
+    item_id: str,
+    **_kwargs,
+) -> None:
+    """Изменение режима отображения графика в поиске.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Данные от виджета
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранного режима
+    """
+    dialog_manager.dialog_data["schedule_mode"] = item_id
+    await dialog_manager.switch_to(Search.details_schedule_window)

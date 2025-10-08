@@ -6,7 +6,15 @@ from aiogram_dialog import DialogManager
 from sqlalchemy.orm import Mapped
 
 from infrastructure.database.models import Employee
+from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.dialogs.getters.common.game.kpi import (
+    base_kpi_data,
+    kpi_getter,
+    kpi_requirements_getter,
+    salary_getter,
+)
+from tgbot.dialogs.getters.common.schedule import user_schedule_getter
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname, get_role
 from tgbot.services.search import SearchService
@@ -297,3 +305,162 @@ async def search_access_level_getter(
         "selected_user_name": selected_user_name,
         "current_role_name": current_role_name,
     }
+
+
+async def search_schedule_getter(
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> dict:
+    """Геттер для получения графика выбранного пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными для отображения графика
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    schedule_data = await user_schedule_getter(
+        user=selected_user, stp_repo=stp_repo, dialog_manager=dialog_manager
+    )
+
+    # Добавляем информацию о пользователе в начало текста графика
+    user_name = format_fullname(
+        selected_user.fullname,
+        short=False,
+        gender_emoji=True,
+    )
+
+    if "schedule_text" in schedule_data:
+        schedule_data["schedule_text"] = (
+            f"<b>{user_name}</b>\n\n<blockquote>{schedule_data['schedule_text']}</blockquote>"
+        )
+
+    return schedule_data
+
+
+async def search_kpi_getter(
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для получения KPI выбранного пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        kpi_repo: Репозиторий операций с базой KPI
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными KPI
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    # Получаем данные премии
+    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
+    premium = premium_data.get("premium")
+
+    # Вызываем оригинальный геттер с выбранным пользователем
+    kpi_data = await kpi_getter(user=selected_user, premium=premium)
+
+    # Добавляем информацию о пользователе в начало текста
+    user_name = format_fullname(
+        selected_user.fullname,
+        short=False,
+        gender_emoji=True,
+    )
+
+    if "kpi_text" in kpi_data:
+        kpi_data["kpi_text"] = (
+            f"<b>{user_name}</b>\n\n<blockquote>{kpi_data['kpi_text']}</blockquote>"
+        )
+
+    return kpi_data
+
+
+async def search_kpi_requirements_getter(
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для получения нормативов KPI выбранного пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        kpi_repo: Репозиторий операций с базой KPI
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными нормативов
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    # Получаем данные премии
+    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
+    premium = premium_data.get("premium")
+
+    # Вызываем оригинальный геттер с выбранным пользователем
+    requirements_data = await kpi_requirements_getter(
+        user=selected_user, premium=premium
+    )
+
+    # Добавляем информацию о пользователе в начало текста
+    user_name = format_fullname(
+        selected_user.fullname,
+        short=False,
+        gender_emoji=True,
+    )
+
+    if "requirements_text" in requirements_data:
+        requirements_data["requirements_text"] = (
+            f"<b>{user_name}</b>\n\n<blockquote>{requirements_data['requirements_text']}</blockquote>"
+        )
+
+    return requirements_data
+
+
+async def search_salary_getter(
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для получения зарплаты выбранного пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        kpi_repo: Репозиторий операций с базой KPI
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными зарплаты
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    # Получаем данные премии
+    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
+    premium = premium_data.get("premium")
+
+    # Вызываем оригинальный геттер с выбранным пользователем
+    salary_data = await salary_getter(user=selected_user, premium=premium)
+
+    # Добавляем информацию о пользователе в начало текста
+    user_name = format_fullname(
+        selected_user.fullname,
+        short=False,
+        gender_emoji=True,
+    )
+
+    if "salary_text" in salary_data:
+        salary_data["salary_text"] = (
+            f"<b>{user_name}</b>\n\n<blockquote>{salary_data['salary_text']}</blockquote>"
+        )
+
+    return salary_data
