@@ -7,7 +7,10 @@ from aiogram_dialog import DialogManager
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.getters.common.game.shop import products_getter
-from tgbot.dialogs.getters.user.game.achievements import user_achievements_getter
+from tgbot.dialogs.getters.user.game.achievements import (
+    achievements_getter,
+    user_achievements_getter,
+)
 
 
 def get_position_display_name(position: str) -> str:
@@ -189,11 +192,9 @@ async def achievements_filter_getter(
     Returns:
         Словарь доступных достижений с фильтрацией по направлению
     """
-    # Для менеджеров загружаем все достижения, для пользователей - только их подразделение
-    is_manager = user.role in [5, 6]
-    if is_manager:
-        from tgbot.dialogs.getters.user.game.achievements import achievements_getter
-
+    # Определяем роль пользователя
+    is_user = user.role in [1, 3]
+    if not is_user:
         base_data = await achievements_getter(stp_repo=stp_repo, **kwargs)
     else:
         base_data = await user_achievements_getter(
@@ -204,7 +205,7 @@ async def achievements_filter_getter(
     all_achievements = base_data["achievements"]
 
     # Фильтруем достижения по подразделению пользователя
-    if user:
+    if is_user:
         if "НТП1" in user.division:
             # Показываем только достижения для первой линии
             allowed_positions = [
@@ -260,9 +261,6 @@ async def achievements_filter_getter(
     # Данные для радио-кнопок подразделений (для менеджеров)
     division_radio_data = [("all", "Все"), ("nck", "НЦК"), ("ntp", "НТП")]
 
-    # Определяем роль пользователя
-    is_user = user.role in [1, 3]
-
     # Проверяем текущий выбор фильтра позиции (для пользователей)
     selected_position = dialog_manager.dialog_data.get(
         "achievement_position_filter", "all"
@@ -306,7 +304,7 @@ async def achievements_filter_getter(
 
         if stp_repo:
             # Для менеджеров используем выбранное подразделение, для пользователей - их подразделение
-            if is_manager:
+            if not is_user:
                 if selected_division != "all":
                     division_map = {"nck": "НЦК", "ntp": "НТП"}
                     normalized_division = division_map.get(selected_division)
