@@ -10,19 +10,6 @@ class UserSG(StatesGroup):
     menu = State()
     settings = State()
 
-    # Графики
-    schedule = State()
-    schedule_my = State()
-    schedule_my_detailed = State()
-    schedule_group = State()
-    schedule_duties = State()
-    schedule_heads = State()
-
-    # KPI
-    kpi = State()
-    kpi_requirements = State()
-    salary = State()
-
 
 class Authorization(StatesGroup):
     """Группа состояний для неавторизованных пользователей."""
