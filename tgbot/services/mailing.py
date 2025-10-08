@@ -1,3 +1,5 @@
+"""Сервис отправки email писем."""
+
 import logging
 import smtplib
 import ssl
@@ -15,13 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 async def send_email(
-    to_addrs: list[str] | str, subject: str, body: str, html: bool = True
-):
-    """
-    Отправка email
+    addresses: list[str] | str, subject: str, body: str, html: bool = True
+) -> None:
+    """Отправляет письмо на указанные email.
 
     Args:
-        to_addrs: Список адресов для отправки письма
+        addresses: Список адресов для отправки письма
         subject: Заголовок письма
         body: Тело письма
         html: Использовать ли HTML для форматирования
@@ -30,7 +31,7 @@ async def send_email(
 
     msg = MIMEMultipart()
     msg["From"] = config.mail.user
-    msg["To"] = ", ".join(to_addrs) if isinstance(to_addrs, list) else to_addrs
+    msg["To"] = ", ".join(addresses) if isinstance(addresses, list) else addresses
     msg["Subject"] = Header(subject, "utf-8")
 
     content_type = "html" if html else "plain"
@@ -42,20 +43,27 @@ async def send_email(
         ) as server:
             server.login(user=config.mail.user, password=config.mail.password)
             server.sendmail(
-                from_addr=config.mail.user, to_addrs=to_addrs, msg=msg.as_string()
+                from_addr=config.mail.user, to_addrs=addresses, msg=msg.as_string()
             )
     except smtplib.SMTPException as e:
         logger.error(f"[Email] Ошибка отправки письма: {e}")
 
 
-async def send_auth_email(code: str, email: str, bot_username: str):
+async def send_auth_email(code: str, email: str, bot_username: str) -> None:
+    """Отправляет письмо с кодом авторизации.
+
+    Args:
+        code: Код авторизации
+        email: Почта для отправки кода
+        bot_username: Юзернейм бота Telegram (для гиперссылки)
+    """
     email_subject = "Авторизация в боте"
     email_content = f"""Добрый день<br><br>
 
 Код для авторизации: <b>{code}</b><br>
 Введите код в бота <a href="https://t.me/{bot_username}">@{bot_username}</a> для завершения авторизации"""
 
-    await send_email(to_addrs=email, subject=email_subject, body=email_content)
+    await send_email(addresses=email, subject=email_subject, body=email_content)
 
 
 async def send_activation_product_email(
@@ -65,7 +73,17 @@ async def send_activation_product_email(
     product: Product,
     purchase: Purchase,
     bot_username: str,
-):
+) -> None:
+    """Отправляет письмо с уведомлением об активации предмета.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee. Сотрудник, активировавший предмет
+        user_head: Руководитель сотрудника, активировавшего предмет
+        current_duty: Текущий дежурный
+        product: Активируемый предмет
+        purchase: Покупка, в рамках которой был приобретен предмет
+        bot_username: Юзернейм бота Telegram
+    """
     email_subject = "Активация предмета"
     email_content = f"""Добрый день!<br><br>
 
@@ -80,21 +98,30 @@ async def send_activation_product_email(
     match product.manager_role:
         case 3:
             if user.division == "НЦК":
+                # Рассылка РГ НЦК
                 email.append(config.mail.nck_email_addr)
             else:
+                # Рассылка РГ НТП
                 email.append(config.mail.ntp_email_addr)
         case 5:
+            # Рассылка ГОК
             email.append(config.mail.gok_email_addr)
         case 6:
+            # Рассылка МИП
             email.append(config.mail.mip_email_addr)
 
+    # Почта руководителя сотрудника
     if user_head and user_head.email:
         email.append(user_head.email)
 
+    # Почта текущего дежурного
     if current_duty and current_duty.email:
         email.append(current_duty.email)
 
-    await send_email(to_addrs=email, subject=email_subject, body=email_content)
+    # Почта сотрудника, активировавшего предмет
+    email.append(user.email)
+
+    await send_email(addresses=email, subject=email_subject, body=email_content)
     logger.info(
         f"[Активация предмета] Уведомление об активации {product.name} пользователем {user.fullname} отправлено на {email}"
     )
@@ -107,7 +134,17 @@ async def send_cancel_product_email(
     product: Product,
     purchase: Purchase,
     bot_username: str,
-):
+) -> None:
+    """Отправляет письмо с уведомлением об отмене активации предмета.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee. Сотрудник, активировавший предмет
+        user_head: Руководитель сотрудника, активировавшего предмет
+        current_duty: Текущий дежурный
+        product: Активируемый предмет
+        purchase: Покупка, в рамках которой был приобретен предмет
+        bot_username: Юзернейм бота Telegram
+    """
     email_subject = "Отмена покупки"
     email_content = f"""Добрый день!<br><br>
 
@@ -121,21 +158,30 @@ async def send_cancel_product_email(
     match product.manager_role:
         case 3:
             if user.division == "НЦК":
+                # Рассылка РГ НЦК
                 email.append(config.mail.nck_email_addr)
             else:
+                # Рассылка РГ НТП
                 email.append(config.mail.ntp_email_addr)
         case 5:
+            # Рассылка ГОК
             email.append(config.mail.gok_email_addr)
         case 6:
+            # Рассылка МИП
             email.append(config.mail.mip_email_addr)
 
+    # Почта руководителя сотрудника
     if user_head and user_head.email:
         email.append(user_head.email)
 
+    # Почта текущего дежурного
     if current_duty and current_duty.email:
         email.append(current_duty.email)
 
-    await send_email(to_addrs=email, subject=email_subject, body=email_content)
+    # Почта сотрудника, активировавшего предмет
+    email.append(user.email)
+
+    await send_email(addresses=email, subject=email_subject, body=email_content)
     logger.info(
         f"[Активация предмета] Уведомление об отмене активации {product.name} пользователем {user.fullname} отправлено на {email}"
     )
