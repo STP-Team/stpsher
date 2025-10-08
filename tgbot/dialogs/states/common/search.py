@@ -20,3 +20,6 @@ class Search(StatesGroup):
 
     # Окно информации о сотруднике
     details_window = State()
+    details_access_level_window = State()
+    details_schedule_window = State()
+    details_kpi_window = State()

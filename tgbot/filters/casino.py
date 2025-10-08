@@ -20,7 +20,7 @@ class IsCasinoAllowed(BaseFilter):
 
         Args:
             obj: Входящее сообщение.
-            user: Объект сотрудника из базы данных.
+            user: Экземпляр пользователя с моделью Employee
             **kwargs: Дополнительные аргументы.
 
         Returns:

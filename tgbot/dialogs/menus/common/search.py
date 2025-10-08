@@ -6,6 +6,8 @@ from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
+    Checkbox,
+    Group,
     ManagedRadio,
     Radio,
     Row,
@@ -20,10 +22,13 @@ from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.search import (
     close_search_dialog,
     on_back_to_menu,
+    on_casino_change,
+    on_role_change,
     on_search_query,
     on_user_select,
 )
 from tgbot.dialogs.getters.common.search import (
+    search_access_level_getter,
     search_heads_getter,
     search_results_getter,
     search_specialists_getter,
@@ -182,12 +187,113 @@ query_no_results_window = Window(
 
 details_window = Window(
     Format("{user_info}"),
+    Group(
+        Row(
+            SwitchTo(
+                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+            ),
+            SwitchTo(
+                Const("🌟 Показатели"), id="kpi", state=Search.details_schedule_window
+            ),
+        ),
+        Checkbox(
+            Const("🟢 Казино"),
+            Const("🔴 Казино"),
+            id="casino_access",
+            on_state_changed=on_casino_change,
+            when="user_casino_access",
+        ),
+        SwitchTo(
+            Const("🛡️ Уровень доступа"),
+            id="access_level",
+            state=Search.details_access_level_window,
+        ),
+        when="is_head",
+    ),
+    Group(
+        Row(
+            SwitchTo(
+                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+            ),
+            SwitchTo(
+                Const("🛡️ Уровень доступа"),
+                id="access_level",
+                state=Search.details_access_level_window,
+            ),
+        ),
+        when="is_mip",
+    ),
+    Group(
+        Row(
+            SwitchTo(
+                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+            ),
+            SwitchTo(
+                Const("🌟 Показатели"), id="kpi", state=Search.details_schedule_window
+            ),
+        ),
+        Checkbox(
+            Const("🟢 Казино"),
+            Const("🔴 Казино"),
+            id="casino_access",
+            on_state_changed=on_casino_change,
+            when="user_casino_access",
+        ),
+        SwitchTo(
+            Const("🛡️ Уровень доступа"),
+            id="access_level",
+            state=Search.details_access_level_window,
+        ),
+        when="is_root",
+    ),
     Row(
         Button(Const("↩️ Назад"), id="back", on_click=on_back_to_menu),
         Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
     ),
     getter=search_user_info_getter,
     state=Search.details_window,
+)
+
+
+details_access_level_window = Window(
+    Format("""🛡️ <b>Уровень доступа</b>
+
+<b>{selected_user_name}</b>
+Текущая роль: {current_role_name}
+
+Выбери уровень доступа из меню для назначения сотруднику"""),
+    Group(
+        Select(
+            Format("{item[1]}"),
+            id="access_level_select",
+            item_id_getter=lambda item: item[0],
+            items="roles",
+            on_click=on_role_change,
+        ),
+        width=2,
+        when="is_mip",
+    ),
+    Group(
+        Checkbox(
+            Const("✅ Стажер"),
+            Const("❌ Стажер"),
+            id="is_trainee",
+        ),
+        Select(
+            Format("{item[1]}"),
+            id="access_level_select",
+            item_id_getter=lambda item: item[0],
+            items="roles",
+            on_click=on_role_change,
+        ),
+        when="is_head",
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_access_level_getter,
+    state=Search.details_access_level_window,
 )
 
 
@@ -211,5 +317,6 @@ search_dialog = Dialog(
     query_results_window,
     query_no_results_window,
     details_window,
+    details_access_level_window,
     on_start=on_start,
 )

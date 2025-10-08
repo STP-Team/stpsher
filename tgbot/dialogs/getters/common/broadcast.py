@@ -236,9 +236,7 @@ async def broadcast_detail_getter(
         "broadcast_text": broadcast.text,
         "recipients_count": len(broadcast.recipients or []),
         "created_at": created_at_str,
-        "creator_name": {
-            format_fullname(
-                creator.fullname, True, True, creator.username, creator.user_id
-            )
-        },
+        "creator_name": format_fullname(
+            creator.fullname, True, True, creator.username, creator.user_id
+        ),
     }

@@ -5,10 +5,11 @@ import logging
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Select
+from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
 
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.search import Search
+from tgbot.misc.dicts import roles
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,19 @@ async def close_search_dialog(
     await dialog_manager.done()
 
 
+async def on_back_to_menu(
+    _callback: CallbackQuery, _widget: Button, dialog_manager, **_kwargs
+) -> None:
+    """Обработчик возврата в меню поиска из детального просмотра пользователя.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.switch_to(Search.menu)
+
+
 async def on_user_select(
     _callback: CallbackQuery, _widget: Select, dialog_manager, item_id, **_kwargs
 ) -> None:
@@ -62,6 +76,14 @@ async def on_user_select(
     # Сохраняем текущее состояние для дальнейшего возврата в текущее меню
     current_state = dialog_manager.current_context().state
     dialog_manager.dialog_data["previous_state"] = str(current_state)
+
+    # Получаем информацию о пользователе и устанавливаем состояние чекбокса казино
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    searched_user = await stp_repo.employee.get_user(main_id=int(item_id))
+
+    casino_checkbox: ManagedCheckbox = dialog_manager.find("casino_access")
+    if casino_checkbox:
+        await casino_checkbox.set_checked(searched_user.is_casino_allowed)
 
     await dialog_manager.switch_to(Search.details_window)
 
@@ -110,8 +132,7 @@ async def on_search_query(
 
         # Сохраняем результаты поиска в dialog_data
         dialog_manager.dialog_data["search_results"] = [
-            (user.user_id or user.id, user.fullname, user.position or "")
-            for user in sorted_users
+            (user.id, user.fullname, user.position or "") for user in sorted_users
         ]
         dialog_manager.dialog_data["search_query"] = search_query
         dialog_manager.dialog_data["total_found"] = len(sorted_users)
@@ -123,14 +144,111 @@ async def on_search_query(
         logger.error(f"[Поиск] Ошибка при попытке поиска: {e}")
 
 
-async def on_back_to_menu(
-    _callback: CallbackQuery, _widget: Button, dialog_manager, **_kwargs
-) -> None:
-    """Обработчик возврата в меню поиска из детального просмотра пользователя.
+async def on_casino_change(
+    callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+):
+    """Обработчик изменения доступа к казино.
 
     Args:
-        _callback: Callback query от Telegram
-        _widget: Данные виджета
+        callback: Callback query от Telegram
+        widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    await dialog_manager.switch_to(Search.menu)
+    try:
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+
+        if not stp_repo or not selected_user_id:
+            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            return
+
+        # Получаем текущее состояние чекбокса
+        is_casino_allowed = widget.is_checked()
+
+        # Получаем пользователя
+        searched_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+        if not searched_user:
+            searched_user = await stp_repo.employee.get_user(
+                user_id=int(selected_user_id)
+            )
+
+        if not searched_user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Проверяем, действительно ли состояние изменилось
+        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
+        if searched_user.is_casino_allowed == is_casino_allowed:
+            return
+
+        # Обновляем доступ к казино в базе данных
+        await stp_repo.employee.update_user(
+            user_id=searched_user.user_id, is_casino_allowed=is_casino_allowed
+        )
+
+        # Показываем уведомление
+        status_text = "включен" if is_casino_allowed else "выключен"
+        await callback.answer(f"✅ Доступ к казино {status_text}")
+
+    except Exception as e:
+        logger.error(f"[Казино] Ошибка при изменении доступа: {e}")
+        await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
+
+
+async def on_role_change(
+    callback: CallbackQuery,
+    _widget: Select,
+    dialog_manager: DialogManager,
+    item_id: str,
+    **_kwargs,
+) -> None:
+    """Обработчик изменения роли пользователя.
+
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        item_id: ID выбранной роли
+    """
+    try:
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+
+        if not stp_repo or not selected_user_id:
+            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            return
+
+        new_role_id = int(item_id)
+        role_info = roles.get(new_role_id)
+
+        if not role_info:
+            await callback.answer("❌ Ошибка: роль не найдена", show_alert=True)
+            return
+
+        # Обновляем роль пользователя
+        searched_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+        if not searched_user:
+            searched_user = await stp_repo.employee.get_user(
+                user_id=int(selected_user_id)
+            )
+
+        if not searched_user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Обновляем роль в базе данных
+        await stp_repo.employee.update_user(
+            user_id=searched_user.user_id, role=new_role_id
+        )
+
+        # Показываем уведомление о смене роли
+        await callback.answer(
+            f"✅ Роль изменена на: {role_info['emoji']} {role_info['name']}"
+        )
+
+        # Возвращаемся к деталям пользователя
+        await dialog_manager.switch_to(Search.details_window)
+
+    except Exception as e:
+        logger.error(f"[Смена роли] Ошибка при изменении роли: {e}")
+        await callback.answer("❌ Ошибка при изменении роли", show_alert=True)

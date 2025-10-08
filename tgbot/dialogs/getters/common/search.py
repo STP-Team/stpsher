@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped
 
 from infrastructure.database.models import Employee
 from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname, get_role
 from tgbot.services.search import SearchService
 
@@ -183,6 +184,9 @@ async def search_user_info_getter(
         Словарь с информацией о выбранном сотруднике
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    is_head = user.role == 2
+    is_mip = user.role == 6
+    is_root = user.role == 10
 
     if not selected_user_id:
         return {"user_info": "❌ Пользователь не выбран"}
@@ -190,10 +194,6 @@ async def search_user_info_getter(
     try:
         # Получаем информацию о пользователе
         searched_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_user(
-                user_id=int(selected_user_id)
-            )
         if not searched_user:
             return {"user_info": "❌ Пользователь не найден"}
 
@@ -204,25 +204,96 @@ async def search_user_info_getter(
                 fullname=searched_user.head
             )
 
-        # Получаем роль текущего пользователя из базовых данных
-        viewer_role = user.role if user else 1
-
         # Формируем информацию о пользователе с учетом роли просматривающего
-        user_info = SearchService.format_user_info_role_based(
-            searched_user, searched_user_head, viewer_role
+        user_info = SearchService.format_user_info_base(
+            searched_user, searched_user_head
         )
 
-        # Статистика для руководителей если просматривает роль 2
-        if searched_user.role == 2 and viewer_role >= 2:
-            group_stats = await SearchService.get_group_statistics_by_id(
-                searched_user.user_id, stp_repo
-            )
-            if group_stats["total_users"] > 0:
-                user_info += SearchService.format_head_group_info(group_stats)
-
-        return {"user_info": user_info}
+        return {
+            "user_info": user_info,
+            "user_casino_access": searched_user.role in [1, 3],
+            "is_head": is_head,
+            "is_mip": is_mip,
+            "is_root": is_root,
+            "is_casino_allowed": searched_user.is_casino_allowed,
+        }
 
     except Exception as e:
         return {
             "user_info": f"❌ Ошибка при получении информации: {str(e)}",
+            "is_head": is_head,
+            "is_mip": is_mip,
+            "is_root": is_root,
         }
+
+
+async def search_access_level_getter(
+    user: Employee,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict[str, str]:
+    """Геттер получения доступных ролей для назначения сотруднику.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь со статусом ищущего сотрудника и доступных ролей для назначения
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    is_head = user.role == 2
+    is_mip = user.role == 6
+    is_root = user.role == 10
+
+    # Форматируем роли для Select виджета
+    if is_head:
+        formatted_roles = [
+            (role_id, f"{role_data['emoji']} {role_data['name']}")
+            for role_id, role_data in roles.items()
+            if role_id in [1, 3]
+        ]
+    elif is_mip:
+        formatted_roles = [
+            (role_id, f"{role_data['emoji']} {role_data['name']}")
+            for role_id, role_data in roles.items()
+            if role_id not in [0, 10]
+        ]
+    elif is_root:
+        formatted_roles = [
+            (role_id, f"{role_data['emoji']} {role_data['name']}")
+            for role_id, role_data in roles.items()
+            if role_id != 0
+        ]
+
+    # Получаем информацию о выбранном пользователе
+    selected_user_name = "Пользователь"
+    current_role_name = ""
+
+    if selected_user_id:
+        try:
+            if selected_user:
+                selected_user_name = format_fullname(
+                    selected_user.fullname,
+                    short=False,
+                    gender_emoji=True,
+                    username=selected_user.username,
+                    user_id=selected_user.user_id,
+                )
+                role_info = get_role(selected_user.role)
+                if role_info:
+                    current_role_name = f"{role_info['emoji']} {role_info['name']}"
+        except Exception:
+            pass
+
+    return {
+        "is_head": is_head,
+        "is_mip": is_mip,
+        "roles": formatted_roles,
+        "selected_user_name": selected_user_name,
+        "current_role_name": current_role_name,
+    }

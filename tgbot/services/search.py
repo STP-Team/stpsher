@@ -149,7 +149,7 @@ class SearchService:
         :return: Отформатированная строка с информацией
         """
         # Формирование основной информации о пользователе
-        user_info = f"""<b>👤 {user.fullname}</b>
+        user_info = f"""<b>{format_fullname(user.fullname, False, True, user.username, user.user_id)}</b>
 
 <b>💼 Должность:</b> {user.position} {user.division}"""
 
@@ -163,9 +163,6 @@ class SearchService:
                     user_head.user_id,
                 )
             }"
-
-        if user.username:
-            user_info += f"\n\n<b>📱 Telegram:</b> @{user.username}"
 
         if user.email:
             user_info += f"\n<b>📧 Email:</b> {user.email}"
