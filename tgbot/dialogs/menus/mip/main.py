@@ -6,7 +6,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
-from tgbot.dialogs.events.common.files import start_files_dialog
+from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog

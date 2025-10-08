@@ -14,12 +14,20 @@ from tgbot.services.schedulers.hr import get_fired_users_from_excel
 logger = logging.getLogger(__name__)
 
 
-async def _update_existing_user(db_user: Employee, excel_user: Dict[str, str]) -> int:
-    """Update existing user with new data. Returns 1 if updated, 0 if no changes."""
+async def _update_existing_user(db_user: Employee, excel_user: Dict[str, str]) -> bool:
+    """Обновляет сотрудника в БД с новыми данными. Returns 1 if updated, 0 if no changes.
+
+    Args:
+        db_user: Сотрудник из БД
+        excel_user: Сотрудник из Excel файла
+
+    Returns:
+        True если сотрудник был обновлен, иначе False
+    """
     updated = False
     is_in_transfer_section = excel_user.get("is_in_transfer_section", False)
 
-    # Only update position if user is NOT in transfer section
+    # Обновляем должность только если пользователь не в секции переводов
     if not is_in_transfer_section and db_user.position != excel_user["position"]:
         logger.info(
             f"[Изменения] {db_user.fullname}: должность {db_user.position} → {excel_user['position']}"
@@ -38,11 +46,17 @@ async def _update_existing_user(db_user: Employee, excel_user: Dict[str, str]) -
         db_user.head = excel_user["head"]
         updated = True
 
-    return 1 if updated else 0
+    return True if updated else False
 
 
-async def _add_new_user(session, division: str, excel_user: Dict[str, str]):
-    """Add new user to database."""
+async def _add_new_user(session, division: str, excel_user: Dict[str, str]) -> None:
+    """Добавляет пользователя в БД.
+
+    Args:
+        session: Сессия БД
+        division: Направление сотрудника
+        excel_user: Данные сотрудника из Excel файла
+    """
     is_in_transfer_section = excel_user.get("is_in_transfer_section", False)
     if is_in_transfer_section:
         logger.info(
@@ -63,7 +77,14 @@ async def _add_new_user(session, division: str, excel_user: Dict[str, str]):
 
 
 def extract_division_from_filename(filename: str) -> str:
-    """Extract division from filename."""
+    """Достает направление из названия файла.
+
+    Args:
+        filename: Название файла
+
+    Returns:
+        Направление, которому принадлежит файл
+    """
     filename_upper = filename.upper()
 
     division_map = {"НЦК": "НЦК", "НТП1": "НТП1", "НТП2": "НТП2", "НТП": "НТП"}
@@ -72,18 +93,19 @@ def extract_division_from_filename(filename: str) -> str:
         if key in filename_upper:
             return value
 
-    return "НТП"  # Default
+    return "НТП"
 
 
 def get_users_from_excel(file_name: str) -> List[Dict[str, str]]:
-    """Extract users from Excel file with structure:
-    ДАТА → График Город ПРМ Должность Руководитель 1 смена...
+    """Достает сотрудников из файла графиков Excel.
+
+    Формат: ДАТА → График Город ПРМ Должность Руководитель 1 смена.
 
     Args:
-        file_name: Excel file name
+        file_name: Название файла Excel
 
     Returns:
-        List of user dictionaries with fullname, position, head
+        Список словарей сотрудник с ФИО, должностью и руководителем
     """
     users = []
     file_path = Path("uploads") / file_name
@@ -113,7 +135,14 @@ def get_users_from_excel(file_name: str) -> List[Dict[str, str]]:
 
 
 def _find_header_columns(df: pd.DataFrame) -> Optional[Dict[str, int]]:
-    """Find header row and column positions."""
+    """Находит позиции строк и столбцов заголовка.
+
+    Args:
+        df: Датафрейм
+
+    Returns:
+        Строка заголовков
+    """
     for row_idx in range(min(10, len(df))):
         row_values = []
         for col_idx in range(min(10, len(df.columns))):
@@ -149,11 +178,19 @@ def _find_header_columns(df: pd.DataFrame) -> Optional[Dict[str, int]]:
 def _extract_users_from_dataframe(
     df: pd.DataFrame, header_info: Dict[str, int]
 ) -> List[Dict[str, str]]:
-    """Extract user data from dataframe."""
+    """Достает пользователей из датафрейма.
+
+    Args:
+        df: Датафрейм
+        header_info: Заголовок колонки
+
+    Returns:
+        Список словарей сотрудников из датафрейма
+    """
     users = []
     transfer_section_row = None
 
-    # Find "Переводы/увольнения" row
+    # Находим строку "Переводы/увольнения"
     for row_idx in range(header_info["header_row"] + 1, len(df)):
         fullname_cell = (
             str(df.iloc[row_idx, header_info["fullname_col"]])
@@ -216,7 +253,14 @@ def _extract_users_from_dataframe(
 
 
 def _is_valid_fullname(fullname_cell: str) -> bool:
-    """Check if cell contains valid fullname."""
+    """Проверяет содержит ли ячейка ФИО.
+
+    Args:
+        fullname_cell: Строка ячейки ФИО
+
+    Returns:
+        True если строка является ФИО, иначе False
+    """
     return (
         len(fullname_cell.split()) >= 3
         and re.search(r"[А-Яа-я]", fullname_cell)
@@ -225,12 +269,17 @@ def _is_valid_fullname(fullname_cell: str) -> bool:
     )
 
 
-async def process_fired_users_with_stats(files_list: list[str], session_pool):
-    """Обработка уволенных сотрудников - удаление из базы
+async def process_fired_users_with_stats(
+    files_list: list[str] | list[Path], session_pool
+):
+    """Обработка уволенных сотрудников - удаление из базы.
 
-    :param files_list: Список файлов для проверки
-    :param session_pool: Пул сессий БД из bot.py
-    :return: ФИО уволенных специалистов
+    Args:
+        files_list: Список файлов для проверки
+        session_pool: Пул сессий БД из bot.py
+
+    Returns:
+         ФИО уволенных специалистов
     """
     try:
         fired_users = get_fired_users_from_excel(files_list)
@@ -277,14 +326,13 @@ async def process_fired_users_with_stats(files_list: list[str], session_pool):
 
 async def process_user_changes(session_pool, file_name: str):
     """Процессинг изменений должности и руководителя специалиста из файла.
-    Returns lists of updated and new user names
 
     Args:
         session_pool: Сессия с БД
         file_name: Название файла с таблицей
 
     Returns:
-        tuple: (updated_names, new_names)
+        Список имен обновленных и новых сотрудников
     """
     try:
         logger.info(f"[Изменения] Проверка изменений в файле: {file_name}")
@@ -320,9 +368,9 @@ async def process_user_changes(session_pool, file_name: str):
                     continue
 
                 try:
-                    # Get list of existing fullnames for comparison
+                    # Получает список существующих ФИО
                     if fullname in existing_fullnames:
-                        # Find the specific user object
+                        # Находим конкретного сотрудника
                         db_user = next(
                             (user for user in db_users if user.fullname == fullname),
                             None,

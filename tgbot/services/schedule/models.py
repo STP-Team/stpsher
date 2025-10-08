@@ -6,7 +6,7 @@ from typing import Optional
 
 @dataclass
 class DayInfo:
-    """Информация о дне в графике"""
+    """Информация о дне в графике."""
 
     day: str
     schedule: str

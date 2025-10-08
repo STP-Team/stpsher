@@ -1,5 +1,9 @@
+"""Функции-помощники для основного кода."""
+
 import random
 import string
+
+from sqlalchemy.orm import Mapped
 
 from tgbot.misc.dicts import roles
 
@@ -93,11 +97,11 @@ def short_name(full_name: str) -> str:
 
 
 def format_fullname(
-    fullname: str,
+    fullname: str | Mapped[str],
     short: bool = True,
     gender_emoji: bool = False,
-    username: str = None,
-    user_id: int = None,
+    username: str | Mapped[str] = None,
+    user_id: int | Mapped[int] = None,
 ) -> str:
     """Форматирует ФИО пользователя.
 

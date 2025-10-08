@@ -201,3 +201,138 @@ async def get_history_file_details(
     }
 
     return {"file_info": file_info}
+
+
+async def get_upload_status(dialog_manager: DialogManager, **_kwargs) -> dict:
+    """Получает статус текущей загрузки файла с результатами обработки.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о загрузке и обработке
+    """
+    from tgbot.services.schedule.file_processor import (
+        FileTypeDetector,
+        generate_detailed_stats_text,
+        generate_studies_stats_text,
+        generate_user_changes_text,
+    )
+
+    data = dialog_manager.dialog_data
+
+    file_name = data.get("upload_file_name", "Неизвестно")
+    file_size = data.get("upload_file_size", 0)
+    mime_type = data.get("upload_mime_type", "unknown")
+    file_type = data.get("upload_file_type", "📄 Обычный файл")
+    upload_error = data.get("upload_error")
+    upload_time = data.get("upload_time", 0)
+    actual_size = data.get("upload_actual_size", file_size)
+    file_replaced = data.get("upload_file_replaced", False)
+    processing_results = data.get("processing_results", {})
+
+    # Progress data
+    upload_progress = data.get("upload_progress", 0)
+    upload_total_steps = data.get("upload_total_steps", 1)
+    upload_progress_text = data.get("upload_progress_text", "Подготовка...")
+
+    # Форматируем размер
+    if file_size:
+        size_kb = file_size / 1024
+        size_mb = size_kb / 1024
+        if size_mb >= 1:
+            size_str = f"{size_mb:.2f} MB"
+        else:
+            size_str = f"{size_kb:.2f} KB"
+    else:
+        size_str = "Неизвестно"
+
+    # Формируем текст обработки
+    processing_text = ""
+
+    # Для файлов расписания
+    if FileTypeDetector.is_schedule_file(file_name):
+        new_stats = processing_results.get("new_stats")
+        old_stats = processing_results.get("old_stats")
+
+        if new_stats:
+            processing_text += generate_detailed_stats_text(new_stats, old_stats)
+
+        # Добавляем информацию об изменениях пользователей
+        fired = processing_results.get("fired_names", [])
+        updated = processing_results.get("updated_names", [])
+        new = processing_results.get("new_names", [])
+
+        if fired or updated or new:
+            processing_text += generate_user_changes_text(fired, updated, new)
+
+        # Добавляем информацию об изменениях в расписании
+        changed_users = processing_results.get("changed_users", [])
+        notified_users = processing_results.get("notified_users", [])
+
+        if changed_users:
+            processing_text += "<b>📤 Изменения графика</b>"
+            processing_text += "\n<blockquote expandable>"
+
+            # Показываем всех пользователей со статусом уведомления
+            for user_info in changed_users:
+                if isinstance(user_info, dict):
+                    name = user_info.get("name", "Неизвестно")
+                    status = user_info.get("status", "❌")
+                    processing_text += f"\n{name}: {status}"
+                else:
+                    # Обратная совместимость: если это строка
+                    processing_text += f"\n• {user_info}"
+
+            processing_text += (
+                f"\n\n✅ <b>Отправлено уведомлений:</b> "
+                f"{len(notified_users)}</blockquote>"
+            )
+        elif file_replaced:
+            processing_text += "\n📤 <b>Изменения графика</b>\n"
+            processing_text += "Изменений в графике не обнаружено"
+
+    # Для файлов обучений
+    elif FileTypeDetector.is_studies_file(file_name):
+        studies_stats = processing_results.get("studies_stats")
+        if studies_stats:
+            processing_text += generate_studies_stats_text(studies_stats)
+
+            # Добавляем информацию об уведомлениях
+            notification_results = processing_results.get("notification_results", {})
+            if notification_results.get("status") == "success":
+                sessions = notification_results.get("sessions", 0)
+                notifications = notification_results.get("notifications", 0)
+
+                processing_text += "\n📤 <b>Уведомления об обучениях</b>\n"
+                if sessions > 0:
+                    processing_text += (
+                        f"• Предстоящих обучений (в течение недели): {sessions}\n"
+                    )
+                    processing_text += f"• Отправлено уведомлений: {notifications}"
+                else:
+                    processing_text += (
+                        "• Предстоящих обучений в течение недели не найдено"
+                    )
+            elif "message" in notification_results:
+                processing_text += "\n📤 <b>Уведомления об обучениях</b>\n"
+                processing_text += f"⚠️ Ошибка: {notification_results.get('message')}"
+
+    processing_complete = data.get("processing_complete", False)
+
+    return {
+        "file_name": file_name,
+        "file_size": size_str,
+        "file_type": file_type,
+        "file_size_bytes": file_size,
+        "actual_size_bytes": actual_size,
+        "mime_type": mime_type,
+        "upload_error": upload_error,
+        "upload_time": f"{upload_time:.2f}" if upload_time else "—",
+        "file_replaced": file_replaced,
+        "processing_text": processing_text,
+        "has_error": bool(upload_error),
+        "has_processing": bool(processing_text),
+        "upload_progress_text": upload_progress_text,
+        "processing_complete": processing_complete,
+    }

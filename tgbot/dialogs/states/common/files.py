@@ -11,6 +11,9 @@ class Files(StatesGroup):
 
     # Загрузка файлов
     upload = State()
+    upload_processing = State()
+    upload_success = State()
+    upload_error = State()
 
     # Локальные файлы
     local = State()
