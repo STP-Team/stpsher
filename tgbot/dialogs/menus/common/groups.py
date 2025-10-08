@@ -18,7 +18,7 @@ from magic_filter import F
 
 from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.groups import (
-    close_group_dialog,
+    close_groups_dialog,
     on_access_level_click,
     on_group_selected,
     on_members_click,
@@ -66,7 +66,7 @@ groups_window = Window(
         ),
         SwitchTo(Const("💡 Команды"), id="groups_cmds", state=Groups.cmds),
     ),
-    Button(Const("↩️ Назад"), id="menu", on_click=close_group_dialog),
+    Button(Const("↩️ Назад"), id="menu", on_click=close_groups_dialog),
     state=Groups.menu,
 )
 
@@ -108,7 +108,7 @@ groups_list_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
     ),
     getter=groups_list_getter,
     state=Groups.list,
@@ -153,7 +153,7 @@ groups_list_detail_window = Window(
     Button(Const("♻️ Удалить бота"), id="remove_bot", on_click=on_remove_bot_click),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back_to_list", state=Groups.list),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
     ),
     state=Groups.group_details,
     getter=groups_details_getter,
@@ -351,7 +351,7 @@ groups_remove_bot_window = Window(
 <i>Функция в разработке...</i>"""),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Groups.group_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
     ),
     state=Groups.settings_remove,
     getter=group_remove_getter,

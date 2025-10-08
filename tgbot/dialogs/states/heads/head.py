@@ -9,6 +9,3 @@ class HeadSG(StatesGroup):
     # Меню
     menu = State()
     settings = State()
-
-    # Моя группа
-    my_group = State()

@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, ManagedRadio, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Row
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -13,8 +13,9 @@ from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.kpi import start_kpi_dialog
 from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
+from tgbot.dialogs.events.heads.group import start_group_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.states.head import HeadSG
+from tgbot.dialogs.states.heads.head import HeadSG
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ menu_window = Window(
         Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
     ),
     Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
-    SwitchTo(Const("❤️ Моя группа"), id="my_group", state=HeadSG.my_group),
+    Button(Const("❤️ Моя группа"), id="my_group", on_click=start_group_dialog),
     Row(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
@@ -41,16 +42,14 @@ menu_window = Window(
 )
 
 
-async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
+async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     """Установка параметров диалога по умолчанию при запуске.
 
     Args:
         _on_start: Дополнительные параметры запуска диалога
-        dialog_manager: Менеджер диалога
+        _dialog_manager: Менеджер диалога
     """
-    # Стандартный режим отображения графика на "Кратко"
-    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
-    await schedule_mode.set_checked("compact")
+    pass
 
 
 head_dialog = Dialog(

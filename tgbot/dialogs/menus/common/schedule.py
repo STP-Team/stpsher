@@ -14,7 +14,8 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.callbacks.common.schedule_functions import (
+from tgbot.dialogs.events.common.schedules import (
+    close_schedules_dialog,
     do_nothing,
     next_day,
     next_month,
@@ -22,10 +23,6 @@ from tgbot.dialogs.callbacks.common.schedule_functions import (
     prev_month,
     today,
 )
-from tgbot.dialogs.callbacks.user_functions import (
-    on_mode_select,
-)
-from tgbot.dialogs.events.common.schedules import close_schedules_dialog
 from tgbot.dialogs.getters.common.schedules import (
     duty_schedule_getter,
     group_schedule_getter,
@@ -92,7 +89,6 @@ my_window = Window(
             id="schedule_mode",
             item_id_getter=lambda item: item[0],
             items="mode_options",
-            on_click=on_mode_select,
         ),
     ),
     Row(

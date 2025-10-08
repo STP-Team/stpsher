@@ -31,9 +31,7 @@ async def user_schedule_getter(
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
 
-    # Get mode from dialog_data, default to compact
-    dialog_data = dialog_manager.dialog_data
-    selected_mode = dialog_data.get("schedule_mode", "compact")
+    selected_mode = dialog_manager.find("schedule_mode").get_checked()
     is_detailed_mode = selected_mode == "detailed"
     button_text = "📋 Кратко" if is_detailed_mode else "📋 Подробнее"
 

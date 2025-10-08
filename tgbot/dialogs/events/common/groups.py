@@ -30,7 +30,7 @@ async def start_groups_dialog(
     )
 
 
-async def close_group_dialog(
+async def close_groups_dialog(
     _callback: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
