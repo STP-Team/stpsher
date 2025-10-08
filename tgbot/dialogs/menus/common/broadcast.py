@@ -1,4 +1,4 @@
-"""Генерация общих функций для рассылок."""
+"""Генерация диалога рассылок."""
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import MessageInput

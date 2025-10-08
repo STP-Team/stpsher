@@ -22,9 +22,9 @@ async def activations_getter(
         Словарь из предметов на активацию
     """
     # Получаем покупки, ожидающие активации с manager_role, соответствующей роли пользователя
-    if user.role == 3:
+    if user.role in [2, 3]:
         activations = await stp_repo.purchase.get_review_purchases_for_activation(
-            manager_role=user.role,
+            manager_role=3,
             division="НЦК" if user.division == "НЦК" else ["НТП", "НТП1"],
         )
     else:

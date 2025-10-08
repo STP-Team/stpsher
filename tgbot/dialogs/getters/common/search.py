@@ -15,7 +15,7 @@ from tgbot.dialogs.getters.common.game.kpi import (
     kpi_requirements_getter,
     salary_getter,
 )
-from tgbot.dialogs.getters.common.schedule import user_schedule_getter
+from tgbot.dialogs.getters.common.schedules import user_schedule_getter
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname, get_role, get_status_emoji
 from tgbot.services.search import SearchService

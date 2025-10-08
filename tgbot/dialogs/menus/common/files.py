@@ -1,4 +1,4 @@
-"""Генерация общих функций для загрузки файлов."""
+"""Генерация диалога для управления файлами."""
 
 from aiogram import F
 from aiogram.enums import ContentType

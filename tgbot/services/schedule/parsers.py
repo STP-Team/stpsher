@@ -1193,7 +1193,7 @@ class DutyScheduleParser(BaseDutyParser):
                 lines.append(
                     f"Дежурный - {
                         format_fullname(
-                            duty.fullname, True, True, duty.username, duty.user_id
+                            duty.name, True, True, duty.username, duty.user_id
                         )
                     }"
                 )
@@ -1203,7 +1203,7 @@ class DutyScheduleParser(BaseDutyParser):
                 lines.append(
                     f"Помощник - {
                         format_fullname(
-                            duty.fullname, True, True, duty.username, duty.user_id
+                            duty.name, True, True, duty.username, duty.user_id
                         )
                     }"
                 )
@@ -1359,9 +1359,7 @@ class HeadScheduleParser(BaseExcelParser):
 
             for head in group_heads:
                 head_line = f"{
-                    format_fullname(
-                        head.fullname, True, True, head.username, head.user_id
-                    )
+                    format_fullname(head.name, True, True, head.username, head.user_id)
                 }"
 
                 if head.duty_info:

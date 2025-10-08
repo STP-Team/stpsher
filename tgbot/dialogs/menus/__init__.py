@@ -5,6 +5,8 @@ from tgbot.dialogs.menus.common.broadcast import broadcast_dialog
 from tgbot.dialogs.menus.common.files import files_dialog
 from tgbot.dialogs.menus.common.game.menu import game_dialog
 from tgbot.dialogs.menus.common.groups import groups_dialog
+from tgbot.dialogs.menus.common.kpi import kpi_dialog
+from tgbot.dialogs.menus.common.schedule import schedules_dialog
 from tgbot.dialogs.menus.common.search import search_dialog
 from tgbot.dialogs.menus.gok.main import gok_dialog
 from tgbot.dialogs.menus.head.main import head_dialog
@@ -22,6 +24,8 @@ dialogs_list = [
 ]
 
 common_dialogs_list = [
+    schedules_dialog,
+    kpi_dialog,
     game_dialog,
     broadcast_dialog,
     groups_dialog,

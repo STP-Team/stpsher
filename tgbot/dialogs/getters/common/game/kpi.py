@@ -11,7 +11,7 @@ from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatt
 
 
 async def base_kpi_data(
-    user: Employee, kpi_repo: KPIRequestsRepo, **kwargs
+    user: Employee, kpi_repo: KPIRequestsRepo, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для получения базовой информации о премии пользователя.
 

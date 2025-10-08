@@ -1,8 +1,12 @@
-"""Генерация окон графиков для руководителей."""
+"""Генерация диалога для графиков."""
+
+from typing import Any
 
 from aiogram import F
+from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.kbd import (
     Button,
+    ManagedRadio,
     Radio,
     Row,
     SwitchTo,
@@ -11,10 +15,6 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.callbacks.common.schedule_functions import (
-    clear_and_switch_to_duties,
-    clear_and_switch_to_group,
-    clear_and_switch_to_heads,
-    clear_and_switch_to_my,
     do_nothing,
     next_day,
     next_month,
@@ -25,47 +25,48 @@ from tgbot.dialogs.callbacks.common.schedule_functions import (
 from tgbot.dialogs.callbacks.user_functions import (
     on_mode_select,
 )
-from tgbot.dialogs.getters.common.schedule import (
+from tgbot.dialogs.events.common.schedules import close_schedules_dialog
+from tgbot.dialogs.getters.common.schedules import (
     duty_schedule_getter,
     group_schedule_getter,
     head_schedule_getter,
     user_schedule_getter,
 )
-from tgbot.dialogs.states.head import HeadSG
+from tgbot.dialogs.states.common.schedule import Schedules
 
-schedule_window = Window(
+menu_window = Window(
     Format("""<b>📅 Меню графиков</b>
 
 Здесь ты найдешь все, что связано с графиками"""),
     Row(
-        Button(
+        SwitchTo(
             Const("👔 Мой график"),
             id="schedule_my",
-            on_click=clear_and_switch_to_my,
+            state=Schedules.my,
         ),
-        Button(
+        SwitchTo(
             Const("❤️ Моя группа"),
             id="schedule_group",
-            on_click=clear_and_switch_to_group,
+            state=Schedules.group,
         ),
     ),
     Row(
-        Button(
+        SwitchTo(
             Const("👮‍♂️ Дежурные"),
             id="schedule_duties",
-            on_click=clear_and_switch_to_duties,
+            state=Schedules.duties,
         ),
-        Button(
+        SwitchTo(
             Const("👑 Руководители"),
             id="schedule_heads",
-            on_click=clear_and_switch_to_heads,
+            state=Schedules.heads,
         ),
     ),
-    SwitchTo(Const("↩️ Назад"), id="back_to_menu", state=HeadSG.menu),
-    state=HeadSG.schedule,
+    Button(Const("↩️ Назад"), id="home", on_click=close_schedules_dialog),
+    state=Schedules.menu,
 )
 
-schedule_my_window = Window(
+my_window = Window(
     Format("{schedule_text}"),
     Row(
         Button(
@@ -95,15 +96,15 @@ schedule_my_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=HeadSG.schedule),
-        SwitchTo(Const("🏠 Домой"), id="home", state=HeadSG.menu),
+        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
     ),
     getter=user_schedule_getter,
-    state=HeadSG.schedule_my,
+    state=Schedules.my,
 )
 
 
-schedule_duties_window = Window(
+duties_window = Window(
     Format("{duties_text}"),
     Row(
         Button(
@@ -129,14 +130,14 @@ schedule_duties_window = Window(
         when=~F["is_today"],
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=HeadSG.schedule),
-        SwitchTo(Const("🏠 Домой"), id="home", state=HeadSG.menu),
+        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
     ),
     getter=duty_schedule_getter,
-    state=HeadSG.schedule_duties,
+    state=Schedules.duties,
 )
 
-schedule_group_window = Window(
+group_window = Window(
     Format("{group_text}"),
     Row(
         Button(
@@ -162,14 +163,14 @@ schedule_group_window = Window(
         when=~F["is_today"],
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=HeadSG.schedule),
-        SwitchTo(Const("🏠 Домой"), id="home", state=HeadSG.menu),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
     ),
     getter=group_schedule_getter,
-    state=HeadSG.schedule_group,
+    state=Schedules.group,
 )
 
-schedule_heads_window = Window(
+heads_window = Window(
     Format("{heads_text}"),
     Row(
         Button(
@@ -195,9 +196,26 @@ schedule_heads_window = Window(
         when=~F["is_today"],
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=HeadSG.schedule),
-        SwitchTo(Const("🏠 Домой"), id="home", state=HeadSG.menu),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
     ),
     getter=head_schedule_getter,
-    state=HeadSG.schedule_heads,
+    state=Schedules.heads,
+)
+
+
+async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
+    """Установка параметров диалога по умолчанию при запуске.
+
+    Args:
+        _on_start: Дополнительные параметры запуска диалога
+        dialog_manager: Менеджер диалога
+    """
+    # Стандартный режим отображения графика на "Кратко"
+    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    await schedule_mode.set_checked("compact")
+
+
+schedules_dialog = Dialog(
+    menu_window, my_window, group_window, duties_window, heads_window, on_start=on_start
 )

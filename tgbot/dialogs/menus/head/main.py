@@ -8,21 +8,12 @@ from aiogram_dialog.widgets.kbd import Button, ManagedRadio, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
+from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
+from tgbot.dialogs.events.common.kpi import start_kpi_dialog
+from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.menus.head.kpi import (
-    kpi_requirements_window,
-    kpi_window,
-    salary_window,
-)
-from tgbot.dialogs.menus.head.schedule import (
-    schedule_duties_window,
-    schedule_group_window,
-    schedule_heads_window,
-    schedule_my_window,
-    schedule_window,
-)
 from tgbot.dialogs.states.head import HeadSG
 
 logger = logging.getLogger(__name__)
@@ -35,15 +26,11 @@ menu_window = Window(
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
     Row(
-        SwitchTo(Const("📅 Графики"), id="schedules", state=HeadSG.schedule),
-        SwitchTo(Const("🌟 Показатели"), id="kpi", state=HeadSG.kpi),
+        Button(Const("📅 Графики"), id="schedules", on_click=start_schedules_dialog),
+        Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
     ),
+    Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
     SwitchTo(Const("❤️ Моя группа"), id="my_group", state=HeadSG.my_group),
-    SwitchTo(
-        Const("✍️ Активация предметов"),
-        id="products_activation",
-        state=HeadSG.game_products_activation,
-    ),
     Row(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
@@ -68,14 +55,6 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
 
 head_dialog = Dialog(
     menu_window,
-    schedule_window,
-    schedule_my_window,
-    schedule_duties_window,
-    schedule_group_window,
-    schedule_heads_window,
-    kpi_window,
-    kpi_requirements_window,
-    salary_window,
     on_start=on_start,
     getter=db_getter,
 )
