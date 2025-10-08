@@ -1,5 +1,6 @@
 """Геттеры для функций поиска."""
 
+from html import escape
 from typing import Any, Sequence
 
 from aiogram_dialog import DialogManager
@@ -16,7 +17,7 @@ from tgbot.dialogs.getters.common.game.kpi import (
 )
 from tgbot.dialogs.getters.common.schedule import user_schedule_getter
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import format_fullname, get_role
+from tgbot.misc.helpers import format_fullname, get_role, get_status_emoji
 from tgbot.services.search import SearchService
 
 
@@ -219,7 +220,7 @@ async def search_user_info_getter(
 
         return {
             "user_info": user_info,
-            "user_casino_access": searched_user.role in [1, 3],
+            "searched_default_user": searched_user.role in [1, 3],
             "is_head": is_head,
             "is_mip": is_mip,
             "is_root": is_root,
@@ -464,3 +465,156 @@ async def search_salary_getter(
         )
 
     return salary_data
+
+
+async def search_achievements_getter(
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> dict[str, Any]:
+    """Геттер для получения достижений выбранного пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с историей достижений пользователя
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    # Получаем все транзакции-достижения пользователя
+    transactions = await stp_repo.transaction.get_user_transactions(
+        user_id=selected_user.user_id, only_achievements=True
+    )
+
+    # Получаем фильтр периода
+    selected_period = dialog_manager.dialog_data.get(
+        "search_achievement_period_filter", "all"
+    )
+
+    # Фильтруем по периоду если нужно
+    if selected_period != "all":
+        # Получаем все достижения, чтобы найти период
+        all_achievements = await stp_repo.achievement.get_achievements()
+        achievement_periods = {ach.id: ach.period for ach in all_achievements}
+
+        transactions = [
+            t
+            for t in transactions
+            if t.source_id and achievement_periods.get(t.source_id) == selected_period
+        ]
+
+    # Форматируем достижения для отображения
+    formatted_achievements = []
+    for transaction in transactions:
+        if not transaction.source_id:
+            continue
+
+        achievement = await stp_repo.achievement.get_achievement(
+            achievement_id=transaction.source_id
+        )
+        if not achievement:
+            continue
+
+        period = "Неизвестно"
+        match achievement.period:
+            case "d":
+                period = "Раз в день"
+            case "w":
+                period = "Раз в неделю"
+            case "m":
+                period = "Раз в месяц"
+            case "A":
+                period = "Вручную"
+
+        date_str = transaction.created_at.strftime("%d.%m.%y %H:%M")
+
+        formatted_achievements.append((
+            transaction.id,
+            escape(achievement.name),
+            transaction.amount,
+            escape(achievement.description),
+            achievement.position,
+            period,
+            date_str,
+        ))
+
+    # Данные для радио-кнопок периодов
+    period_radio_data = [
+        ("all", "Все"),
+        ("d", "День"),
+        ("w", "Неделя"),
+        ("m", "Месяц"),
+        ("A", "Ручные"),
+    ]
+
+    user_name = format_fullname(selected_user.fullname, short=False, gender_emoji=True)
+
+    return {
+        "achievements": formatted_achievements,
+        "user_name": user_name,
+        "total_achievements": len(formatted_achievements),
+        "period_radio_data": period_radio_data,
+        "selected_period": selected_period,
+    }
+
+
+async def search_inventory_getter(
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> dict[str, Any]:
+    """Геттер для получения инвентаря выбранного пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с предметами инвентаря пользователя
+    """
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    selected_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+
+    # Получаем все покупки пользователя
+    user_products = await stp_repo.purchase.get_user_purchases_with_details(
+        user_id=selected_user.user_id
+    )
+
+    total_bought = len(user_products)
+
+    # Получаем фильтр статуса
+    filter_type = dialog_manager.dialog_data.get("search_inventory_filter", "all")
+
+    formatted_products = []
+    for product in user_products:
+        user_product = product.user_purchase
+        product_info = product.product_info
+
+        # Применяем фильтр
+        if filter_type != "all" and user_product.status != filter_type:
+            continue
+
+        date_str = user_product.bought_at.strftime("%d.%m.%y")
+        status_emoji = get_status_emoji(user_product.status)
+        usage_info = f"({product.current_usages}/{product.max_usages})"
+        button_text = f"{status_emoji} {usage_info} {product_info.name} ({date_str})"
+
+        formatted_products.append((
+            user_product.id,
+            button_text,
+            product_info.name,
+            product_info.description,
+            product_info.cost,
+            user_product.status,
+            product.current_usages,
+            product.max_usages,
+        ))
+
+    user_name = format_fullname(selected_user.fullname, short=False, gender_emoji=True)
+
+    return {
+        "products": formatted_products,
+        "user_name": user_name,
+        "total_bought": total_bought,
+        "total_shown": len(formatted_products),
+        "inventory_filter": filter_type,
+    }

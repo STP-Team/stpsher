@@ -25,3 +25,5 @@ class Search(StatesGroup):
     details_kpi_window = State()
     details_kpi_requirements_window = State()
     details_kpi_salary_window = State()
+    details_game_achievements = State()
+    details_game_products = State()

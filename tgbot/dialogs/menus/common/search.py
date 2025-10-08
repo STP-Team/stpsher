@@ -7,15 +7,20 @@ from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Checkbox,
+    CurrentPage,
+    FirstPage,
     Group,
+    LastPage,
     ManagedRadio,
+    NextPage,
+    PrevPage,
     Radio,
     Row,
     ScrollingGroup,
     Select,
     SwitchTo,
 )
-from aiogram_dialog.widgets.text import Const, Format
+from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.callbacks.common.schedule_functions import (
@@ -35,7 +40,9 @@ from tgbot.dialogs.events.common.search import (
 )
 from tgbot.dialogs.getters.common.search import (
     search_access_level_getter,
+    search_achievements_getter,
     search_heads_getter,
+    search_inventory_getter,
     search_kpi_getter,
     search_kpi_requirements_getter,
     search_results_getter,
@@ -204,6 +211,20 @@ details_window = Window(
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
         ),
+        Row(
+            SwitchTo(
+                Const("🎯 Достижения"),
+                id="achievements",
+                state=Search.details_game_achievements,
+                when="searched_default_user",
+            ),
+            SwitchTo(
+                Const("👏 Предметы"),
+                id="products",
+                state=Search.details_game_products,
+                when="searched_default_user",
+            ),
+        ),
         Checkbox(
             Const("🟢 Казино"),
             Const("🔴 Казино"),
@@ -238,12 +259,26 @@ details_window = Window(
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
         ),
+        Row(
+            SwitchTo(
+                Const("🎯 Достижения"),
+                id="achievements",
+                state=Search.details_game_achievements,
+                when="searched_default_user",
+            ),
+            SwitchTo(
+                Const("👏 Предметы"),
+                id="products",
+                state=Search.details_game_products,
+                when="searched_default_user",
+            ),
+        ),
         Checkbox(
             Const("🟢 Казино"),
             Const("🔴 Казино"),
             id="casino_access",
             on_state_changed=on_casino_change,
-            when="user_casino_access",
+            when="searched_default_user",
         ),
         SwitchTo(
             Const("🛡️ Уровень доступа"),
@@ -405,6 +440,114 @@ details_kpi_salary_window = Window(
 )
 
 
+details_achievements_window = Window(
+    Format("""🎯 <b>Достижения</b>
+
+<b>{user_name}</b>
+
+История полученных достижений
+<i>Всего получено: {total_achievements}</i>
+"""),
+    List(
+        Format("""{pos}. <b>{item[1]}</b>
+<blockquote>🏅 Награда: {item[2]} баллов
+📝 Описание: {item[3]}
+🔰 Должность: {item[4]}
+🕒 Начисление: {item[5]}
+📅 Получено: {item[6]}</blockquote>
+"""),
+        items="achievements",
+        id="achievements_list",
+        page_size=3,
+    ),
+    Const("<i>Используй кнопки для выбора страницы или фильтров</i>"),
+    Row(
+        FirstPage(
+            scroll="achievements_list",
+            text=Format("1"),
+        ),
+        PrevPage(
+            scroll="achievements_list",
+            text=Format("<"),
+        ),
+        CurrentPage(
+            scroll="achievements_list",
+            text=Format("{current_page1}"),
+        ),
+        NextPage(
+            scroll="achievements_list",
+            text=Format(">"),
+        ),
+        LastPage(
+            scroll="achievements_list",
+            text=Format("{target_page1}"),
+        ),
+    ),
+    Radio(
+        Format("🔘 {item[1]}"),
+        Format("⚪️ {item[1]}"),
+        id="search_achievement_period_filter",
+        item_id_getter=lambda item: item[0],
+        items="period_radio_data",
+        on_click=on_filter_change,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_achievements_getter,
+    state=Search.details_game_achievements,
+)
+
+
+details_inventory_window = Window(
+    Format("""🎒 <b>Инвентарь</b>
+
+<b>{user_name}</b>
+
+Здесь можно увидеть все покупки сотрудника, их статус
+
+Используй фильтры для поиска нужных предметов:
+📦 - Готов к использованию
+⏳ - На проверке
+🔒 - Не осталось использований
+
+<i>Всего предметов приобретено: {total_bought}</i>
+<i>Показано: {total_shown}</i>"""),
+    ScrollingGroup(
+        Select(
+            Format("{item[1]}"),
+            id="search_inventory_product",
+            items="products",
+            item_id_getter=lambda item: item[0],
+        ),
+        width=2,
+        height=3,
+        hide_on_single_page=True,
+        id="search_inventory_scroll",
+    ),
+    Radio(
+        Format("🔘 {item[1]}"),
+        Format("⚪️ {item[1]}"),
+        id="search_inventory_filter",
+        item_id_getter=lambda item: item[0],
+        items=[
+            ("all", "📋 Все"),
+            ("stored", "📦 Готов"),
+            ("review", "⏳ На проверке"),
+            ("used_up", "🔒 Использовано"),
+        ],
+        on_click=on_filter_change,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+    ),
+    getter=search_inventory_getter,
+    state=Search.details_game_products,
+)
+
+
 async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     """Установка параметров диалога по умолчанию при запуске.
 
@@ -420,6 +563,16 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
     await schedule_mode.set_checked("compact")
 
+    # Фильтр достижений на "Все"
+    achievement_period_filter: ManagedRadio = dialog_manager.find(
+        "search_achievement_period_filter"
+    )
+    await achievement_period_filter.set_checked("all")
+
+    # Фильтр инвентаря на "Все"
+    inventory_filter: ManagedRadio = dialog_manager.find("search_inventory_filter")
+    await inventory_filter.set_checked("all")
+
 
 search_dialog = Dialog(
     menu_window,
@@ -434,5 +587,7 @@ search_dialog = Dialog(
     details_kpi_window,
     details_kpi_requirements_window,
     details_kpi_salary_window,
+    details_achievements_window,
+    details_inventory_window,
     on_start=on_start,
 )
