@@ -20,13 +20,14 @@ async def user_kpi_cb(
     callback: CallbackQuery, user: Employee, kpi_repo: KPIRequestsRepo
 ):
     premium = await kpi_repo.spec_premium.get_premium(fullname=user.fullname)
+
     if (
         premium is None
-        or not premium.csi_premium
-        or not premium.flr_premium
-        or not premium.gok_premium
-        or not premium.tests_premium
-        or not premium.total_premium
+        or premium.csi_premium is None
+        or premium.flr_premium is None
+        or premium.gok_premium is None
+        or premium.tests_premium is None
+        or premium.total_premium is None
     ):
         await callback.message.edit_text(
             """🌟 <b>Показатели</b>
@@ -90,11 +91,11 @@ async def user_kpi_calculator_cb(
 
     if (
         premium is None
-        or not premium.csi_premium
-        or not premium.flr_premium
-        or not premium.gok_premium
-        or not premium.tests_premium
-        or not premium.total_premium
+        or premium.csi_premium is None
+        or premium.flr_premium is None
+        or premium.gok_premium is None
+        or premium.tests_premium is None
+        or premium.total_premium is None
     ):
         await callback.message.edit_text(
             """🧮 <b>Калькулятор KPI</b>
@@ -170,11 +171,11 @@ async def user_kpi_salary_cb(
 
     if (
         premium is None
-        or not premium.csi_premium
-        or not premium.flr_premium
-        or not premium.gok_premium
-        or not premium.tests_premium
-        or not premium.total_premium
+        or premium.csi_premium is None
+        or premium.flr_premium is None
+        or premium.gok_premium is None
+        or premium.tests_premium is None
+        or premium.total_premium is None
     ):
         await callback.message.edit_text(
             """💰 <b>Расчет зарплаты</b>
