@@ -23,7 +23,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.schedules import do_nothing, next_month, prev_month
 from tgbot.dialogs.events.common.search import (
     close_search_dialog,
@@ -48,6 +47,7 @@ from tgbot.dialogs.getters.common.search import (
     search_user_info_getter,
 )
 from tgbot.dialogs.states.common.search import Search
+from tgbot.misc.helpers import get_status_emoji
 
 menu_window = Window(
     Format("""🕵🏻 <b>Поиск сотрудника</b>
@@ -92,7 +92,6 @@ specialists_window = Window(
             id="search_divisions",
             item_id_getter=lambda item: item[0],
             items="division_options",
-            on_click=on_filter_change,
         ),
     ),
     Row(
@@ -129,7 +128,6 @@ heads_window = Window(
             id="search_divisions",
             item_id_getter=lambda item: item[0],
             items="division_options",
-            on_click=on_filter_change,
         ),
     ),
     Row(
@@ -485,7 +483,6 @@ details_achievements_window = Window(
         id="search_achievement_period_filter",
         item_id_getter=lambda item: item[0],
         items="period_radio_data",
-        on_click=on_filter_change,
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
@@ -529,11 +526,10 @@ details_inventory_window = Window(
         item_id_getter=lambda item: item[0],
         items=[
             ("all", "📋 Все"),
-            ("stored", "📦 Готов"),
-            ("review", "⏳ На проверке"),
-            ("used_up", "🔒 Использовано"),
+            ("stored", f"{get_status_emoji('stored')}"),
+            ("review", f"{get_status_emoji('review')}"),
+            ("used_up", f"{get_status_emoji('used_up')}"),
         ],
-        on_click=on_filter_change,
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),

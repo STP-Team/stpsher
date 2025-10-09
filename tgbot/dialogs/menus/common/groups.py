@@ -16,7 +16,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.groups import (
     close_groups_dialog,
     on_access_level_click,
@@ -213,7 +212,6 @@ groups_cmds_window = Window(
         id="groups_cmds_filter",
         item_id_getter=lambda item: item[0],
         items=[("user", "Пользователь"), ("admin", "Администратор")],
-        on_click=on_filter_change,
     ),
     SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu),
     state=Groups.cmds,

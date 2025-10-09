@@ -11,7 +11,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.events.common.game.inventory import (
     on_inventory_cancel_activation,
@@ -59,7 +58,6 @@ inventory_window = Window(
             ("review", f"{get_status_emoji('review')}"),
             ("used_up", f"{get_status_emoji('used_up')}"),
         ],
-        on_click=on_filter_change,
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),

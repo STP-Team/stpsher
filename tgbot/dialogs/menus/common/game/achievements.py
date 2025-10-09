@@ -15,7 +15,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.filters.common.game_filters import (
     achievements_filter_getter,
@@ -66,7 +65,6 @@ achievements_window = Window(
         id="achievement_position_filter",
         item_id_getter=lambda item: item[0],
         items="position_radio_data",
-        on_click=on_filter_change,
         when="is_user",
     ),
     Radio(
@@ -75,7 +73,6 @@ achievements_window = Window(
         id="achievement_division_filter",
         item_id_getter=lambda item: item[0],
         items="division_radio_data",
-        on_click=on_filter_change,
         when=~F["is_user"],
     ),
     Radio(
@@ -84,7 +81,6 @@ achievements_window = Window(
         id="achievement_period_filter",
         item_id_getter=lambda item: item[0],
         items="period_radio_data",
-        on_click=on_filter_change,
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),

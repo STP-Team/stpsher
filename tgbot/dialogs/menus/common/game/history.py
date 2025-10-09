@@ -11,7 +11,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.events.common.game.history import on_transaction_click
 from tgbot.dialogs.filters.user.game.history import history_filter_getter
@@ -50,7 +49,6 @@ history_window = Window(
             id="history_type_filter",
             item_id_getter=lambda item: item[0],
             items=[("all", "Все"), ("earn", "Доход"), ("spend", "Расход")],
-            on_click=on_filter_change,
         ),
     ),
     Row(
@@ -66,7 +64,6 @@ history_window = Window(
                 ("manual", "✍️"),
                 ("casino", "🎰"),
             ],
-            on_click=on_filter_change,
         ),
     ),
     Row(

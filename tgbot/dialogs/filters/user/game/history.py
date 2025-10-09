@@ -20,15 +20,9 @@ async def history_filter_getter(dialog_manager: DialogManager, **kwargs):
     """
     base_data = await history_getter(**kwargs)
 
-    # Проверяем текущий выбор фильтров (стандартно на 'all')
-    type_filter = dialog_manager.dialog_data.get("history_type_filter", "all")
-    source_filter = dialog_manager.dialog_data.get("history_source_filter", "all")
-
-    # Устанавливаем стандартные фильтры если не установлено иное
-    if "history_type_filter" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["history_type_filter"] = "all"
-    if "history_source_filter" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["history_source_filter"] = "all"
+    # Проверяем текущий выбор фильтров
+    type_filter = dialog_manager.find("history_type_filter").get_checked()
+    source_filter = dialog_manager.find("history_source_filter").get_checked()
 
     transactions = base_data["history_products"]
     total_transactions = base_data["total_transactions"]

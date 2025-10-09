@@ -283,7 +283,7 @@ async def groups_cmds_getter(
     Returns:
         Словарь с информацией о выбранном фильтре команд
     """
-    filter_value = dialog_manager.dialog_data.get("groups_cmds_filter", "user")
+    filter_value = dialog_manager.find("groups_cmds_filter").get_checked()
 
     return {
         "is_user": filter_value == "user",

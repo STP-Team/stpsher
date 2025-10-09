@@ -18,7 +18,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.filters import on_filter_change
 from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.events.common.game.inventory import use_product
 from tgbot.dialogs.events.common.game.shop import (
@@ -94,7 +93,6 @@ products_window = Window(
             id="product_filter",
             item_id_getter=lambda item: item[0],
             items=[("available", "Доступные"), ("all", "Все предметы")],
-            on_click=on_filter_change,
         ),
         when="is_user",
     ),
@@ -105,7 +103,6 @@ products_window = Window(
             id="product_division_filter",
             item_id_getter=lambda item: item[0],
             items="division_radio_data",
-            on_click=on_filter_change,
         ),
         when=~F["is_user"],
     ),

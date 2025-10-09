@@ -62,11 +62,7 @@ async def search_specialists_getter(
     base_data = await search_getter(**kwargs)
     specialists = base_data.get("specialists")
 
-    selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
-
-    # Устанавливаем стандартное значение если не указано иное
-    if "search_divisions" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["search_divisions"] = "all"
+    selected_division = dialog_manager.find("search_divisions").get_checked()
 
     # Фильтруем руководителей по направлению если выбран фильтр
     if selected_division != "all":
@@ -116,11 +112,7 @@ async def search_heads_getter(
     base_data = await search_getter(**kwargs)
     all_heads = base_data.get("heads")
 
-    selected_division = dialog_manager.dialog_data.get("search_divisions", "all")
-
-    # Устанавливаем стандартное значение если не указано иное
-    if "search_divisions" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["search_divisions"] = "all"
+    selected_division = dialog_manager.find("search_divisions").get_checked()
 
     # Фильтруем руководителей по направлению если выбран фильтр
     if selected_division != "all":
@@ -488,9 +480,9 @@ async def search_achievements_getter(
     )
 
     # Получаем фильтр периода
-    selected_period = dialog_manager.dialog_data.get(
-        "search_achievement_period_filter", "all"
-    )
+    selected_period = dialog_manager.find(
+        "search_achievement_period_filter"
+    ).get_checked()
 
     # Фильтруем по периоду если нужно
     if selected_period != "all":
@@ -582,7 +574,7 @@ async def search_inventory_getter(
     total_bought = len(user_products)
 
     # Получаем фильтр статуса
-    filter_type = dialog_manager.dialog_data.get("search_inventory_filter", "all")
+    filter_type = dialog_manager.find("search_inventory_filter").get_checked()
 
     formatted_products = []
     for product in user_products:

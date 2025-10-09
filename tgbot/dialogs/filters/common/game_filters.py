@@ -120,31 +120,30 @@ async def product_filter_getter(
     """
     # Определяем роль пользователя
     is_user = user.role in [1, 3]  # Специалисты и дежурные
-    is_manager = user.role in [5, 6]  # ГОК и МИП
+    is_manager = user.role in [2, 5, 6]  # ГОК и МИП
 
+    # TODO Исправить некорректное отображение списка предметов у менеджеров при фильтрации перед комитом
     # Для менеджеров получаем выбранное подразделение
     division_param = None
     if is_manager:
-        selected_division = dialog_manager.dialog_data.setdefault(
-            "product_division_filter", "all"
-        )
+        selected_division = dialog_manager.find("product_division_filter").get_checked()
         if selected_division != "all":
             division_map = {"nck": "НЦК", "ntp": "НТП"}
             division_param = division_map.get(selected_division, "")
 
-    # Загружаем продукты с учетом фильтра подразделения
-    base_data = await products_getter(
-        user=user, stp_repo=stp_repo, division=division_param, **kwargs
-    )
+            # Загружаем продукты с учетом фильтра подразделения
+            base_data = await products_getter(
+                user=user, stp_repo=stp_repo, division=division_param, **kwargs
+            )
+        else:
+            base_data = await products_getter(user=user, stp_repo=stp_repo, **kwargs)
 
     products = base_data["products"]
     user_balance = base_data["user_balance"]
 
     # Для обычных пользователей фильтруем по доступности (стоимости)
     if is_user:
-        filter_type = dialog_manager.dialog_data.setdefault(
-            "product_filter", "available"
-        )
+        filter_type = dialog_manager.find("product_filter").get_checked()
 
         if filter_type == "available":
             # Фильтруем предметы, доступные пользователю по балансу
@@ -172,9 +171,9 @@ async def product_filter_getter(
     if is_user:
         result["product_filter"] = filter_type
     else:
-        result["product_division_filter"] = dialog_manager.dialog_data.get(
-            "product_division_filter", "all"
-        )
+        result["product_division_filter"] = dialog_manager.find(
+            "product_division_filter"
+        ).get_checked()
 
     return result
 
@@ -262,17 +261,13 @@ async def achievements_filter_getter(
     division_radio_data = [("all", "Все"), ("nck", "НЦК"), ("ntp", "НТП")]
 
     # Проверяем текущий выбор фильтра позиции (для пользователей)
-    selected_position = dialog_manager.dialog_data.get(
-        "achievement_position_filter", "all"
-    )
+    selected_position = dialog_manager.find("achievement_position_filter").get_checked()
 
     # Проверяем текущий выбор фильтра подразделения (для менеджеров)
-    selected_division = dialog_manager.dialog_data.get(
-        "achievement_division_filter", "all"
-    )
+    selected_division = dialog_manager.find("achievement_division_filter").get_checked()
 
-    # Проверяем текущий выбор фильтра периода (стандартно на 'all')
-    selected_period = dialog_manager.dialog_data.get("achievement_period_filter", "all")
+    # Проверяем текущий выбор фильтра периода
+    selected_period = dialog_manager.find("achievement_period_filter").get_checked()
 
     # Фильтруем достижения по выбранному фильтру в зависимости от роли
     if is_user:

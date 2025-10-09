@@ -16,12 +16,8 @@ async def inventory_filter_getter(dialog_manager: DialogManager, **kwargs):
     """
     base_data = await inventory_getter(**kwargs)
 
-    # Проверяем текущий выбор фильтра (стандартно на 'all')
-    filter_type = dialog_manager.dialog_data.get("inventory_filter", "all")
-
-    # Устанавливаем стандартный фильтр если не установлено иное
-    if "inventory_filter" not in dialog_manager.dialog_data:
-        dialog_manager.dialog_data["inventory_filter"] = "all"
+    # Проверяем текущий выбор фильтра
+    filter_type = dialog_manager.find("inventory_filter").get_checked()
 
     products = base_data["products"]
     total_bought = base_data["total_bought"]
