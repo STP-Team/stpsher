@@ -214,13 +214,13 @@ class KPICalculator:
     @staticmethod
     def calculate_target_needed(
         current_target,
-        target_goal_first,
-        target_goal_second,
+        target_normative_first,
+        target_normative_second,
         target_type: Optional[str] = None,
         is_head: bool = False,
     ):
         """Расчет цели, необходимой для достижения уровней премии"""
-        if target_goal_first is None and target_goal_second is None:
+        if target_normative_first is None and target_normative_second is None:
             return "—"
 
         current_target = current_target or 0
@@ -233,11 +233,11 @@ class KPICalculator:
 
         # Для руководителей используем упрощенную систему премий
         if is_head:
-            # Определяем основной норматив (приоритет - target_goal_second, если есть)
+            # Определяем основной норматив (приоритет - target_normative_second, если есть)
             normative = (
-                target_goal_second
-                if target_goal_second and target_goal_second > 0
-                else target_goal_first
+                target_normative_second
+                if target_normative_second and target_normative_second > 0
+                else target_normative_first
             )
 
             if not normative:
@@ -296,9 +296,9 @@ class KPICalculator:
             return "\n".join(results)
 
         # Для специалистов
-        if target_goal_second and target_goal_second > 0:
+        if target_normative_second and target_normative_second > 0:
             # Когда есть вторая цель, используем ее как основной план
-            normative = target_goal_second
+            normative = target_normative_second
 
             if is_aht_target:
                 # Для AHT, чем ниже, тем лучше — процент рассчитывается как (план / текущий * 100)
@@ -351,9 +351,9 @@ class KPICalculator:
             else:
                 results.append("0%: ✅ (&lt; 99,99% - менее плана 1)")
 
-        elif target_goal_first and target_goal_first > 0:
+        elif target_normative_first and target_normative_first > 0:
             # Когда есть только первая цель, используем ее как план
-            normative = target_goal_first
+            normative = target_normative_first
 
             if is_aht_target:
                 target_rate = (
@@ -421,8 +421,8 @@ class KPICalculator:
         )
         target_calculation = cls.calculate_target_needed(
             premium.target,
-            premium.target_goal_first,
-            premium.target_goal_second,
+            premium.target_normative_first,
+            premium.target_normative_second,
             premium.target_type,
             is_head=is_head,
         )
@@ -446,7 +446,7 @@ class KPICalculator:
 
 🎯 <b>Цель</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(premium.target_result_first)} / {SalaryFormatter.format_percentage(premium.target_result_second)})
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}
 
 <b>Для премии:</b>
 {target_calculation}</blockquote>
@@ -477,8 +477,8 @@ class KPICalculator:
 {gok_calculation}</blockquote>
 
 🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(round((premium.target_goal_first / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_goal_first else (premium.target / premium.target_goal_first * 100) if premium.target_goal_first and premium.target_goal_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((premium.target_goal_second / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_goal_second else (premium.target / premium.target_goal_second * 100) if premium.target_goal_second and premium.target_goal_second > 0 else 0))})
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}
+<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(round((premium.target_normative_first / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_normative_first else (premium.target / premium.target_normative_second * 100) if premium.target_normative_first and premium.target_normative_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((premium.target_normative_second / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_normative_second else (premium.target / premium.target_normative_second * 100) if premium.target_normative_second and premium.target_normative_second > 0 else 0))})
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}
 
 Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель
 

@@ -96,6 +96,7 @@ async def use_product(
         product_name = product_info["product_name"]
 
     try:
+        # TODO Добавить проверку на ограничения дня активации предмета
         success = await stp_repo.purchase.use_purchase(user_product_id)
 
         if success:

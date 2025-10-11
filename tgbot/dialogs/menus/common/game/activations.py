@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.activations import (
+from tgbot.dialogs.events.common.game.activations import (
     on_activation_click,
     on_approve_activation,
     on_reject_activation,
