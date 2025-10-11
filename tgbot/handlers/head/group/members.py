@@ -909,8 +909,8 @@ async def view_member_transaction_detail(
 <b>📅 Дата создания</b>
 {transaction.created_at.strftime("%d.%m.%Y в %H:%M")}"""
 
-        if transaction.user_comment:
-            message_text += f"\n\n<b>💬 Комментарий</b>\n<blockquote expandable>{transaction.user_comment}</blockquote>"
+        if transaction.comment:
+            message_text += f"\n\n<b>💬 Комментарий</b>\n<blockquote expandable>{transaction.comment}</blockquote>"
 
         await callback.message.edit_text(
             message_text,

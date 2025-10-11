@@ -150,7 +150,7 @@ async def head_transaction_detail_view(
 {transaction.created_at.strftime("%d.%m.%Y в %H:%M")}"""
 
     if transaction.use:
-        message_text += f"\n\n<b>💬 Комментарий</b>\n<blockquote expandable>{transaction.user_comment}</blockquote>"
+        message_text += f"\n\n<b>💬 Комментарий</b>\n<blockquote expandable>{transaction.comment}</blockquote>"
 
     await callback.message.edit_text(
         message_text, reply_markup=head_transaction_detail_kb(page)

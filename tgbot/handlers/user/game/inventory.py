@@ -194,9 +194,6 @@ async def product_detail_view(
 <blockquote expandable><b>📅 Дата покупки</b>  
 {user_product.bought_at.strftime("%d.%m.%Y в %H:%M")}</blockquote>"""
 
-    if user_product.user_comment:
-        message_text += f"\n\n<b>💬 Комментарий</b>\n└ {user_product.user_comment}"
-
     if user_product.updated_by_user_id:
         manager = await stp_repo.employee.get_user(
             user_id=user_product.updated_by_user_id
@@ -288,9 +285,6 @@ async def product_detail_view_from_shop(
 
 <blockquote expandable><b>📅 Дата покупки</b>  
 {user_product.bought_at.strftime("%d.%m.%Y в %H:%M")}</blockquote>"""
-
-    if user_product.user_comment:
-        message_text += f"\n\n<b>💬 Комментарий</b>\n└ {user_product.user_comment}"
 
     if user_product.updated_by_user_id:
         manager = await stp_repo.employee.get_user(
