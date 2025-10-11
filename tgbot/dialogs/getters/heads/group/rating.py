@@ -75,9 +75,9 @@ def _format_rating_value(value: float | int | None, normative: str) -> str:
     if value is None:
         return "—"
 
-    if normative == "sales":
+    if normative in ["sales", "csi"]:
         return str(int(value))
-    elif normative in ("csi", "pok", "flr"):
+    elif normative in ("pok", "flr"):
         return f"{value:.1f}%"
     return str(value)
 
