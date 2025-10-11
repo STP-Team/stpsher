@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from aiogram import F
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -21,7 +22,14 @@ from aiogram_dialog.widgets.kbd import (
 )
 from aiogram_dialog.widgets.text import Const, Format, List
 
-from tgbot.dialogs.events.common.schedules import do_nothing, next_month, prev_month
+from tgbot.dialogs.events.common.schedules import (
+    do_nothing,
+    next_day,
+    next_month,
+    prev_day,
+    prev_month,
+    today,
+)
 from tgbot.dialogs.events.heads.group import (
     close_group_dialog,
     on_member_casino_change,
@@ -29,6 +37,7 @@ from tgbot.dialogs.events.heads.group import (
     on_member_schedule_mode_select,
     on_member_select,
 )
+from tgbot.dialogs.getters.common.schedules import group_schedule_getter
 from tgbot.dialogs.getters.heads.group.members import (
     group_members_getter,
     member_access_level_getter,
@@ -61,11 +70,35 @@ menu_window = Window(
 )
 
 schedule_window = Window(
-    Const("""📅 <b>График</b>"""),
+    Format("{group_text}"),
+    Row(
+        Button(
+            Const("<"),
+            id="prev_day",
+            on_click=prev_day,
+        ),
+        Button(
+            Format("📅 {date_display}"),
+            id="current_date",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_day",
+            on_click=next_day,
+        ),
+    ),
+    Button(
+        Const("📍 Сегодня"),
+        id="today",
+        on_click=today,
+        when=~F["is_today"],
+    ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.menu),
         Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
     ),
+    getter=group_schedule_getter,
     state=HeadGroupSG.schedule,
 )
 
