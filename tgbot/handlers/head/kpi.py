@@ -43,7 +43,7 @@ async def head_start_cb(
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
 
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
@@ -82,8 +82,8 @@ async def head_kpi_calculator_cb(
     )
     target_calculation = KPICalculator.calculate_target_needed(
         user_premium.target,
-        user_premium.target_goal_first,
-        user_premium.target_goal_second,
+        user_premium.target_normative_first,
+        user_premium.target_normative_second,
         user_premium.target_type,
         is_head=True,
     )
@@ -106,7 +106,7 @@ async def head_kpi_calculator_cb(
 
 🎯 <b>Цель</b>
 <blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(user_premium.target_result_first)} / {SalaryFormatter.format_percentage(user_premium.target_result_second)})
-План: {SalaryFormatter.format_value(round(user_premium.target_goal_first))} / {SalaryFormatter.format_value(round(user_premium.target_goal_second))}
+План: {SalaryFormatter.format_value(round(user_premium.target_normative_first))} / {SalaryFormatter.format_value(round(user_premium.target_normative_second))}
 
 <b>Для премии:</b>
 {target_calculation}</blockquote>

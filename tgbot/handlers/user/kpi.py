@@ -60,7 +60,7 @@ async def user_kpi_cb(
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
 
 💼 <b>Дополнительно</b>
 <blockquote>Дисциплина: {SalaryFormatter.format_percentage(premium.discipline_premium)}
@@ -118,8 +118,8 @@ async def user_kpi_calculator_cb(
     )
     target_calculation = KPICalculator.calculate_target_needed(
         premium.target,
-        premium.target_goal_first,
-        premium.target_goal_second,
+        premium.target_normative_first,
+        premium.target_normative_second,
         premium.target_type,
     )
 
@@ -147,8 +147,8 @@ async def user_kpi_calculator_cb(
 {gok_calculation}</blockquote>
 
 🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(round((premium.target_goal_first / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_goal_first else (premium.target / premium.target_goal_first * 100) if premium.target_goal_first and premium.target_goal_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((premium.target_goal_second / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_goal_second else (premium.target / premium.target_goal_second * 100) if premium.target_goal_second and premium.target_goal_second > 0 else 0))})
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}
+<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(round((premium.target_normative_first / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_normative_first else (premium.target / premium.target_normative_first * 100) if premium.target_normative_first and premium.target_normative_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((premium.target_normative_second / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_normative_second else (premium.target / premium.target_normative_second * 100) if premium.target_normative_second and premium.target_normative_second > 0 else 0))})
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}
 
 Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель
 

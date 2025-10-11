@@ -673,8 +673,8 @@ async def view_user_kpi_calculator(
                 )
                 target_calculation = KPICalculator.calculate_target_needed(
                     user_premium.target,
-                    user_premium.target_goal_first,
-                    user_premium.target_goal_second,
+                    user_premium.target_normative_first,
+                    user_premium.target_normative_second,
                     user_premium.target_type,
                     is_head=True,
                 )
@@ -700,7 +700,7 @@ async def view_user_kpi_calculator(
 
 🎯 <b>Цель</b>
 <blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(user_premium.target_result_first)} / {SalaryFormatter.format_percentage(user_premium.target_result_second)})
-План: {SalaryFormatter.format_value(round(user_premium.target_goal_first))} / {SalaryFormatter.format_value(round(user_premium.target_goal_second))}
+План: {SalaryFormatter.format_value(round(user_premium.target_normative_first))} / {SalaryFormatter.format_value(round(user_premium.target_normative_second))}
 
 <b>Для премии:</b>
 {target_calculation}</blockquote>
@@ -719,8 +719,8 @@ async def view_user_kpi_calculator(
                 )
                 target_calculation = KPICalculator.calculate_target_needed(
                     user_premium.target,
-                    user_premium.target_goal_first,
-                    user_premium.target_goal_second,
+                    user_premium.target_normative_first,
+                    user_premium.target_normative_second,
                     user_premium.target_type,
                 )
 
@@ -751,8 +751,8 @@ async def view_user_kpi_calculator(
 {gok_calculation}</blockquote>
 
 🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(round((user_premium.target_goal_first / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_first else (user_premium.target / user_premium.target_goal_first * 100) if user_premium.target_goal_first and user_premium.target_goal_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((user_premium.target_goal_second / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_goal_second else (user_premium.target / user_premium.target_goal_second * 100) if user_premium.target_goal_second and user_premium.target_goal_second > 0 else 0))})
-План: {SalaryFormatter.format_value(round(user_premium.target_goal_first))} / {SalaryFormatter.format_value(round(user_premium.target_goal_second))}
+<blockquote>Факт: {SalaryFormatter.format_value(user_premium.target)} ({SalaryFormatter.format_percentage(round((user_premium.target_normative_first / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_normative_first else (user_premium.target / user_premium.target_normative_first * 100) if user_premium.target_normative_first and user_premium.target_normative_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((user_premium.target_normative_second / user_premium.target * 100) if user_premium.target_type and "AHT" in user_premium.target_type and user_premium.target and user_premium.target > 0 and user_premium.target_normative_second else (user_premium.target / user_premium.target_normative_second * 100) if user_premium.target_normative_second and user_premium.target_normative_second > 0 else 0))})
+План: {SalaryFormatter.format_value(round(user_premium.target_normative_first))} / {SalaryFormatter.format_value(round(user_premium.target_normative_second))}
 
 Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель
 
@@ -923,7 +923,7 @@ async def view_user_kpi(
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
 
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
@@ -956,7 +956,7 @@ async def view_user_kpi(
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_goal_first)) if premium.target_goal_first else "—"} / {SalaryFormatter.format_value(round(premium.target_goal_second)) if premium.target_goal_second else "—"}</blockquote>
+План: {SalaryFormatter.format_value(round(premium.target_normative_first)) if premium.target_normative_first else "—"} / {SalaryFormatter.format_value(round(premium.target_normative_second)) if premium.target_normative_second else "—"}</blockquote>
 
 💼 <b>Дополнительно</b>
 <blockquote>Дисциплина: {SalaryFormatter.format_percentage(premium.discipline_premium)}
