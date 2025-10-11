@@ -2,8 +2,8 @@
 
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.misc.helpers import get_role
 
 

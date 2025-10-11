@@ -10,8 +10,8 @@ from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button
 from sqlalchemy.orm import Session
+from stp_database import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.files import Files
 from tgbot.services.schedule.file_processor import (
     FileProcessor,

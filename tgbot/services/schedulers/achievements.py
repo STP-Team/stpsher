@@ -12,10 +12,10 @@ from typing import Any, Dict, List, Sequence
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import and_, func, select
+from stp_database import MainRequestsRepo
+from stp_database.models.STP.transactions import Transaction
+from stp_database.repo.KPI.requests import KPIRequestsRepo
 
-from infrastructure.database.models.STP.transactions import Transaction
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedulers.base import BaseScheduler
 

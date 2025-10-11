@@ -6,9 +6,9 @@ from typing import Any, Awaitable, Callable, Dict, Union
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
+from stp_database import MainRequestsRepo
+from stp_database.models.STP.group import Group
 
-from infrastructure.database.models.STP.group import Group
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)

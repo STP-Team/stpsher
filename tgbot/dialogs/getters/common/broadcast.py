@@ -4,10 +4,9 @@ from typing import Sequence
 
 from aiogram_dialog import DialogManager
 from sqlalchemy import distinct, select
+from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP.broadcast import Broadcast
 
-from infrastructure.database.models import Employee
-from infrastructure.database.models.STP.broadcast import Broadcast
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.helpers import format_fullname
 
 

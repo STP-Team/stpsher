@@ -6,8 +6,8 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
+from stp_database import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.search import Search
 from tgbot.misc.dicts import roles
 

@@ -3,9 +3,8 @@
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
+from stp_database import Employee, MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.getters.common.game.shop import products_getter
 from tgbot.dialogs.getters.user.game.achievements import (
     achievements_getter,

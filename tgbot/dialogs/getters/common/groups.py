@@ -5,8 +5,7 @@ from typing import Any, Dict
 
 from aiogram import Bot
 from aiogram_dialog import DialogManager
-
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import MainRequestsRepo
 
 pending_role_changes = {}
 pending_service_messages_changes = {}

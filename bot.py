@@ -12,8 +12,8 @@ from aiogram.types import (
     BotCommandScopeAllPrivateChats,
 )
 from aiogram_dialog import setup_dialogs
+from stp_database import create_engine, create_session_pool
 
-from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
 from tgbot.dialogs.menus import common_dialogs_list, dialogs_list
 from tgbot.handlers import routers_list

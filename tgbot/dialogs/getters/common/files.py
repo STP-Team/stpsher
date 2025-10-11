@@ -3,8 +3,8 @@
 from pathlib import Path
 
 from aiogram_dialog import DialogManager
+from stp_database import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.helpers import format_fullname
 
 

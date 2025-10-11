@@ -3,10 +3,11 @@
 import datetime
 from typing import Any, Dict
 
-from infrastructure.database.models import Employee
-from infrastructure.database.models.KPI.head_premium import HeadPremium
-from infrastructure.database.models.KPI.spec_premium import SpecPremium
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
+from stp_database import Employee
+from stp_database.models.KPI.head_premium import HeadPremium
+from stp_database.models.KPI.spec_premium import SpecPremium
+from stp_database.repo.KPI.requests import KPIRequestsRepo
+
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 

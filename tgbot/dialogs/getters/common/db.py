@@ -1,8 +1,7 @@
 """Геттеры, связанные с базами данных."""
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
+from stp_database.repo.KPI.requests import KPIRequestsRepo
 
 
 async def db_getter(

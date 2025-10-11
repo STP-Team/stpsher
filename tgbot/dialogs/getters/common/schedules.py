@@ -4,9 +4,8 @@ from datetime import datetime
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
+from stp_database import Employee, MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.dicts import months_emojis
 from tgbot.services.schedule.schedule_handlers import schedule_service
 

@@ -4,8 +4,8 @@ from typing import Optional
 
 import pytz
 from aiogram.types import CallbackQuery
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.keyboards.auth import auth_kb
 from tgbot.misc.dicts import russian_months
 from tgbot.services.schedule.exceptions import (

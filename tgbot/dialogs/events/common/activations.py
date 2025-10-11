@@ -5,9 +5,8 @@ import logging
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
+from stp_database import Employee, MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.game import Game
 from tgbot.misc.helpers import format_fullname
 

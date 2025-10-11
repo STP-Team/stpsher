@@ -3,8 +3,7 @@ import logging
 from aiogram import Router
 from aiogram.filters import IS_ADMIN, IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter
 from aiogram.types import ChatMemberUpdated
-
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import MainRequestsRepo
 
 logger = logging.getLogger(__name__)
 

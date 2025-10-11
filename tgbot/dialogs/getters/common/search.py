@@ -5,10 +5,9 @@ from typing import Any, Sequence
 
 from aiogram_dialog import DialogManager
 from sqlalchemy.orm import Mapped
+from stp_database import Employee, MainRequestsRepo
+from stp_database.repo.KPI.requests import KPIRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.getters.common.game.kpi import (
     base_kpi_data,
     kpi_getter,

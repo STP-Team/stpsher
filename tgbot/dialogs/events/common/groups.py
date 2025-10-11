@@ -3,8 +3,8 @@
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
+from stp_database import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.groups import Groups
 
 # Храним применяемые изменения в памяти

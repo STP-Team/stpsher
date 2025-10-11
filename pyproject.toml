@@ -5,6 +5,7 @@ description = "Бот-помощник СТП"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "stp-database @ git+https://git@github.com/ERTG-BOTS/stp-database.git",
     "aiogram>=3.21.0",
     "aiogram-dialog>=2.4.0",
     "aiomysql>=0.2.0",

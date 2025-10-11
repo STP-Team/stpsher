@@ -5,8 +5,8 @@ import logging
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, Select
+from stp_database import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.dialogs.states.common.game import Game
 
 logger = logging.getLogger(__name__)

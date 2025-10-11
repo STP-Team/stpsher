@@ -6,9 +6,8 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import pytz
+from stp_database import Employee, MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.schedule import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
 

@@ -13,9 +13,9 @@ from typing import Dict, List
 import pandas as pd
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from stp_database import MainRequestsRepo
+from stp_database.repo.STP.employee import EmployeeRepo
 
-from infrastructure.database.repo.STP.employee import EmployeeRepo
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedulers.base import BaseScheduler
 

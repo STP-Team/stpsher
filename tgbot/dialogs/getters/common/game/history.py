@@ -3,9 +3,7 @@
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
-
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 
 async def history_getter(

@@ -4,8 +4,7 @@ from aiogram.dispatcher.event.bases import CancelHandler
 from aiogram.enums import ParseMode
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
-
-from infrastructure.database.models import Employee
+from stp_database import Employee
 
 
 class IsCasinoAllowed(BaseFilter):

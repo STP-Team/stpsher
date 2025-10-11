@@ -7,9 +7,8 @@ from aiogram.types import (
     ChatMemberOwner,
     Message,
 )
+from stp_database import Employee, MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import DutyFilter, MultiRoleFilter, SpecialistFilter
 from tgbot.misc.helpers import format_fullname
 from tgbot.services.leveling import LevelingSystem

@@ -1,7 +1,8 @@
 import datetime
 from typing import Optional
 
-from infrastructure.database.models import Employee
+from stp_database import Employee
+
 from tgbot.services.salary import SalaryFormatter
 
 

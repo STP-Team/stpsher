@@ -13,9 +13,7 @@ import pandas as pd
 import pytz
 from openpyxl import load_workbook
 from pandas import DataFrame
-
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 from ...misc.helpers import format_fullname
 from . import DutyInfo, HeadInfo
