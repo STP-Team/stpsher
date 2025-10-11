@@ -12,10 +12,13 @@ class ScheduleFileManager:
         self.uploads_folder = Path(uploads_folder)
 
     def find_schedule_file(self, division: str) -> Optional[Path]:
-        """Find schedule file by division"""
+        """Find schedule file by division (follows symlinked folders)"""
         try:
-            # Use broader pattern and filter afterwards to avoid glob matching issues
-            all_files = list(self.uploads_folder.glob("ГРАФИК*"))
+            all_files = []
+            for root, dirs, files in os.walk(self.uploads_folder, followlinks=True):
+                for name in files:
+                    if name.startswith("ГРАФИК"):
+                        all_files.append(Path(root) / name)
 
             filtered_files = []
             for file in all_files:

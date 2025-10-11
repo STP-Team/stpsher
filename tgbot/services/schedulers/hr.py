@@ -5,6 +5,7 @@
 """
 
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -154,23 +155,27 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
         return fired_users
 
     if not files_list:
-        # Поиск файлов с названием "ГРАФИК*"
-        schedule_files = list(uploads_path.glob("ГРАФИК*.xlsx"))
+        schedule_files = []
+        for root, dirs, files in os.walk(uploads_path, followlinks=True):
+            for name in files:
+                if name.startswith("ГРАФИК") and name.endswith(".xlsx"):
+                    schedule_files.append(Path(root) / name)
 
         if not schedule_files:
             logger.info("[Увольнения] Файлы графиков не найдены")
             return fired_users
-
     else:
         schedule_files = []
         for file_name in files_list:
-            schedule_files.extend(uploads_path.glob(file_name))
+            for root, dirs, files in os.walk(uploads_path, followlinks=True):
+                for name in files:
+                    if Path(name).match(file_name):
+                        schedule_files.append(Path(root) / name)
 
     for file_path in schedule_files:
         try:
             logger.info(f"[Увольнения] Обрабатываем файл: {file_path.name}")
 
-            # Чтение листа "ЗАЯВЛЕНИЯ"
             try:
                 df = pd.read_excel(file_path, sheet_name="ЗАЯВЛЕНИЯ", header=None)
             except Exception as e:
@@ -179,10 +184,8 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
                 )
                 continue
 
-            # Поиск строк с увольнениями
             for row_idx in range(len(df)):
                 try:
-                    # Колонка A - ФИО, B - дата, C - тип заявления
                     fullname = (
                         str(df.iloc[row_idx, 0])
                         if pd.notna(df.iloc[row_idx, 0])
@@ -197,19 +200,13 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
                         else ""
                     )
 
-                    # Проверяем, что это увольнение
                     if dismissal_type.strip().lower() not in ["увольнение", "декрет"]:
                         continue
-
-                    # Проверяем ФИО (не пустое и содержит буквы)
                     if not fullname:
                         continue
-
-                    # Проверяем дату увольнения
                     if dismissal_date is None:
                         continue
 
-                    # Проверяем, если дата увольнения старше сегодняшней даты
                     if dismissal_date < current_date:
                         fired_users.append(fullname.strip())
                         logger.debug(

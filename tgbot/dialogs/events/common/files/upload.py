@@ -409,12 +409,18 @@ async def on_document_uploaded(
         )
         await dialog_manager.switch_to(Files.upload_error)
     finally:
-        # Удаляем все временные файлы
-        for temp_file in uploads_dir.glob("temp_old_*"):
-            try:
-                temp_file.unlink()
-            except Exception as e:
-                logger.error(f"[Загрузка файла] Ошибка при удалении старого файла: {e}")
+        import os
+
+        for root, dirs, files in os.walk(uploads_dir, followlinks=True):
+            for filename in files:
+                if filename.startswith("temp_old_"):
+                    temp_file = Path(root) / filename
+                    try:
+                        temp_file.unlink()
+                    except Exception as e:
+                        logger.error(
+                            f"[Загрузка файла] Ошибка при удалении старого файла: {e}"
+                        )
 
 
 async def on_upload_retry(
