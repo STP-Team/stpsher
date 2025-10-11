@@ -57,7 +57,7 @@ async def on_inventory_product_click(
         "current_usages": user_product_detail.current_usages,
         "max_usages": user_product_detail.max_usages,
         "bought_at": user_product.bought_at.strftime("%d.%m.%Y в %H:%M"),
-        "comment": user_product.comment,
+        "comment": user_product.user_comment,
         "updated_by_user_id": user_product.updated_by_user_id,
         "updated_at": user_product.updated_at.strftime("%d.%m.%Y в %H:%M")
         if user_product.updated_at

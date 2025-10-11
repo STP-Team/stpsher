@@ -136,7 +136,7 @@ async def user_auth_fullname(
         )
         return
 
-    db_user: Employee | None = await stp_repo.employee.get_user(fullname=message.text)
+    db_user: Employee | None = await stp_repo.employee.get_users(fullname=message.text)
     if db_user:
         if not db_user.user_id:
             db_user.user_id = message.chat.id

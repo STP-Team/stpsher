@@ -89,7 +89,6 @@ history_details_window = Window(
 {created_at}"""),
     Format(
         """
-
 <b>💬 Комментарий</b>
 <blockquote expandable>{comment}</blockquote>""",
         when="comment",

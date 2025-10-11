@@ -1,5 +1,6 @@
-"""5BB5@K 4;O 480;>30 D09;>2."""
+"""Геттеры, связанные с файлами."""
 
+from datetime import datetime
 from pathlib import Path
 
 from aiogram_dialog import DialogManager
@@ -10,8 +11,6 @@ from tgbot.misc.helpers import format_fullname
 
 async def get_local_files(**kwargs) -> dict:
     """Получает список файлов из папки /uploads."""
-    from datetime import datetime
-
     uploads_dir = Path("uploads")
 
     if not uploads_dir.exists():
@@ -54,7 +53,7 @@ async def get_local_file_details(
     modified_date = datetime.fromtimestamp(file_stat.st_mtime)
 
     # Получаем информацию из БД
-    db_records = await stp_repo.upload.get_files_history(file_name=file_name)
+    db_records = await stp_repo.upload.get_files(file_name=file_name)
 
     file_info = {
         "name": file_name,
@@ -70,7 +69,7 @@ async def get_local_file_details(
         db_record = True
         latest = db_records[0]
         file_info["uploaded_by"] = latest.uploaded_by_user_id
-        uploaded_by_user = await stp_repo.employee.get_user(
+        uploaded_by_user = await stp_repo.employee.get_users(
             user_id=latest.uploaded_by_user_id
         )
         uploaded_by_text = format_fullname(
@@ -98,11 +97,14 @@ async def get_file_history(
     if not file_name:
         return {"history": []}
 
-    db_records = await stp_repo.upload.get_files_history(file_name=file_name)
+    db_records = await stp_repo.upload.get_files(file_name=file_name)
 
     # Собираем все user_id и получаем пользователей одним запросом
     user_ids = [record.uploaded_by_user_id for record in db_records]
-    users_map = await stp_repo.employee.get_users_by_ids(user_ids)
+    users_list = await stp_repo.employee.get_users(user_id=user_ids)
+
+    # Преобразуем список в словарь для быстрого доступа
+    users_map = {user.user_id: user for user in users_list}
 
     history = []
     for record in db_records:
@@ -135,11 +137,14 @@ async def get_file_history(
 
 async def get_all_files_history(stp_repo: MainRequestsRepo, **_kwargs) -> dict:
     """Получает список всех загруженных файлов из БД."""
-    db_records = await stp_repo.upload.get_files_history()
+    db_records = await stp_repo.upload.get_files()
 
     # Собираем все user_id и получаем пользователей одним запросом
     user_ids = [record.uploaded_by_user_id for record in db_records]
-    users_map = await stp_repo.employee.get_users_by_ids(user_ids)
+    users_list = await stp_repo.employee.get_users(user_id=user_ids)
+
+    # Преобразуем список в словарь для быстрого доступа
+    users_map = {user.user_id: user for user in users_list}
 
     files = []
     for record in db_records:
@@ -177,12 +182,13 @@ async def get_history_file_details(
         return {"file_info": None}
 
     # Получаем информацию о файле из БД
-    record = await stp_repo.upload.get_file_by_id(int(history_file_id))
-
+    record = await stp_repo.upload.get_file_by_id(main_id=history_file_id)
     if not record:
         return {"file_info": None}
 
-    uploaded_user = await stp_repo.employee.get_user(user_id=record.uploaded_by_user_id)
+    uploaded_user = await stp_repo.employee.get_users(
+        user_id=record.uploaded_by_user_id
+    )
     uploaded_by_text = format_fullname(
         uploaded_user.fullname,
         True,

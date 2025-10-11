@@ -24,13 +24,9 @@ async def base_kpi_data(
         Словарь с информацией о премии пользователя
     """
     if user.role == 2:
-        premium: HeadPremium = await kpi_repo.head_premium.get_premium(
-            fullname=user.fullname
-        )
+        premium: HeadPremium = await kpi_repo.head_premium.get_premium(user.fullname)
     else:
-        premium: SpecPremium = await kpi_repo.spec_premium.get_premium(
-            fullname=user.fullname
-        )
+        premium: SpecPremium = await kpi_repo.spec_premium.get_premium(user.fullname)
 
     return {"premium": premium}
 
@@ -79,7 +75,7 @@ async def kpi_getter(
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
 
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
@@ -123,7 +119,7 @@ async def kpi_getter(
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
 Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_goal_first))} / {SalaryFormatter.format_value(round(premium.target_goal_second))}</blockquote>
+План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
     
 💼 <b>Дополнительно</b>
 <blockquote>Дисциплина: {SalaryFormatter.format_percentage(premium.discipline_premium)}

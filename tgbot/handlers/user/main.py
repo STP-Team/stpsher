@@ -164,7 +164,7 @@ async def private_whois_command(
     if forwarded_user_id:
         try:
             # Ищем пользователя в базе данных
-            target_user = await stp_repo.employee.get_user(user_id=forwarded_user_id)
+            target_user = await stp_repo.employee.get_users(user_id=forwarded_user_id)
 
             if not target_user:
                 await message.reply(
@@ -185,7 +185,7 @@ async def private_whois_command(
             # Получаем информацию о руководителе, если указан
             user_head = None
             if target_user.head:
-                user_head = await stp_repo.employee.get_user(fullname=target_user.head)
+                user_head = await stp_repo.employee.get_users(fullname=target_user.head)
 
             # Формируем и отправляем ответ с информацией о пользователе
             user_info_message = create_user_info_message(target_user, user_head)
@@ -217,13 +217,13 @@ async def private_whois_command(
             # Попытка поиска по user_id (если запрос состоит только из цифр)
             if search_query.isdigit():
                 user_id = int(search_query)
-                target_user = await stp_repo.employee.get_user(user_id=user_id)
+                target_user = await stp_repo.employee.get_users(user_id=user_id)
 
                 if target_user:
                     # Получаем информацию о руководителе
                     user_head = None
                     if target_user.head:
-                        user_head = await stp_repo.employee.get_user(
+                        user_head = await stp_repo.employee.get_users(
                             fullname=target_user.head
                         )
 
@@ -242,13 +242,13 @@ async def private_whois_command(
 
             # Проверяем, похоже ли на username (без пробелов, может содержать буквы, цифры, подчеркивания)
             if username_query and all(c.isalnum() or c == "_" for c in username_query):
-                target_user = await stp_repo.employee.get_user(username=username_query)
+                target_user = await stp_repo.employee.get_users(username=username_query)
 
                 if target_user:
                     # Получаем информацию о руководителе
                     user_head = None
                     if target_user.head:
-                        user_head = await stp_repo.employee.get_user(
+                        user_head = await stp_repo.employee.get_users(
                             fullname=target_user.head
                         )
 
@@ -293,7 +293,7 @@ async def private_whois_command(
                 # Получаем информацию о руководителе
                 user_head = None
                 if target_user.head:
-                    user_head = await stp_repo.employee.get_user(
+                    user_head = await stp_repo.employee.get_users(
                         fullname=target_user.head
                     )
 
@@ -403,7 +403,7 @@ async def handle_forwarded_message(
 
     try:
         # Ищем пользователя в базе данных
-        target_user = await stp_repo.employee.get_user(user_id=forwarded_user_id)
+        target_user = await stp_repo.employee.get_users(user_id=forwarded_user_id)
 
         if not target_user:
             await message.reply(
@@ -424,7 +424,7 @@ async def handle_forwarded_message(
         # Получаем информацию о руководителе, если указан
         user_head = None
         if target_user.head:
-            user_head = await stp_repo.employee.get_user(fullname=target_user.head)
+            user_head = await stp_repo.employee.get_users(fullname=target_user.head)
 
         # Формируем и отправляем ответ с информацией о пользователе
         user_info_message = create_user_info_message(target_user, user_head)

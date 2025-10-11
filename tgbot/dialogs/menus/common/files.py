@@ -79,8 +79,8 @@ local_window = Window(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.menu),
         Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
     ),
-    state=Files.local,
     getter=get_local_files,
+    state=Files.local,
 )
 
 
@@ -210,8 +210,8 @@ history_details_window = Window(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.history),
         Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
     ),
-    state=Files.history_details,
     getter=get_history_file_details,
+    state=Files.history_details,
 )
 
 

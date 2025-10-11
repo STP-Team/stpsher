@@ -134,7 +134,7 @@ async def groups_details_getter(
     if not group_id:
         return {"error": True}
 
-    group = await stp_repo.group.get_group(group_id)
+    group = await stp_repo.group.get_groups(group_id)
     if not group:
         return {"error": True}
 
@@ -177,7 +177,7 @@ async def group_details_members_getter(
     if not group_id:
         return {"error": True}
 
-    group = await stp_repo.group.get_group(group_id)
+    group = await stp_repo.group.get_groups(group_id)
     if not group:
         return {"error": True}
 
@@ -193,7 +193,7 @@ async def group_details_members_getter(
     non_employee_users = []
 
     for group_member in group_members:
-        employee = await stp_repo.employee.get_user(user_id=group_member.member_id)
+        employee = await stp_repo.employee.get_users(user_id=group_member.member_id)
         if employee:
             employees.append(employee)
         else:
@@ -234,7 +234,7 @@ async def group_details_services_getter(
     if not group_id:
         return {"error": True}
 
-    group = await stp_repo.group.get_group(group_id)
+    group = await stp_repo.group.get_groups(group_id)
     if not group:
         return {"error": True}
 
@@ -307,7 +307,7 @@ async def group_remove_getter(
     if not group_id:
         return {"error": True}
 
-    group = await stp_repo.group.get_group(group_id)
+    group = await stp_repo.group.get_groups(group_id)
     if not group:
         return {"error": True}
 

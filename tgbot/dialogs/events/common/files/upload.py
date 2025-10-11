@@ -201,7 +201,7 @@ async def on_document_uploaded(
                     formatted_fired = []
                     for name in fired_names:
                         try:
-                            user = await stp_repo.employee.get_user(fullname=name)
+                            user = await stp_repo.employee.get_users(fullname=name)
                             if user:
                                 formatted_fired.append(
                                     format_fullname(
@@ -220,7 +220,7 @@ async def on_document_uploaded(
                     formatted_updated = []
                     for name in updated_names:
                         try:
-                            user = await stp_repo.employee.get_user(fullname=name)
+                            user = await stp_repo.employee.get_users(fullname=name)
                             if user:
                                 formatted_updated.append(
                                     format_fullname(
@@ -238,7 +238,7 @@ async def on_document_uploaded(
 
                     formatted_new = []
                     for name in new_names:
-                        user = await stp_repo.employee.get_user(fullname=name)
+                        user = await stp_repo.employee.get_users(fullname=name)
                         if user:
                             formatted_new.append(
                                 format_fullname(
@@ -301,7 +301,7 @@ async def on_document_uploaded(
 
                             if fullname:
                                 try:
-                                    user = await stp_repo.employee.get_user(
+                                    user = await stp_repo.employee.get_users(
                                         fullname=fullname
                                     )
                                     formatted_name = None

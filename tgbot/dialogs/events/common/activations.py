@@ -38,11 +38,11 @@ async def on_activation_click(
         product = purchase_details.product_info
 
         # Получаем информацию о пользователе
-        purchase_user: Employee = await stp_repo.employee.get_user(
+        purchase_user: Employee = await stp_repo.employee.get_users(
             user_id=purchase.user_id
         )
         purchase_user_head: Employee = (
-            await stp_repo.employee.get_user(fullname=purchase_user.head)
+            await stp_repo.employee.get_users(fullname=purchase_user.head)
             if purchase_user and purchase_user.head
             else None
         )

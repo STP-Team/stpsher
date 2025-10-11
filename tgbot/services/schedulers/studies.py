@@ -177,7 +177,7 @@ async def send_study_notifications(
             for participant_name in participant_names:
                 try:
                     # Find participant in database
-                    participant = await stp_repo.employee.get_user(
+                    participant = await stp_repo.employee.get_users(
                         fullname=participant_name
                     )
 
@@ -262,7 +262,7 @@ async def create_study_notification_message(
     trainer_text = session.trainer
     if session.trainer:
         try:
-            trainer_user = await stp_repo.employee.get_user(fullname=session.trainer)
+            trainer_user = await stp_repo.employee.get_users(fullname=session.trainer)
             trainer_text = format_fullname(
                 trainer_user.fullname,
                 True,

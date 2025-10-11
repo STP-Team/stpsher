@@ -171,7 +171,7 @@ broadcast_new_result_window = Window(
 ❌ Ошибок: <b>{error_count}</b>"""),
     Row(
         Button(
-            Const("🔙 К рассылкам"),
+            Const("↩️ К рассылкам"),
             id="back_to_menu",
             on_click=on_broadcast_back_to_menu,
         ),
@@ -189,7 +189,9 @@ broadcast_history_window = Window(
 <i>Нажми на рассылку для просмотра детальной информации</i>"""),
     ScrollingGroup(
         Select(
-            Format("{item[display]}"),
+            Format(
+                "{item[target]} | {item[recipients_length]} чел. | {item[created_at]}"
+            ),
             id="broadcast_history",
             items="broadcasts",
             item_id_getter=lambda item: str(item["id"]),

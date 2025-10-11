@@ -46,7 +46,7 @@ class DatabaseMiddleware(BaseMiddleware):
                     stp_repo = MainRequestsRepo(stp_session)
                     data["stp_repo"] = stp_repo
                     data["stp_session"] = stp_session
-                    data["user"] = await stp_repo.employee.get_user(
+                    data["user"] = await stp_repo.employee.get_users(
                         user_id=event.from_user.id
                     )
 

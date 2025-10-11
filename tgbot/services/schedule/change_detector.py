@@ -51,7 +51,7 @@ class ScheduleChangeDetector:
             # Отправка уведомления затронутым пользователям
             notified_users = []
             for user_changes in changed_users:
-                user: Employee = await stp_repo.employee.get_user(
+                user: Employee = await stp_repo.employee.get_users(
                     fullname=user_changes["fullname"]
                 )
                 if user and user.user_id:
@@ -121,7 +121,7 @@ class ScheduleChangeDetector:
 
             for fullname in all_users:
                 # Проверяем, что пользователь есть в БД
-                user = await stp_repo.employee.get_user(fullname=fullname)
+                user = await stp_repo.employee.get_users(fullname=fullname)
                 if not user:
                     continue
 

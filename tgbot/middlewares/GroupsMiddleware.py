@@ -425,7 +425,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return True
 
             # Проверяем, является ли пользователь активным сотрудником
-            employee = await stp_repo.employee.get_user(user_id=user_id)
+            employee = await stp_repo.employee.get_users(user_id=user_id)
 
             if not employee:
                 logger.info(
@@ -478,7 +478,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return True
 
             # Получаем пользователя из базы
-            user = await stp_repo.employee.get_user(user_id=user_id)
+            user = await stp_repo.employee.get_users(user_id=user_id)
             if not user:
                 logger.info(
                     f"[Группы] Пользователь {user_id} не найден в базе пользователей"
@@ -533,7 +533,7 @@ class GroupsMiddleware(BaseMiddleware):
                 user_info = user_mention
 
             # Проверяем, является ли пользователь сотрудником
-            employee = await stp_repo.employee.get_user(user_id=user_id)
+            employee = await stp_repo.employee.get_users(user_id=user_id)
 
             if employee:
                 # Формируем сообщение для сотрудника
@@ -605,7 +605,7 @@ class GroupsMiddleware(BaseMiddleware):
             await stp_repo.group_member.remove_member(group_id, user_id)
 
             # Отправляем уведомление в группу
-            user = await stp_repo.employee.get_user(user_id=user_id)
+            user = await stp_repo.employee.get_users(user_id=user_id)
             if user:
                 notification_text = (
                     f"🚫 <b>Пользователь заблокирован</b>\n\n"

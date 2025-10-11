@@ -918,7 +918,7 @@ class DutyScheduleParser(BaseDutyParser):
                     continue
 
                 # Get user info once per person (optimization)
-                user: Employee = await stp_repo.employee.get_user(fullname=name)
+                user: Employee = await stp_repo.employee.get_users(fullname=name)
                 if not user:
                     continue
 
@@ -1075,7 +1075,7 @@ class DutyScheduleParser(BaseDutyParser):
                         if shift_type in ["С", "П"] and self.utils.is_time_format(
                             schedule
                         ):
-                            user: Employee = await stp_repo.employee.get_user(
+                            user: Employee = await stp_repo.employee.get_users(
                                 fullname=name
                             )
                             if user:
@@ -1291,7 +1291,7 @@ class HeadScheduleParser(BaseExcelParser):
                     if schedule_cell and schedule_cell.strip():
                         if self.utils.is_time_format(schedule_cell):
                             duty_info = await self._check_duty_for_head(name, duties)
-                            user: Employee = await stp_repo.employee.get_user(
+                            user: Employee = await stp_repo.employee.get_users(
                                 fullname=name
                             )
                             if user:
@@ -1554,7 +1554,7 @@ class GroupScheduleParser(BaseExcelParser):
             # Get user from database
             user = None
             try:
-                user = await stp_repo.employee.get_user(fullname=name_cell.strip())
+                user = await stp_repo.employee.get_users(fullname=name_cell.strip())
             except Exception as e:
                 logger.debug(f"Error getting user {name_cell}: {e}")
 
@@ -1580,7 +1580,7 @@ class GroupScheduleParser(BaseExcelParser):
     ) -> List[GroupMemberInfo]:
         """Get list of group colleagues for a regular user."""
         try:
-            user = await stp_repo.employee.get_user(fullname=user_fullname)
+            user = await stp_repo.employee.get_users(fullname=user_fullname)
             if not user or not user.head:
                 logger.warning(
                     f"User {user_fullname} not found or has no head assigned"

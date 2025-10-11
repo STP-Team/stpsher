@@ -116,7 +116,7 @@ class SearchService:
         """Получить общую статистику группы руководителя по его ID"""
         try:
             # Получаем руководителя по ID
-            head_user = await stp_repo.employee.get_user(user_id=head_user_id)
+            head_user = await stp_repo.employee.get_users(user_id=head_user_id)
             if not head_user:
                 return {
                     "total_users": 0,

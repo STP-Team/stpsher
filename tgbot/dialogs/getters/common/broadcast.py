@@ -1,11 +1,8 @@
 """Геттеры для окон рассылки."""
 
-from typing import Sequence
-
 from aiogram_dialog import DialogManager
 from sqlalchemy import distinct, select
 from stp_database import Employee, MainRequestsRepo
-from stp_database.models.STP.broadcast import Broadcast
 
 from tgbot.misc.helpers import format_fullname
 
@@ -39,7 +36,7 @@ async def broadcast_select_getter(
 
     elif broadcast_type == "by_group":
         # Получаем всех руководителей
-        heads = await stp_repo.employee.get_heads()
+        heads = await stp_repo.employee.get_users(roles=2)
 
         # Фильтруем руководителей по выбранному направлению
         if selected_filter and selected_filter != "all":
@@ -53,7 +50,7 @@ async def broadcast_select_getter(
             items.append((head.id, display_name))
 
         # Получаем уникальные направления руководителей для фильтрации
-        all_heads = await stp_repo.employee.get_heads()
+        all_heads = await stp_repo.employee.get_users(roles=2)
         head_divisions = sorted({
             head.division for head in all_heads if head.division is not None
         })
@@ -104,7 +101,7 @@ async def broadcast_info_getter(
                     # Получаем полные имена руководителей по их ID и отображаем в коротком формате
                     short_names = []
                     for head_id in broadcast_items:
-                        head = await stp_repo.employee.get_user(main_id=int(head_id))
+                        head = await stp_repo.employee.get_users(main_id=int(head_id))
                         if head:
                             short_names.append(
                                 format_fullname(
@@ -171,7 +168,7 @@ async def broadcast_result_getter(dialog_manager: DialogManager, **_kwargs):
 
 async def broadcast_history_getter(
     stp_repo: MainRequestsRepo, **_kwargs
-) -> dict[str, Sequence[Broadcast]]:
+) -> dict[str, list[dict]]:
     """Геттер для получения списка рассылок.
 
     Args:
@@ -181,9 +178,20 @@ async def broadcast_history_getter(
         Словарь со списком рассылок из базы данных
     """
     broadcasts = await stp_repo.broadcast.get_broadcasts()
+    dict_broadcasts = [
+        {
+            "id": broadcast.id,
+            "target": broadcast.target or "Неизвестно",
+            "recipients_length": len(broadcast.recipients or []),
+            "created_at": broadcast.created_at.strftime("%H:%M %d.%m.%Y")
+            if broadcast.created_at
+            else "",
+        }
+        for broadcast in broadcasts
+    ]
 
     return {
-        "broadcasts": [b.to_dict() for b in broadcasts] if broadcasts else [],
+        "broadcasts": dict_broadcasts,
     }
 
 
@@ -200,7 +208,7 @@ async def broadcast_detail_getter(
         Словарь с детальной информацией о рассылке
     """
     broadcast_id = dialog_manager.dialog_data.get("selected_broadcast_id")
-    broadcast = await stp_repo.broadcast.get_broadcast(broadcast_id)
+    broadcast = await stp_repo.broadcast.get_broadcasts(broadcast_id)
 
     if not broadcast:
         return {
@@ -227,7 +235,7 @@ async def broadcast_detail_getter(
     )
 
     # Получаем информацию о создателе рассылки
-    creator = await stp_repo.employee.get_user(user_id=broadcast.user_id)
+    creator = await stp_repo.employee.get_users(user_id=broadcast.user_id)
 
     return {
         "broadcast_type": broadcast_type,

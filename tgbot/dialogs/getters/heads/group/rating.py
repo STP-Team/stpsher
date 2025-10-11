@@ -62,11 +62,11 @@ async def _get_kpi_data_by_period(
 ) -> Sequence[SpecDayKPI] | Sequence[SpecWeekKPI] | Sequence[SpecMonthKPI] | list[Any]:
     """Получить KPI данные по периоду."""
     if period == "day":
-        return await kpi_repo.spec_day_kpi.get_kpi_by_names(fullnames)
+        return await kpi_repo.spec_day_kpi.get_kpi(fullnames)
     elif period == "week":
-        return await kpi_repo.spec_week_kpi.get_kpi_by_names(fullnames)
+        return await kpi_repo.spec_week_kpi.get_kpi(fullnames)
     elif period == "month":
-        return await kpi_repo.spec_month_kpi.get_kpi_by_names(fullnames)
+        return await kpi_repo.spec_month_kpi.get_kpi(fullnames)
     return []
 
 
@@ -181,7 +181,7 @@ async def get_rating_display_data(
         }
 
     # Получаем всех сотрудников группы руководителя
-    team_members = await stp_repo.employee.get_users_by_head(user.fullname)
+    team_members = await stp_repo.employee.get_users(head=user.fullname)
     if not team_members:
         return {
             **base_data,

@@ -37,7 +37,7 @@ async def activations_getter(
         product = purchase_details.product_info
 
         # Получаем информацию о пользователе, который купил предмет
-        purchase_user = await stp_repo.employee.get_user(user_id=purchase.user_id)
+        purchase_user = await stp_repo.employee.get_users(user_id=purchase.user_id)
         purchase_user_text = format_fullname(
             purchase_user.fullname,
             True,

@@ -299,7 +299,7 @@ async def remove_fired_users_from_groups(
             for fullname in fired_users:
                 try:
                     # Получаем информацию о сотруднике
-                    employee = await stp_repo.employee.get_user(fullname=fullname)
+                    employee = await stp_repo.employee.get_users(fullname=fullname)
 
                     if not employee or not employee.user_id:
                         logger.debug(
@@ -483,7 +483,7 @@ async def send_notifications_to_supervisors(
     for head_name, subordinates in unauthorized_by_head.items():
         try:
             # Ищем руководителя в БД
-            supervisor = await stp_repo.employee.get_user(fullname=head_name)
+            supervisor = await stp_repo.employee.get_users(fullname=head_name)
 
             if not supervisor or not supervisor.user_id:
                 logger.warning(

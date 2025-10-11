@@ -127,7 +127,7 @@ class ScheduleHandlerService:
             active_duties = []
             for duty in duties:
                 try:
-                    user = await stp_repo.employee.get_user(fullname=duty.name)
+                    user = await stp_repo.employee.get_users(fullname=duty.name)
                     if user:
                         active_duties.append(duty)
                     else:

@@ -197,7 +197,7 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
         )
 
         # Получаем информацию о заглушенном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
             display_name = format_fullname(employee.fullname)
         else:
@@ -277,7 +277,7 @@ async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
         )
 
         # Получаем информацию о разглушенном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
             display_name = format_fullname(employee.fullname)
         else:
@@ -332,7 +332,7 @@ async def ban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
         )
 
         # Получаем информацию о забаненном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
             display_name = format_fullname(employee.fullname)
         else:
@@ -388,7 +388,7 @@ async def unban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo
         )
 
         # Получаем информацию о разбаненном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
             display_name = format_fullname(employee.fullname)
         else:

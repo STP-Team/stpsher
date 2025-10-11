@@ -9,6 +9,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, Select
 
+from tgbot.dialogs.getters.common.files import get_history_file_details
 from tgbot.dialogs.states.common.files import Files
 
 logger = logging.getLogger(__name__)
@@ -295,9 +296,6 @@ async def on_restore_history_file(
     if not bot or not history_file_id:
         await _callback.answer("Ошибка восстановления", show_alert=True)
         return
-
-    # Получаем информацию о файле из dialog_data
-    from tgbot.dialogs.getters.common.files import get_history_file_details
 
     stp_repo = dialog_manager.middleware_data.get("stp_repo")
     file_info_data = await get_history_file_details(

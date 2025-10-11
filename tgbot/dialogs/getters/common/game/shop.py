@@ -25,7 +25,10 @@ async def products_getter(
 
     # Для менеджеров загружаем все продукты или фильтруем по указанному подразделению
     # Для обычных пользователей - только их подразделение
-    if division is not None:
+    # Специальное значение "all" означает загрузку всех продуктов без фильтра
+    if division == "all":
+        products = await stp_repo.product.get_products()
+    elif division is not None:
         products = await stp_repo.product.get_products(division=division)
     else:
         products = await stp_repo.product.get_products(division=user.division)

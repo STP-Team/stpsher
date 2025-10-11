@@ -34,7 +34,7 @@ async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
             user_info = admin.user
 
             # Проверяем администратора в базе данных
-            db_user = await stp_repo.employee.get_user(user_id=user_info.id)
+            db_user = await stp_repo.employee.get_users(user_id=user_info.id)
             if db_user:
                 # Если есть в БД, используем данные из БД с ссылкой
                 display_name = format_fullname(
@@ -130,7 +130,7 @@ async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
 
         for member_data in group_members_data:
             # Получаем информацию о сотруднике по member_id
-            employee = await stp_repo.employee.get_user(user_id=member_data.member_id)
+            employee = await stp_repo.employee.get_users(user_id=member_data.member_id)
             if employee and employee.user_id:
                 balance = await stp_repo.transaction.get_user_balance(employee.user_id)
                 balance_data.append({"employee": employee, "balance": balance})

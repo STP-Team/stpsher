@@ -127,11 +127,11 @@ class InlineSearchFilter:
         search_type, cleaned_value = InlineSearchFilter.detect_search_type(search_term)
 
         if search_type == "user_id":
-            user = await stp_repo.employee.get_user(user_id=int(cleaned_value))
+            user = await stp_repo.employee.get_users(user_id=int(cleaned_value))
             return [user] if user else []
 
         elif search_type == "username":
-            user = await stp_repo.employee.get_user(username=cleaned_value)
+            user = await stp_repo.employee.get_users(username=cleaned_value)
             return [user] if user else []
 
         else:  # search_type == 'name'
@@ -148,11 +148,11 @@ class InlineSearchFilter:
         try:
             # Приоритетный поиск по explicit фильтрам
             if filters["user_id"] is not None:
-                user = await stp_repo.employee.get_user(user_id=filters["user_id"])
+                user = await stp_repo.employee.get_users(user_id=filters["user_id"])
                 users = [user] if user else []
 
             elif filters["username"]:
-                user = await stp_repo.employee.get_user(username=filters["username"])
+                user = await stp_repo.employee.get_users(username=filters["username"])
                 users = [user] if user else []
 
             # Поиск по имени с автоопределением типа
@@ -248,7 +248,7 @@ async def advanced_inline_handler(
 
                     # Добавляем результаты поиска
                     for found_user in sorted_users[:12]:  # Максимум 12 результатов
-                        user_head = await stp_repo.employee.get_user(
+                        user_head = await stp_repo.employee.get_users(
                             fullname=found_user.head
                         )
                         result_item = create_user_result_item(

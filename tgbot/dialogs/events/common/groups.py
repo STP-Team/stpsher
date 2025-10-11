@@ -153,7 +153,7 @@ async def on_access_level_click(
     if not group_id:
         return
 
-    group = await stp_repo.group.get_group(group_id)
+    group = await stp_repo.group.get_groups(group_id)
     if not group:
         await callback.answer("❌ Группа не найдена")
         return
@@ -211,7 +211,7 @@ async def _initialize_pending_service_messages(
     """
     if group_id not in pending_service_messages_changes:
         stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-        group = await stp_repo.group.get_group(group_id)
+        group = await stp_repo.group.get_groups(group_id)
         pending_service_messages_changes[group_id] = (
             getattr(group, "service_messages", []) or []
         ).copy()

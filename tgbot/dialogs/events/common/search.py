@@ -79,7 +79,7 @@ async def on_user_select(
 
     # Получаем информацию о пользователе и устанавливаем состояние чекбокса казино
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    searched_user = await stp_repo.employee.get_user(main_id=int(item_id))
+    searched_user = await stp_repo.employee.get_users(main_id=int(item_id))
 
     casino_checkbox: ManagedCheckbox = dialog_manager.find("casino_access")
     if casino_checkbox:
@@ -166,9 +166,9 @@ async def on_casino_change(
         is_casino_allowed = widget.is_checked()
 
         # Получаем пользователя
-        searched_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
         if not searched_user:
-            searched_user = await stp_repo.employee.get_user(
+            searched_user = await stp_repo.employee.get_users(
                 user_id=int(selected_user_id)
             )
 
@@ -226,9 +226,9 @@ async def on_role_change(
             return
 
         # Обновляем роль пользователя
-        searched_user = await stp_repo.employee.get_user(main_id=int(selected_user_id))
+        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
         if not searched_user:
-            searched_user = await stp_repo.employee.get_user(
+            searched_user = await stp_repo.employee.get_users(
                 user_id=int(selected_user_id)
             )
 

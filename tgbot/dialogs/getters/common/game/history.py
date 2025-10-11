@@ -97,7 +97,7 @@ async def history_detail_getter(
         and transaction_info["source_id"]
     ):
         try:
-            achievement = await stp_repo.achievement.get_achievement(
+            achievement = await stp_repo.achievement.get_achievements(
                 transaction_info["source_id"]
             )
             if achievement:

@@ -85,7 +85,7 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
 
     try:
         # Ищем пользователя в базе данных
-        target_user = await stp_repo.employee.get_user(user_id=replied_user_id)
+        target_user = await stp_repo.employee.get_users(user_id=replied_user_id)
 
         if not target_user:
             await message.reply(
@@ -106,7 +106,7 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
         # Получаем информацию о руководителе, если указан
         user_head = None
         if target_user.head:
-            user_head = await stp_repo.employee.get_user(fullname=target_user.head)
+            user_head = await stp_repo.employee.get_users(fullname=target_user.head)
 
         # Формируем и отправляем ответ с информацией о пользователе
         user_info_message = create_user_info_message(target_user, user_head)
@@ -168,7 +168,7 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
             # Получаем информацию о руководителе
             user_head = None
             if target_user.head:
-                user_head = await stp_repo.employee.get_user(fullname=target_user.head)
+                user_head = await stp_repo.employee.get_users(fullname=target_user.head)
 
             user_info_message = create_user_info_message(target_user, user_head)
             await message.reply(user_info_message)

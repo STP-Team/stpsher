@@ -121,21 +121,24 @@ async def product_filter_getter(
     is_user = user.role in [1, 3]  # Специалисты и дежурные
     is_manager = user.role in [2, 5, 6]  # ГОК и МИП
 
-    # TODO Исправить некорректное отображение списка предметов у менеджеров при фильтрации перед комитом
     # Для менеджеров получаем выбранное подразделение
-    division_param = None
     if is_manager:
         selected_division = dialog_manager.find("product_division_filter").get_checked()
-        if selected_division != "all":
-            division_map = {"nck": "НЦК", "ntp": "НТП"}
-            division_param = division_map.get(selected_division, "")
-
-            # Загружаем продукты с учетом фильтра подразделения
-            base_data = await products_getter(
-                user=user, stp_repo=stp_repo, division=division_param, **kwargs
-            )
+        if selected_division == "all":
+            # Загружаем все продукты без фильтра
+            division_param = "all"
         else:
-            base_data = await products_getter(user=user, stp_repo=stp_repo, **kwargs)
+            # Преобразуем выбранное подразделение в название
+            division_map = {"nck": "НЦК", "ntp": "НТП"}
+            division_param = division_map.get(selected_division)
+
+        # Загружаем продукты с учетом фильтра подразделения
+        base_data = await products_getter(
+            user=user, stp_repo=stp_repo, division=division_param, **kwargs
+        )
+    else:
+        # Для обычных пользователей загружаем только их подразделение
+        base_data = await products_getter(user=user, stp_repo=stp_repo, **kwargs)
 
     products = base_data["products"]
     user_balance = base_data["user_balance"]

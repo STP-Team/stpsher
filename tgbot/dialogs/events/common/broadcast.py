@@ -200,10 +200,10 @@ async def on_broadcast_send(
         # Получить пользователей по руководителям
         for head_id in broadcast_items:
             # Получаем руководителя по ID
-            head = await stp_repo.employee.get_user(main_id=int(head_id))
+            head = await stp_repo.employee.get_users(main_id=int(head_id))
             if head:
                 # Получаем сотрудников этого руководителя
-                employees = await stp_repo.employee.get_users_by_head(head.fullname)
+                employees = await stp_repo.employee.get_users(head=head.fullname)
                 user_ids.extend([emp.user_id for emp in employees if emp.user_id])
 
     # Сохраняем данные для progress и result
@@ -251,7 +251,7 @@ async def on_broadcast_send(
         # Получаем ФИО руководителей для target
         head_names = []
         for head_id in broadcast_items:
-            head = await stp_repo.employee.get_user(main_id=int(head_id))
+            head = await stp_repo.employee.get_users(main_id=int(head_id))
             if head:
                 head_names.append(head.fullname)
         target = ", ".join(head_names)
@@ -320,7 +320,7 @@ async def on_broadcast_resend(
     bot: Bot = dialog_manager.middleware_data["bot"]
 
     broadcast_id = dialog_manager.dialog_data.get("selected_broadcast_id")
-    broadcast = await stp_repo.broadcast.get_broadcast(broadcast_id)
+    broadcast = await stp_repo.broadcast.get_broadcasts(broadcast_id)
 
     if not broadcast:
         return
