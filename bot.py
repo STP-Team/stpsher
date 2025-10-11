@@ -11,8 +11,8 @@ from aiogram.types import (
     BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
 )
+from stp_database import create_engine, create_session_pool
 
-from infrastructure.database.setup import create_engine, create_session_pool
 from tgbot.config import Config, load_config
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
@@ -145,7 +145,6 @@ async def main():
 
     dp = Dispatcher(storage=storage)
 
-    # Create engines for different databases
     main_db_engine = create_engine(bot_config.db, db_name=bot_config.db.main_db)
     kpi_db_engine = create_engine(bot_config.db, db_name=bot_config.db.kpi_db)
 

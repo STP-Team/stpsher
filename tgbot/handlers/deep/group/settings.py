@@ -4,9 +4,9 @@ from aiogram import Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.payload import decode_payload
+from stp_database.models.STP.group import Group
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models.STP.group import Group
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.deep import DeepLinkRegexFilter
 from tgbot.keyboards.group.main import (
     GroupAccessApplyMenu,

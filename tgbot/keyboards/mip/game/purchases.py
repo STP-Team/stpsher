@@ -1,8 +1,8 @@
 from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from stp_database.repo.STP.purchase import PurchaseDetailedParams
 
-from infrastructure.database.repo.STP.purchase import PurchaseDetailedParams
 from tgbot.keyboards.mip.game.main import (
     GameMenu,
     ProductsMenu,

@@ -2,8 +2,8 @@ from collections.abc import Sequence
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from stp_database.models.STP.schedules import Schedules
 
-from infrastructure.database.models.STP.schedules import Schedules
 from tgbot.keyboards.user.main import MainMenu
 
 

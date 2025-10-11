@@ -2,15 +2,15 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import GokFilter
 from tgbot.keyboards.gok.main import (
-    gok_kb,
     GokFilterToggleMenu,
     GokGameMenu,
-    toggle_filter,
     GokProductsMenu,
+    gok_kb,
+    toggle_filter,
 )
 from tgbot.keyboards.user.main import MainMenu
 

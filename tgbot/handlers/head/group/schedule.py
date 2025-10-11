@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.head.schedule.group import head_group_schedule_service
 from tgbot.handlers.user.schedule.main import schedule_service

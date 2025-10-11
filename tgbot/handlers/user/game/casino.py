@@ -5,9 +5,9 @@ from typing import List
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.casino import IsCasinoAllowed
 from tgbot.keyboards.user.game.casino import (
     CasinoMenu,

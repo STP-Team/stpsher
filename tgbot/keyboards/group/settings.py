@@ -1,8 +1,8 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup
+from stp_database import Employee
+from stp_database.models.STP.group import Group
 
-from infrastructure.database.models import Employee
-from infrastructure.database.models.STP.group import Group
 from tgbot.misc.dicts import roles
 
 

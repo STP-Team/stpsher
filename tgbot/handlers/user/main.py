@@ -3,9 +3,9 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.group.whois import create_user_info_message
 from tgbot.handlers.user.search.main import user_search_router
 from tgbot.keyboards.user.main import MainMenu, auth_kb, main_kb

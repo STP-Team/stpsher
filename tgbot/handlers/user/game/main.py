@@ -1,8 +1,8 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.game.main import game_kb
 from tgbot.keyboards.user.main import MainMenu, auth_kb
 from tgbot.services.leveling import LevelingSystem

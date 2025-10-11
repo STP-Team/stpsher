@@ -3,8 +3,9 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
+from stp_database import Employee
+
 from infrastructure.api.production_calendar import production_calendar
-from infrastructure.database.models import Employee
 from tgbot.misc.dicts import russian_months
 from tgbot.services.schedule import ScheduleParser
 

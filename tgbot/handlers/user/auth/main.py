@@ -4,9 +4,9 @@ import re
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.handlers.user.main import user_start_cmd
 from tgbot.misc.helpers import generate_auth_code
 from tgbot.misc.states.user.auth import Authorization

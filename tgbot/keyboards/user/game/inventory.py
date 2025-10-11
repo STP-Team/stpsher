@@ -2,8 +2,8 @@ from typing import List
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from stp_database.repo.STP.purchase import PurchaseDetailedParams
 
-from infrastructure.database.repo.STP.purchase import PurchaseDetailedParams
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.main import MainMenu
 

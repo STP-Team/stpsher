@@ -11,8 +11,8 @@ from typing import List, Set
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedule.studies_parser import StudiesScheduleParser, StudySession
 from tgbot.services.schedulers.base import BaseScheduler

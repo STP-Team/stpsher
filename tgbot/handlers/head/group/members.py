@@ -3,10 +3,10 @@ import logging
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
+from stp_database import Employee
+from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.head.group.game_profile import (

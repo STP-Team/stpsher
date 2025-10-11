@@ -5,8 +5,8 @@ from typing import Optional
 import pytz
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.keyboards.user.main import MainMenu, auth_kb
 from tgbot.keyboards.user.schedule.main import (
     get_yekaterinburg_date,

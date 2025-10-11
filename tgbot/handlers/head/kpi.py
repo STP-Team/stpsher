@@ -3,9 +3,9 @@ import datetime
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
+from stp_database import Employee
+from stp_database.repo.KPI.requests import KPIRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.KPI.requests import KPIRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.kpi import kpi_calculator_kb, kpi_kb, kpi_salary_kb
 from tgbot.keyboards.user.main import MainMenu

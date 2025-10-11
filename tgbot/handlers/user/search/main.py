@@ -3,9 +3,9 @@ import logging
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.main import MainMenu
 from tgbot.keyboards.user.search.main import UserSearchMenu, user_search_main_kb
 from tgbot.keyboards.user.search.search import (

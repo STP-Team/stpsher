@@ -2,8 +2,8 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.game.history import (
     TransactionDetailMenu,
     TransactionHistoryMenu,

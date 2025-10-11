@@ -4,8 +4,8 @@ import logging
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.broadcast import (
     BroadcastMenu,

@@ -14,9 +14,7 @@ from typing import Dict, List, Optional, Tuple
 import pandas as pd
 from openpyxl import load_workbook
 from pandas import DataFrame
-
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 from ...keyboards.user.schedule.main import get_yekaterinburg_date
 from . import DutyInfo, HeadInfo

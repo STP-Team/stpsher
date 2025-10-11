@@ -1,8 +1,8 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import Sequence
+from stp_database.models.STP.transactions import Transaction
 
-from infrastructure.database.models.STP.transactions import Transaction
 from tgbot.keyboards.head.group.game.main import HeadGameMenu
 from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.user.main import MainMenu

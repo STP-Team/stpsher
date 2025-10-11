@@ -4,9 +4,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+from stp_database import Employee, MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.keyboards.user.schedule.main import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
 

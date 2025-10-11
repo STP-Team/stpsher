@@ -3,9 +3,9 @@ import logging
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import HeadFilter
 from tgbot.keyboards.head.group.game.main import HeadGameMenu
 from tgbot.keyboards.head.group.game.rating import game_balance_rating_kb

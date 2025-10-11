@@ -2,12 +2,12 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.filters.role import HeadFilter
 from tgbot.handlers.user.schedule.main import schedule_service
-from tgbot.keyboards.user.main import MainMenu
 from tgbot.keyboards.head.schedule.main import schedule_kb_head
+from tgbot.keyboards.user.main import MainMenu
 
 logger = logging.getLogger(__name__)
 

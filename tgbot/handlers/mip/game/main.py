@@ -2,11 +2,11 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
-from tgbot.handlers.mip.game.products import products_all
 from tgbot.handlers.mip.game.achievements import achievements_all
+from tgbot.handlers.mip.game.products import products_all
 from tgbot.keyboards.mip.game.main import (
     FilterToggleMenu,
     GameMenu,

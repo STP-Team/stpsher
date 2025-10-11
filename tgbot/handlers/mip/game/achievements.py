@@ -2,8 +2,8 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.game.achievements import achievements_paginated_kb
 from tgbot.keyboards.mip.game.main import (

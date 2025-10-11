@@ -6,9 +6,9 @@ from typing import Optional
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import (
     DutyFilter,
     MultiRoleFilter,

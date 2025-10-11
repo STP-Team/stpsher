@@ -2,13 +2,13 @@ import logging
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.handlers.user.schedule.main import schedule_service
 from tgbot.keyboards.user.schedule.main import (
+    HeadNavigation,
     ScheduleMenu,
     get_yekaterinburg_date,
-    HeadNavigation,
     heads_kb,
 )
 

@@ -1,8 +1,8 @@
 from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.filters.role import AdministratorFilter
 from tgbot.keyboards.admin.main import main_kb
 from tgbot.keyboards.user.main import MainMenu

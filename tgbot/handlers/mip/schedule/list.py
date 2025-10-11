@@ -5,8 +5,8 @@ import pytz
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import MipFilter
 from tgbot.keyboards.mip.schedule.list import (
     FileVersionSelectMenu,

@@ -3,9 +3,9 @@ from typing import Any, Awaitable, Callable, Dict, Union
 
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, InlineQuery, Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.services.logger import setup_logging
 
 setup_logging()

@@ -2,9 +2,9 @@ import logging
 
 from aiogram import F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery, Message
+from stp_database import Employee
 
-from infrastructure.database.models import Employee
 from tgbot.filters.role import GokFilter
 from tgbot.keyboards.gok.main import gok_kb
 from tgbot.keyboards.user.main import MainMenu

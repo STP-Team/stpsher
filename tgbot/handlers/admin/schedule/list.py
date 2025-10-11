@@ -3,8 +3,8 @@ import os
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
+from stp_database import MainRequestsRepo
 
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.filters.role import AdministratorFilter
 from tgbot.keyboards.admin.schedule.list import (
     FileVersionSelectMenu,

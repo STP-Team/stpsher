@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import pandas as pd
+from stp_database import Employee
+from stp_database.repo.STP.employee import EmployeeRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.employee import EmployeeRepo
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)

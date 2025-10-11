@@ -1,8 +1,9 @@
 import logging
 from typing import Sequence
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
+
 from tgbot.misc.helpers import get_role
 from tgbot.services.leveling import LevelingSystem
 

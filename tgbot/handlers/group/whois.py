@@ -3,9 +3,9 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 
-from infrastructure.database.models import Employee
-from infrastructure.database.repo.STP.requests import MainRequestsRepo
 from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)

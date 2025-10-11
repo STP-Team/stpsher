@@ -1,7 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from stp_database import Employee
 
-from infrastructure.database.models.STP.employee import Employee
 from tgbot.keyboards.head.group.main import GroupManagementMenu
 from tgbot.keyboards.head.group.members import short_name
 from tgbot.keyboards.user.main import MainMenu
