@@ -22,9 +22,7 @@ user_game_casino_router = Router()
 user_game_casino_router.message.filter(
     F.chat.type == "private",
 )
-user_game_casino_router.callback_query.filter(
-    F.message.chat.type == "private", IsCasinoAllowed()
-)
+user_game_casino_router.callback_query.filter(F.message.chat.type == "private")
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +120,9 @@ def get_bowling_result_multiplier(dice_value: int) -> tuple[str, float]:
         return f"🎳 {dice_value}", 0.0
 
 
-@user_game_casino_router.callback_query(GameMenu.filter(F.menu == "casino"))
+@user_game_casino_router.callback_query(
+    GameMenu.filter(F.menu == "casino"), IsCasinoAllowed()
+)
 async def casino_main_menu(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -145,7 +145,9 @@ async def casino_main_menu(
     )
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "main"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "main"), IsCasinoAllowed()
+)
 async def casino_main_menu_back(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -153,7 +155,9 @@ async def casino_main_menu_back(
     await casino_main_menu(callback, user, stp_repo)
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "slots"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "slots"), IsCasinoAllowed()
+)
 async def casino_slot_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -187,7 +191,9 @@ async def casino_slot_betting(
     )
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "dice"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "dice"), IsCasinoAllowed()
+)
 async def casino_dice_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -223,7 +229,9 @@ async def casino_dice_betting(
     )
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "darts"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "darts"), IsCasinoAllowed()
+)
 async def casino_darts_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -259,7 +267,9 @@ async def casino_darts_betting(
     )
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "bowling"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "bowling"), IsCasinoAllowed()
+)
 async def casino_bowling_betting(
     callback: CallbackQuery, user: Employee, stp_repo: MainRequestsRepo
 ):
@@ -295,7 +305,9 @@ async def casino_bowling_betting(
     )
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "rate"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "rate"), IsCasinoAllowed()
+)
 async def casino_rate_adjustment(
     callback: CallbackQuery,
     callback_data: CasinoMenu,
@@ -354,7 +366,9 @@ async def casino_rate_adjustment(
     )
 
 
-@user_game_casino_router.callback_query(CasinoMenu.filter(F.menu == "bet"))
+@user_game_casino_router.callback_query(
+    CasinoMenu.filter(F.menu == "bet"), IsCasinoAllowed()
+)
 async def casino_game(
     callback: CallbackQuery,
     callback_data: CasinoMenu,
