@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from aiogram import F, Router
@@ -19,7 +20,7 @@ from tgbot.keyboards.user.game.inventory import (
 from tgbot.keyboards.user.game.main import GameMenu
 from tgbot.keyboards.user.game.shop import ProductDetailsShop
 from tgbot.keyboards.user.schedule.main import get_yekaterinburg_date
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import get_role, tz
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.mailing import (
     send_activation_product_email,
@@ -341,6 +342,27 @@ async def use_product_handler(
     if not user_product_detail:
         await callback.answer("❌ Предмет не найден", show_alert=True)
         return
+
+    if user_product_detail.product_info.activate_days:
+        current_day = datetime.datetime.now(tz).day
+        activate_days = user_product_detail.product_info.activate_days
+
+        if activate_days and current_day not in activate_days:
+            # Detect if it's a continuous range
+            sorted_days = sorted(activate_days)
+            if sorted_days == list(range(sorted_days[0], sorted_days[-1] + 1)):
+                # continuous range (e.g., 1–7)
+                days_text = f"с {sorted_days[0]} по {sorted_days[-1]} число месяца"
+            else:
+                # non-continuous days (e.g., [1, 5, 10])
+                days_text = "в следующие дни месяца: " + ", ".join(
+                    map(str, sorted_days)
+                )
+
+            await callback.answer(
+                f"❌ Достижение можно активировать только {days_text}", show_alert=True
+            )
+            return
 
     success = await stp_repo.purchase.use_purchase(user_product_id)
 

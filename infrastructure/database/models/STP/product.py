@@ -1,4 +1,4 @@
-from sqlalchemy import Integer
+from sqlalchemy import JSON, Integer
 from sqlalchemy.dialects.mysql import VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -36,6 +36,7 @@ class Product(Base, TableNameMixin):
     division: Mapped[str] = mapped_column(VARCHAR(3), nullable=False)
     cost: Mapped[int] = mapped_column(Integer, nullable=False)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
+    activate_days: Mapped[list] = mapped_column(JSON, nullable=True)
     manager_role: Mapped[int] = mapped_column(Integer, nullable=False)
 
     def __repr__(self):
