@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from stp_database.models.STP.schedules import Schedules
+from stp_database.models import Schedule
 
 from tgbot.keyboards.user.main import MainMenu
 
@@ -58,7 +58,7 @@ class RestoreConfirmMenu(CallbackData, prefix="admin_restore_confirm"):
 
 
 def list_db_files_paginated_kb(
-    current_page: int, total_pages: int, page_files: Sequence[Schedules] = None
+    current_page: int, total_pages: int, page_files: Sequence[Schedule] = None
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура пагинации для файлов графиков в базе данных с кнопками выбора файлов.
@@ -179,7 +179,7 @@ def list_db_files_paginated_kb(
 
 
 def list_db_files_kb(
-    schedule_files: Sequence[Schedules],
+    schedule_files: Sequence[Schedule],
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура меню файлов графиков в базе данных (legacy compatibility).
@@ -485,7 +485,7 @@ def schedule_list_back_kb() -> InlineKeyboardMarkup:
 
 
 def file_versions_list_kb(
-    file_versions: Sequence[Schedules],
+    file_versions: Sequence[Schedule],
     filename: str,
     current_page: int = 1,
     total_pages: int = 1,
