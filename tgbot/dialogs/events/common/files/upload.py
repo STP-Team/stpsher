@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 
 from aiogram import Bot
@@ -409,8 +410,6 @@ async def on_document_uploaded(
         )
         await dialog_manager.switch_to(Files.upload_error)
     finally:
-        import os
-
         for root, dirs, files in os.walk(uploads_dir, followlinks=True):
             for filename in files:
                 if filename.startswith("temp_old_"):
