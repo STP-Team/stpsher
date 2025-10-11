@@ -32,12 +32,22 @@ from tgbot.dialogs.events.common.schedules import (
 )
 from tgbot.dialogs.events.heads.group import (
     close_group_dialog,
+    on_game_casino_member_click,
+    on_game_casino_toggle_all,
     on_member_casino_change,
     on_member_role_change,
     on_member_schedule_mode_select,
     on_member_select,
 )
 from tgbot.dialogs.getters.common.schedules import group_schedule_getter
+from tgbot.dialogs.getters.heads.group.game import (
+    game_achievements_getter,
+    game_balance_history_getter,
+    game_casino_getter,
+    game_products_getter,
+    game_rating_getter,
+    game_statistics_getter,
+)
 from tgbot.dialogs.getters.heads.group.members import (
     group_members_getter,
     member_access_level_getter,
@@ -152,12 +162,229 @@ members_window = Window(
 )
 
 game_window = Window(
-    Const("""🏮 <b>Игра</b>"""),
+    Format("{statistics_text}"),
+    Group(
+        Row(
+            SwitchTo(
+                Const("🎯 Достижения"),
+                id="achievements",
+                state=HeadGroupSG.game_achievements,
+            ),
+            SwitchTo(
+                Const("👏 Предметы"),
+                id="products",
+                state=HeadGroupSG.game_products,
+            ),
+        ),
+        Row(
+            SwitchTo(
+                Const("💰 История группы"),
+                id="balance_history",
+                state=HeadGroupSG.game_balance_history,
+            ),
+            SwitchTo(
+                Const("🎰 Казино"),
+                id="casino",
+                state=HeadGroupSG.game_casino,
+            ),
+        ),
+        SwitchTo(
+            Const("🎖️ Рейтинг"),
+            id="rating",
+            state=HeadGroupSG.game_rating,
+        ),
+    ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.menu),
         Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
     ),
+    getter=game_statistics_getter,
     state=HeadGroupSG.game,
+)
+
+game_achievements_window = Window(
+    Const("""🎯 <b>Достижения группы</b>
+
+История полученных достижений всех сотрудников группы
+<i>Используй кнопки для выбора страницы</i>
+"""),
+    List(
+        Format("""{pos}. <b>{item[1]}</b> - {item[7]}
+<blockquote>🏅 Награда: {item[2]} баллов
+📝 Описание: {item[3]}
+🔰 Должность: {item[4]}
+🕒 Начисление: {item[5]}
+📅 Получено: {item[6]}</blockquote>
+"""),
+        items="achievements",
+        id="game_achievements_list",
+        page_size=5,
+    ),
+    Row(
+        FirstPage(
+            scroll="game_achievements_list",
+            text=Format("1"),
+        ),
+        PrevPage(
+            scroll="game_achievements_list",
+            text=Format("<"),
+        ),
+        CurrentPage(
+            scroll="game_achievements_list",
+            text=Format("{current_page1}"),
+        ),
+        NextPage(
+            scroll="game_achievements_list",
+            text=Format(">"),
+        ),
+        LastPage(
+            scroll="game_achievements_list",
+            text=Format("{target_page1}"),
+        ),
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
+        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+    ),
+    getter=game_achievements_getter,
+    state=HeadGroupSG.game_achievements,
+)
+
+game_products_window = Window(
+    Format("""🎒 <b>Инвентарь группы</b>
+
+Все покупки сотрудников группы и их статус
+
+Используй фильтры для поиска нужных предметов:
+📦 - Готов к использованию
+⏳ - На проверке
+🔒 - Не осталось использований
+
+<i>Всего предметов приобретено: {total_bought}</i>
+<i>Показано: {total_shown}</i>"""),
+    ScrollingGroup(
+        Select(
+            Format("{item[1]}"),
+            id="game_inventory_product",
+            items="products",
+            item_id_getter=lambda item: item[0],
+        ),
+        width=2,
+        height=3,
+        hide_on_single_page=True,
+        id="game_inventory_scroll",
+    ),
+    Radio(
+        Format("🔘 {item[1]}"),
+        Format("⚪️ {item[1]}"),
+        id="game_inventory_filter",
+        item_id_getter=lambda item: item[0],
+        items=[
+            ("all", "📋 Все"),
+            ("stored", f"{get_status_emoji('stored')}"),
+            ("review", f"{get_status_emoji('review')}"),
+            ("used_up", f"{get_status_emoji('used_up')}"),
+        ],
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
+        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+    ),
+    getter=game_products_getter,
+    state=HeadGroupSG.game_products,
+)
+
+game_balance_history_window = Window(
+    Const("""💰 <b>История баланса группы</b>
+
+Последние 100 транзакций группы
+<i>Используй кнопки для выбора страницы</i>
+"""),
+    List(
+        Format("""{pos}. {item[1]}
+<blockquote>💵 Сумма: <b>{item[2]}</b> баллов
+📋 Тип: {item[3]}
+📅 Дата: {item[4]}
+📝 Описание: {item[5]}</blockquote>
+"""),
+        items="history",
+        id="game_history_list",
+        page_size=5,
+    ),
+    Row(
+        FirstPage(
+            scroll="game_history_list",
+            text=Format("1"),
+        ),
+        PrevPage(
+            scroll="game_history_list",
+            text=Format("<"),
+        ),
+        CurrentPage(
+            scroll="game_history_list",
+            text=Format("{current_page1}"),
+        ),
+        NextPage(
+            scroll="game_history_list",
+            text=Format(">"),
+        ),
+        LastPage(
+            scroll="game_history_list",
+            text=Format("{target_page1}"),
+        ),
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
+        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+    ),
+    getter=game_balance_history_getter,
+    state=HeadGroupSG.game_balance_history,
+)
+
+game_casino_window = Window(
+    Format("""🎰 <b>Управление казино</b>
+
+Здесь ты можешь управлять доступом к казино для каждого сотрудника
+
+🟢 - Казино доступно
+🔴 - Казино недоступно
+
+<i>Всего сотрудников: {total_members}</i>
+<i>Казино доступно: {casino_enabled_count}</i>"""),
+    Button(
+        Const("🔄 Переключить для всех"),
+        id="toggle_all_casino",
+        on_click=on_game_casino_toggle_all,
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{item[1]}"),
+            id="game_casino_members",
+            items="members",
+            item_id_getter=lambda item: item[0],
+            on_click=on_game_casino_member_click,
+        ),
+        width=2,
+        height=5,
+        hide_on_single_page=True,
+        id="game_casino_scroll",
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
+        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+    ),
+    getter=game_casino_getter,
+    state=HeadGroupSG.game_casino,
+)
+
+game_rating_window = Window(
+    Format("{rating_text}"),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
+        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+    ),
+    getter=game_rating_getter,
+    state=HeadGroupSG.game_rating,
 )
 
 member_details_window = Window(
@@ -462,6 +689,10 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     )
     await member_inventory_filter.set_checked("all")
 
+    # Фильтр инвентаря группы на "Все"
+    game_inventory_filter: ManagedRadio = dialog_manager.find("game_inventory_filter")
+    await game_inventory_filter.set_checked("all")
+
 
 head_group_dialog = Dialog(
     menu_window,
@@ -469,6 +700,12 @@ head_group_dialog = Dialog(
     rating_window,
     members_window,
     game_window,
+    # Game sub-windows
+    game_achievements_window,
+    game_products_window,
+    game_balance_history_window,
+    game_casino_window,
+    game_rating_window,
     # Member detail windows
     member_details_window,
     member_access_level_window,

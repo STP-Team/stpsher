@@ -15,6 +15,7 @@ from tgbot.dialogs.getters.common.game.kpi import (
 from tgbot.dialogs.getters.common.schedules import user_schedule_getter
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname, get_role
+from tgbot.services.search import SearchService
 
 
 async def group_members_getter(
@@ -52,7 +53,6 @@ async def group_members_getter(
 
 
 async def member_info_getter(
-    user: Employee,
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -60,17 +60,13 @@ async def member_info_getter(
     """Геттер для получения информации о выбранном члене группы.
 
     Args:
-        user: Экземпляр пользователя с моделью Employee (руководитель)
         stp_repo: Репозиторий операций с базой STP
         dialog_manager: Менеджер диалога
 
     Returns:
         Словарь с информацией о выбранном сотруднике
     """
-    from tgbot.services.search import SearchService
-
     selected_user_id = dialog_manager.dialog_data.get("selected_member_id")
-    is_head = user.role == 2
 
     if not selected_user_id:
         return {"user_info": "❌ Пользователь не выбран"}
@@ -103,7 +99,6 @@ async def member_info_getter(
 
 
 async def member_access_level_getter(
-    user: Employee,
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -111,7 +106,6 @@ async def member_access_level_getter(
     """Геттер получения доступных ролей для назначения члену группы.
 
     Args:
-        user: Экземпляр пользователя с моделью Employee (руководитель)
         stp_repo: Репозиторий операций с базой STP
         dialog_manager: Менеджер диалога
 

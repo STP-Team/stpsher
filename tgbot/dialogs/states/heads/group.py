@@ -14,6 +14,13 @@ class HeadGroupSG(StatesGroup):
     members = State()
     game = State()
 
+    # Game sub-windows
+    game_achievements = State()
+    game_products = State()
+    game_balance_history = State()
+    game_casino = State()
+    game_rating = State()
+
     # Member details states (similar to search)
     member_details = State()
     member_schedule = State()
