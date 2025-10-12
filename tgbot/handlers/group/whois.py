@@ -3,6 +3,8 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from stp_database import Employee
+from stp_database.repo.STP.requests import MainRequestsRepo
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, get_role
@@ -15,6 +17,7 @@ whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     """Создание сообщения с информацией о пользователе (аналогично inline search)"""
+
     # Определяем уровень доступа и эмодзи
     role_info = get_role(user.role)
 

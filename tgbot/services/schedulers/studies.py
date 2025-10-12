@@ -59,7 +59,8 @@ class StudiesScheduler(BaseScheduler):
 
 
 async def check_upcoming_studies(session_pool, bot: Bot):
-    """Check for upcoming studies and notify participants if less than a week away
+    """
+    Check for upcoming studies and notify participants if less than a week away
 
     Args:
         session_pool: Database session pool
@@ -177,7 +178,7 @@ async def send_study_notifications(
             for participant_name in participant_names:
                 try:
                     # Find participant in database
-                    participant = await stp_repo.employee.get_users(
+                    participant = await stp_repo.employee.get_user(
                         fullname=participant_name
                     )
 
@@ -231,7 +232,8 @@ async def send_study_notifications(
 async def create_study_notification_message(
     session: StudySession, stp_repo, time_diff: timedelta
 ) -> str:
-    """Create notification message for study participant
+    """
+    Create notification message for study participant
 
     Args:
         session: Study session object
@@ -262,14 +264,11 @@ async def create_study_notification_message(
     trainer_text = session.trainer
     if session.trainer:
         try:
-            trainer_user = await stp_repo.employee.get_users(fullname=session.trainer)
-            trainer_text = format_fullname(
-                trainer_user.fullname,
-                True,
-                True,
-                trainer_user.username,
-                trainer_user.user_id,
-            )
+            trainer_user = await stp_repo.employee.get_user(fullname=session.trainer)
+            if trainer_user and trainer_user.username:
+                trainer_text = (
+                    f"<a href='t.me/{trainer_user.username}'>{session.trainer}</a>"
+                )
         except Exception as e:
             logger.warning(
                 f"[Обучения] Could not get trainer info for {session.trainer}: {e}"
@@ -283,18 +282,21 @@ async def create_study_notification_message(
         f"\n📅 <b>Дата:</b> {session.date.strftime('%d.%m.%Y')} {session.time} {f'({session.duration})' if session.duration else ''}",
     ]
 
-    message_parts.extend([
-        "\n<blockquote expandable>💡 <b>Правила посещения обучений</b>",
-        "• Подтверди или отклони явку в письме об обучении на почте",
-        "• Крайний срок предупреждения о неявке - за 2 часа до начала обучения с линии",
-        "• Обязательно наличие камеры</blockquote>",
-    ])
+    message_parts.extend(
+        [
+            "\n<blockquote expandable>💡 <b>Правила посещения обучений</b>",
+            "• Подтверди или отклони явку в письме об обучении на почте",
+            "• Крайний срок предупреждения о неявке - за 2 часа до начала обучения с линии",
+            "• Обязательно наличие камеры</blockquote>",
+        ]
+    )
 
     return "\n".join(message_parts)
 
 
 def format_studies_notification_summary(sessions: List[StudySession]) -> str:
-    """Format brief summary of upcoming studies for logs
+    """
+    Format brief summary of upcoming studies for logs
 
     Args:
         sessions: List of upcoming study sessions

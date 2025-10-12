@@ -50,6 +50,7 @@ def register_middlewares(
         main_session_pool: Сессия с базой данных STP
         kpi_session_pool: Сессия с базой данных KPI
     """
+
     config_middleware = ConfigMiddleware(config)
     database_middleware = DatabaseMiddleware(
         config=config,
