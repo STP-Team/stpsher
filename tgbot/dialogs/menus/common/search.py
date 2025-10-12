@@ -56,10 +56,10 @@ menu_window = Window(
     Row(
         SwitchTo(
             Const("👤 Специалисты"),
-            id="schedules",
+            id="specialists",
             state=Search.specialists,
         ),
-        SwitchTo(Const("👑 Руководители"), id="kpi", state=Search.heads),
+        SwitchTo(Const("👑 Руководители"), id="heads", state=Search.heads),
     ),
     SwitchTo(Const("🕵🏻 Поиск"), id="game", state=Search.query),
     Button(Const("↩️ Назад"), id="menu", on_click=close_search_dialog),
