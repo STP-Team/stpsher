@@ -8,7 +8,7 @@ dependencies = [
     "stp-database @ git+https://git@github.com/ERTG-BOTS/stp-database.git",
     "aiogram>=3.21.0",
     "aiomysql>=0.2.0",
-    "alembic==1.16.5",
+    "alembic==1.17.0",
     "apscheduler>=3.11.0",
     "betterlogging>=1.0.0",
     "databases>=0.9.0",
