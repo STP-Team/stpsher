@@ -5,6 +5,8 @@ services:
     restart: always
     env_file:
       - ".env"
+    volumes:
+      - ./uploads:/app/uploads
 
     logging:
       driver: "json-file"

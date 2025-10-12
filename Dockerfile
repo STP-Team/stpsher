@@ -1,7 +1,7 @@
 FROM ghcr.io/astral-sh/uv:latest AS uv
 FROM python:3.13-slim AS runtime
 
-WORKDIR /usr/src/app/stpsher-bot
+WORKDIR /app
 
 # Системные зависимости
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,7 +15,7 @@ RUN uv sync --frozen --no-dev
 COPY . .
 
 # Добавляем виртуальное окружение в PATH
-ENV PATH="/usr/src/app/stpsher-bot/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Запрет Python записывать файлы .pyc и использовать буферизацию stdout
 ENV PYTHONDONTWRITEBYTECODE=1 \

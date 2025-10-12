@@ -1,4 +1,6 @@
 venv/
+.venv
 .idea/
 cache/
 README.MD
+uploads
