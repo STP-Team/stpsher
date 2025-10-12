@@ -1,6 +1,6 @@
 services:
   bot:
-    image: "ghcr.io/ertg-bots/stpsher:latest"
+    image: "ghcr.io/stp-team/stpsher:latest"
     stop_signal: SIGINT
     restart: always
     env_file:
