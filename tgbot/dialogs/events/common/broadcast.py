@@ -9,6 +9,7 @@ from sqlalchemy import select
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.broadcast import Broadcast
+from tgbot.misc.dicts import roles
 from tgbot.services.broadcaster import broadcast_copy
 
 
@@ -206,6 +207,12 @@ async def on_broadcast_send(
                 employees = await stp_repo.employee.get_users(head=head.fullname)
                 user_ids.extend([emp.user_id for emp in employees if emp.user_id])
 
+    elif broadcast_type == "by_role":
+        # Получить пользователей по ролям
+        role_ids = [int(role_id) for role_id in broadcast_items]
+        employees = await stp_repo.employee.get_users(roles=role_ids)
+        user_ids = [emp.user_id for emp in employees if emp.user_id]
+
     # Сохраняем данные для progress и result
     dialog_manager.dialog_data["user_ids"] = user_ids
     dialog_manager.dialog_data["total_users"] = len(user_ids)
@@ -255,6 +262,15 @@ async def on_broadcast_send(
             if head:
                 head_names.append(head.fullname)
         target = ", ".join(head_names)
+    elif broadcast_type == "by_role":
+        db_type = "role"
+        # Получаем названия ролей для target
+        role_names = []
+        for role_id in broadcast_items:
+            role_data = roles.get(int(role_id))
+            if role_data:
+                role_names.append(role_data["name"])
+        target = ", ".join(role_names)
 
     # Создаем запись о рассылке
     await stp_repo.broadcast.create_broadcast(

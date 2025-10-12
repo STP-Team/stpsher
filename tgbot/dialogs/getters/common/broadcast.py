@@ -4,6 +4,7 @@ from aiogram_dialog import DialogManager
 from sqlalchemy import distinct, select
 from stp_database import Employee, MainRequestsRepo
 
+from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname
 
 
@@ -45,7 +46,7 @@ async def broadcast_select_getter(
         items = []
         for head in heads:
             display_name = format_fullname(
-                head.fullname, True, True, head.username, head.user_id
+                head.fullname, True, True, head.username, int(head.user_id)
             )
             items.append((head.id, display_name))
 
@@ -57,6 +58,15 @@ async def broadcast_select_getter(
         broadcast_filters = [("all", "Все")] + [(div, div) for div in head_divisions]
 
         title = "Выбери группы руководителей для рассылки"
+    elif broadcast_type == "by_role":
+        # Получаем роли из словаря, исключая роль 0 (Не авторизован)
+        items = [
+            (str(role_id), f"{role_data['emoji']} {role_data['name']}")
+            for role_id, role_data in roles.items()
+            if role_id != 0
+        ]
+        title = "Выбери уровни доступа для рассылки"
+        broadcast_filters = []
     else:
         items = []
         broadcast_filters = []
@@ -109,10 +119,22 @@ async def broadcast_info_getter(
                                     True,
                                     True,
                                     head.username,
-                                    head.user_id,
+                                    int(head.user_id),
                                 )
                             )
                     broadcast_targets = ", ".join(short_names)
+            case "by_role":
+                broadcast_type = "🛡️ По уровню доступа"
+                if broadcast_items:
+                    # Получаем названия ролей по их ID
+                    role_names = []
+                    for role_id in broadcast_items:
+                        role_data = roles.get(int(role_id))
+                        if role_data:
+                            role_names.append(
+                                f"{role_data['emoji']} {role_data['name']}"
+                            )
+                    broadcast_targets = ", ".join(role_names)
             case "all":
                 broadcast_type = "🌎 Всем"
 
@@ -228,6 +250,8 @@ async def broadcast_detail_getter(
             broadcast_type = "🔰 По направлению"
     elif broadcast.type == "group":
         broadcast_type = "👔 По группам"
+    elif broadcast.type == "role":
+        broadcast_type = "🛡️ По уровню доступа"
 
     # Форматируем дату
     created_at_str = (
@@ -235,7 +259,7 @@ async def broadcast_detail_getter(
     )
 
     # Получаем информацию о создателе рассылки
-    creator = await stp_repo.employee.get_users(user_id=broadcast.user_id)
+    creator = await stp_repo.employee.get_users(user_id=int(broadcast.user_id))
 
     return {
         "broadcast_type": broadcast_type,
@@ -244,6 +268,6 @@ async def broadcast_detail_getter(
         "recipients_count": len(broadcast.recipients or []),
         "created_at": created_at_str,
         "creator_name": format_fullname(
-            creator.fullname, True, True, creator.username, creator.user_id
+            creator.fullname, True, True, creator.username, int(creator.user_id)
         ),
     }
