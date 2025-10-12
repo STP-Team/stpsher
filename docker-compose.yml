@@ -1,13 +1,7 @@
 services:
   bot:
-    image: "stpsher-bot"
+    image: "ghcr.io/ertg-bots/stpsher:latest"
     stop_signal: SIGINT
-    build:
-      context: .
-    working_dir: "/usr/src/app/stpsher-bot"
-    volumes:
-      - .:/usr/src/app/stpsher-bot
-    command: uv run bot.py
     restart: always
     env_file:
       - ".env"
