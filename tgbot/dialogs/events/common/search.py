@@ -48,7 +48,7 @@ async def close_search_dialog(
 
 
 async def on_back_to_menu(
-    _callback: CallbackQuery, _widget: Button, dialog_manager, **_kwargs
+    _callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик возврата в меню поиска из детального просмотра пользователя.
 
@@ -57,7 +57,22 @@ async def on_back_to_menu(
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
-    await dialog_manager.switch_to(Search.menu)
+    # Получаем предыдущее состояние, если оно было сохранено
+    previous_state = dialog_manager.dialog_data.get("previous_state")
+
+    # Если есть сохраненное состояние, возвращаемся к нему
+    if previous_state:
+        if "specialists" in previous_state:
+            await dialog_manager.switch_to(Search.specialists)
+        elif "heads" in previous_state:
+            await dialog_manager.switch_to(Search.heads)
+        elif "query_results" in previous_state:
+            await dialog_manager.switch_to(Search.query_results)
+        else:
+            await dialog_manager.switch_to(Search.menu)
+    else:
+        # Если предыдущее состояние не сохранено, возвращаемся в главное меню
+        await dialog_manager.switch_to(Search.menu)
 
 
 async def on_user_select(
