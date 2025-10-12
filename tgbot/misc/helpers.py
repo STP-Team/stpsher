@@ -4,7 +4,6 @@ import random
 import string
 
 import pytz
-
 from sqlalchemy.orm import Mapped
 
 from tgbot.misc.dicts import roles

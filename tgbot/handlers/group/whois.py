@@ -3,21 +3,18 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from stp_database import Employee
-from stp_database.repo.STP.requests import MainRequestsRepo
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, get_role
 
 logger = logging.getLogger(__name__)
 
-whois_router = Router()
-whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
+group_whois_router = Router()
+group_whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     """Создание сообщения с информацией о пользователе (аналогично inline search)"""
-
     # Определяем уровень доступа и эмодзи
     role_info = get_role(user.role)
 
@@ -55,7 +52,7 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     return "\n".join(message_parts)
 
 
-@whois_router.message(Command("whois"))
+@group_whois_router.message(Command("whois"))
 async def whois_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /whois для получения информации о пользователе"""
     # Проверяем авторизацию пользователя
@@ -129,7 +126,7 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
 
 
 # Дополнительный хэндлер для команды /whois с аргументом (поиск по имени)
-@whois_router.message(Command("whois", magic=F.args))
+@group_whois_router.message(Command("whois", magic=F.args))
 async def whois_with_args(message: Message, user: Employee, stp_repo: MainRequestsRepo):
     """Команда /whois с аргументом для поиска по имени"""
     # Проверяем авторизацию пользователя
@@ -233,4 +230,4 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
 
 
 # Если создаете новый файл, экспортируйте роутер
-__all__ = ["whois_router"]
+__all__ = ["group_whois_router"]

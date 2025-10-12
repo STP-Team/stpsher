@@ -1,3 +1,5 @@
+"""Запуск диалога для руководителей."""
+
 from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message

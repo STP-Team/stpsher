@@ -1,3 +1,5 @@
+"""Запуск диалога для администраторов."""
+
 import logging
 
 from aiogram import F, Router

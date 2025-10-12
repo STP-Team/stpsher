@@ -18,7 +18,13 @@ user_auth_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_auth_router.callback_query(F.data == "auth")
-async def user_auth(callback: CallbackQuery, state: FSMContext):
+async def user_auth(callback: CallbackQuery, state: FSMContext) -> None:
+    """Обработчик запуска диалога авторизации.
+
+    Args:
+        callback: Callback query от Telegram
+        state: Машина состояний
+    """
     await callback.answer()
 
     logger.info(
@@ -36,6 +42,12 @@ async def user_auth(callback: CallbackQuery, state: FSMContext):
 
 @user_auth_router.message(Authorization.email)
 async def user_auth_email(message: Message, state: FSMContext):
+    """Обработчик проверки введенной почты.
+
+    Args:
+        message: Объект сообщения от пользователя
+        state: Машина состояний
+    """
     email_pattern = r"^[A-Za-z0-9._%+-]+@dom\.ru$"
     state_data = await state.get_data()
     await message.delete()
@@ -82,6 +94,12 @@ async def user_auth_email(message: Message, state: FSMContext):
 
 @user_auth_router.message(Authorization.auth_code)
 async def user_auth_code(message: Message, state: FSMContext):
+    """Обработчик проверки введенного кода авторизации.
+
+    Args:
+        message: Объект сообщения от пользователя
+        state: Машина состояний
+    """
     state_data = await state.get_data()
 
     await message.delete()
@@ -119,6 +137,13 @@ async def user_auth_code(message: Message, state: FSMContext):
 async def user_auth_fullname(
     message: Message, state: FSMContext, stp_repo: MainRequestsRepo
 ):
+    """Обработчик проверки введенных ФИО специалиста.
+
+    Args:
+        message: Объект сообщения от пользователя
+        state: Машина состояний
+        stp_repo: Репозиторий операций с базой STP
+    """
     fullname_pattern = r"^[А-Яа-яЁё]+ [А-Яа-яЁё]+ [А-Яа-яЁё]+$"
     state_data = await state.get_data()
     await message.delete()
