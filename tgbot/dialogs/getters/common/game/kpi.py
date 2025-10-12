@@ -32,7 +32,7 @@ async def base_kpi_data(
 
 
 async def kpi_getter(
-    user: Employee, premium: SpecPremium | HeadPremium = None, **_kwargs
+    user: Employee, kpi_repo: KPIRequestsRepo, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для получения показателей KPI сотрудника.
 
@@ -43,6 +43,9 @@ async def kpi_getter(
     Returns:
         Словарь с текстом сообщения о показателях пользователя
     """
+    data = await base_kpi_data(user, kpi_repo, **_kwargs)
+    premium = data.get("premium")
+
     if not premium:
         return {
             "kpi_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
@@ -140,7 +143,7 @@ async def kpi_getter(
 
 
 async def kpi_requirements_getter(
-    user: Employee, premium: SpecPremium | HeadPremium = None, **kwargs
+    user: Employee, kpi_repo: KPIRequestsRepo, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для расчета необходимых показателей для выполнения нормативов.
 
@@ -151,6 +154,9 @@ async def kpi_requirements_getter(
     Returns:
         Словарь с текстом сообщения о выполнении нормативов пользователем
     """
+    data = await base_kpi_data(user, kpi_repo, **_kwargs)
+    premium = data.get("premium")
+
     if not premium:
         return {
             "requirements_text": """🧮 <b>Нормативы</b>
@@ -166,7 +172,7 @@ async def kpi_requirements_getter(
 
 
 async def salary_getter(
-    user: Employee, premium: SpecPremium | HeadPremium = None, **kwargs
+    user: Employee, kpi_repo: KPIRequestsRepo, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для расчета заработной платы сотрудника.
 
@@ -177,6 +183,9 @@ async def salary_getter(
     Returns:
         Словарь с текстом сообщения о зарплате сотрудника
     """
+    data = await base_kpi_data(user, kpi_repo, **_kwargs)
+    premium = data.get("premium")
+
     if not premium:
         return {
             "salary_text": """💰 <b>Зарплата</b>
