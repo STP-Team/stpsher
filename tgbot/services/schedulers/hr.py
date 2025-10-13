@@ -1,11 +1,11 @@
-"""
-HR-планировщик для управления кадровыми процессами
+"""HR-планировщик для управления кадровыми процессами
 
 Содержит задачи по обработке увольнений, уведомлениям об авторизации
 и другим кадровым операциям.
 """
 
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -14,8 +14,8 @@ from typing import Dict, List
 import pandas as pd
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from stp_database import MainRequestsRepo
 from stp_database.repo.STP.employee import EmployeeRepo
-from stp_database.repo.STP.requests import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedulers.base import BaseScheduler
@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class HRScheduler(BaseScheduler):
-    """
-    Планировщик HR-задач
+    """Планировщик HR-задач
 
     Управляет задачами связанными с кадровыми процессами:
     - Обработка увольнений из Excel файлов
@@ -101,8 +100,7 @@ class HRScheduler(BaseScheduler):
 
 # Функции для работы с увольнениями
 def parse_dismissal_date(date_str: str) -> datetime:
-    """
-    Парсинг даты увольнения из формата '04.авг' или '25.июл'
+    """Парсинг даты увольнения из формата '04.авг' или '25.июл'
 
     Args:
         date_str: Строка даты в формате 'день.месяц_сокр'
@@ -143,8 +141,7 @@ def parse_dismissal_date(date_str: str) -> datetime:
 
 
 def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
-    """
-    Получение списка уволенных сотрудников из Excel файлов
+    """Получение списка уволенных сотрудников из Excel файлов
 
     Returns:
         Список ФИО уволенных сотрудников, дата увольнения которых совпадает с текущей датой
@@ -158,23 +155,27 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
         return fired_users
 
     if not files_list:
-        # Поиск файлов с названием "ГРАФИК*"
-        schedule_files = list(uploads_path.glob("ГРАФИК*.xlsx"))
+        schedule_files = []
+        for root, dirs, files in os.walk(uploads_path, followlinks=True):
+            for name in files:
+                if name.startswith("ГРАФИК") and name.endswith(".xlsx"):
+                    schedule_files.append(Path(root) / name)
 
         if not schedule_files:
             logger.info("[Увольнения] Файлы графиков не найдены")
             return fired_users
-
     else:
         schedule_files = []
         for file_name in files_list:
-            schedule_files.extend(uploads_path.glob(file_name))
+            for root, dirs, files in os.walk(uploads_path, followlinks=True):
+                for name in files:
+                    if Path(name).match(file_name):
+                        schedule_files.append(Path(root) / name)
 
     for file_path in schedule_files:
         try:
             logger.info(f"[Увольнения] Обрабатываем файл: {file_path.name}")
 
-            # Чтение листа "ЗАЯВЛЕНИЯ"
             try:
                 df = pd.read_excel(file_path, sheet_name="ЗАЯВЛЕНИЯ", header=None)
             except Exception as e:
@@ -183,10 +184,8 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
                 )
                 continue
 
-            # Поиск строк с увольнениями
             for row_idx in range(len(df)):
                 try:
-                    # Колонка A - ФИО, B - дата, C - тип заявления
                     fullname = (
                         str(df.iloc[row_idx, 0])
                         if pd.notna(df.iloc[row_idx, 0])
@@ -201,19 +200,13 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
                         else ""
                     )
 
-                    # Проверяем, что это увольнение
                     if dismissal_type.strip().lower() not in ["увольнение", "декрет"]:
                         continue
-
-                    # Проверяем ФИО (не пустое и содержит буквы)
                     if not fullname:
                         continue
-
-                    # Проверяем дату увольнения
                     if dismissal_date is None:
                         continue
 
-                    # Проверяем, если дата увольнения старше сегодняшней даты
                     if dismissal_date < current_date:
                         fired_users.append(fullname.strip())
                         logger.debug(
@@ -235,8 +228,7 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
 
 
 async def process_fired_users(session_pool, bot: Bot = None):
-    """
-    Обработка уволенных сотрудников - удаление из базы и групп
+    """Обработка уволенных сотрудников - удаление из базы и групп
 
     Args:
         session_pool: Пул сессий БД из bot.py
@@ -286,8 +278,7 @@ async def process_fired_users(session_pool, bot: Bot = None):
 async def remove_fired_users_from_groups(
     session_pool, bot: Bot, fired_users: List[str]
 ):
-    """
-    Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
+    """Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
 
     Args:
         session_pool: Пул сессий БД
@@ -308,7 +299,7 @@ async def remove_fired_users_from_groups(
             for fullname in fired_users:
                 try:
                     # Получаем информацию о сотруднике
-                    employee = await stp_repo.employee.get_user(fullname=fullname)
+                    employee = await stp_repo.employee.get_users(fullname=fullname)
 
                     if not employee or not employee.user_id:
                         logger.debug(
@@ -403,9 +394,7 @@ async def remove_fired_users_from_groups(
 
 # Функции для работы с авторизацией
 async def notify_to_unauthorized_users(session_pool, bot: Bot):
-    """
-    Уведомление руководителей о неавторизованных пользователях в их группах
-    """
+    """Уведомление руководителей о неавторизованных пользователях в их группах"""
     try:
         async with session_pool() as session:
             stp_repo = MainRequestsRepo(session)
@@ -443,8 +432,7 @@ async def notify_to_unauthorized_users(session_pool, bot: Bot):
 
 
 async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]:
-    """
-    Группирует неавторизованных пользователей по их руководителям
+    """Группирует неавторизованных пользователей по их руководителям
 
     Args:
         unauthorized_users: Список неавторизованных пользователей
@@ -480,8 +468,7 @@ async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]
 async def send_notifications_to_supervisors(
     unauthorized_by_head: Dict[str, List], bot: Bot, stp_repo: MainRequestsRepo
 ) -> Dict[str, bool]:
-    """
-    Отправляет уведомления руководителям об их неавторизованных подчиненных
+    """Отправляет уведомления руководителям об их неавторизованных подчиненных
 
     Args:
         unauthorized_by_head: Словарь с группировкой пользователей по руководителям
@@ -496,7 +483,7 @@ async def send_notifications_to_supervisors(
     for head_name, subordinates in unauthorized_by_head.items():
         try:
             # Ищем руководителя в БД
-            supervisor = await stp_repo.employee.get_user(fullname=head_name)
+            supervisor = await stp_repo.employee.get_users(fullname=head_name)
 
             if not supervisor or not supervisor.user_id:
                 logger.warning(
@@ -530,8 +517,7 @@ async def send_notifications_to_supervisors(
 
 
 def create_notification_message(head_name: str, unauthorized_subordinates: List) -> str:
-    """
-    Создает текст уведомления для руководителя
+    """Создает текст уведомления для руководителя
 
     Args:
         head_name: Имя руководителя
@@ -560,24 +546,21 @@ def create_notification_message(head_name: str, unauthorized_subordinates: List)
         message_parts.append(user_info)
 
     # Добавляем призыв к действию
-    message_parts.extend(
-        [
-            "\n💡 <b>Что нужно сделать:</b>",
-            "• Попроси сотрудников авторизоваться в @stpsher_bot",
-            "\n📋 <b>Для авторизации сотруднику необходимо:</b>",
-            "1️⃣ Перейти в @stpsher_bot",
-            "2️⃣ Нажать /start",
-            "3️⃣ Следовать инструкциям бота",
-            "\n❗ <b>Важно:</b> Авторизация необходима для корректной работы бота",
-        ]
-    )
+    message_parts.extend([
+        "\n💡 <b>Что нужно сделать:</b>",
+        "• Попроси сотрудников авторизоваться в @stpsher_bot",
+        "\n📋 <b>Для авторизации сотруднику необходимо:</b>",
+        "1️⃣ Перейти в @stpsher_bot",
+        "2️⃣ Нажать /start",
+        "3️⃣ Следовать инструкциям бота",
+        "\n❗ <b>Важно:</b> Авторизация необходима для корректной работы бота",
+    ])
 
     return "\n".join(message_parts)
 
 
 def format_unauthorized_users_summary(unauthorized_users: List) -> str:
-    """
-    Форматирует краткую сводку о неавторизованных пользователях для логов
+    """Форматирует краткую сводку о неавторизованных пользователях для логов
 
     Args:
         unauthorized_users: Список неавторизованных пользователей

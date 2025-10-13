@@ -1,49 +1,33 @@
-import logging
+"""Запуск диалога для ГОК."""
 
 from aiogram import F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import CallbackQuery, Message
-from stp_database import Employee
+from aiogram.types import Message
+from aiogram_dialog import DialogManager, StartMode
+from aiogram_dialog.api.exceptions import NoContextError
 
+from tgbot.dialogs.states.gok import GokSG
 from tgbot.filters.role import GokFilter
-from tgbot.keyboards.gok.main import gok_kb
-from tgbot.keyboards.user.main import MainMenu
 
 gok_router = Router()
 gok_router.message.filter(F.chat.type == "private", GokFilter())
 gok_router.callback_query.filter(F.message.chat.type == "private", GokFilter())
 
-logger = logging.getLogger(__name__)
-
 
 @gok_router.message(CommandStart())
-async def gok_start_cmd(message: Message, user: Employee):
-    await message.answer(
-        f"""👋 Привет, <b>{user.fullname}</b>!
+async def gok_start(
+    _message: Message,
+    dialog_manager: DialogManager,
+):
+    """Запуск/сброс состояния диалога для ГОК.
 
-Я - бот-помощник СТП
+    Args:
+        _message: Сообщение пользователя
+        dialog_manager: Менеджер диалога
+    """
+    try:
+        await dialog_manager.done()
+    except NoContextError:
+        pass
 
-Здесь ты можешь:
-• Просматривать список достижений
-• Просматривать список предметов
-• Активировать покупки специалистов""",
-        reply_markup=gok_kb(),
-    )
-    logger.info(
-        f"[ГОК] - [Главное меню] {message.from_user.username} ({message.from_user.id}): Открыто главное меню"
-    )
-
-
-@gok_router.callback_query(MainMenu.filter(F.menu == "main"))
-async def gok_start_cb(callback: CallbackQuery, user: Employee):
-    await callback.message.edit_text(
-        f"""👋 Привет, <b>{user.fullname}</b>!
-
-Я - бот-помощник СТП
-
-Здесь ты можешь:
-• Просматривать список достижений
-• Просматривать список предметов
-• Активировать покупки специалистов""",
-        reply_markup=gok_kb(),
-    )
+    await dialog_manager.start(GokSG.menu, mode=StartMode.RESET_STACK)

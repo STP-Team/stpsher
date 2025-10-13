@@ -7,19 +7,17 @@ from aiogram.types import (
     InlineQueryResultArticle,
     InputTextMessageContent,
 )
-from stp_database import Employee
-from stp_database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.filters.role import (
-    AdministratorFilter,
+    AdminFilter,
     DutyFilter,
     MipFilter,
     MultiRoleFilter,
-    RootFilter,
     SpecialistFilter,
 )
-from tgbot.handlers.user.schedule.main import schedule_service
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import format_fullname, get_role
+from tgbot.services.schedule.schedule_handlers import ScheduleHandlerService
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +25,14 @@ user_inline_router = Router()
 user_inline_router.inline_query.filter(
     MultiRoleFilter(
         SpecialistFilter(),
-        AdministratorFilter(),
+        AdminFilter(),
         MipFilter(),
-        RootFilter(),
+        MipFilter(),
         DutyFilter(),
     )
 )
+
+schedule_service = ScheduleHandlerService()
 
 
 class InlineSearchFilter:
@@ -40,8 +40,7 @@ class InlineSearchFilter:
 
     @staticmethod
     def detect_search_type(search_term: str) -> tuple[str, str]:
-        """
-        Определяет тип поискового запроса
+        """Определяет тип поискового запроса
 
         Returns:
             tuple: (search_type, cleaned_value)
@@ -72,8 +71,7 @@ class InlineSearchFilter:
 
     @staticmethod
     def parse_search_query(query: str) -> dict:
-        """
-        Парсинг поискового запроса с поддержкой фильтров
+        """Парсинг поискового запроса с поддержкой фильтров
 
         Примеры запросов:
         - "Иванов" - обычный поиск
@@ -129,11 +127,11 @@ class InlineSearchFilter:
         search_type, cleaned_value = InlineSearchFilter.detect_search_type(search_term)
 
         if search_type == "user_id":
-            user = await stp_repo.employee.get_user(user_id=int(cleaned_value))
+            user = await stp_repo.employee.get_users(user_id=int(cleaned_value))
             return [user] if user else []
 
         elif search_type == "username":
-            user = await stp_repo.employee.get_user(username=cleaned_value)
+            user = await stp_repo.employee.get_users(username=cleaned_value)
             return [user] if user else []
 
         else:  # search_type == 'name'
@@ -150,11 +148,11 @@ class InlineSearchFilter:
         try:
             # Приоритетный поиск по explicit фильтрам
             if filters["user_id"] is not None:
-                user = await stp_repo.employee.get_user(user_id=filters["user_id"])
+                user = await stp_repo.employee.get_users(user_id=filters["user_id"])
                 users = [user] if user else []
 
             elif filters["username"]:
-                user = await stp_repo.employee.get_user(username=filters["username"])
+                user = await stp_repo.employee.get_users(username=filters["username"])
                 users = [user] if user else []
 
             # Поиск по имени с автоопределением типа
@@ -250,7 +248,7 @@ async def advanced_inline_handler(
 
                     # Добавляем результаты поиска
                     for found_user in sorted_users[:12]:  # Максимум 12 результатов
-                        user_head = await stp_repo.employee.get_user(
+                        user_head = await stp_repo.employee.get_users(
                             fullname=found_user.head
                         )
                         result_item = create_user_result_item(
@@ -350,7 +348,15 @@ def create_user_result_item(
     if user.head:
         if user_head:
             message_parts.append(
-                f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
+                f"<b>👑 Руководитель:</b> {
+                    format_fullname(
+                        user_head.fullname,
+                        True,
+                        True,
+                        user_head.username,
+                        user_head.user_id,
+                    )
+                }"
             )
         else:
             message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")

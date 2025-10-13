@@ -1,19 +1,21 @@
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+import pytz
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.keyboards.user.schedule.main import changed_schedule_kb
+from tgbot.keyboards.schedule import changed_schedule_kb
 from tgbot.services.broadcaster import send_message
 
 logger = logging.getLogger(__name__)
 
 
 class ScheduleChangeDetector:
-    """Сервис обнаружения и уведомления об изменениях в графиках пользователей"""
+    """Сервис обнаружения и уведомления об изменениях в графиках пользователей."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         self.uploads_folder = Path(uploads_folder)
@@ -21,15 +23,23 @@ class ScheduleChangeDetector:
     async def process_schedule_changes(
         self, new_file_name: str, old_file_name: str, bot, stp_repo: MainRequestsRepo
     ) -> tuple[list[Any], list[str]]:
-        """
-        Процессинг изменений в графике между старым и новым графиками и отправка уведомлений.
+        """Процессинг изменений в графике между старым и новым графиками и отправка уведомлений.
+
+        Args:
+            new_file_name: Название нового файла графиков
+            old_file_name: Название старого файла графиков
+            bot: Экземпляр бота
+            stp_repo: Репозиторий операций с базой STP
+
+        Returns:
+            Кортеж со списком сотрудников с измененным графиков, и уведомленных сотрудников
         """
         try:
             logger.info(
                 f"[График] Проверяем изменения графика: {old_file_name} -> {new_file_name}"
             )
 
-            # Get list of users affected by changes
+            # Проверяем наличие изменения в графиках
             changed_users = await self._detect_schedule_changes(
                 new_file_name, old_file_name, stp_repo
             )
@@ -41,7 +51,7 @@ class ScheduleChangeDetector:
             # Отправка уведомления затронутым пользователям
             notified_users = []
             for user_changes in changed_users:
-                user: Employee = await stp_repo.employee.get_user(
+                user: Employee = await stp_repo.employee.get_users(
                     fullname=user_changes["fullname"]
                 )
                 if user and user.user_id:
@@ -67,9 +77,17 @@ class ScheduleChangeDetector:
     async def _detect_schedule_changes(
         self, new_file_name: str, old_file_name: str, stp_repo: MainRequestsRepo
     ) -> List[Dict]:
-        """
-        Обнаружение изменений в графике между старым и новым файлами.
+        """Обнаружение изменений в графике между старым и новым файлами.
+
         Читает каждый файл только один раз и извлекает полные расписания всех пользователей.
+
+        Args:
+            new_file_name: Название нового файла графиков
+            old_file_name: Название старого файла графиков
+            stp_repo: Репозиторий операций с базой STP
+
+        Returns:
+            Список словарей с изменениями в графике
         """
         try:
             old_file_path = self.uploads_folder / old_file_name
@@ -85,13 +103,13 @@ class ScheduleChangeDetector:
                 logger.warning(f"[Графики] Новый файл {new_file_name} не найден")
                 return []
 
+            # Читаем полное расписание всех пользователей из старого файла
             logger.info("[График] Читаем старый файл...")
-            # Читаем полное расписание всех пользователей из старого файла (один раз!)
-            old_schedules = self._extract_all_user_schedules_complete(old_file_path)
+            old_schedules = self._extract_users_schedules(old_file_path)
 
+            # Читаем полное расписание всех пользователей из нового файла
             logger.info("[График] Читаем новый файл...")
-            # Читаем полное расписание всех пользователей из нового файла (один раз!)
-            new_schedules = self._extract_all_user_schedules_complete(new_file_path)
+            new_schedules = self._extract_users_schedules(new_file_path)
 
             logger.info(
                 f"[График] Найдено пользователей: старый файл - {len(old_schedules)}, новый файл - {len(new_schedules)}"
@@ -103,7 +121,7 @@ class ScheduleChangeDetector:
 
             for fullname in all_users:
                 # Проверяем, что пользователь есть в БД
-                user = await stp_repo.employee.get_user(fullname=fullname)
+                user = await stp_repo.employee.get_users(fullname=fullname)
                 if not user:
                     continue
 
@@ -123,17 +141,21 @@ class ScheduleChangeDetector:
             logger.error(f"Error detecting schedule changes: {e}")
             return []
 
-    def _extract_all_user_schedules_complete(
-        self, file_path: Path
-    ) -> Dict[str, Dict[str, str]]:
-        """
-        Извлекает полные расписания всех пользователей из Excel файла за один проход.
+    def _extract_users_schedules(self, file_path: Path) -> Dict[str, Dict[str, str]]:
+        """Извлекает полные расписания всех сотрудников из Excel файла за один проход.
+
         Использует ту же логику, что и рабочие парсеры, но для всех месяцев сразу.
+
+        Args:
+            file_path: Путь до проверяемого файла графиков
+
+        Returns:
+            Словарь с полным расписанием сотрудников за все месяцы
         """
         schedules = {}
 
         try:
-            # Читаем файл один раз
+            # Читаем файл графиков
             df = pd.read_excel(file_path, sheet_name=0, header=None, dtype=str)
             logger.debug(
                 f"[График] Прочитан Excel файл {file_path}, размер: {df.shape}"
@@ -188,19 +210,6 @@ class ScheduleChangeDetector:
 
                 schedules[fullname] = user_complete_schedule
 
-                # ОТЛАДОЧНАЯ ИНФОРМАЦИЯ для первых нескольких пользователей
-                if len(schedules) <= 3:
-                    logger.debug(
-                        f"[График] График для {fullname}: {len(user_complete_schedule)} записей"
-                    )
-                    sample_keys = list(user_complete_schedule.keys())[
-                        :5
-                    ]  # Показываем первые 5 ключей
-                    for key in sample_keys:
-                        logger.debug(
-                            f"[График]   {key}: '{user_complete_schedule[key]}'"
-                        )
-
             logger.info(
                 f"[График] Извлечено полных расписаний: {len(schedules)} пользователей"
             )
@@ -212,7 +221,14 @@ class ScheduleChangeDetector:
 
     @staticmethod
     def _find_all_months_ranges(df: pd.DataFrame) -> Dict[str, tuple]:
-        """Находит диапазоны колонок для всех месяцев в файле."""
+        """Находит диапазоны колонок для всех месяцев в файле.
+
+        Args:
+            df: Датафрейм
+
+        Returns:
+            Словарь доступных диапазонов месяцев
+        """
         months_ranges = {}
         months_order = [
             "ЯНВАРЬ",
@@ -273,7 +289,14 @@ class ScheduleChangeDetector:
         return months_ranges
 
     def _find_all_users_rows(self, df: pd.DataFrame) -> Dict[str, int]:
-        """Находит строки всех пользователей в файле."""
+        """Находит строки всех пользователей в файле.
+
+        Args:
+            df: Датафрейм
+
+        Returns:
+            Словарь со списком пользователей и индекса строк, на которых они находятся
+        """
         users_rows = {}
 
         for row_idx in range(len(df)):
@@ -295,7 +318,16 @@ class ScheduleChangeDetector:
     def _find_day_headers_in_range(
         df: pd.DataFrame, start_col: int, end_col: int
     ) -> Dict[int, str]:
-        """Находит заголовки дней в указанном диапазоне колонок."""
+        """Находит заголовки дней в указанном диапазоне колонок.
+
+        Args:
+            df: Датафрейм
+            start_col: Стартовая колонка
+            end_col: Конечная колонка
+
+        Returns:
+            Словарь заголовков дней
+        """
         day_headers = {}
 
         for row_idx in range(min(5, len(df))):
@@ -320,39 +352,6 @@ class ScheduleChangeDetector:
                             f"[График] Найден день: колонка {col_idx} = '{day_num}({day_abbr})' из '{cell_value}'"
                         )
                         continue
-
-                # Дополнительно: Ищем паттерны типа "5.09" (день.месяц) - если есть такие
-                day_month_pattern = r"^(\d{1,2})\.(\d{2})$"
-                day_month_match = re.search(day_month_pattern, cell_value.strip())
-
-                if day_month_match:
-                    day_num = day_month_match.group(1)
-                    month_num = day_month_match.group(2)
-                    if 1 <= int(day_num) <= 31:
-                        day_headers[col_idx] = f"{day_num}.{month_num}"
-                        logger.debug(
-                            f"[График] Найден день: колонка {col_idx} = '{day_num}.{month_num}' из '{cell_value}'"
-                        )
-                        continue
-
-                # Дополнительно: простые числа (1-31)
-                if cell_value.strip().isdigit() and 1 <= int(cell_value.strip()) <= 31:
-                    day_headers[col_idx] = cell_value.strip()
-                    logger.debug(
-                        f"[График] Найден день: колонка {col_idx} = '{cell_value.strip()}' (простое число)"
-                    )
-                    continue
-
-                # Дополнительно: паттерны с скобками "1 (пн)"
-                if cell_value and "(" in cell_value and ")" in cell_value:
-                    # Проверяем, что это похоже на день
-                    bracket_pattern = r"(\d{1,2})\s*\([А-Яа-я]+\)"
-                    bracket_match = re.search(bracket_pattern, cell_value.strip())
-                    if bracket_match and 1 <= int(bracket_match.group(1)) <= 31:
-                        day_headers[col_idx] = cell_value.strip()
-                        logger.debug(
-                            f"[График] Найден день: колонка {col_idx} = '{cell_value.strip()}' (со скобками)"
-                        )
 
         logger.debug(
             f"[График] Найдено {len(day_headers)} дней в диапазоне колонок {start_col}-{end_col}: {list(day_headers.values())}"
@@ -389,7 +388,16 @@ class ScheduleChangeDetector:
     def _compare_schedules(
         self, fullname: str, old_schedule: Dict[str, str], new_schedule: Dict[str, str]
     ) -> Optional[Dict]:
-        """Сравнивает расписания пользователя и возвращает детали изменений."""
+        """Сравнивает расписания пользователя и возвращает детали изменений.
+
+        Args:
+            fullname: Полные ФИО
+            old_schedule: Словарь со старым графиком сотрудника
+            new_schedule: Словарь с новым графиком сотрудника
+
+        Returns:
+            Словарь с данными о днях с измененными графиками
+        """
         changes = []
 
         # Получаем все дни из обоих расписаний
@@ -403,13 +411,11 @@ class ScheduleChangeDetector:
                 # Очищаем название дня для отображения
                 display_day = day.replace("_", " ").replace("(", " (")
 
-                changes.append(
-                    {
-                        "day": display_day,
-                        "old_value": old_value or "выходной",
-                        "new_value": new_value or "выходной",
-                    }
-                )
+                changes.append({
+                    "day": display_day,
+                    "old_value": old_value or "выходной",
+                    "new_value": new_value or "выходной",
+                })
 
         if changes:
             logger.info(
@@ -436,38 +442,36 @@ class ScheduleChangeDetector:
     async def _send_change_notification(
         self, bot, user_id: int, user_changes: Dict
     ) -> bool:
-        """
-        Send a clean, simple notification to user about schedule changes.
+        """Отправляем сотруднику уведомление об изменении его графика.
 
         Args:
-            bot: Bot instance
-            user_id: Telegram user ID
-            user_changes: Dictionary with user change information
+            bot: Экземпляр бота
+            user_id: Идентификатор сотрудника Telegram
+            user_changes: Словарь с данными об измененных днях графика
 
         Returns:
-            True if notification was sent successfully
+            True если уведомление было отправлено успешно
         """
         try:
             fullname = user_changes["fullname"]
             changes = user_changes["changes"]
 
-            # Get current date for notification
-            from datetime import datetime
-
-            import pytz
-
             yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
             current_time = datetime.now(yekaterinburg_tz)
 
-            # Create clean notification message
             message = f"🔔 <b>Изменения в графике</b> • {current_time.strftime('%d.%m.%Y')}\n\n"
 
-            # Sort changes by date (oldest to newest)
-            def parse_date_from_day(day_str):
-                """Extract date from day string for sorting"""
-                import re
+            # Сортируем изменения по дате (от старых к новым)
+            def parse_date_from_day(day_str) -> tuple[int | Any, int] | tuple[int, int]:
+                """Достаем дату из строки дня.
 
-                # Extract month name and day number from strings like "АВГУСТ 24 (Вс)"
+                Args:
+                    day_str: Строка с днем
+
+                Returns:
+                    Индекс месяца и дня
+                """
+                # Достаем индекс месяца и день из строк типа "АВГУСТ 24 (Вс)"
                 month_map = {
                     "ЯНВАРЬ": 1,
                     "ФЕВРАЛЬ": 2,
@@ -499,12 +503,12 @@ class ScheduleChangeDetector:
                 old_val = self.format_schedule_value(change["old_value"])
                 new_val = self.format_schedule_value(change["new_value"])
 
-                # Format day in compact style: "1.08 ПТ"
+                # Форматируем день в вид: "1.08 ПТ"
                 formatted_day = self.format_compact_day(day)
 
                 message += f"{formatted_day} {old_val} → {new_val}\n"
 
-            # Send notification
+            # Отправка уведомления
             success = await send_message(
                 bot=bot,
                 user_id=user_id,
@@ -530,10 +534,15 @@ class ScheduleChangeDetector:
 
     @staticmethod
     def format_compact_day(day_str):
-        """Format day string to compact format like '1.08 ПТ'"""
-        import re
+        """Форматирует строку дня в вид типа '1.08 ПТ'.
 
-        # Month name to number mapping
+        Args:
+            day_str: Строка дня
+
+        Returns:
+            Отформатированная строка дня для уведомления
+        """
+        # Маппинг месяца к числу
         month_map = {
             "ЯНВАРЬ": "01",
             "ФЕВРАЛЬ": "02",
@@ -549,7 +558,7 @@ class ScheduleChangeDetector:
             "ДЕКАБРЬ": "12",
         }
 
-        # Weekday mapping
+        # Маппинг дня недели
         weekday_map = {
             "Пн": "ПН",
             "Вт": "ВТ",
@@ -560,7 +569,7 @@ class ScheduleChangeDetector:
             "Вс": "ВС",
         }
 
-        # Parse day string like "АВГУСТ 24 (Вс)" or "ИЮЛЬ 3 (Чт)"
+        # Парсим строки дней типа "АВГУСТ 24 (Вс)" или "ИЮЛЬ 3 (Чт)"
         match = re.search(r"(\w+)\s+(\d+)\s*\((\w+)\)", day_str)
         if match:
             month_name, day_num, weekday = match.groups()
@@ -568,12 +577,19 @@ class ScheduleChangeDetector:
             formatted_weekday = weekday_map.get(weekday, weekday.upper())
             return f"{day_num}.{month_num} {formatted_weekday}"
 
-        # Fallback to original format if parsing fails
+        # Фоллбек на оригинальный формат строки
         return day_str
 
     @staticmethod
-    def format_schedule_value(value):
-        """Format schedule value with emojis and readable text"""
+    def format_schedule_value(value) -> str:
+        """Форматируем тип дня для уведомления.
+
+        Args:
+            value: Оригинальное значение графика на день.
+
+        Returns:
+            Форматированное значение графика на день
+        """
         if not value.strip() or value == "не назначено":
             return "Выходной"
 

@@ -1,6 +1,4 @@
-"""
-Optimized and refactored schedule parsers with common utilities.
-"""
+"""Optimized and refactored schedule parsers with common utilities."""
 
 import calendar
 import logging
@@ -12,11 +10,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
+import pytz
 from openpyxl import load_workbook
 from pandas import DataFrame
 from stp_database import Employee, MainRequestsRepo
 
-from ...keyboards.user.schedule.main import get_yekaterinburg_date
+from ...misc.helpers import format_fullname
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
@@ -67,29 +66,6 @@ class CommonUtils:
             return parts1[0] == parts2[0] and parts1[1] == parts2[1]
 
         return False
-
-    @staticmethod
-    def short_name(full_name: str) -> str:
-        """Extract short name from full name."""
-        # Remove date info in parentheses if present
-        clean_name = full_name.split("(")[0].strip()
-        parts = clean_name.split()
-
-        if len(parts) >= 2:
-            return " ".join(parts[:2])
-        return clean_name
-
-    @staticmethod
-    def get_gender_emoji(name: str) -> str:
-        """Determine gender emoji based on patronymic."""
-        parts = name.split()
-        if len(parts) >= 3:
-            patronymic = parts[2]
-            if patronymic.endswith("на"):
-                return "👩‍🦰"
-            elif patronymic.endswith(("ич", "ович", "евич")):
-                return "👨"
-        return "👨"
 
     @staticmethod
     def is_time_format(text: str) -> bool:
@@ -739,7 +715,8 @@ class DutyScheduleParser(BaseDutyParser):
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
         """Get current senior duty for division based on current time."""
-        date = get_yekaterinburg_date()
+        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+        date = datetime.now(yekaterinburg_tz)
 
         try:
             # Get all duties for today
@@ -757,7 +734,7 @@ class DutyScheduleParser(BaseDutyParser):
                     start_minutes, end_minutes = self.utils.parse_time_range(
                         duty.schedule
                     )
-                    current_datetime = get_yekaterinburg_date()
+                    current_datetime = date
                     current_time_minutes = (
                         current_datetime.hour * 60 + current_datetime.minute
                     )
@@ -784,7 +761,8 @@ class DutyScheduleParser(BaseDutyParser):
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
         """Get current helper duty for division based on current time."""
-        date = get_yekaterinburg_date()
+        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
+        date = datetime.now(yekaterinburg_tz)
 
         try:
             # Get all duties for today
@@ -802,7 +780,7 @@ class DutyScheduleParser(BaseDutyParser):
                     start_minutes, end_minutes = self.utils.parse_time_range(
                         duty.schedule
                     )
-                    current_datetime = get_yekaterinburg_date()
+                    current_datetime = date.now()
                     current_time_minutes = (
                         current_datetime.hour * 60 + current_datetime.minute
                     )
@@ -940,7 +918,7 @@ class DutyScheduleParser(BaseDutyParser):
                     continue
 
                 # Get user info once per person (optimization)
-                user: Employee = await stp_repo.employee.get_user(fullname=name)
+                user: Employee = await stp_repo.employee.get_users(fullname=name)
                 if not user:
                     continue
 
@@ -1097,7 +1075,7 @@ class DutyScheduleParser(BaseDutyParser):
                         if shift_type in ["С", "П"] and self.utils.is_time_format(
                             schedule
                         ):
-                            user: Employee = await stp_repo.employee.get_user(
+                            user: Employee = await stp_repo.employee.get_users(
                                 fullname=name
                             )
                             if user:
@@ -1210,29 +1188,23 @@ class DutyScheduleParser(BaseDutyParser):
 
             # Add senior officers
             for duty in group["seniors"]:
-                gender_emoji = self.utils.get_gender_emoji(duty.name)
-                short_name = self.utils.short_name(duty.name)
-                if duty.username:
-                    lines.append(
-                        f"{gender_emoji} Дежурный - <a href='t.me/{duty.username}'>{short_name}</a>"
-                    )
-                else:
-                    lines.append(
-                        f"{gender_emoji} Дежурный - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
-                    )
+                lines.append(
+                    f"Дежурный - {
+                        format_fullname(
+                            duty.name, True, True, duty.username, duty.user_id
+                        )
+                    }"
+                )
 
             # Add helpers
             for duty in group["helpers"]:
-                gender_emoji = self.utils.get_gender_emoji(duty.name)
-                short_name = self.utils.short_name(duty.name)
-                if duty.username:
-                    lines.append(
-                        f"{gender_emoji} Помощник - <a href='t.me/{duty.username}'>{short_name}</a>"
-                    )
-                else:
-                    lines.append(
-                        f"{gender_emoji} Помощник - <a href='tg://user?id={duty.user_id}'>{short_name}</a>"
-                    )
+                lines.append(
+                    f"Помощник - {
+                        format_fullname(
+                            duty.name, True, True, duty.username, duty.user_id
+                        )
+                    }"
+                )
 
             # Check if next slot is current to decide whether to close blockquote
             next_is_current = False
@@ -1319,7 +1291,7 @@ class HeadScheduleParser(BaseExcelParser):
                     if schedule_cell and schedule_cell.strip():
                         if self.utils.is_time_format(schedule_cell):
                             duty_info = await self._check_duty_for_head(name, duties)
-                            user: Employee = await stp_repo.employee.get_user(
+                            user: Employee = await stp_repo.employee.get_users(
                                 fullname=name
                             )
                             if user:
@@ -1384,12 +1356,9 @@ class HeadScheduleParser(BaseExcelParser):
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
-                gender_emoji = self.utils.get_gender_emoji(head.name)
-                short_name = self.utils.short_name(head.name)
-                if head.username:
-                    head_line = f"{gender_emoji} <a href='t.me/{head.username}'>{short_name}</a>"
-                else:
-                    head_line = f"{gender_emoji} <a href='tg://user?id={head.user_id}'>{short_name}</a>"
+                head_line = f"{
+                    format_fullname(head.name, True, True, head.username, head.user_id)
+                }"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"
@@ -1425,15 +1394,9 @@ class GroupScheduleParser(BaseExcelParser):
 
     def _format_member_with_link(self, member: GroupMemberInfo) -> str:
         """Format member name with link and working hours."""
-        display_name = self.utils.short_name(member.name)
-
-        # Create user link
-        if member.username:
-            user_link = f"{self.utils.get_gender_emoji(member.name)} <a href='t.me/{member.username}'>{display_name}</a>"
-        elif member.user_id:
-            user_link = f"{self.utils.get_gender_emoji(member.name)} <a href='tg://user?id={member.user_id}'>{display_name}</a>"
-        else:
-            user_link = f"{self.utils.get_gender_emoji(member.name)} {display_name}"
+        user_link = format_fullname(
+            member.name, True, True, member.username, member.user_id
+        )
 
         # Add working hours
         working_hours = member.working_hours or "Не указано"
@@ -1591,7 +1554,7 @@ class GroupScheduleParser(BaseExcelParser):
             # Get user from database
             user = None
             try:
-                user = await stp_repo.employee.get_user(fullname=name_cell.strip())
+                user = await stp_repo.employee.get_users(fullname=name_cell.strip())
             except Exception as e:
                 logger.debug(f"Error getting user {name_cell}: {e}")
 
@@ -1617,7 +1580,7 @@ class GroupScheduleParser(BaseExcelParser):
     ) -> List[GroupMemberInfo]:
         """Get list of group colleagues for a regular user."""
         try:
-            user = await stp_repo.employee.get_user(fullname=user_fullname)
+            user = await stp_repo.employee.get_users(fullname=user_fullname)
             if not user or not user.head:
                 logger.warning(
                     f"User {user_fullname} not found or has no head assigned"

@@ -1,6 +1,4 @@
-"""
-Schedule formatting functionality.
-"""
+"""Schedule formatting functionality."""
 
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -91,15 +89,13 @@ class ScheduleFormatter:
 
         if days_off:
             if len(days_off) <= 3:
-                days_str = ", ".join(
-                    [
-                        f"<u><b>{d.day.split()[0]}</b></u>"
-                        if effective_current_day
-                        and int(d.day.split()[0]) == effective_current_day
-                        else d.day.split()[0]
-                        for d in days_off
-                    ]
-                )
+                days_str = ", ".join([
+                    f"<u><b>{d.day.split()[0]}</b></u>"
+                    if effective_current_day
+                    and int(d.day.split()[0]) == effective_current_day
+                    else d.day.split()[0]
+                    for d in days_off
+                ])
                 lines.append(f"\n🏠 <b>Выходные:</b>\n{days_str}")
             else:
                 off_range = ScheduleFormatter._format_day_range(
@@ -358,22 +354,6 @@ class ScheduleFormatter:
         return ScheduleFormatter._format_consecutive_days(
             [str(d) for d in day_numbers], current_day
         )
-
-    @staticmethod
-    def get_gender_emoji(name: str) -> str:
-        """
-        Определение пола по имени
-        :param name: Полные ФИО или отчество
-        :return: Эмодзи с отображением пола
-        """
-        parts = name.split()
-        if len(parts) >= 3:
-            patronymic = parts[2]
-            if patronymic.endswith("на"):
-                return "👩‍💼"
-            elif patronymic.endswith(("ич", "ович", "евич")):
-                return "👨‍💼"
-        return "👨‍💼"
 
     @staticmethod
     def format_detailed_with_duties(

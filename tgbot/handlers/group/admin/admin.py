@@ -9,11 +9,9 @@ from aiogram.types import (
     ChatPermissions,
     Message,
 )
-from stp_database import Employee
-from stp_database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.filters.group import GroupAdminFilter
-from tgbot.keyboards.group import short_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +22,7 @@ group_admin_router.message.filter(
 
 
 def parse_duration(duration_str: str) -> Optional[timedelta]:
-    """
-    Парсит строку длительности в timedelta
+    """Парсит строку длительности в timedelta
     Поддерживает форматы: 1h, 30m, 7d, 1ч, 30м, 7д
     """
     if not duration_str:

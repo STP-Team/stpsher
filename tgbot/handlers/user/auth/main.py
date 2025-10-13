@@ -4,12 +4,10 @@ import re
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from stp_database import Employee
-from stp_database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
-from tgbot.handlers.user.main import user_start_cmd
+from tgbot.dialogs.states.user import Authorization
 from tgbot.misc.helpers import generate_auth_code
-from tgbot.misc.states.user.auth import Authorization
 from tgbot.services.mailing import send_auth_email
 
 logger = logging.getLogger(__name__)
@@ -20,7 +18,13 @@ user_auth_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_auth_router.callback_query(F.data == "auth")
-async def user_auth(callback: CallbackQuery, state: FSMContext):
+async def user_auth(callback: CallbackQuery, state: FSMContext) -> None:
+    """Обработчик запуска диалога авторизации.
+
+    Args:
+        callback: Callback query от Telegram
+        state: Машина состояний
+    """
     await callback.answer()
 
     logger.info(
@@ -38,6 +42,12 @@ async def user_auth(callback: CallbackQuery, state: FSMContext):
 
 @user_auth_router.message(Authorization.email)
 async def user_auth_email(message: Message, state: FSMContext):
+    """Обработчик проверки введенной почты.
+
+    Args:
+        message: Объект сообщения от пользователя
+        state: Машина состояний
+    """
     email_pattern = r"^[A-Za-z0-9._%+-]+@dom\.ru$"
     state_data = await state.get_data()
     await message.delete()
@@ -84,6 +94,12 @@ async def user_auth_email(message: Message, state: FSMContext):
 
 @user_auth_router.message(Authorization.auth_code)
 async def user_auth_code(message: Message, state: FSMContext):
+    """Обработчик проверки введенного кода авторизации.
+
+    Args:
+        message: Объект сообщения от пользователя
+        state: Машина состояний
+    """
     state_data = await state.get_data()
 
     await message.delete()
@@ -121,6 +137,13 @@ async def user_auth_code(message: Message, state: FSMContext):
 async def user_auth_fullname(
     message: Message, state: FSMContext, stp_repo: MainRequestsRepo
 ):
+    """Обработчик проверки введенных ФИО специалиста.
+
+    Args:
+        message: Объект сообщения от пользователя
+        state: Машина состояний
+        stp_repo: Репозиторий операций с базой STP
+    """
     fullname_pattern = r"^[А-Яа-яЁё]+ [А-Яа-яЁё]+ [А-Яа-яЁё]+$"
     state_data = await state.get_data()
     await message.delete()
@@ -138,7 +161,7 @@ async def user_auth_fullname(
         )
         return
 
-    db_user: Employee | None = await stp_repo.employee.get_user(fullname=message.text)
+    db_user: Employee | None = await stp_repo.employee.get_users(fullname=message.text)
     if db_user:
         if not db_user.user_id:
             db_user.user_id = message.chat.id
@@ -154,12 +177,13 @@ async def user_auth_fullname(
                 message_id=state_data.get("bot_message_id"),
                 text="""<b>✅ Успешная авторизация</b>
 
-Супер, авторизация пройдена. Теперь у тебя есть доступ ко всем ботам СТП 🥳""",
+Супер, авторизация пройдена. Теперь у тебя есть доступ ко всем ботам СТП 🥳
+
+Нажми на /start для запуска бота""",
             )
             logger.info(
                 f"[Авторизация] Пользователь {message.from_user.username} ({message.from_user.id}) успешно авторизовался"
             )
-            await user_start_cmd(message=message, user=db_user)
             return
         else:
             await message.bot.edit_message_text(

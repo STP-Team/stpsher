@@ -1,19 +1,23 @@
+"""Middleware для операций с группами."""
+
 import logging
 from typing import Any, Awaitable, Callable, Dict, Union
 
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.types import CallbackQuery, ChatMemberUpdated, InlineQuery, Message
-from stp_database.repo.STP.requests import MainRequestsRepo
+from stp_database import MainRequestsRepo
+from stp_database.models.STP.group import Group
 
-from tgbot.keyboards.group import short_name
+from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)
 
 
 class GroupsMiddleware(BaseMiddleware):
-    """
-    Middleware responsible for groups access control logic
+    """Middleware, отвечающий за функционал групп.
+
+    Проверяет наличие доступа к группе, баны и прочие функции
     """
 
     async def __call__(
@@ -28,24 +32,24 @@ class GroupsMiddleware(BaseMiddleware):
         event: Union[Message, CallbackQuery, InlineQuery, ChatMemberUpdated],
         data: Dict[str, Any],
     ) -> Any:
-        # Get repo from previous middleware (UsersMiddleware)
+        # Получаем репозиторий для работы с базой STP
         stp_repo: MainRequestsRepo = data.get("stp_repo")
 
-        # Handle different event types
+        # Обрабатываем разные типы событий
         if isinstance(event, Message) and event.chat.type in ["group", "supergroup"]:
-            # Check if message is a bot command in an unregistered group
+            # Проверяем является ли сообщение командой в незарегистрированной группе
             command_handled = await self._handle_unregistered_group_command(
                 event, stp_repo
             )
             if command_handled:
-                return None  # Don't continue processing if command was handled by unregistered group logic
+                return None  # Не проверяем сообщение если команда в незарегистрированной группе
 
-            # Check and delete service messages first
+            # Проверяем и удаляем сервисные сообщения
             should_delete = await self._check_and_delete_service_message(
                 event, stp_repo
             )
             if should_delete:
-                return None  # Don't continue processing if message was deleted
+                return None  # Не проверяем сообщение если оно должно быть удалено
 
             await self._update_group(event, stp_repo)
         elif isinstance(event, ChatMemberUpdated) and event.chat.type in [
@@ -54,7 +58,7 @@ class GroupsMiddleware(BaseMiddleware):
         ]:
             await self._handle_group_membership_change(event, stp_repo)
 
-        # Continue to the next middleware/handler
+        # Продолжаем к следующему middleware/обработчику
         result = await handler(event, data)
         return result
 
@@ -63,12 +67,11 @@ class GroupsMiddleware(BaseMiddleware):
         group_id: int,
         stp_repo: MainRequestsRepo,
     ):
-        """
-        Удаляет группу и всех её участников из базы
-        когда бот был исключен из группы
+        """Удаляет группу и всех её участников из базы когда бот был исключен из группы.
 
-        :param group_id: ID группы для удаления
-        :param stp_repo: Репозиторий для работы с БД
+        Args:
+            group_id: Идентификатор группы Telegram для удаления
+            stp_repo: Репозиторий операций с базой STP
         """
         try:
             # Удаляем всех участников группы
@@ -87,13 +90,15 @@ class GroupsMiddleware(BaseMiddleware):
         event: Message,
         stp_repo: MainRequestsRepo,
     ):
-        """
-        Обновление участников группы при отправке сообщений в группе
+        """Обновление участников группы при отправке сообщений в группе.
+
         Проверяет, если сообщение отправлено в группе из таблицы groups,
         и добавляет пользователя в group_members если его там нет.
         Также проверяет настройки группы и банит неактивных сотрудников.
-        :param event: Сообщение от пользователя
-        :param stp_repo: Репозиторий для работы с БД
+
+        Args:
+            event: Сообщение от пользователя
+            stp_repo: Репозиторий операций с базой STP
         """
         if not event.from_user:
             return
@@ -153,14 +158,14 @@ class GroupsMiddleware(BaseMiddleware):
     async def _ban_user_from_group(
         event: Message, user_id: int, group_id: int, stp_repo: MainRequestsRepo
     ):
-        """
-        Банит пользователя в группе и удаляет его из group_members
-        :param event: Сообщение от пользователя
-        :param user_id: ID пользователя для бана
-        :param group_id: ID группы
-        :param stp_repo: Репозиторий для работы с БД
-        """
+        """Банит пользователя в группе и удаляет его из group_members.
 
+        Args:
+            event: Сообщение от пользователя
+            user_id: Идентификатор пользователя Telegram для бана
+            group_id: Идентификатор группы Telegram
+            stp_repo: Репозиторий операций с базой STP
+        """
         await GroupsMiddleware._execute_ban(
             bot=event.bot,
             user_id=user_id,
@@ -174,11 +179,13 @@ class GroupsMiddleware(BaseMiddleware):
         event: ChatMemberUpdated,
         stp_repo: MainRequestsRepo,
     ):
-        """
-        Обработка изменений участников группы
+        """Обработка изменений участников группы.
+
         Обрабатывает события добавления/удаления пользователей в группу
-        :param event: Событие изменения статуса участника
-        :param stp_repo: Репозиторий для работы с БД
+
+        Args:
+            event: Событие изменения статуса участника
+            stp_repo: Репозиторий операций с базой STP
         """
         # Инициализируем переменные для обработки ошибок
         group_id = None
@@ -260,8 +267,14 @@ class GroupsMiddleware(BaseMiddleware):
         group,
         stp_repo: MainRequestsRepo,
     ):
-        """
-        Обработка добавления пользователя в группу
+        """Обработка добавления пользователя в группу.
+
+        Args:
+            event: Событие добавления нового пользователя
+            group_id: Идентификатор группы Telegram
+            user_id: Идентификатор пользователя Telegram
+            group: Экземпляр группы
+            stp_repo: Репозиторий операций с базой STP
         """
         try:
             # Игнорируем ботов
@@ -316,8 +329,13 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
         was_kicked: bool = False,
     ):
-        """
-        Обработка удаления пользователя из группы
+        """Обработчик выхода из группы.
+
+        Args:
+            group_id: Идентификатор группы Telegram
+            user_id: Идентификатор пользователя Telegram
+            stp_repo: Репозиторий операций с базой STP
+            was_kicked: Был ли пользователь исключен или вышел сам
         """
         try:
             # Проверяем, существует ли пользователь в группе перед удалением
@@ -353,13 +371,14 @@ class GroupsMiddleware(BaseMiddleware):
         user_id: int,
         group_id: int,
         stp_repo: MainRequestsRepo,
-    ):
-        """
-        Банит пользователя в группе при обработке ChatMemberUpdated событий
-        :param event: Событие изменения участника
-        :param user_id: ID пользователя для бана
-        :param group_id: ID группы
-        :param stp_repo: Репозиторий для работы с БД
+    ) -> None:
+        """Банит пользователя в группе при обработке ChatMemberUpdated событий.
+
+        Args:
+            event: Событие изменения участника
+            user_id: Идентификатор пользователя Telegram для бана
+            group_id: Идентификатор группы Telegram
+            stp_repo: Репозиторий операций с базой STP
         """
         await GroupsMiddleware._execute_ban(
             bot=event.bot,
@@ -377,14 +396,17 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
         user=None,
     ) -> bool:
-        """
-        Проверяет, может ли пользователь находиться в группе согласно настройкам group
+        """Проверяет, может ли пользователь находиться в группе согласно ее настройкам.
 
-        :param user_id: ID пользователя
-        :param group_id: ID группы
-        :param group: Объект группы из БД
-        :param stp_repo: Репозиторий для работы с БД
-        :return: True если пользователь может находиться в группе, False если должен быть удален
+        Args:
+            user_id: Идентификатор пользователя Telegram
+            group_id: Идентификатор группы Telegram
+            group: Экземпляр группы
+            stp_repo: Репозиторий операций с базой STP
+            user: Экземпляр пользователя с моделью Employee
+
+        Returns:
+            True если пользователь может находиться в группе, False если должен быть удален
         """
         try:
             # Игнорируем всех ботов, используя API Telegram
@@ -403,7 +425,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return True
 
             # Проверяем, является ли пользователь активным сотрудником
-            employee = await stp_repo.employee.get_user(user_id=user_id)
+            employee = await stp_repo.employee.get_users(user_id=user_id)
 
             if not employee:
                 logger.info(
@@ -437,16 +459,18 @@ class GroupsMiddleware(BaseMiddleware):
     @staticmethod
     async def _check_user_role_access(
         user_id: int,
-        group,
+        group: Group,
         stp_repo: MainRequestsRepo,
     ) -> bool:
-        """
-        Проверяет, имеет ли пользователь доступ к группе по ролям
+        """Проверяет, имеет ли пользователь доступ к группе по ролям.
 
-        :param user_id: ID пользователя
-        :param group: Объект группы из БД
-        :param stp_repo: Репозиторий для работы с БД
-        :return: True если пользователь имеет доступ, False если нет
+        Args:
+            user_id: Идентификатор пользователя Telegram
+            group: Экземпляр группы
+            stp_repo: Репозиторий операций с базой STP
+
+        Returns:
+            True если пользователь имеет доступ, False если нет
         """
         try:
             # Если список разрешенных ролей пуст, разрешаем доступ всем
@@ -454,7 +478,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return True
 
             # Получаем пользователя из базы
-            user = await stp_repo.employee.get_user(user_id=user_id)
+            user = await stp_repo.employee.get_users(user_id=user_id)
             if not user:
                 logger.info(
                     f"[Группы] Пользователь {user_id} не найден в базе пользователей"
@@ -489,8 +513,13 @@ class GroupsMiddleware(BaseMiddleware):
         group_id: int,
         stp_repo: MainRequestsRepo,
     ):
-        """
-        Отправляет уведомление о новом участнике группы
+        """Отправляет уведомление о новом участнике группы.
+
+        Args:
+            event: Событие входа в чат
+            user_id: Идентификатор пользователя Telegram
+            group_id: Идентификатор группы Telegram
+            stp_repo: Репозиторий операций с базой STP
         """
         try:
             user = event.new_chat_member.user
@@ -504,13 +533,21 @@ class GroupsMiddleware(BaseMiddleware):
                 user_info = user_mention
 
             # Проверяем, является ли пользователь сотрудником
-            employee = await stp_repo.employee.get_user(user_id=user_id)
+            employee = await stp_repo.employee.get_users(user_id=user_id)
 
             if employee:
                 # Формируем сообщение для сотрудника
                 notification_text = (
                     f"👋 <b>Добро пожаловать в группу!</b>\n\n"
-                    f"{short_name(employee.fullname)} присоединился к группе\n"
+                    f"{
+                        format_fullname(
+                            employee.fullname,
+                            True,
+                            True,
+                            employee.username,
+                            employee.user_id,
+                        )
+                    } присоединился к группе\n"
                     f"<i>Должность: {employee.position + ' ' + employee.division or 'Не указана'}</i>"
                 )
             else:
@@ -551,22 +588,28 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
         reason_text: str,
     ):
-        """
-        Общий метод для выполнения бана пользователя
+        """Общий метод для выполнения бана пользователя.
+
+        Args:
+            bot: Экземпляр бота
+            user_id: Идентификатор пользователя Telegram
+            group_id: Идентификатор группы Telegram
+            stp_repo: Репозиторий операций с базой STP
+            reason_text: Причина бана
         """
         try:
-            # Банить пользователя в Telegram группе
+            # Баним пользователя в Telegram группе
             await bot.ban_chat_member(chat_id=group_id, user_id=user_id)
 
             # Удаляем пользователя из таблицы group_members
             await stp_repo.group_member.remove_member(group_id, user_id)
 
             # Отправляем уведомление в группу
-            user = await stp_repo.employee.get_user(user_id=user_id)
+            user = await stp_repo.employee.get_users(user_id=user_id)
             if user:
                 notification_text = (
                     f"🚫 <b>Пользователь заблокирован</b>\n\n"
-                    f"{short_name(user.fullname)} {reason_text}\n\n"
+                    f"{format_fullname(user.fullname, True, user.username, user.user_id)} {reason_text}\n\n"
                     f"<i>Причина: недостаточно прав доступа к группе</i>"
                 )
             else:
@@ -605,13 +648,14 @@ class GroupsMiddleware(BaseMiddleware):
         event: Message,
         stp_repo: MainRequestsRepo,
     ) -> bool:
-        """
-        Проверяет, является ли сообщение сервисным и должно ли быть удалено
-        согласно настройкам группы
+        """Проверяет, является ли сообщение сервисным и должно ли быть удалено согласно настройкам группы.
 
-        :param event: Сообщение для проверки
-        :param stp_repo: Репозиторий для работы с БД
-        :return: True если сообщение было удалено, False если нет
+        Args:
+            event: Сообщение для проверки
+            stp_repo: Репозиторий операций с базой STP
+
+        Returns:
+            True если сообщение было удалено, False если нет
         """
         try:
             group_id = event.chat.id
@@ -654,11 +698,13 @@ class GroupsMiddleware(BaseMiddleware):
 
     @staticmethod
     def _detect_service_message_category(message: Message) -> str | None:
-        """
-        Определяет категорию сервисного сообщения
+        """Определяет категорию сервисного сообщения.
 
-        :param message: Сообщение для анализа
-        :return: Категория сообщения или None если не сервисное
+        Args:
+            message: Сообщение для анализа
+
+        Returns:
+            Категория сообщения или None если не сервисное
         """
         # join: Новый пользователь присоединился
         if message.new_chat_members:
@@ -716,14 +762,17 @@ class GroupsMiddleware(BaseMiddleware):
         event: Message,
         stp_repo: MainRequestsRepo,
     ) -> bool:
-        """
-        Обрабатывает команды бота в незарегистрированных группах.
+        """Обрабатывает команды бота в незарегистрированных группах.
+
         Если группа не зарегистрирована и пользователь использует команду бота,
         запрашивает админские права и регистрирует группу при их получении.
 
-        :param event: Сообщение с командой
-        :param stp_repo: Репозиторий для работы с БД
-        :return: True если команда была обработана, False если нет
+        Args:
+            event: Сообщение с командой
+            stp_repo: Репозиторий операций с базой STP
+
+        Returns:
+            True если команда была обработана, False если нет
         """
         try:
             # Проверяем, является ли сообщение командой бота
@@ -770,11 +819,13 @@ class GroupsMiddleware(BaseMiddleware):
 
     @staticmethod
     def _is_bot_command(message: Message) -> bool:
-        """
-        Проверяет, является ли сообщение командой бота
+        """Проверяет, является ли сообщение командой бота.
 
-        :param message: Сообщение для проверки
-        :return: True если это команда бота, False если нет
+        Args:
+            message: Сообщение для проверки
+
+        Returns:
+            True если это команда бота, False если нет
         """
         if not message.text:
             return False
@@ -810,12 +861,14 @@ class GroupsMiddleware(BaseMiddleware):
 
     @staticmethod
     async def _check_bot_admin_rights(event: Message, group_id: int) -> bool:
-        """
-        Проверяет, есть ли у бота админские права в группе
+        """Проверяет, есть ли у бота права администратора в группе.
 
-        :param event: Событие сообщения
-        :param group_id: ID группы
-        :return: True если у бота есть админские права, False если нет
+        Args:
+            event: Событие сообщения
+            group_id: Идентификатор группы Telegram
+
+        Returns:
+            True если у бота есть права администратора, False если нет
         """
         try:
             bot_member = await event.bot.get_chat_member(group_id, event.bot.id)
@@ -828,11 +881,11 @@ class GroupsMiddleware(BaseMiddleware):
 
     @staticmethod
     async def _request_admin_rights(event: Message, group_id: int):
-        """
-        Отправляет сообщение с просьбой предоставить боту админские права
+        """Отправляет сообщение с просьбой предоставить боту права администратора.
 
-        :param event: Событие сообщения
-        :param group_id: ID группы
+        Args:
+            event: Событие сообщения
+            group_id: Репозиторий операций с базой STP
         """
         try:
             request_message = (
@@ -861,12 +914,12 @@ class GroupsMiddleware(BaseMiddleware):
     async def _create_group_in_database(
         group_id: int, invited_by: int, stp_repo: MainRequestsRepo
     ):
-        """
-        Создает группу в базе данных
+        """Создает группу в базе данных.
 
-        :param group_id: ID группы
-        :param invited_by: ID пользователя, который пригласил бота
-        :param stp_repo: Репозиторий для работы с БД
+        Args:
+            group_id: Идентификатор группы Telegram
+            invited_by: Идентификатор пользователя Telegram, пригласившего бота
+            stp_repo: Репозиторий операций с базой STP
         """
         try:
             # Добавляем группу с дефолтными настройками
