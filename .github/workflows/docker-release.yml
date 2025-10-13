@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - feature/**
+      - fix/**
     tags:
       - 'v*.*.*'  # Build on version tags like v1.2.3
 
