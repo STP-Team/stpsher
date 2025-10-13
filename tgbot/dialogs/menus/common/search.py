@@ -131,7 +131,7 @@ heads_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.query),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
         Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
     ),
     getter=search_heads_getter,
