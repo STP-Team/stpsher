@@ -54,8 +54,8 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
     """
     logger.warning("Restarting dialog: %s", error.exception)
 
-    # Получаем пользователя из middleware данных
-    user: Employee | None = error.model_extra.get("user") if error.model_extra else None
+    # Получаем пользователя из middleware данных dialog_manager
+    user: Employee | None = dialog_manager.middleware_data.get("user")
 
     # Определяем роль пользователя и запускаем соответствующее меню
     if user and hasattr(user, "role") and user.role:
@@ -89,12 +89,12 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         # Для обычных сообщений ничего не отправляем, просто запускаем диалог
         pass
 
-    # Запускаем соответствующее меню с данными из middleware
+    # Запускаем соответствующее меню
+    # Middleware данные автоматически передаются в новый dialog_manager
     await dialog_manager.start(
         menu_state,
         mode=StartMode.RESET_STACK,
         show_mode=ShowMode.SEND,
-        data=dialog_manager.middleware_data,
     )
 
 
