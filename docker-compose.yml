@@ -1,12 +1,15 @@
 services:
   bot:
     image: "ghcr.io/stp-team/stpsher:latest"
+    container_name: stpsher
     stop_signal: SIGINT
     restart: always
     env_file:
       - ".env"
     volumes:
       - ./uploads:/app/uploads
+    expose:
+      - "8443"
 
     logging:
       driver: "json-file"
@@ -16,6 +19,7 @@ services:
 
     networks:
       - stp_bots
+      - caddy-network
 
   redis_cache:
     image: redis:7.4.5-alpine
@@ -36,4 +40,6 @@ volumes:
 
 networks:
   stp_bots:
+    external: true
+  caddy-network:
     external: true

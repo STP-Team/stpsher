@@ -11,13 +11,32 @@ class TgBot:
 
     token: str
     use_redis: bool
+    use_webhook: bool
+    webhook_domain: Optional[str] = None
+    webhook_path: Optional[str] = None
+    webhook_secret: Optional[str] = None
+    webhook_port: int = 8443
 
     @staticmethod
     def from_env(env: Env):
         """Creates the TgBot object from environment variables."""
         token = env.str("BOT_TOKEN")
         use_redis = env.bool("USE_REDIS")
-        return TgBot(token=token, use_redis=use_redis)
+        use_webhook = env.bool("USE_WEBHOOK", False)
+        webhook_domain = env.str("WEBHOOK_DOMAIN", None)
+        webhook_path = env.str("WEBHOOK_PATH", "/webhook")
+        webhook_secret = env.str("WEBHOOK_SECRET", None)
+        webhook_port = env.int("WEBHOOK_PORT", 8443)
+
+        return TgBot(
+            token=token,
+            use_redis=use_redis,
+            use_webhook=use_webhook,
+            webhook_domain=webhook_domain,
+            webhook_path=webhook_path,
+            webhook_secret=webhook_secret,
+            webhook_port=webhook_port,
+        )
 
 
 @dataclass
