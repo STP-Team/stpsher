@@ -16,7 +16,7 @@ from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.user import UserSG
 
 menu_window = Window(
-    Format("""👋 Привет, <b>{user.fullname}</b>!
+    Format("""👋 <b>Привет</b>!
 
 Я - бот-помощник СТП
 
@@ -71,9 +71,4 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     """
 
 
-user_dialog = Dialog(
-    menu_window,
-    horn_window,
-    on_start=on_start,
-    getter=db_getter,
-)
+user_dialog = Dialog(menu_window, horn_window, on_start=on_start)

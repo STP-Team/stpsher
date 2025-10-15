@@ -7,11 +7,10 @@ from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.gok import GokSG
 
 menu_window = Window(
-    Format("""👋 Привет, <b>{user.fullname}</b>!
+    Format("""👋 <b>Привет</b>!
 
 Я - бот-помощник СТП
 
@@ -41,5 +40,4 @@ async def on_start(_on_start, _dialog_manager: DialogManager, **_kwargs):
 gok_dialog = Dialog(
     menu_window,
     on_start=on_start,
-    getter=db_getter,
 )
