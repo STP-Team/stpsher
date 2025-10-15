@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 
-from stp_database import Employee
+from stp_database import Employee, HeadPremium, SpecPremium
 
 from tgbot.services.salary import SalaryFormatter
 
@@ -405,7 +405,7 @@ class KPICalculator:
 
     @classmethod
     def format_requirements_message(
-        cls, user: Employee, premium, is_head: bool = False
+        cls, user: Employee, premium: SpecPremium | HeadPremium, is_head: bool = False
     ) -> str:
         csi_calculation = ""
         if not is_head:
@@ -445,7 +445,7 @@ class KPICalculator:
 {gok_calculation}</blockquote>
 
 🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(premium.target_result_first)} / {SalaryFormatter.format_percentage(premium.target_result_second)})
+<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(premium.target_normative_rate_first)} / {SalaryFormatter.format_percentage(premium.target_normative_rate_second)})
 План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}
 
 <b>Для премии:</b>
