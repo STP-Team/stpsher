@@ -68,7 +68,7 @@ menu_window = Window(
     
 <i>Используй меню для выбора действия</i>"""),
     Row(
-        SwitchTo(Const("📅 График"), id="schedule", state=HeadGroupSG.schedule),
+        SwitchTo(Const("📅 График"), id="files_processing", state=HeadGroupSG.schedule),
         SwitchTo(Const("🎖️ Рейтинг"), id="rating", state=HeadGroupSG.rating),
     ),
     Row(
@@ -392,7 +392,9 @@ member_details_window = Window(
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=HeadGroupSG.member_schedule
+                Const("📅 График"),
+                id="files_processing",
+                state=HeadGroupSG.member_schedule,
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=HeadGroupSG.member_kpi),
         ),

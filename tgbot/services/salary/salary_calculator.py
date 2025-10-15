@@ -7,7 +7,7 @@ from stp_database import Employee
 
 from infrastructure.api.production_calendar import production_calendar
 from tgbot.misc.dicts import russian_months
-from tgbot.services.schedule import ScheduleParser
+from tgbot.services.files_processing import ScheduleParser
 
 from .pay_rates import PayRateService
 
@@ -215,7 +215,7 @@ class SalaryCalculator:
                 f"Не найдено ЧТС для '{user.division}' на позиции '{user.position}'"
             )
 
-        # Get schedule data
+        # Get files_processing data
         schedule_parser = ScheduleParser()
         try:
             schedule_data, additional_shifts_data = (

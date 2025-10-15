@@ -1,9 +1,12 @@
+"""Сервис логирования."""
+
 import logging
 
 import betterlogging as bl
 
 
-def setup_logging():
+def setup_logging() -> None:
+    """Настраивает логирование в проекте."""
     log_level = logging.INFO
     bl.basic_colorized_config(level=log_level)
 

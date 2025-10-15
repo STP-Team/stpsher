@@ -20,7 +20,7 @@ class ScheduleFormatter:
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
-        """Compact schedule format"""
+        """Compact files_processing format"""
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>\n"]
 
         # Get current day and month
@@ -117,7 +117,7 @@ class ScheduleFormatter:
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
-        """Detailed schedule format"""
+        """Detailed files_processing format"""
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>\n"]
 
         # Get current day
@@ -249,7 +249,7 @@ class ScheduleFormatter:
     def _group_consecutive_schedule(
         work_days: List[DayInfo], current_day: int = None
     ) -> List[str]:
-        """Group consecutive days with same schedule"""
+        """Group consecutive days with same files_processing"""
         if not work_days:
             return []
 
@@ -367,7 +367,7 @@ class ScheduleFormatter:
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
-        """Detailed schedule format with duty information"""
+        """Detailed files_processing format with duty information"""
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>\n"]
 
         # Get current day and month

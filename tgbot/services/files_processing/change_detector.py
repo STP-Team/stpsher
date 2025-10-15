@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import pytz
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.keyboards.schedule import changed_schedule_kb
+from tgbot.misc.helpers import tz
 from tgbot.services.broadcaster import send_message
 
 logger = logging.getLogger(__name__)
@@ -456,8 +456,7 @@ class ScheduleChangeDetector:
             fullname = user_changes["fullname"]
             changes = user_changes["changes"]
 
-            yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
-            current_time = datetime.now(yekaterinburg_tz)
+            current_time = datetime.now(tz)
 
             message = f"🔔 <b>Изменения в графике</b> • {current_time.strftime('%d.%m.%Y')}\n\n"
 

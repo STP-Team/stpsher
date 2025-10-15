@@ -1,3 +1,5 @@
+"""Сервис рассылок."""
+
 import asyncio
 import logging
 from typing import Awaitable, Callable, Union
@@ -13,14 +15,17 @@ async def send_message(
     disable_notification: bool = False,
     reply_markup: InlineKeyboardMarkup = None,
 ) -> bool:
-    """Safe messages sender
+    """Безопасная отправка сообщения.
 
-    :param bot: Bot instance.
-    :param user_id: user id. If str - must contain only digits.
-    :param text: text of the message.
-    :param disable_notification: disable notification or not.
-    :param reply_markup: reply markup.
-    :return: success.
+    Args:
+        bot: Экземпляр бота
+        user_id: Идентификатор пользователя Telegram
+        text: Тест сообщения
+        disable_notification: Отключить ли уведомление о сообщении
+        reply_markup: Клавиатура к сообщению
+
+    Returns:
+        True если сообщение отправлено успешно, иначе False
     """
     try:
         await bot.send_message(
@@ -41,7 +46,7 @@ async def send_message(
         await asyncio.sleep(e.retry_after)
         return await send_message(
             bot, user_id, text, disable_notification, reply_markup
-        )  # Recursive call
+        )  # Рекурсивный вызов
     except exceptions.TelegramAPIError:
         logging.exception(f"Target [ID:{user_id}]: failed")
     else:
@@ -57,14 +62,17 @@ async def copy_message(
     message_id: int,
     disable_notification: bool = False,
 ) -> bool:
-    """Safe message copier
+    """Безопасное копирование сообщения.
 
-    :param bot: Bot instance.
-    :param user_id: user id to send to. If str - must contain only digits.
-    :param from_chat_id: chat id to copy from.
-    :param message_id: message id to copy.
-    :param disable_notification: disable notification or not.
-    :return: success.
+    Args:
+        bot: Экземпляр бота
+        user_id: Идентификатор пользователя Telegram
+        from_chat_id: Идентификатор чата Telegram, откуда копировать сообщение.
+        message_id: Идентификатор сообщения, которое необходимо скопировать.
+        disable_notification: Отключить ли уведомление о сообщении
+
+    Returns:
+        True если сообщение отправлено успешно, иначе False
     """
     try:
         await bot.copy_message(
@@ -84,7 +92,7 @@ async def copy_message(
         await asyncio.sleep(e.retry_after)
         return await copy_message(
             bot, user_id, from_chat_id, message_id, disable_notification
-        )  # Recursive call
+        )  # Рекурсивный вызов
     except exceptions.TelegramAPIError:
         logging.exception(f"Target [ID:{user_id}]: failed")
     else:
@@ -100,13 +108,17 @@ async def broadcast(
     disable_notification: bool = False,
     reply_markup: InlineKeyboardMarkup = None,
 ) -> int:
-    """Simple broadcaster.
-    :param bot: Bot instance.
-    :param users: List of users.
-    :param text: Text of the message.
-    :param disable_notification: Disable notification or not.
-    :param reply_markup: Reply markup.
-    :return: Count of messages.
+    """Простая рассылка.
+
+    Args:
+        bot: Экземпляр бота
+        users: Список пользователей с идентификатором Telegram.
+        text: Текст сообщения.
+        disable_notification: Отключить ли уведомление о сообщении
+        reply_markup: Клавиатура к сообщению
+
+    Returns:
+        Кол-во успешно отправленных сообщений
     """
     count = 0
     try:
@@ -117,7 +129,7 @@ async def broadcast(
                 count += 1
             await asyncio.sleep(
                 0.05
-            )  # 20 messages per second (Limit: 30 messages per second)
+            )  # 20 сообщений в секунду (Лимит: 30 сообщений в секунду)
     finally:
         logging.info(f"{count} messages successful sent.")
         return count
@@ -132,15 +144,19 @@ async def broadcast_copy(
     disable_notification: bool = False,
     progress_callback: Callable[[int, int], Awaitable[None]] = None,
 ) -> tuple[int, int]:
-    """Broadcaster using copy_message or send_message with progress tracking.
-    :param bot: Bot instance.
-    :param users: List of users.
-    :param from_chat_id: Chat ID to copy message from (optional if text is provided).
-    :param message_id: Message ID to copy (optional if text is provided).
-    :param text: Text to send (optional if from_chat_id and message_id are provided).
-    :param disable_notification: Disable notification or not.
-    :param progress_callback: Optional callback function to track progress (current, total).
-    :return: Tuple of (success_count, error_count).
+    """Рассылка, использующая copy_message или send_message с отслеживанием прогресса.
+
+    Args:
+        bot: Экземпляр бота
+        users: Список пользователей с идентификатором Telegram.
+        from_chat_id: Идентификатор чата Telegram, откуда копировать сообщение.
+        message_id: Идентификатор сообщения, которое необходимо скопировать.
+        text: Текст сообщения. (опционально если указаны from_chat_id и message_id).
+        disable_notification: text: Текст сообщения.
+        progress_callback: Callback для отслеживания прогресса рассылки (текущее, общее).
+
+    Returns:
+        :return: Кортеж с кол-вом успешных сообщений и ошибок
     """
     success_count = 0
     error_count = 0

@@ -7,13 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 class ScheduleFileManager:
-    """Manager for schedule file operations"""
+    """Manager for files_processing file operations"""
 
     def __init__(self, uploads_folder: str = "uploads"):
         self.uploads_folder = Path(uploads_folder)
 
     def find_schedule_file(self, division: str) -> Optional[Path]:
-        """Find schedule file by division (follows symlinked folders)"""
+        """Find files_processing file by division (follows symlinked folders)"""
         try:
             all_files = []
             for root, dirs, files in os.walk(self.uploads_folder, followlinks=True):
@@ -49,7 +49,7 @@ class ScheduleFileManager:
             return None
 
         except Exception as e:
-            logger.error(f"Error finding schedule file: {e}")
+            logger.error(f"Error finding files_processing file: {e}")
             return None
 
 

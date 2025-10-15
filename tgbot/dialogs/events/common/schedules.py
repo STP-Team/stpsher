@@ -8,7 +8,7 @@ from aiogram_dialog.widgets.kbd import Button
 
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.misc.dicts import russian_months
-from tgbot.services.schedule.schedule_handlers import (
+from tgbot.services.files_processing.schedule_handlers import (
     schedule_service,
 )
 

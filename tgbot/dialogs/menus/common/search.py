@@ -201,7 +201,9 @@ details_window = Window(
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+                Const("📅 График"),
+                id="files_processing",
+                state=Search.details_schedule_window,
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
         ),
@@ -237,7 +239,9 @@ details_window = Window(
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+                Const("📅 График"),
+                id="files_processing",
+                state=Search.details_schedule_window,
             ),
             SwitchTo(
                 Const("🛡️ Уровень доступа"),
@@ -251,7 +255,9 @@ details_window = Window(
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+                Const("📅 График"),
+                id="files_processing",
+                state=Search.details_schedule_window,
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
         ),

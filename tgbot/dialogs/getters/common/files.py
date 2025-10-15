@@ -218,7 +218,7 @@ async def get_upload_status(dialog_manager: DialogManager, **_kwargs) -> dict:
     Returns:
         Словарь с информацией о загрузке и обработке
     """
-    from tgbot.services.schedule.file_processor import (
+    from tgbot.services.files_processing.file_processor import (
         FileTypeDetector,
         generate_detailed_stats_text,
         generate_studies_stats_text,
