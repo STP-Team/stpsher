@@ -10,7 +10,6 @@ from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiogram.types import (
     BotCommand,
     BotCommandScopeAllChatAdministrators,
-    BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
     ErrorEvent,
 )
@@ -184,41 +183,7 @@ async def main() -> None:
     )
     await bot.set_my_commands(
         commands=[
-            BotCommand(command="balance", description="Баланс баллов"),
-            BotCommand(command="top", description="Топ группы по баллам"),
-            BotCommand(command="slots", description="Сыграть в слоты"),
-            BotCommand(command="dice", description="Сыграть в кубик"),
-            BotCommand(command="darts", description="Сыграть в дартс"),
-            BotCommand(command="bowling", description="Сыграть в боулинг"),
-            BotCommand(
-                command="whois", description="Проверить информацию о сотруднике"
-            ),
-            BotCommand(
-                command="admins", description="Проверить список администраторов"
-            ),
-        ],
-        scope=BotCommandScopeAllGroupChats(),
-    )
-    await bot.set_my_commands(
-        commands=[
-            BotCommand(
-                command="whois", description="Проверить информацию о сотруднике"
-            ),
-            BotCommand(
-                command="pin", description="Закрепить сообщение (ответом на него)"
-            ),
-            BotCommand(
-                command="unpin", description="Открепить сообщение (ответом на него)"
-            ),
-            BotCommand(command="mute", description="Замутить пользователя"),
-            BotCommand(command="unmute", description="Размутить пользователя"),
-            BotCommand(command="ban", description="Забанить пользователя"),
-            BotCommand(command="unban", description="Разбанить пользователя"),
             BotCommand(command="settings", description="Настройки группы"),
-            BotCommand(command="slots", description="Сыграть в слоты"),
-            BotCommand(command="dice", description="Сыграть в кубик"),
-            BotCommand(command="darts", description="Сыграть в дартс"),
-            BotCommand(command="bowling", description="Сыграть в боулинг"),
         ],
         scope=BotCommandScopeAllChatAdministrators(),
     )
