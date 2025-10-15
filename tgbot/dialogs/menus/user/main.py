@@ -41,6 +41,7 @@ menu_window = Window(
         # Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     # SUPPORT_BTN,
+    getter=db_getter,
     state=UserSG.menu,
 )
 
