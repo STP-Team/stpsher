@@ -17,7 +17,9 @@ from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.getters.common.game.game import game_getter
 from tgbot.dialogs.menus.common.game.achievements import achievements_window
 from tgbot.dialogs.menus.common.game.activations import (
+    activation_approve_comment_window,
     activation_details_window,
+    activation_reject_comment_window,
     activations_window,
     no_activations_window,
 )
@@ -35,6 +37,7 @@ from tgbot.dialogs.menus.common.game.history import (
     history_window,
 )
 from tgbot.dialogs.menus.common.game.inventory import (
+    inventory_activation_comment_window,
     inventory_details_window,
     inventory_window,
 )
@@ -151,8 +154,11 @@ game_dialog = Dialog(
     activations_window,
     no_activations_window,
     activation_details_window,
+    activation_approve_comment_window,
+    activation_reject_comment_window,
     inventory_window,
     inventory_details_window,
+    inventory_activation_comment_window,
     history_window,
     history_details_window,
     casino_window,

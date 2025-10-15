@@ -3,8 +3,9 @@
 import logging
 from datetime import datetime
 
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
+from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database import MainRequestsRepo
 
@@ -84,20 +85,15 @@ async def use_product(
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
     # Проверяем, откуда вызвана функция - из окна магазина или из инвентаря
     if dialog_manager.current_context().state == Game.products_success:
         # Используем данные только что купленного предмета
-        new_purchase = dialog_manager.dialog_data["new_purchase"]
         product_info = dialog_manager.dialog_data["selected_product"]
-        user_product_id = new_purchase["id"]
         product_name = product_info["name"]
         activate_days = product_info.get("activate_days")
     else:
         # Используем данные предмета из инвентаря
         product_info = dialog_manager.dialog_data["selected_inventory_product"]
-        user_product_id = product_info["user_product_id"]
         product_name = product_info["product_name"]
         activate_days = product_info.get("activate_days")
 
@@ -116,6 +112,91 @@ async def use_product(
                 )
                 return
 
+        # Если все проверки пройдены, переходим к окну комментария
+        if dialog_manager.current_context().state == Game.products_success:
+            # Для магазина используем старую логику (без комментария)
+            stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+            new_purchase = dialog_manager.dialog_data["new_purchase"]
+            user_product_id = new_purchase["id"]
+
+            success = await stp_repo.purchase.use_purchase(user_product_id)
+
+            if success:
+                await callback.answer(
+                    f"✅ Предмет {product_name} отправлен на рассмотрение!",
+                    show_alert=True,
+                )
+                await dialog_manager.switch_to(Game.products)
+            else:
+                await callback.answer(
+                    "❌ Невозможно использовать предмет", show_alert=True
+                )
+        else:
+            # Для инвентаря переходим к окну ввода комментария
+            await dialog_manager.switch_to(Game.inventory_activation_comment)
+
+    except Exception as e:
+        logger.error(
+            f"[Активация предметов] Ошибка при отправке предмета на активацию: {e}"
+        )
+        await callback.answer("❌ Ошибка при использовании предмета", show_alert=True)
+
+
+async def on_inventory_activation_comment_input(
+    message: Message,
+    _widget: ManagedTextInput,
+    dialog_manager: DialogManager,
+    comment: str,
+) -> None:
+    """Обработчик ввода комментария пользователя при активации предмета.
+
+    Args:
+        message: Message от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        comment: Текст комментария от пользователя
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    product_info = dialog_manager.dialog_data["selected_inventory_product"]
+    user_product_id = product_info["user_product_id"]
+    product_name = product_info["product_name"]
+
+    try:
+        # Обновляем статус покупки и добавляем комментарий
+        await stp_repo.purchase.update_purchase(
+            purchase_id=user_product_id,
+            status="review",
+            user_comment=comment,
+            updated_at=datetime.now(tz),
+        )
+
+        await message.answer(
+            f"✅ Предмет {product_name} отправлен на рассмотрение с комментарием!"
+        )
+        await dialog_manager.switch_to(Game.inventory)
+
+    except Exception as e:
+        logger.error(f"[Активация предметов] Ошибка при сохранении комментария: {e}")
+        await message.answer("❌ Ошибка при сохранении комментария")
+
+
+async def on_skip_activation_comment(
+    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Обработчик пропуска комментария при активации предмета.
+
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    product_info = dialog_manager.dialog_data["selected_inventory_product"]
+    user_product_id = product_info["user_product_id"]
+    product_name = product_info["product_name"]
+
+    try:
+        # Активируем без комментария
         success = await stp_repo.purchase.use_purchase(user_product_id)
 
         if success:
@@ -123,11 +204,7 @@ async def use_product(
                 f"✅ Предмет {product_name} отправлен на рассмотрение!",
                 show_alert=True,
             )
-            # Обновляем данные предмета и возвращаемся
-            if dialog_manager.current_context().state == Game.products_success:
-                await dialog_manager.switch_to(Game.products)
-            else:
-                await dialog_manager.switch_to(Game.inventory)
+            await dialog_manager.switch_to(Game.inventory)
         else:
             await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
 

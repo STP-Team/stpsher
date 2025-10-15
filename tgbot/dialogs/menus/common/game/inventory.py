@@ -1,5 +1,6 @@
 """Генерация общих функций для просмотра инвентаря."""
 
+from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Radio,
@@ -13,9 +14,11 @@ from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.events.common.game.inventory import (
+    on_inventory_activation_comment_input,
     on_inventory_cancel_activation,
     on_inventory_product_click,
     on_inventory_sell_product,
+    on_skip_activation_comment,
     use_product,
 )
 from tgbot.dialogs.filters.user.game.inventory import inventory_filter_getter
@@ -111,4 +114,30 @@ inventory_details_window = Window(
     ),
     getter=inventory_detail_getter,
     state=Game.inventory_details,
+)
+
+inventory_activation_comment_window = Window(
+    Format("""<b>💬 Комментарий к активации</b>
+
+<b>📦 Предмет:</b> {product_name}
+
+Ты можешь добавить комментарий к активации
+Этот комментарий увидит менеджер при проверке
+
+Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+    TextInput(
+        id="activation_comment_input",
+        on_success=on_inventory_activation_comment_input,
+    ),
+    Button(
+        Const("⏩ Пропустить"),
+        id="skip_comment",
+        on_click=on_skip_activation_comment,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.inventory_details),
+        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+    ),
+    getter=inventory_detail_getter,
+    state=Game.inventory_activation_comment,
 )

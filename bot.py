@@ -219,7 +219,7 @@ async def on_startup_webhook(bot: Bot, config: Config) -> None:
         config: Конфигурация приложения
     """
     webhook_url = f"https://{config.tg_bot.webhook_domain}{config.tg_bot.webhook_path}"
-    logger.info(f"Setting webhook to: {webhook_url}")
+    logger.info(f"[Вебхук] Устанавливаем вебхук: {webhook_url}")
 
     await bot.set_webhook(
         url=webhook_url,
@@ -233,7 +233,7 @@ async def on_startup_webhook(bot: Bot, config: Config) -> None:
         drop_pending_updates=True,
         secret_token=config.tg_bot.webhook_secret,
     )
-    logger.info("Webhook has been set successfully")
+    logger.info("[Вебхук] Вебхук установлен")
 
 
 async def on_shutdown_webhook(bot: Bot) -> None:
@@ -242,9 +242,9 @@ async def on_shutdown_webhook(bot: Bot) -> None:
     Args:
         bot: Экземпляр бота
     """
-    logger.info("Deleting webhook...")
+    logger.info("[Вебхук] Удаляем вебхук...")
     await bot.delete_webhook()
-    logger.info("Webhook deleted")
+    logger.info("[Вебхук] Вебхук удален")
 
 
 async def main() -> None:
@@ -308,7 +308,7 @@ async def main() -> None:
     try:
         if bot_config.tg_bot.use_webhook:
             # Webhook mode
-            logger.info("Starting bot in WEBHOOK mode")
+            logger.info("[Режим запуска] Бот запущен в режиме webhooks")
             await on_startup_webhook(bot, bot_config)
 
             # Создаем aiohttp приложение
@@ -332,7 +332,7 @@ async def main() -> None:
             await site.start()
 
             logger.info(
-                f"Webhook server started on port {bot_config.tg_bot.webhook_port}"
+                f"[Вебхук] Сервер запущен на порту {bot_config.tg_bot.webhook_port}"
             )
 
             # Держим сервер запущенным
@@ -340,7 +340,7 @@ async def main() -> None:
 
         else:
             # Polling mode
-            logger.info("Starting bot in POLLING mode")
+            logger.info("[Режим запуска] Бот запущен в режиме polling")
             await dp.start_polling(
                 bot,
                 allowed_updates=[

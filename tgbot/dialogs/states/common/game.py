@@ -34,7 +34,12 @@ class Game(StatesGroup):
     # Инвентарь
     inventory = State()
     inventory_details = State()
+    inventory_activation_comment = State()
 
     # История баланса
     history = State()
     history_details = State()
+
+    # Комментарии менеджера
+    activation_approve_comment = State()
+    activation_reject_comment = State()
