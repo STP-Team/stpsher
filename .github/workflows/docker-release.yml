@@ -73,7 +73,15 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e
+            cd /home/stp/projects/stpsher
+            
+            echo "Pulling latest image..."
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            docker compose -f /home/stp/projects/stpsher/docker-compose.yml up -d
+            
+            echo "Restarting containers..."
+            docker compose up -d
+            
+            echo "Cleaning up..."
             docker system prune -af
             
