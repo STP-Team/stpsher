@@ -230,11 +230,20 @@ details_window = Window(
                 when="searched_default_user",
             ),
         ),
-        Checkbox(
-            Const("🟢 Казино"),
-            Const("🔴 Казино"),
-            id="casino_access",
-            on_state_changed=on_casino_change,
+        Group(
+            Checkbox(
+                Const("🟢 Казино"),
+                Const("🔴 Казино"),
+                id="casino_access",
+                on_state_changed=on_casino_change,
+            ),
+            Checkbox(
+                Const("🟢 Стажер"),
+                Const("🔴 Стажер"),
+                id="is_trainee",
+                on_state_changed=on_trainee_change,
+            ),
+            width=2,
             when="searched_default_user",
         ),
         SwitchTo(
