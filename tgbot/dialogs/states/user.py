@@ -8,6 +8,7 @@ class UserSG(StatesGroup):
 
     # Меню
     menu = State()
+    horn = State()
     settings = State()
 
 

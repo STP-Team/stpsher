@@ -2,8 +2,9 @@
 
 from typing import Any
 
+from aiogram import F
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row
+from aiogram_dialog.widgets.kbd import Back, Button, Row, SwitchTo, Url
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -26,7 +27,15 @@ menu_window = Window(
         Button(Const("📅 Графики"), id="schedules", on_click=start_schedules_dialog),
         Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
     ),
-    Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
+    Row(
+        Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
+        SwitchTo(
+            Const("📣 Рупор"),
+            id="horn",
+            state=UserSG.horn,
+            when=F["user"].division == "НЦК",  # type: ignore[arg-type]
+        ),
+    ),
     Row(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
@@ -35,6 +44,22 @@ menu_window = Window(
     ),
     SUPPORT_BTN,
     state=UserSG.menu,
+)
+
+
+horn_window = Window(
+    Const("📣 <b>Рупор</b>\n"),
+    Const("""Возник вопрос по процессу работы? Не нужно гадать, кого спросить!
+По всем непонятным процессам, правилам, инструментам и идеям есть один пункт назначения – <b>Рупор</b>
+
+<blockquote>Рупор – это площадка, где ты можешь анонимно или открыто задать вопрос по работе, предложить идею по развитию отдела/компании
+
+Кроме того, если твоя идея поможет развитию отдела или компании – ты можешь получить дополнительную прибавку к премии</blockquote>"""),
+    Row(
+        Url(Const("💡 Задать вопрос"), url=Const("forms.gle/krFwo1Q16sTStMxHA")),
+        Back(Const("↩️ Назад"), id="back"),
+    ),
+    state=UserSG.horn,
 )
 
 
@@ -49,6 +74,7 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
 
 user_dialog = Dialog(
     menu_window,
+    horn_window,
     on_start=on_start,
     getter=db_getter,
 )
