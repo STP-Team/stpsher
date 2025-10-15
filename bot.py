@@ -30,6 +30,8 @@ from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.middlewares.GroupsMiddleware import GroupsMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
+from tgbot.misc.dicts import roles
+from tgbot.misc.helpers import short_name
 from tgbot.services.logger import setup_logging
 from tgbot.services.schedulers.scheduler import SchedulerManager
 
@@ -50,7 +52,7 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         error: Событие ошибки с информацией об исключении и обновлении
         dialog_manager: Менеджер диалога
     """
-    logger.warning("Restarting dialog: %s", error.exception)
+    logger.warning("[Редирект] Рестарт диалога: %s", error.exception)
 
     # Удаляем старое сообщение без уведомления пользователя
     if error.update.callback_query:
@@ -77,32 +79,77 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
             logger.error(f"Failed to send message: {e}")
         return
 
-    # Получаем пользователя из middleware_data
-    user: Employee | None = dialog_manager.middleware_data.get("user")
+    # Получаем пулы сессий из middleware_data
+    main_db = dialog_manager.middleware_data.get("main_db")
+    kpi_db = dialog_manager.middleware_data.get("kpi_db")
 
-    # Определяем роль пользователя и запускаем соответствующее меню
-    if user and hasattr(user, "role") and user.role:
-        role = user.role
+    if not main_db or not kpi_db:
+        logger.error("Session pools not available in middleware_data")
+        return
 
-        # Маппинг ролей на состояния главного меню
-        role_menu_mapping = {
-            "root": RootSG.menu,
-            "admin": AdminSG.menu,
-            "head": HeadSG.menu,
-            "gok": GokSG.menu,
-            "mip": MipSG.menu,
-            "user": UserSG.menu,
-        }
+    # Создаем репозитории для работы с базами данных
+    try:
+        async with main_db() as stp_session:
+            from stp_database import MainRequestsRepo
 
-        menu_state = role_menu_mapping.get(role, UserSG.menu)
-        logger.info(f"Redirecting user {user.user_id} to {role} menu")
-    else:
-        # Если роль не определена, отправляем в меню по умолчанию
-        menu_state = UserSG.menu
-        logger.info("Redirecting to default menu (UserSG.menu)")
+            stp_repo = MainRequestsRepo(stp_session)
 
-    # Запускаем соответствующее меню
-    await dialog_manager.start(menu_state, mode=StartMode.RESET_STACK)
+            # Получаем пользователя из базы данных
+            if error.update.callback_query:
+                user_id = error.update.callback_query.from_user.id
+            elif error.update.message:
+                user_id = error.update.message.from_user.id
+            else:
+                logger.error("Unable to determine user_id from update")
+                return
+
+            user: Employee | None = await stp_repo.employee.get_users(user_id=user_id)
+
+            async with kpi_db() as kpi_session:
+                from stp_database.repo.KPI.requests import KPIRequestsRepo
+
+                kpi_repo = KPIRequestsRepo(kpi_session)
+
+                # Добавляем репозитории в middleware_data для геттеров диалогов
+                dialog_manager.middleware_data["user"] = user
+                dialog_manager.middleware_data["stp_repo"] = stp_repo
+                dialog_manager.middleware_data["kpi_repo"] = kpi_repo
+                dialog_manager.middleware_data["stp_session"] = stp_session
+                dialog_manager.middleware_data["kpi_session"] = kpi_session
+
+                # Определяем роль пользователя и запускаем соответствующее меню
+                if user and hasattr(user, "role") and user.role:
+                    role = str(user.role)
+
+                    # Маппинг ролей на состояния главного меню
+                    role_menu_mapping = {
+                        "1": UserSG.menu,
+                        "2": HeadSG.menu,
+                        "3": UserSG.menu,
+                        "4": AdminSG.menu,
+                        "5": GokSG.menu,
+                        "6": MipSG.menu,
+                        "10": RootSG.menu,
+                    }
+
+                    menu_state = role_menu_mapping.get(role, UserSG.menu)
+                    role_name = roles.get(user.role, {}).get("name", "Unknown")
+                    logger.info(
+                        f"[Редирект] Пользователь {short_name(user.fullname)} ({user.user_id}) перенаправлен в меню роли '{role_name}' (ID: {role})"
+                    )
+                else:
+                    # Если роль не определена, отправляем в меню по умолчанию
+                    menu_state = UserSG.menu
+                    logger.info(
+                        f"[Редирект] Пользователь {short_name(user.fullname)} ({user.user_id}) перенаправлен в стандартное меню (UserSG.menu)"
+                    )
+
+                # Запускаем соответствующее меню
+                await dialog_manager.start(menu_state, mode=StartMode.RESET_STACK)
+
+    except Exception as e:
+        logger.error(f"Failed to restart dialog: {e}")
+        return
 
 
 def register_middlewares(
