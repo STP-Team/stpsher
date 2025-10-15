@@ -59,6 +59,8 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: none
     needs: build-and-push
     if: github.ref_name == 'main'
     steps:
