@@ -3,6 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
@@ -44,66 +45,56 @@ async def on_startup():
     pass
 
 
-async def _unknown_intent(error: ErrorEvent):
+async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
     """Обработчик ошибки UnknownIntent - возвращает пользователя в главное меню.
 
     Args:
         error: Событие ошибки с информацией об исключении и обновлении
+        dialog_manager: Менеджер диалога
     """
-    logger.exception(
-        "Cause unexpected exception %s, by processing %s",
-        error.exception.__class__.__name__,
-        error.update.model_dump(exclude_none=True),
-        exc_info=error.exception,
-    )
+    logger.warning("Restarting dialog: %s", error.exception)
 
-    # Попытка вернуть пользователя в главное меню
+    # Получаем пользователя из middleware данных
+    user: Employee | None = error.model_extra.get("user") if error.model_extra else None
+
+    # Определяем роль пользователя и запускаем соответствующее меню
+    if user and hasattr(user, "role") and user.role:
+        role = user.role
+
+        # Маппинг ролей на состояния главного меню
+        role_menu_mapping = {
+            "root": RootSG.menu,
+            "admin": AdminSG.menu,
+            "head": HeadSG.menu,
+            "gok": GokSG.menu,
+            "mip": MipSG.menu,
+            "user": UserSG.menu,
+        }
+
+        menu_state = role_menu_mapping.get(role, UserSG.menu)
+        logger.info(f"Redirecting user {user.user_id} to {role} menu")
+    else:
+        # Если роль не определена, отправляем в меню по умолчанию
+        menu_state = UserSG.menu
+        logger.info("Redirecting to default menu (UserSG.menu)")
+
+    # Удаляем старое сообщение без уведомления пользователя
     if error.update.callback_query:
-        try:
-            # Получаем данные из middleware (aiogram передает их в event_context)
-            # ErrorEvent содержит поле data с middleware данными
-            dialog_manager: DialogManager | None = error.data.get("dialog_manager")
-            user: Employee | None = error.data.get("user")
+        if error.update.callback_query.message:
+            try:  # noqa: SIM105
+                await error.update.callback_query.message.delete()
+            except TelegramBadRequest:
+                pass  # whatever
+    elif error.update.message:
+        # Для обычных сообщений ничего не отправляем, просто запускаем диалог
+        pass
 
-            if not dialog_manager:
-                logger.error("DialogManager not found in error.data")
-                return
-
-            # Определяем роль пользователя и запускаем соответствующее меню
-            if user and hasattr(user, "role") and user.role:
-                role = user.role
-
-                # Маппинг ролей на состояния главного меню
-                role_menu_mapping = {
-                    "root": RootSG.menu,
-                    "admin": AdminSG.menu,
-                    "head": HeadSG.menu,
-                    "gok": GokSG.menu,
-                    "mip": MipSG.menu,
-                    "user": UserSG.menu,
-                }
-
-                menu_state = role_menu_mapping.get(role, UserSG.menu)
-
-                await dialog_manager.start(
-                    menu_state,
-                    mode=StartMode.RESET_STACK,
-                    show_mode=ShowMode.SEND,
-                )
-                logger.info(f"User {user.user_id} returned to main menu (role: {role})")
-            else:
-                # Если роль не определена, отправляем в меню по умолчанию
-                await dialog_manager.start(
-                    UserSG.menu,
-                    mode=StartMode.RESET_STACK,
-                    show_mode=ShowMode.SEND,
-                )
-                logger.info("User returned to default menu (UserSG.menu)")
-
-        except Exception as e:
-            logger.error(
-                f"Failed to restart dialog after UnknownIntent: {e}", exc_info=True
-            )
+    # Запускаем соответствующее меню
+    await dialog_manager.start(
+        menu_state,
+        mode=StartMode.RESET_STACK,
+        show_mode=ShowMode.SEND,
+    )
 
 
 def register_middlewares(
