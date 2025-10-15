@@ -6,7 +6,7 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 
-from tgbot.dialogs.states.heads.head import HeadSG
+from tgbot.dialogs.states.head import HeadSG
 from tgbot.filters.role import HeadFilter
 
 head_router = Router()

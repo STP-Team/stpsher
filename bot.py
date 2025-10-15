@@ -23,7 +23,7 @@ from tgbot.config import Config, load_config
 from tgbot.dialogs.menus import common_dialogs_list, dialogs_list
 from tgbot.dialogs.states.admin import AdminSG
 from tgbot.dialogs.states.gok import GokSG
-from tgbot.dialogs.states.heads.head import HeadSG
+from tgbot.dialogs.states.head import HeadSG
 from tgbot.dialogs.states.mip import MipSG
 from tgbot.dialogs.states.root import RootSG
 from tgbot.dialogs.states.user import UserSG
@@ -54,8 +54,35 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
     """
     logger.warning("Restarting dialog: %s", error.exception)
 
-    # Получаем пользователя из middleware данных
-    user: Employee | None = error.model_extra.get("user") if error.model_extra else None
+    # Получаем данные из middleware
+    user: Employee | None = dialog_manager.middleware_data.get("user")
+    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    kpi_repo = dialog_manager.middleware_data.get("kpi_repo")
+
+    # Проверяем, что у нас есть необходимые данные для работы
+    if not all([user, stp_repo, kpi_repo]):
+        logger.error(
+            f"Missing middleware data in UnknownIntent handler. "
+            f"user={user is not None}, stp_repo={stp_repo is not None}, "
+            f"kpi_repo={kpi_repo is not None}"
+        )
+        # Если нет данных, отправляем пользователю сообщение и не пытаемся запустить диалог
+        if error.update.callback_query:
+            try:
+                await error.update.callback_query.answer(
+                    "⚠️ Произошла ошибка. Пожалуйста, используй /start для перезапуска бота.",
+                    show_alert=True,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
+        elif error.update.message:
+            try:
+                await error.update.message.answer(
+                    "⚠️ Произошла ошибка. Пожалуйста, используйте /start для перезапуска бота."
+                )
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
+        return
 
     # Определяем роль пользователя и запускаем соответствующее меню
     if user and hasattr(user, "role") and user.role:
@@ -89,12 +116,17 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         # Для обычных сообщений ничего не отправляем, просто запускаем диалог
         pass
 
-    # Запускаем соответствующее меню с данными из middleware
+    # Запускаем соответствующее меню
+    # Передаем middleware данные явно в новый dialog_manager
     await dialog_manager.start(
         menu_state,
         mode=StartMode.RESET_STACK,
         show_mode=ShowMode.SEND,
-        data=dialog_manager.middleware_data,
+        data={
+            "user": user,
+            "stp_repo": stp_repo,
+            "kpi_repo": kpi_repo,
+        },
     )
 
 

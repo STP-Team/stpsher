@@ -12,6 +12,31 @@ from stp_database import Employee, MainRequestsRepo
 from tgbot.dialogs.states.common.game import Game
 
 
+async def check_casino_access(
+    callback: CallbackQuery,
+    dialog_manager: DialogManager,
+) -> bool:
+    """Проверить доступ пользователя к казино.
+
+    Args:
+        callback: Callback query от пользователя
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        True если доступ разрешен, False если запрещен
+    """
+    user: Employee = dialog_manager.middleware_data["user"]
+
+    if user is None or not user.is_casino_allowed:
+        await callback.answer(
+            "Казино недоступно. Обратитесь к руководителю если считаешь это ошибкой",
+            show_alert=True,
+        )
+        return False
+
+    return True
+
+
 async def change_rate(
     _callback: CallbackQuery,
     button: Button,
@@ -246,6 +271,9 @@ async def start_slots(
         button: Button виджет
         dialog_manager: Менеджер диалога
     """
+    if not await check_casino_access(callback, dialog_manager):
+        return
+
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
@@ -266,6 +294,9 @@ async def start_dice(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
+    if not await check_casino_access(callback, dialog_manager):
+        return
+
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
@@ -286,6 +317,9 @@ async def start_darts(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
+    if not await check_casino_access(callback, dialog_manager):
+        return
+
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
@@ -306,6 +340,9 @@ async def start_bowling(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
+    if not await check_casino_access(callback, dialog_manager):
+        return
+
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
@@ -326,6 +363,9 @@ async def play_again(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
+    if not await check_casino_access(callback, dialog_manager):
+        return
+
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 

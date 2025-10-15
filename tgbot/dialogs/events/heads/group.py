@@ -7,7 +7,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.dialogs.states.heads.group import HeadGroupSG
+from tgbot.dialogs.states.head import HeadGroupSG
 from tgbot.misc.dicts import roles
 
 logger = logging.getLogger(__name__)

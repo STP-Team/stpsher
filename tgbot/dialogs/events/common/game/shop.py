@@ -59,6 +59,7 @@ async def on_product_click(
         "description": product_info.description,
         "cost": product_info.cost,
         "count": product_info.count,
+        "activate_days": product_info.activate_days,
     }
     dialog_manager.dialog_data["user_balance"] = user_balance
 

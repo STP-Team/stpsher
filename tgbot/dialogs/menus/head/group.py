@@ -60,7 +60,7 @@ from tgbot.dialogs.getters.heads.group.members import (
     member_schedule_getter,
 )
 from tgbot.dialogs.getters.heads.group.rating import get_rating_display_data
-from tgbot.dialogs.states.heads.group import HeadGroupSG
+from tgbot.dialogs.states.head import HeadGroupSG
 from tgbot.misc.helpers import get_status_emoji
 
 menu_window = Window(
