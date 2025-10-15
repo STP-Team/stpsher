@@ -54,57 +54,6 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
     """
     logger.warning("Restarting dialog: %s", error.exception)
 
-    # Получаем данные из middleware
-    user: Employee | None = dialog_manager.middleware_data.get("user")
-    stp_repo = dialog_manager.middleware_data.get("stp_repo")
-    kpi_repo = dialog_manager.middleware_data.get("kpi_repo")
-
-    # Проверяем, что у нас есть необходимые данные для работы
-    if not all([user, stp_repo, kpi_repo]):
-        logger.error(
-            f"Missing middleware data in UnknownIntent handler. "
-            f"user={user is not None}, stp_repo={stp_repo is not None}, "
-            f"kpi_repo={kpi_repo is not None}"
-        )
-        # Если нет данных, отправляем пользователю сообщение и не пытаемся запустить диалог
-        if error.update.callback_query:
-            try:
-                await error.update.callback_query.answer(
-                    "⚠️ Произошла ошибка. Пожалуйста, используй /start для перезапуска бота.",
-                    show_alert=True,
-                )
-            except Exception as e:
-                logger.error(f"Failed to send error message: {e}")
-        elif error.update.message:
-            try:
-                await error.update.message.answer(
-                    "⚠️ Произошла ошибка. Пожалуйста, используйте /start для перезапуска бота."
-                )
-            except Exception as e:
-                logger.error(f"Failed to send error message: {e}")
-        return
-
-    # Определяем роль пользователя и запускаем соответствующее меню
-    if user and hasattr(user, "role") and user.role:
-        role = user.role
-
-        # Маппинг ролей на состояния главного меню
-        role_menu_mapping = {
-            "root": RootSG.menu,
-            "admin": AdminSG.menu,
-            "head": HeadSG.menu,
-            "gok": GokSG.menu,
-            "mip": MipSG.menu,
-            "user": UserSG.menu,
-        }
-
-        menu_state = role_menu_mapping.get(role, UserSG.menu)
-        logger.info(f"Redirecting user {user.user_id} to {role} menu")
-    else:
-        # Если роль не определена, отправляем в меню по умолчанию
-        menu_state = UserSG.menu
-        logger.info("Redirecting to default menu (UserSG.menu)")
-
     # Удаляем старое сообщение без уведомления пользователя
     if error.update.callback_query:
         if error.update.callback_query.message:
@@ -112,22 +61,148 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
                 await error.update.callback_query.message.delete()
             except TelegramBadRequest:
                 pass  # whatever
+        # Отправляем уведомление пользователю
+        try:
+            await error.update.callback_query.answer(
+                "⚠️ Сессия истекла. Возвращаю в главное меню...",
+                show_alert=False,
+            )
+        except Exception as e:
+            logger.error(f"Failed to send callback answer: {e}")
     elif error.update.message:
-        # Для обычных сообщений ничего не отправляем, просто запускаем диалог
-        pass
+        # Для обычных сообщений отправляем ответ
+        try:
+            await error.update.message.answer(
+                "⚠️ Сессия истекла. Используй /start для перезапуска бота."
+            )
+        except Exception as e:
+            logger.error(f"Failed to send message: {e}")
+        return
 
-    # Запускаем соответствующее меню
-    # Передаем middleware данные явно в новый dialog_manager
-    await dialog_manager.start(
-        menu_state,
-        mode=StartMode.RESET_STACK,
-        show_mode=ShowMode.SEND,
-        data={
-            "user": user,
-            "stp_repo": stp_repo,
-            "kpi_repo": kpi_repo,
-        },
-    )
+    # Получаем event для определения from_user
+    event = error.update.callback_query or error.update.message
+    if not event or not event.from_user:
+        logger.error("No from_user in update, cannot restart dialog")
+        return
+
+    # Получаем данные из middleware_data или создаем новые сессии
+    user: Employee | None = dialog_manager.middleware_data.get("user")
+    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    kpi_repo = dialog_manager.middleware_data.get("kpi_repo")
+
+    # Если данных нет, получаем их напрямую создавая сессии
+    if not all([user, stp_repo, kpi_repo]):
+        logger.warning(
+            "Middleware data not available in UnknownIntent handler, "
+            "creating new database sessions"
+        )
+
+        # Получаем пулы сессий из workflow_data диспетчера через middleware_data
+        main_db = dialog_manager.middleware_data.get("main_db")
+        kpi_db = dialog_manager.middleware_data.get("kpi_db")
+
+        if not main_db or not kpi_db:
+            logger.error("Database sessions not found in middleware_data")
+            try:
+                if error.update.callback_query:
+                    await error.update.callback_query.answer(
+                        "⚠️ Ошибка подключения к базе данных. Используй /start для перезапуска.",
+                        show_alert=True,
+                    )
+            except Exception:
+                pass
+            return
+
+        # Создаем временные сессии для получения данных пользователя
+        try:
+            from stp_database import MainRequestsRepo
+            from stp_database.repo.KPI.requests import KPIRequestsRepo
+
+            async with main_db() as stp_session:
+                stp_repo = MainRequestsRepo(stp_session)
+                user = await stp_repo.employee.get_users(user_id=event.from_user.id)
+
+                async with kpi_db() as kpi_session:
+                    kpi_repo = KPIRequestsRepo(kpi_session)
+
+                    # Определяем роль пользователя и запускаем соответствующее меню
+                    if user and hasattr(user, "role") and user.role:
+                        role = user.role
+
+                        # Маппинг ролей на состояния главного меню
+                        role_menu_mapping = {
+                            "root": RootSG.menu,
+                            "admin": AdminSG.menu,
+                            "head": HeadSG.menu,
+                            "gok": GokSG.menu,
+                            "mip": MipSG.menu,
+                            "user": UserSG.menu,
+                        }
+
+                        menu_state = role_menu_mapping.get(role, UserSG.menu)
+                        logger.info(f"Redirecting user {user.user_id} to {role} menu")
+                    else:
+                        # Если роль не определена, отправляем в меню по умолчанию
+                        menu_state = UserSG.menu
+                        logger.info("Redirecting to default menu (UserSG.menu)")
+
+                    # Запускаем соответствующее меню
+                    # Передаем данные явно в новый dialog_manager
+                    await dialog_manager.start(
+                        menu_state,
+                        mode=StartMode.RESET_STACK,
+                        show_mode=ShowMode.SEND,
+                        data={
+                            "user": user,
+                            "stp_repo": stp_repo,
+                            "kpi_repo": kpi_repo,
+                        },
+                    )
+        except Exception as e:
+            logger.error(f"Error while restarting dialog: {e}", exc_info=True)
+            try:
+                if error.update.callback_query:
+                    await error.update.callback_query.answer(
+                        "⚠️ Произошла ошибка. Используй /start для перезапуска бота.",
+                        show_alert=True,
+                    )
+            except Exception:
+                pass
+    else:
+        # Если данные уже есть из middleware:
+        # Определяем роль пользователя и запускаем соответствующее меню
+        if user and hasattr(user, "role") and user.role:
+            role = user.role
+
+            # Маппинг ролей на состояния главного меню
+            role_menu_mapping = {
+                "root": RootSG.menu,
+                "admin": AdminSG.menu,
+                "head": HeadSG.menu,
+                "gok": GokSG.menu,
+                "mip": MipSG.menu,
+                "user": UserSG.menu,
+            }
+
+            menu_state = role_menu_mapping.get(role, UserSG.menu)
+            logger.info(f"Redirecting user {user.user_id} to {role} menu")
+        else:
+            # Если роль не определена, отправляем в меню по умолчанию
+            menu_state = UserSG.menu
+            logger.info("Redirecting to default menu (UserSG.menu)")
+
+        # Запускаем соответствующее меню.
+        # Передаем middleware данные явно в новый dialog_manager
+        await dialog_manager.start(
+            menu_state,
+            mode=StartMode.RESET_STACK,
+            show_mode=ShowMode.SEND,
+            data={
+                "user": user,
+                "stp_repo": stp_repo,
+                "kpi_repo": kpi_repo,
+            },
+        )
 
 
 def register_middlewares(
@@ -256,7 +331,7 @@ async def main() -> None:
     main_db = create_session_pool(main_db_engine)
     kpi_db = create_session_pool(kpi_db_engine)
 
-    # Храним сессии в диспетчере
+    # Храним сессии в диспетчере для доступа из error handlers
     dp["main_db"] = main_db
     dp["kpi_db"] = kpi_db
 
