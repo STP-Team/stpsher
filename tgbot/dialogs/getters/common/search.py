@@ -9,7 +9,6 @@ from stp_database import Employee, MainRequestsRepo
 from stp_database.repo.KPI.requests import KPIRequestsRepo
 
 from tgbot.dialogs.getters.common.game.kpi import (
-    base_kpi_data,
     kpi_getter,
     kpi_requirements_getter,
     salary_getter,
@@ -322,6 +321,8 @@ async def search_schedule_getter(
         selected_user.fullname,
         short=False,
         gender_emoji=True,
+        username=selected_user.username,
+        user_id=selected_user.user_id,
     )
 
     if "schedule_text" in schedule_data:
@@ -351,18 +352,16 @@ async def search_kpi_getter(
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
-    # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
-    premium = premium_data.get("premium")
-
     # Вызываем оригинальный геттер с выбранным пользователем
-    kpi_data = await kpi_getter(user=selected_user, premium=premium)
+    kpi_data = await kpi_getter(user=selected_user, kpi_repo=kpi_repo)
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
         selected_user.fullname,
         short=False,
         gender_emoji=True,
+        username=selected_user.username,
+        user_id=selected_user.user_id,
     )
 
     if "kpi_text" in kpi_data:
@@ -392,13 +391,9 @@ async def search_kpi_requirements_getter(
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
-    # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
-    premium = premium_data.get("premium")
-
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
-        user=selected_user, premium=premium
+        user=selected_user, kpi_repo=kpi_repo
     )
 
     # Добавляем информацию о пользователе в начало текста
@@ -406,6 +401,8 @@ async def search_kpi_requirements_getter(
         selected_user.fullname,
         short=False,
         gender_emoji=True,
+        username=selected_user.username,
+        user_id=selected_user.user_id,
     )
 
     if "requirements_text" in requirements_data:
@@ -435,18 +432,16 @@ async def search_salary_getter(
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
-    # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
-    premium = premium_data.get("premium")
-
     # Вызываем оригинальный геттер с выбранным пользователем
-    salary_data = await salary_getter(user=selected_user, premium=premium)
+    salary_data = await salary_getter(user=selected_user, kpi_repo=kpi_repo)
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
         selected_user.fullname,
         short=False,
         gender_emoji=True,
+        username=selected_user.username,
+        user_id=selected_user.user_id,
     )
 
     if "salary_text" in salary_data:
@@ -538,7 +533,13 @@ async def search_achievements_getter(
         ("A", "Ручные"),
     ]
 
-    user_name = format_fullname(selected_user.fullname, short=False, gender_emoji=True)
+    user_name = format_fullname(
+        selected_user.fullname,
+        short=False,
+        gender_emoji=True,
+        username=selected_user.username,
+        user_id=selected_user.user_id,
+    )
 
     return {
         "achievements": formatted_achievements,
@@ -599,7 +600,13 @@ async def search_inventory_getter(
             product.max_usages,
         ))
 
-    user_name = format_fullname(selected_user.fullname, short=False, gender_emoji=True)
+    user_name = format_fullname(
+        selected_user.fullname,
+        short=False,
+        gender_emoji=True,
+        username=selected_user.username,
+        user_id=selected_user.user_id,
+    )
 
     return {
         "products": formatted_products,

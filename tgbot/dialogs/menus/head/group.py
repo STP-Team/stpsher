@@ -429,10 +429,10 @@ member_details_window = Window(
 )
 
 member_access_level_window = Window(
-    Format("""🛡️ <b>Уровень доступа</b>
+    Format("""<b>{selected_user_name}</b>
 
-<b>{selected_user_name}</b>
-Текущая роль: {current_role_name}
+🛡️ <b>Уровень доступа</b>
+Текущий уровень: {current_role_name}
 
 Выбери уровень доступа из меню для назначения сотруднику"""),
     Group(

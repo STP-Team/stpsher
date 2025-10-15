@@ -224,7 +224,7 @@ details_window = Window(
                 when="searched_default_user",
             ),
             SwitchTo(
-                Const("👏 Предметы"),
+                Const("🎒 Инвентарь"),
                 id="products",
                 state=Search.details_game_products,
                 when="searched_default_user",
@@ -287,7 +287,7 @@ details_window = Window(
                 when="searched_default_user",
             ),
             SwitchTo(
-                Const("👏 Предметы"),
+                Const("🎒 Инвентарь"),
                 id="products",
                 state=Search.details_game_products,
                 when="searched_default_user",
@@ -326,10 +326,10 @@ details_window = Window(
 
 
 details_access_level_window = Window(
-    Format("""🛡️ <b>Уровень доступа</b>
-
-<b>{selected_user_name}</b>
-Текущая роль: {current_role_name}
+    Format("""<b>{selected_user_name}</b>
+    
+🛡️ <b>Уровень доступа</b>
+Текущий уровень: {current_role_name}
 
 Выбери уровень доступа из меню для назначения сотруднику"""),
     Group(
@@ -454,9 +454,9 @@ details_kpi_salary_window = Window(
 
 
 details_achievements_window = Window(
-    Format("""🎯 <b>Достижения</b>
-
-<b>{user_name}</b>
+    Format("""<b>{user_name}</b>
+    
+🎯 <b>Достижения</b>
 
 История полученных достижений
 <i>Всего получено: {total_achievements}</i>
@@ -513,9 +513,9 @@ details_achievements_window = Window(
 
 
 details_inventory_window = Window(
-    Format("""🎒 <b>Инвентарь</b>
-
-<b>{user_name}</b>
+    Format("""<b>{user_name}</b>
+    
+🎒 <b>Инвентарь</b>
 
 Здесь можно увидеть все покупки сотрудника, их статус
 
