@@ -89,11 +89,12 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         # Для обычных сообщений ничего не отправляем, просто запускаем диалог
         pass
 
-    # Запускаем соответствующее меню
+    # Запускаем соответствующее меню с данными из middleware
     await dialog_manager.start(
         menu_state,
         mode=StartMode.RESET_STACK,
         show_mode=ShowMode.SEND,
+        data=dialog_manager.middleware_data,
     )
 
 
