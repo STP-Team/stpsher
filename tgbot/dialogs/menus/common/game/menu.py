@@ -73,7 +73,7 @@ game_window = Window(
         SwitchTo(
             Const("🎒 Инвентарь"), id="inventory", state=Game.inventory, when="is_user"
         ),
-        SwitchTo(Const("🎲 Казино"), id="casino", state=Game.casino, when="is_user"),
+        SwitchTo(Const("🎲 Казино"), id="casino", state=Game.casino, when="is_casino_allowed"),
     ),
     SwitchTo(
         Const("🎯 Достижения"),

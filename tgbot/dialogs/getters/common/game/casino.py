@@ -25,7 +25,10 @@ async def balance_getter(stp_repo: MainRequestsRepo, user: Employee, **_kwargs) 
         Словарь с балансом пользователя
     """
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
-    return {"balance": user_balance}
+    return {
+        "balance": user_balance,
+        "is_casino_allowed": user.is_casino_allowed,
+    }
 
 
 async def casino_game_getter(
@@ -76,17 +79,20 @@ async def casino_game_getter(
         "show_plus_50": show_plus_50,
         "show_plus_100": show_plus_100,
         "show_plus_500": show_plus_500,
+        "is_casino_allowed": user.is_casino_allowed,
     }
 
 
 async def casino_waiting_getter(
     dialog_manager: DialogManager,
+    user: Employee,
     **_kwargs,
 ) -> Dict:
     """Геттер для окна ожидания результата игры.
 
     Args:
         dialog_manager: Менеджер диалога
+        user: Экземпляр пользователя с моделью Employee
 
     Returns:
         Словарь с иконкой игры и ставкой
@@ -97,6 +103,7 @@ async def casino_waiting_getter(
     return {
         "game_icon": GAME_ICONS.get(game_type, "🎰"),
         "current_rate": current_rate,
+        "is_casino_allowed": user.is_casino_allowed,
     }
 
 
@@ -145,4 +152,5 @@ async def casino_result_getter(
         "win_amount": win_amount,
         "win_message": win_message,
         "balance": balance_display,
+        "is_casino_allowed": user.is_casino_allowed,
     }
