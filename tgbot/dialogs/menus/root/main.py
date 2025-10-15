@@ -10,11 +10,10 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.root import RootSG
 
 menu_window = Window(
-    Format("""👋 Привет, <b>{user.fullname}</b>!
+    Format("""👋 <b>Привет</b>!
 
 Я - бот-помощник СТП
 
@@ -43,8 +42,4 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     pass
 
 
-root_dialog = Dialog(
-    menu_window,
-    on_start=on_start,
-    getter=db_getter,
-)
+root_dialog = Dialog(menu_window, on_start=on_start)

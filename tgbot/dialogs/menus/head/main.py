@@ -13,14 +13,13 @@ from tgbot.dialogs.events.common.kpi import start_kpi_dialog
 from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.events.heads.group import start_group_dialog
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.head import HeadSG
 
 logger = logging.getLogger(__name__)
 
 
 menu_window = Window(
-    Format("""👋 Привет, <b>{user.fullname}</b>!
+    Format("""👋 <b>Привет</b>!
 
 Я - бот-помощник СТП
 
@@ -52,8 +51,4 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     pass
 
 
-head_dialog = Dialog(
-    menu_window,
-    on_start=on_start,
-    getter=db_getter,
-)
+head_dialog = Dialog(menu_window, on_start=on_start)

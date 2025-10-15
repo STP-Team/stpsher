@@ -9,11 +9,10 @@ from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.mip import MipSG
 
 menu_window = Window(
-    Format("""👋 Привет, <b>{user.fullname}</b>!
+    Format("""👋 <b>Привет</b>!
 
 Я - бот-помощник СТП
 
@@ -44,7 +43,4 @@ async def on_start(_on_start, _dialog_manager: DialogManager, **_kwargs):
     pass
 
 
-mip_dialog = Dialog(
-    menu_window,
-    getter=db_getter,
-)
+mip_dialog = Dialog(menu_window)
