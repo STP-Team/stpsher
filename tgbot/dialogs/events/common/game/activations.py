@@ -2,9 +2,10 @@
 
 import logging
 
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
+from aiogram_dialog.widgets.input import ManagedTextInput
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
@@ -80,6 +81,7 @@ async def on_activation_click(
             "user_head": head_info,
             "user_username": purchase_user.username if purchase_user else None,
             "user_id": purchase_user.user_id if purchase_user else purchase.user_id,
+            "user_comment": purchase.user_comment,
         }
 
         # Переходим к детальному просмотру
@@ -94,56 +96,123 @@ async def on_activation_click(
         )
 
 
-async def on_approve_activation(
-    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager
+async def on_activation_approve_comment_input(
+    message: Message,
+    _widget: ManagedTextInput,
+    dialog_manager: DialogManager,
+    comment: str,
 ) -> None:
-    """Обработчик подтверждения активации предмета.
+    """Обработчик ввода комментария менеджера при одобрении активации.
 
     Args:
-        callback: Callback query от Telegram
+        message: Message от Telegram
         _widget: Данные виджета
-        dialog_manager: Менеджер диалогов
+        dialog_manager: Менеджер диалога
+        comment: Текст комментария от менеджера
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
     activation_info = dialog_manager.dialog_data["selected_activation"]
 
     try:
-        # Подтверждаем активацию
+        # Подтверждаем активацию с комментарием
         await stp_repo.purchase.approve_purchase_usage(
             purchase_id=activation_info["purchase_id"],
-            updated_by_user_id=callback.from_user.id,
+            updated_by_user_id=user.user_id,
         )
 
-        await callback.answer(
-            f"✅ Предмет '{activation_info['product_name']}' активирован!\n\nСпециалист {activation_info['fullname']} был уведомлен об изменении статуса",
-            show_alert=True,
+        # Обновляем комментарий менеджера
+        await stp_repo.purchase.update_purchase(
+            purchase_id=activation_info["purchase_id"],
+            manager_comment=comment,
+        )
+
+        await message.answer(
+            f"✅ Предмет '{activation_info['product_name']}' активирован с комментарием!\n\nСпециалист {activation_info['fullname']} был уведомлен"
         )
 
         # Уведомляем пользователя
-        if activation_info["usage_count"] >= activation_info["product_count"]:
-            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {
-                activation_info["product_name"]
-            }
+        if activation_info["usage_count"] + 1 >= activation_info["product_count"]:
+            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
 
-Менеджер {
-                format_fullname(user.fullname, True, True, user.username, user.user_id)
-            } подтвердил активацию предмета
+Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+
+💬 <b>Комментарий менеджера:</b>
+<blockquote>{comment}</blockquote>
 
 У <b>{activation_info["product_name"]}</b> не осталось использований
 
 <i>Купить его повторно можно в <b>💎 Магазине</b></i>"""
         else:
-            remaining_uses = (
-                activation_info["product_count"] - activation_info["usage_count"]
+            remaining_uses = activation_info["product_count"] - (
+                activation_info["usage_count"] + 1
             )
-            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {
-                activation_info["product_name"]
-            }
+            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
 
-Менеджер {
-                format_fullname(user.fullname, True, True, user.username, user.user_id)
-            } подтвердил активацию предмета
+Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+
+💬 <b>Комментарий менеджера:</b>
+<blockquote>{comment}</blockquote>
+
+📍 Осталось активаций: {remaining_uses} из {activation_info["product_count"]}"""
+
+        await message.bot.send_message(
+            chat_id=activation_info["user_id"],
+            text=employee_notify_message,
+        )
+
+        # Возвращаемся к списку активаций
+        await dialog_manager.switch_to(Game.activations)
+
+    except Exception as e:
+        logger.error(
+            f"[Активация предметов] Ошибка при подтверждении активации предмета: {e}"
+        )
+        await message.answer("❌ Ошибка при подтверждении активации")
+
+
+async def on_skip_approve_comment(
+    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Обработчик пропуска комментария при одобрении активации.
+
+    Args:
+        callback: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user: Employee = dialog_manager.middleware_data["user"]
+    activation_info = dialog_manager.dialog_data["selected_activation"]
+
+    try:
+        # Подтверждаем активацию без комментария
+        await stp_repo.purchase.approve_purchase_usage(
+            purchase_id=activation_info["purchase_id"],
+            updated_by_user_id=user.user_id,
+        )
+
+        await callback.answer(
+            f"✅ Предмет '{activation_info['product_name']}' активирован!\n\nСпециалист {activation_info['fullname']} был уведомлен",
+            show_alert=True,
+        )
+
+        # Уведомляем пользователя
+        if activation_info["usage_count"] + 1 >= activation_info["product_count"]:
+            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
+
+Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+
+У <b>{activation_info["product_name"]}</b> не осталось использований
+
+<i>Купить его повторно можно в <b>💎 Магазине</b></i>"""
+        else:
+            remaining_uses = activation_info["product_count"] - (
+                activation_info["usage_count"] + 1
+            )
+            employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
+
+Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
 
 📍 Осталось активаций: {remaining_uses} из {activation_info["product_count"]}"""
 
@@ -162,10 +231,68 @@ async def on_approve_activation(
         await callback.answer("❌ Ошибка при подтверждении активации", show_alert=True)
 
 
-async def on_reject_activation(
-    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager
+async def on_activation_reject_comment_input(
+    message: Message,
+    _widget: ManagedTextInput,
+    dialog_manager: DialogManager,
+    comment: str,
 ) -> None:
-    """Обработчик отмены активации предмета.
+    """Обработчик ввода комментария менеджера при отклонении активации.
+
+    Args:
+        message: Message от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        comment: Текст комментария от менеджера
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user: Employee = dialog_manager.middleware_data["user"]
+    activation_info = dialog_manager.dialog_data["selected_activation"]
+
+    try:
+        # Отклоняем активацию с комментарием
+        await stp_repo.purchase.reject_purchase_usage(
+            purchase_id=activation_info["purchase_id"],
+            updated_by_user_id=user.user_id,
+        )
+
+        # Обновляем комментарий менеджера
+        await stp_repo.purchase.update_purchase(
+            purchase_id=activation_info["purchase_id"],
+            manager_comment=comment,
+        )
+
+        await message.answer(
+            f"❌ Активация предмета '{activation_info['product_name']}' отклонена с комментарием\n\nСпециалист {activation_info['fullname']} был уведомлен"
+        )
+
+        # Уведомляем пользователя
+        employee_notify_message = f"""<b>Активация отменена:</b> {activation_info["product_name"]}
+
+Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} отменил активацию <b>{activation_info["product_name"]}</b>
+
+💬 <b>Комментарий менеджера:</b>
+<blockquote>{comment}</blockquote>
+
+<i>Использование предмета не будет засчитано</i>"""
+
+        await message.bot.send_message(
+            chat_id=activation_info["user_id"],
+            text=employee_notify_message,
+        )
+
+        # Возвращаемся к списку активаций
+        await dialog_manager.switch_to(Game.activations)
+
+    except Exception as e:
+        logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
+        await message.answer("❌ Ошибка при отклонении активации")
+
+
+async def on_skip_reject_comment(
+    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Обработчик пропуска комментария при отклонении активации.
 
     Args:
         callback: Callback query от Telegram
@@ -177,25 +304,21 @@ async def on_reject_activation(
     activation_info = dialog_manager.dialog_data["selected_activation"]
 
     try:
-        # Отклоняем активацию
+        # Отклоняем активацию без комментария
         await stp_repo.purchase.reject_purchase_usage(
             purchase_id=activation_info["purchase_id"],
-            updated_by_user_id=callback.from_user.id,
+            updated_by_user_id=user.user_id,
         )
 
         await callback.answer(
-            f"❌ Активация предмета '{activation_info['product_name']}' отклонена\n\nСпециалист {activation_info['fullname']} был уведомлен об изменении статуса",
+            f"❌ Активация предмета '{activation_info['product_name']}' отклонена\n\nСпециалист {activation_info['fullname']} был уведомлен",
             show_alert=True,
         )
 
         # Уведомляем пользователя
-        employee_notify_message = f"""<b>Активация отменена:</b> {
-            activation_info["product_name"]
-        }
+        employee_notify_message = f"""<b>Активация отменена:</b> {activation_info["product_name"]}
 
-Менеджер {
-            format_fullname(user.fullname, True, True, user.username, user.user_id)
-        } отменил активацию <b>{activation_info["product_name"]}</b>
+Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} отменил активацию <b>{activation_info["product_name"]}</b>
 
 <i>Использование предмета не будет засчитано</i>"""
 

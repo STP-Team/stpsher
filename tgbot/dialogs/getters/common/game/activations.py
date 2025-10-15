@@ -84,6 +84,15 @@ async def activation_detail_getter(dialog_manager: DialogManager, **_kwargs):
             "next_usage_count": next_usage_count,
         }
 
+    # Формируем текст комментария пользователя
+    user_comment_text = ""
+    if selected_activation.get("user_comment"):
+        user_comment_text = f"""
+
+💬 <b>Комментарий специалиста:</b>
+<blockquote>{selected_activation["user_comment"]}</blockquote>"""
+
     return {
         "selected_activation": selected_activation,
+        "user_comment_text": user_comment_text,
     }

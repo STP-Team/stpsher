@@ -1,6 +1,7 @@
 """Генерация общих функций для просмотра списка активаций предметов."""
 
 from aiogram_dialog.widgets.common import sync_scroll
+from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Row,
@@ -12,9 +13,11 @@ from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.game.activations import (
+    on_activation_approve_comment_input,
     on_activation_click,
-    on_approve_activation,
-    on_reject_activation,
+    on_activation_reject_comment_input,
+    on_skip_approve_comment,
+    on_skip_reject_comment,
 )
 from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.getters.common.game.activations import (
@@ -85,10 +88,14 @@ activation_details_window = Window(
 {selected_activation[user_head]}</blockquote>
 
 <b>📅 Дата покупки</b>
-{selected_activation[bought_at]}"""),
+{selected_activation[bought_at]}{user_comment_text}"""),
     Row(
-        Button(Const("✅ Одобрить"), id="approve", on_click=on_approve_activation),
-        Button(Const("❌ Отклонить"), id="reject", on_click=on_reject_activation),
+        SwitchTo(
+            Const("✅ Одобрить"), id="approve", state=Game.activation_reject_comment
+        ),
+        SwitchTo(
+            Const("❌ Отклонить"), id="reject", state=Game.activation_reject_comment
+        ),
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Game.activations),
@@ -96,6 +103,60 @@ activation_details_window = Window(
     ),
     getter=activation_detail_getter,
     state=Game.activation_details,
+)
+
+activation_approve_comment_window = Window(
+    Format("""<b>💬 Комментарий при одобрении</b>
+
+<b>📦 Предмет:</b> {selected_activation[product_name]}
+<b>👤 Специалист:</b> {selected_activation[fullname]}
+
+Ты можешь добавить комментарий к активации
+Специалист получит уведомление с комментарием
+
+Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+    TextInput(
+        id="approve_comment_input",
+        on_success=on_activation_approve_comment_input,
+    ),
+    Button(
+        Const("⏩ Пропустить"),
+        id="skip_approve_comment",
+        on_click=on_skip_approve_comment,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.activation_details),
+        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+    ),
+    getter=activation_detail_getter,
+    state=Game.activation_approve_comment,
+)
+
+activation_reject_comment_window = Window(
+    Format("""<b>💬 Комментарий при отклонении</b>
+
+<b>📦 Предмет:</b> {selected_activation[product_name]}
+<b>👤 Специалист:</b> {selected_activation[fullname]}
+
+Ты можешь добавить комментарий к активации
+Специалист получит уведомление с комментарием
+
+Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+    TextInput(
+        id="reject_comment_input",
+        on_success=on_activation_reject_comment_input,
+    ),
+    Button(
+        Const("⏩ Пропустить"),
+        id="skip_reject_comment",
+        on_click=on_skip_reject_comment,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.activation_details),
+        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+    ),
+    getter=activation_detail_getter,
+    state=Game.activation_reject_comment,
 )
 
 no_activations_window = Window(
