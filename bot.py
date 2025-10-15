@@ -3,6 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiogram.types import (
@@ -10,12 +11,21 @@ from aiogram.types import (
     BotCommandScopeAllChatAdministrators,
     BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
+    ErrorEvent,
 )
-from aiogram_dialog import setup_dialogs
-from stp_database import create_engine, create_session_pool
+from aiogram_dialog import DialogManager, StartMode, setup_dialogs
+from aiogram_dialog.api.entities import ShowMode
+from aiogram_dialog.api.exceptions import UnknownIntent
+from stp_database import Employee, create_engine, create_session_pool
 
 from tgbot.config import Config, load_config
 from tgbot.dialogs.menus import common_dialogs_list, dialogs_list
+from tgbot.dialogs.states.admin import AdminSG
+from tgbot.dialogs.states.gok import GokSG
+from tgbot.dialogs.states.heads.head import HeadSG
+from tgbot.dialogs.states.mip import MipSG
+from tgbot.dialogs.states.root import RootSG
+from tgbot.dialogs.states.user import UserSG
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
@@ -32,6 +42,68 @@ logger = logging.getLogger(__name__)
 async def on_startup():
     """Функция, активируемая при запуске основного процесса бота."""
     pass
+
+
+async def _unknown_intent(error: ErrorEvent):
+    """Обработчик ошибки UnknownIntent - возвращает пользователя в главное меню.
+
+    Args:
+        error: Событие ошибки с информацией об исключении и обновлении
+    """
+    logger.exception(
+        "Cause unexpected exception %s, by processing %s",
+        error.exception.__class__.__name__,
+        error.update.model_dump(exclude_none=True),
+        exc_info=error.exception,
+    )
+
+    # Попытка вернуть пользователя в главное меню
+    if error.update.callback_query:
+        try:
+            # Получаем данные из middleware (aiogram передает их в event_context)
+            # ErrorEvent содержит поле data с middleware данными
+            dialog_manager: DialogManager | None = error.data.get("dialog_manager")
+            user: Employee | None = error.data.get("user")
+
+            if not dialog_manager:
+                logger.error("DialogManager not found in error.data")
+                return
+
+            # Определяем роль пользователя и запускаем соответствующее меню
+            if user and hasattr(user, "role") and user.role:
+                role = user.role
+
+                # Маппинг ролей на состояния главного меню
+                role_menu_mapping = {
+                    "root": RootSG.menu,
+                    "admin": AdminSG.menu,
+                    "head": HeadSG.menu,
+                    "gok": GokSG.menu,
+                    "mip": MipSG.menu,
+                    "user": UserSG.menu,
+                }
+
+                menu_state = role_menu_mapping.get(role, UserSG.menu)
+
+                await dialog_manager.start(
+                    menu_state,
+                    mode=StartMode.RESET_STACK,
+                    show_mode=ShowMode.SEND,
+                )
+                logger.info(f"User {user.user_id} returned to main menu (role: {role})")
+            else:
+                # Если роль не определена, отправляем в меню по умолчанию
+                await dialog_manager.start(
+                    UserSG.menu,
+                    mode=StartMode.RESET_STACK,
+                    show_mode=ShowMode.SEND,
+                )
+                logger.info("User returned to default menu (UserSG.menu)")
+
+        except Exception as e:
+            logger.error(
+                f"Failed to restart dialog after UnknownIntent: {e}", exc_info=True
+            )
 
 
 def register_middlewares(
@@ -170,6 +242,9 @@ async def main() -> None:
     setup_dialogs(dp)
 
     register_middlewares(dp, bot_config, bot, main_db, kpi_db)
+
+    # Регистрация обработчиков ошибок
+    dp.errors.register(_unknown_intent, ExceptionTypeFilter(UnknownIntent))
 
     # Запуск планировщика и добавление задач
     scheduler_manager = SchedulerManager()
