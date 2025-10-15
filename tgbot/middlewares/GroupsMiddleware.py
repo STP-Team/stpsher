@@ -113,7 +113,7 @@ class GroupsMiddleware(BaseMiddleware):
 
         try:
             # Проверяем, есть ли группа в таблице groups
-            group = await stp_repo.group.get_group(group_id)
+            group = await stp_repo.group.get_groups(group_id)
             if not group:
                 return
 
@@ -207,7 +207,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return
 
             # Проверяем, что группа зарегистрирована в системе
-            group = await stp_repo.group.get_group(group_id)
+            group = await stp_repo.group.get_groups(group_id)
             if not group:
                 logger.debug(
                     f"[Группы] Группа {group_id} не зарегистрирована в системе"
@@ -661,7 +661,7 @@ class GroupsMiddleware(BaseMiddleware):
             group_id = event.chat.id
 
             # Получаем настройки группы
-            group = await stp_repo.group.get_group(group_id)
+            group = await stp_repo.group.get_groups(group_id)
             if not group:
                 return False
 
@@ -786,7 +786,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return False
 
             # Проверяем, зарегистрирована ли группа
-            group = await stp_repo.group.get_group(group_id)
+            group = await stp_repo.group.get_groups(group_id)
             if group:
                 return False  # Группа уже зарегистрирована, не обрабатываем
 

@@ -27,7 +27,7 @@ async def bot_got_direct_admin_rights(
         admin_granted_groups.add(event.chat.id)
 
         # Add group to database
-        existing_group = await stp_repo.group.get_group(event.chat.id)
+        existing_group = await stp_repo.group.get_groups(event.chat.id)
         if not existing_group:
             group = await stp_repo.group.add_group(
                 group_id=event.chat.id, invited_by=event.from_user.id
@@ -104,7 +104,7 @@ async def bot_got_manual_admin_rights(
             del recent_bot_additions[event.chat.id]
 
         # Add group to database if not exists
-        existing_group = await stp_repo.group.get_group(event.chat.id)
+        existing_group = await stp_repo.group.get_groups(event.chat.id)
         if not existing_group:
             group = await stp_repo.group.add_group(
                 group_id=event.chat.id, invited_by=event.from_user.id

@@ -323,7 +323,7 @@ async def remove_fired_users_from_groups(
                     groups_banned_from = 0
 
                     for group_membership in user_groups:
-                        group = await stp_repo.group.get_group(
+                        group = await stp_repo.group.get_groups(
                             group_membership.group_id
                         )
 
