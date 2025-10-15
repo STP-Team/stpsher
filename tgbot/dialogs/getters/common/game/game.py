@@ -31,6 +31,6 @@ async def game_getter(
         "purchases_sum": purchases_sum,
         "level_info": level_info,
         "is_user": user.role in [1, 3],
+        "is_casino_allowed": user.is_casino_allowed and user.role in [1, 3],
         "activations_access": user.role in [2, 3, 5, 6],
-        "is_casino_allowed": user.is_casino_allowed,
     }
