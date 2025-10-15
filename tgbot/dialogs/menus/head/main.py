@@ -14,7 +14,7 @@ from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.events.heads.group import start_group_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.states.heads.head import HeadSG
+from tgbot.dialogs.states.head import HeadSG
 
 logger = logging.getLogger(__name__)
 

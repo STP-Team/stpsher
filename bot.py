@@ -23,7 +23,7 @@ from tgbot.config import Config, load_config
 from tgbot.dialogs.menus import common_dialogs_list, dialogs_list
 from tgbot.dialogs.states.admin import AdminSG
 from tgbot.dialogs.states.gok import GokSG
-from tgbot.dialogs.states.heads.head import HeadSG
+from tgbot.dialogs.states.head import HeadSG
 from tgbot.dialogs.states.mip import MipSG
 from tgbot.dialogs.states.root import RootSG
 from tgbot.dialogs.states.user import UserSG
