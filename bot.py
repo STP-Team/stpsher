@@ -13,8 +13,10 @@ from aiogram.types import (
     BotCommandScopeAllPrivateChats,
     ErrorEvent,
 )
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram_dialog import DialogManager, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import OutdatedIntent, UnknownIntent, UnknownState
+from aiohttp import web
 from stp_database import Employee, create_engine, create_session_pool
 
 from tgbot.config import Config, load_config
@@ -209,6 +211,42 @@ def get_storage(config) -> RedisStorage | MemoryStorage:
         return MemoryStorage()
 
 
+async def on_startup_webhook(bot: Bot, config: Config) -> None:
+    """Настройка webhook при запуске бота.
+
+    Args:
+        bot: Экземпляр бота
+        config: Конфигурация приложения
+    """
+    webhook_url = f"https://{config.tg_bot.webhook_domain}{config.tg_bot.webhook_path}"
+    logger.info(f"Setting webhook to: {webhook_url}")
+
+    await bot.set_webhook(
+        url=webhook_url,
+        allowed_updates=[
+            "message",
+            "callback_query",
+            "inline_query",
+            "my_chat_member",
+            "chat_member",
+        ],
+        drop_pending_updates=True,
+        secret_token=config.tg_bot.webhook_secret,
+    )
+    logger.info("Webhook has been set successfully")
+
+
+async def on_shutdown_webhook(bot: Bot) -> None:
+    """Удаление webhook при остановке бота.
+
+    Args:
+        bot: Экземпляр бота
+    """
+    logger.info("Deleting webhook...")
+    await bot.delete_webhook()
+    logger.info("Webhook deleted")
+
+
 async def main() -> None:
     """Основная функция запуска бота."""
     setup_logging()
@@ -266,18 +304,56 @@ async def main() -> None:
     scheduler_manager.start()
 
     await on_startup()
+
     try:
-        await dp.start_polling(
-            bot,
-            allowed_updates=[
-                "message",
-                "callback_query",
-                "inline_query",
-                "my_chat_member",
-                "chat_member",
-            ],
-        )
+        if bot_config.tg_bot.use_webhook:
+            # Webhook mode
+            logger.info("Starting bot in WEBHOOK mode")
+            await on_startup_webhook(bot, bot_config)
+
+            # Создаем aiohttp приложение
+            app = web.Application()
+
+            # Создаем обработчик webhook
+            webhook_handler = SimpleRequestHandler(
+                dispatcher=dp,
+                bot=bot,
+                secret_token=bot_config.tg_bot.webhook_secret,
+            )
+            webhook_handler.register(app, path=bot_config.tg_bot.webhook_path)
+            setup_application(app, dp, bot=bot)
+
+            # Запускаем веб-сервер
+            runner = web.AppRunner(app)
+            await runner.setup()
+            site = web.TCPSite(
+                runner, host="0.0.0.0", port=bot_config.tg_bot.webhook_port
+            )
+            await site.start()
+
+            logger.info(
+                f"Webhook server started on port {bot_config.tg_bot.webhook_port}"
+            )
+
+            # Держим сервер запущенным
+            await asyncio.Event().wait()
+
+        else:
+            # Polling mode
+            logger.info("Starting bot in POLLING mode")
+            await dp.start_polling(
+                bot,
+                allowed_updates=[
+                    "message",
+                    "callback_query",
+                    "inline_query",
+                    "my_chat_member",
+                    "chat_member",
+                ],
+            )
     finally:
+        if bot_config.tg_bot.use_webhook:
+            await on_shutdown_webhook(bot)
         await main_db_engine.dispose()
 
 
