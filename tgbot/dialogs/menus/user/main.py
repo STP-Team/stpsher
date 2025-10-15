@@ -12,7 +12,6 @@ from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.kpi import start_kpi_dialog
 from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
-from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.user import UserSG
 
 menu_window = Window(

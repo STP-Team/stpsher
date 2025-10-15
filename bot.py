@@ -15,7 +15,7 @@ from aiogram.types import (
     ErrorEvent,
 )
 from aiogram_dialog import DialogManager, StartMode, setup_dialogs
-from aiogram_dialog.api.exceptions import UnknownIntent
+from aiogram_dialog.api.exceptions import OutdatedIntent, UnknownIntent, UnknownState
 from stp_database import Employee, create_engine, create_session_pool
 
 from tgbot.config import Config, load_config
@@ -232,7 +232,7 @@ async def main() -> None:
     main_db = create_session_pool(main_db_engine)
     kpi_db = create_session_pool(kpi_db_engine)
 
-    # Храним сессии в диспетчере
+    # Храним сессии в диспетчере для доступа из error handlers
     dp["main_db"] = main_db
     dp["kpi_db"] = kpi_db
 
@@ -245,6 +245,8 @@ async def main() -> None:
 
     # Регистрация обработчиков ошибок
     dp.errors.register(_unknown_intent, ExceptionTypeFilter(UnknownIntent))
+    dp.errors.register(_unknown_intent, ExceptionTypeFilter(OutdatedIntent))
+    dp.errors.register(_unknown_intent, ExceptionTypeFilter(UnknownState))
 
     # Запуск планировщика и добавление задач
     scheduler_manager = SchedulerManager()

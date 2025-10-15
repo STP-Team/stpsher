@@ -51,7 +51,4 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     pass
 
 
-head_dialog = Dialog(
-    menu_window,
-    on_start=on_start,
-)
+head_dialog = Dialog(menu_window, on_start=on_start)

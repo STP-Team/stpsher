@@ -37,7 +37,4 @@ async def on_start(_on_start, _dialog_manager: DialogManager, **_kwargs):
     pass
 
 
-gok_dialog = Dialog(
-    menu_window,
-    on_start=on_start,
-)
+gok_dialog = Dialog(menu_window, on_start=on_start)

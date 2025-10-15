@@ -49,6 +49,9 @@ class DatabaseMiddleware(BaseMiddleware):
                     data["user"] = await stp_repo.employee.get_users(
                         user_id=event.from_user.id
                     )
+                    # Добавляем пулы сессий для доступа в error handlers
+                    data["main_db"] = self.stp_session_pool
+                    data["kpi_db"] = self.kpi_session_pool
 
                     async with self.kpi_session_pool() as kpi_session:
                         kpi_repo = KPIRequestsRepo(kpi_session)

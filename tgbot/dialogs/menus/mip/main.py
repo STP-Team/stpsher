@@ -43,6 +43,4 @@ async def on_start(_on_start, _dialog_manager: DialogManager, **_kwargs):
     pass
 
 
-mip_dialog = Dialog(
-    menu_window,
-)
+mip_dialog = Dialog(menu_window)
