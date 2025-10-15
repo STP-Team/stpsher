@@ -1,6 +1,7 @@
 """Обработчики операций с инвентарем сотрудников."""
 
 import logging
+from datetime import datetime
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
@@ -8,6 +9,7 @@ from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
+from tgbot.misc.helpers import tz
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +50,12 @@ async def on_inventory_product_click(
 
     dialog_manager.dialog_data["selected_inventory_product"] = {
         "user_product_id": user_product.id,
+        "product_id": product_info.id,
         "product_name": product_info.name,
         "product_description": product_info.description,
         "product_cost": product_info.cost,
         "product_count": product_info.count,
+        "activate_days": product_info.activate_days,
         "status": user_product.status,
         "usage_count": user_product.usage_count,
         "current_usages": user_product_detail.current_usages,
@@ -89,14 +93,29 @@ async def use_product(
         product_info = dialog_manager.dialog_data["selected_product"]
         user_product_id = new_purchase["id"]
         product_name = product_info["name"]
+        activate_days = product_info.get("activate_days")
     else:
         # Используем данные предмета из инвентаря
         product_info = dialog_manager.dialog_data["selected_inventory_product"]
         user_product_id = product_info["user_product_id"]
         product_name = product_info["product_name"]
+        activate_days = product_info.get("activate_days")
 
     try:
-        # TODO Добавить проверку на ограничения дня активации предмета
+        # Проверяем ограничения дня активации предмета
+        if activate_days is not None and len(activate_days) > 0:
+            current_day = datetime.now(tz).day
+
+            if current_day not in activate_days:
+                # Форматируем список доступных дней
+                days_str = ", ".join(str(day) for day in sorted(activate_days))
+                await callback.answer(
+                    f"❌ Предмет '{product_name}' нельзя активировать сегодня.\n"
+                    f"Доступные дни месяца: {days_str}",
+                    show_alert=True,
+                )
+                return
+
         success = await stp_repo.purchase.use_purchase(user_product_id)
 
         if success:
