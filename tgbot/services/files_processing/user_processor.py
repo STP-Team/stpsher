@@ -49,33 +49,6 @@ async def _update_existing_user(db_user: Employee, excel_user: Dict[str, str]) -
     return True if updated else False
 
 
-async def _add_new_user(session, division: str, excel_user: Dict[str, str]) -> None:
-    """Добавляет пользователя в БД.
-
-    Args:
-        session: Сессия БД
-        division: Направление сотрудника
-        excel_user: Данные сотрудника из Excel файла
-    """
-    is_in_transfer_section = excel_user.get("is_in_transfer_section", False)
-    if is_in_transfer_section:
-        logger.info(
-            f"[Изменения] Пропуск добавления нового пользователя {excel_user['fullname']} (в секции переводов)"
-        )
-        return
-
-    new_user = Employee(
-        division=division,
-        position=excel_user["position"],
-        fullname=excel_user["fullname"],
-        head=excel_user["head"],
-        role=0,
-        is_casino_allowed=True,
-    )
-    session.add(new_user)
-    logger.info(f"[Изменения] Добавлен новый пользователь: {excel_user['fullname']}")
-
-
 def extract_division_from_filename(filename: str) -> str:
     """Достает направление из названия файла.
 
@@ -386,8 +359,15 @@ async def process_user_changes(session_pool, file_name: str):
                             "is_in_transfer_section", False
                         )
                         if not is_in_transfer_section:
-                            await _add_new_user(session, division, excel_user)
-                            new_names.append(fullname)
+                            new_user = await user_repo.add_user(
+                                division=division,
+                                position=excel_user["position"],
+                                fullname=excel_user["fullname"],
+                                head=excel_user["head"],
+                                role=0,
+                            )
+                            if new_user:
+                                new_names.append(fullname)
                         else:
                             logger.info(
                                 f"[Изменения] Пропуск добавления {fullname} (в секции переводов)"
