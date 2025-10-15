@@ -54,8 +54,35 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
     """
     logger.warning("Restarting dialog: %s", error.exception)
 
-    # Получаем пользователя из middleware данных dialog_manager
+    # Получаем данные из middleware
     user: Employee | None = dialog_manager.middleware_data.get("user")
+    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    kpi_repo = dialog_manager.middleware_data.get("kpi_repo")
+
+    # Проверяем, что у нас есть необходимые данные для работы
+    if not all([user, stp_repo, kpi_repo]):
+        logger.error(
+            f"Missing middleware data in UnknownIntent handler. "
+            f"user={user is not None}, stp_repo={stp_repo is not None}, "
+            f"kpi_repo={kpi_repo is not None}"
+        )
+        # Если нет данных, отправляем пользователю сообщение и не пытаемся запустить диалог
+        if error.update.callback_query:
+            try:
+                await error.update.callback_query.answer(
+                    "⚠️ Произошла ошибка. Пожалуйста, используй /start для перезапуска бота.",
+                    show_alert=True,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
+        elif error.update.message:
+            try:
+                await error.update.message.answer(
+                    "⚠️ Произошла ошибка. Пожалуйста, используйте /start для перезапуска бота."
+                )
+            except Exception as e:
+                logger.error(f"Failed to send error message: {e}")
+        return
 
     # Определяем роль пользователя и запускаем соответствующее меню
     if user and hasattr(user, "role") and user.role:
@@ -90,11 +117,16 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         pass
 
     # Запускаем соответствующее меню
-    # Middleware данные автоматически передаются в новый dialog_manager
+    # Передаем middleware данные явно в новый dialog_manager
     await dialog_manager.start(
         menu_state,
         mode=StartMode.RESET_STACK,
         show_mode=ShowMode.SEND,
+        data={
+            "user": user,
+            "stp_repo": stp_repo,
+            "kpi_repo": kpi_repo,
+        },
     )
 
 
