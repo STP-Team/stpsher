@@ -314,7 +314,9 @@ class FileProcessor:
             return None
 
         try:
-            from tgbot.services.schedule.studies_parser import StudiesScheduleParser
+            from tgbot.services.files_processing.studies_parser import (
+                StudiesScheduleParser,
+            )
 
             parser = StudiesScheduleParser()
             sessions = parser.parse_studies_file(file_path)

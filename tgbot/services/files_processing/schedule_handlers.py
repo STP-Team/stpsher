@@ -2,19 +2,19 @@ import datetime
 import logging
 from typing import Optional
 
-import pytz
 from aiogram.types import CallbackQuery
 from stp_database import Employee
 
 from tgbot.keyboards.auth import auth_kb
 from tgbot.misc.dicts import russian_months
-from tgbot.services.schedule.exceptions import (
+from tgbot.misc.helpers import tz
+from tgbot.services.files_processing.exceptions import (
     ScheduleError,
     ScheduleFileNotFoundError,
     UserNotFoundError,
 )
-from tgbot.services.schedule.formatters import ScheduleFormatter
-from tgbot.services.schedule.parsers import (
+from tgbot.services.files_processing.formatters import ScheduleFormatter
+from tgbot.services.files_processing.parsers import (
     DutyScheduleParser,
     GroupScheduleParser,
     HeadScheduleParser,
@@ -33,7 +33,6 @@ class ScheduleHandlerService:
         self.head_parser = HeadScheduleParser()
         self.group_parser = GroupScheduleParser()
         self.formatter = ScheduleFormatter()
-        self.yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
 
     @staticmethod
     async def check_user_auth(callback: CallbackQuery, user: Employee) -> bool:
@@ -83,8 +82,7 @@ class ScheduleHandlerService:
     @staticmethod
     def get_current_date():
         """Получает текущую дату по Екатеринбургу"""
-        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
-        return datetime.datetime.now(yekaterinburg_tz)
+        return datetime.datetime.now(tz)
 
     def parse_date_from_callback(self, date_str: str) -> datetime.datetime:
         """Парсит дату из callback data"""
@@ -105,7 +103,7 @@ class ScheduleHandlerService:
                 stp_repo=stp_repo,
             )
         else:
-            # Use regular schedule when no stp_repo (for users viewing their own schedule)
+            # Use regular files_processing when no stp_repo (for users viewing their own files_processing)
             return self.schedule_parser.get_user_schedule_formatted(
                 fullname=user.fullname,
                 month=month,
@@ -146,7 +144,7 @@ class ScheduleHandlerService:
         today = schedule_service.get_current_date()
         highlight_current = (date.date() == today) and stp_repo
 
-        # Get formatted duties schedule with optional current duty highlighting
+        # Get formatted duties files_processing with optional current duty highlighting
         return await self.duty_parser.format_schedule(
             duties, date, highlight_current, division, stp_repo
         )

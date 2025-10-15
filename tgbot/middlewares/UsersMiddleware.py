@@ -7,9 +7,6 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, InlineQuery, Message
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.services.logger import setup_logging
-
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

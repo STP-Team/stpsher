@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.files import Files
-from tgbot.services.schedule.file_processor import (
+from tgbot.services.files_processing.file_processor import (
     FileProcessor,
     FileStatsExtractor,
     FileTypeDetector,
@@ -185,7 +185,7 @@ async def on_document_uploaded(
             if main_db:
                 try:
                     from tgbot.misc.helpers import format_fullname
-                    from tgbot.services.schedule.user_processor import (
+                    from tgbot.services.files_processing.user_processor import (
                         process_fired_users_with_stats,
                         process_user_changes,
                     )
@@ -266,7 +266,7 @@ async def on_document_uploaded(
                 )
                 try:
                     from tgbot.misc.helpers import format_fullname
-                    from tgbot.services.schedule.change_detector import (
+                    from tgbot.services.files_processing.change_detector import (
                         ScheduleChangeDetector,
                     )
 

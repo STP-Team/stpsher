@@ -4,9 +4,9 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def changed_schedule_kb() -> InlineKeyboardMarkup:
-    """Keyboard for schedule change notification.
+    """Keyboard for files_processing change notification.
 
-    :return: InlineKeyboardMarkup with button to view schedule
+    :return: InlineKeyboardMarkup with button to view files_processing
     """
     buttons = [
         [

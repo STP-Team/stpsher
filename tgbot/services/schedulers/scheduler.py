@@ -1,7 +1,8 @@
+"""Сервис отложенных задач."""
+
 import logging
 from typing import Dict
 
-import pytz
 from aiogram import Bot
 from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -9,6 +10,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from tgbot.config import load_config
+from tgbot.misc.helpers import tz
 from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.hr import HRScheduler
 from tgbot.services.schedulers.studies import StudiesScheduler
@@ -18,11 +20,24 @@ logger = logging.getLogger(__name__)
 
 
 class SchedulerManager:
+    """Менеджер планировщика."""
+
     def __init__(self):
+        """Инициализация менеджера планировщика.
+
+        Создает экземпляр AsyncIOScheduler, настраивает его параметры
+        и инициализирует все специализированные планировщики (HR, достижения, обучения).
+
+        Attributes:
+            self.scheduler: Асинхронный планировщик задач APScheduler
+            self.hr: Планировщик задач по HR
+            self.achievements: Планировщик задач по достижениям
+            self.studies: Планировщик задач по обучениям
+        """
         self.scheduler = AsyncIOScheduler()
         self._configure_scheduler()
 
-        # Initialize category schedulers
+        # Инициализация планировщиков
         self.hr = HRScheduler()
         self.achievements = AchievementScheduler()
         self.studies = StudiesScheduler()
@@ -50,18 +65,18 @@ class SchedulerManager:
         self.scheduler.configure(
             jobstores=jobstores,
             job_defaults=job_defaults,
-            timezone=pytz.timezone("Asia/Yekaterinburg"),
+            timezone=tz,
         )
 
-    def setup_jobs(self, session_pool, bot: Bot, kpi_session_pool=None):
-        """Настройка всех запланированных задач
+    def setup_jobs(self, session_pool, bot: Bot, kpi_session_pool) -> None:
+        """Настройка всех запланированных задач.
 
         Args:
             session_pool: Пул сессий основной БД
             bot: Экземпляр бота
-            kpi_session_pool: Пул сессий KPI БД (опционально)
+            kpi_session_pool: Пул сессий KPI БД
         """
-        logger.info("[Scheduler] Настройка запланированных задач...")
+        logger.info("[Планировщик] Настройка запланированных задач...")
 
         # HR задачи
         self.hr.setup_jobs(self.scheduler, session_pool, bot)
@@ -74,16 +89,16 @@ class SchedulerManager:
         # Задачи обучений
         self.studies.setup_jobs(self.scheduler, session_pool, bot)
 
-        logger.info("[Scheduler] Все задачи настроены")
+        logger.info("[Планировщик] Все задачи настроены")
 
     def start(self):
-        """Запуск планировщика"""
+        """Запуск планировщика."""
         if not self.scheduler.running:
             self.scheduler.start()
-            logger.info("[Scheduler] Планировщик запущен")
+            logger.info("[Планировщик] Планировщик запущен")
 
     def shutdown(self):
-        """Остановка планировщика"""
+        """Остановка планировщика."""
         if self.scheduler.running:
             self.scheduler.shutdown()
-            logger.info("[Scheduler] Планировщик остановлен")
+            logger.info("[Планировщик] Планировщик остановлен")

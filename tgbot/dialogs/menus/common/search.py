@@ -31,6 +31,7 @@ from tgbot.dialogs.events.common.search import (
     on_role_change,
     on_schedule_mode_select,
     on_search_query,
+    on_trainee_change,
     on_user_select,
 )
 from tgbot.dialogs.getters.common.search import (
@@ -198,10 +199,19 @@ query_no_results_window = Window(
 
 details_window = Window(
     Format("{user_info}"),
+    Const(
+        """\n<blockquote><b>Обозначения:</b>
+🟢 - Опция включена
+🔴 - Опция выключена
+
+<i>Уровень доступа не влияет на статус стажера</i></blockquote>"""
+    ),
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+                Const("📅 График"),
+                id="files_processing",
+                state=Search.details_schedule_window,
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
         ),
@@ -237,7 +247,9 @@ details_window = Window(
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+                Const("📅 График"),
+                id="files_processing",
+                state=Search.details_schedule_window,
             ),
             SwitchTo(
                 Const("🛡️ Уровень доступа"),
@@ -251,7 +263,9 @@ details_window = Window(
     Group(
         Row(
             SwitchTo(
-                Const("📅 График"), id="schedule", state=Search.details_schedule_window
+                Const("📅 График"),
+                id="files_processing",
+                state=Search.details_schedule_window,
             ),
             SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
         ),
@@ -269,11 +283,20 @@ details_window = Window(
                 when="searched_default_user",
             ),
         ),
-        Checkbox(
-            Const("🟢 Казино"),
-            Const("🔴 Казино"),
-            id="casino_access",
-            on_state_changed=on_casino_change,
+        Group(
+            Checkbox(
+                Const("🟢 Казино"),
+                Const("🔴 Казино"),
+                id="casino_access",
+                on_state_changed=on_casino_change,
+            ),
+            Checkbox(
+                Const("🟢 Стажер"),
+                Const("🔴 Стажер"),
+                id="is_trainee",
+                on_state_changed=on_trainee_change,
+            ),
+            width=2,
             when="searched_default_user",
         ),
         SwitchTo(
@@ -308,22 +331,6 @@ details_access_level_window = Window(
             on_click=on_role_change,
         ),
         width=2,
-        when="is_mip",
-    ),
-    Group(
-        Checkbox(
-            Const("✅ Стажер"),
-            Const("❌ Стажер"),
-            id="is_trainee",
-        ),
-        Select(
-            Format("{item[1]}"),
-            id="access_level_select",
-            item_id_getter=lambda item: item[0],
-            items="roles",
-            on_click=on_role_change,
-        ),
-        when="is_head",
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),

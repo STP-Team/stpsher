@@ -1,4 +1,4 @@
-"""Optimized and refactored schedule parsers with common utilities."""
+"""Optimized and refactored files_processing parsers with common utilities."""
 
 import calendar
 import logging
@@ -10,12 +10,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
-import pytz
 from openpyxl import load_workbook
 from pandas import DataFrame
 from stp_database import Employee, MainRequestsRepo
 
-from ...misc.helpers import format_fullname
+from ...misc.helpers import format_fullname, tz
 from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
 from .formatters import ScheduleFormatter
@@ -300,7 +299,7 @@ class BaseExcelParser(ABC):
 
     @abstractmethod
     def format_schedule(self, data: List, date: datetime) -> str:
-        """Format schedule data for display."""
+        """Format files_processing data for display."""
         pass
 
 
@@ -332,7 +331,7 @@ class MonthlyScheduleParser(BaseExcelParser, ABC):
 
         start_column = find_month_index(month)
         if start_column is None:
-            raise ValueError(f"Month {month} not found in schedule")
+            raise ValueError(f"Month {month} not found in files_processing")
 
         # Find end column (before next month)
         end_column = len(df.columns) - 1
@@ -374,7 +373,7 @@ class MonthlyScheduleParser(BaseExcelParser, ABC):
 
 
 class ScheduleParser(MonthlyScheduleParser):
-    """Main schedule parser class."""
+    """Main files_processing parser class."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)
@@ -384,7 +383,7 @@ class ScheduleParser(MonthlyScheduleParser):
     def get_user_schedule(
         self, fullname: str, month: str, division: str
     ) -> Dict[str, str]:
-        """Get user's schedule for specified month."""
+        """Get user's files_processing for specified month."""
         try:
             schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
@@ -418,13 +417,13 @@ class ScheduleParser(MonthlyScheduleParser):
             return schedule
 
         except Exception as e:
-            logger.error(f"Error getting schedule: {e}")
+            logger.error(f"Error getting files_processing: {e}")
             raise
 
     def get_user_schedule_with_additional_shifts(
         self, fullname: str, month: str, division: str
     ) -> Tuple[Dict[str, str], Dict[str, str]]:
-        """Get user's schedule with additional shifts detected by color #cc99ff."""
+        """Get user's files_processing with additional shifts detected by color #cc99ff."""
         try:
             schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
@@ -480,7 +479,7 @@ class ScheduleParser(MonthlyScheduleParser):
             return schedule, additional_shifts
 
         except Exception as e:
-            logger.error(f"Error getting schedule with additional shifts: {e}")
+            logger.error(f"Error getting files_processing with additional shifts: {e}")
             raise
 
     @staticmethod
@@ -514,9 +513,9 @@ class ScheduleParser(MonthlyScheduleParser):
     async def get_user_schedule_with_duties(
         self, fullname: str, month: str, division: str, stp_repo=None
     ) -> Dict[str, tuple[str, Optional[str]]]:
-        """Get user's schedule with duty information for specified month."""
+        """Get user's files_processing with duty information for specified month."""
         try:
-            # Get regular schedule data
+            # Get regular files_processing data
             schedule_data = self.get_user_schedule(fullname, month, division)
 
             if not schedule_data or not stp_repo:
@@ -594,8 +593,8 @@ class ScheduleParser(MonthlyScheduleParser):
             return schedule_with_duties
 
         except Exception as e:
-            logger.error(f"Error getting schedule with duties: {e}")
-            # Fallback to regular schedule without duties
+            logger.error(f"Error getting files_processing with duties: {e}")
+            # Fallback to regular files_processing without duties
             schedule_data = self.get_user_schedule(fullname, month, division)
             return {day: (schedule, None) for day, schedule in schedule_data.items()}
 
@@ -606,7 +605,7 @@ class ScheduleParser(MonthlyScheduleParser):
         division: str,
         compact: bool = False,
     ) -> str:
-        """Get formatted user schedule."""
+        """Get formatted user files_processing."""
         try:
             schedule_data = self.get_user_schedule(fullname, month, division)
 
@@ -632,7 +631,7 @@ class ScheduleParser(MonthlyScheduleParser):
         compact: bool = False,
         stp_repo=None,
     ) -> str:
-        """Get formatted user schedule with duty information."""
+        """Get formatted user files_processing with duty information."""
         try:
             schedule_data_with_duties = await self.get_user_schedule_with_duties(
                 fullname, month, division, stp_repo
@@ -641,7 +640,7 @@ class ScheduleParser(MonthlyScheduleParser):
             if not schedule_data_with_duties:
                 return f"❌ Schedule for <b>{fullname}</b> in {month} not found"
 
-            # Extract regular schedule data for analysis
+            # Extract regular files_processing data for analysis
             schedule_data = {
                 day: schedule
                 for day, (schedule, _) in schedule_data_with_duties.items()
@@ -661,7 +660,7 @@ class ScheduleParser(MonthlyScheduleParser):
             return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
 
     def format_schedule(self, data: List, date: datetime) -> str:
-        """Format schedule data for display."""
+        """Format files_processing data for display."""
         # Implementation depends on data structure
         return ""
 
@@ -671,7 +670,7 @@ class BaseDutyParser(BaseExcelParser, ABC):
 
     @staticmethod
     def get_duty_sheet_name(date: datetime) -> str:
-        """Generate sheet name for duty schedule."""
+        """Generate sheet name for duty files_processing."""
         month_names = [
             "Январь",
             "Февраль",
@@ -715,8 +714,7 @@ class DutyScheduleParser(BaseDutyParser):
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
         """Get current senior duty for division based on current time."""
-        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
-        date = datetime.now(yekaterinburg_tz)
+        date = datetime.now(tz)
 
         try:
             # Get all duties for today
@@ -761,8 +759,7 @@ class DutyScheduleParser(BaseDutyParser):
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
         """Get current helper duty for division based on current time."""
-        yekaterinburg_tz = pytz.timezone("Asia/Yekaterinburg")
-        date = datetime.now(yekaterinburg_tz)
+        date = datetime.now(tz)
 
         try:
             # Get all duties for today
@@ -836,7 +833,9 @@ class DutyScheduleParser(BaseDutyParser):
             try:
                 df = self.read_excel_file(schedule_file, sheet_name)
             except Exception as e:
-                logger.warning(f"Failed to read schedule with primary sheet name: {e}")
+                logger.warning(
+                    f"Failed to read files_processing with primary sheet name: {e}"
+                )
 
                 # For НТП and НЦК divisions, try different sheet name patterns
                 if division in ["НТП", "НТП1", "НТП2", "НЦК"]:
@@ -988,7 +987,7 @@ class DutyScheduleParser(BaseDutyParser):
                 schedule_file = self.file_manager.find_schedule_file(division)
                 if not schedule_file:
                     raise FileNotFoundError(
-                        f"Duty schedule file for {division} not found"
+                        f"Duty files_processing file for {division} not found"
                     )
 
             sheet_name = self.get_duty_sheet_name(date)
@@ -996,7 +995,9 @@ class DutyScheduleParser(BaseDutyParser):
             try:
                 df = self.read_excel_file(schedule_file, sheet_name)
             except Exception as e:
-                logger.warning(f"Failed to read schedule with primary sheet name: {e}")
+                logger.warning(
+                    f"Failed to read files_processing with primary sheet name: {e}"
+                )
 
                 # For НТП and НЦК divisions, try different sheet name patterns
                 if division in ["НТП", "НТП1", "НТП2", "НЦК"]:
@@ -1037,7 +1038,7 @@ class DutyScheduleParser(BaseDutyParser):
 
             date_col = self.date_finder.find_date_column(df, date, search_rows=3)
             if date_col is None:
-                logger.warning(f"Date {date.day} not found in duty schedule")
+                logger.warning(f"Date {date.day} not found in duty files_processing")
                 return []
 
             duties = []
@@ -1250,15 +1251,17 @@ class HeadScheduleParser(BaseExcelParser):
                 schedule_file = self.file_manager.find_schedule_file(division)
 
             if not schedule_file:
-                raise FileNotFoundError(f"Head schedule file for {division} not found")
+                raise FileNotFoundError(
+                    f"Head files_processing file for {division} not found"
+                )
 
             df = self.read_excel_file(schedule_file, "ГРАФИК")
             if df is None:
-                raise ValueError("Failed to read head schedule")
+                raise ValueError("Failed to read head files_processing")
 
             date_col = self.date_finder.find_date_column(df, date)
             if date_col is None:
-                logger.warning(f"Date {date.day} not found in head schedule")
+                logger.warning(f"Date {date.day} not found in head files_processing")
                 return []
 
             heads = []
@@ -1285,7 +1288,7 @@ class HeadScheduleParser(BaseExcelParser):
                 if not position_found or not name:
                     continue
 
-                # Check schedule for this date
+                # Check files_processing for this date
                 if date_col < len(df.columns):
                     schedule_cell = self.utils.get_cell_value(df, row_idx, date_col)
                     if schedule_cell and schedule_cell.strip():
@@ -1326,7 +1329,7 @@ class HeadScheduleParser(BaseExcelParser):
             return None
 
     def format_schedule(self, heads: List[HeadInfo], date: datetime) -> str:
-        """Format heads schedule for display."""
+        """Format heads files_processing for display."""
         if not heads:
             return f"<b>👑 Руководители • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдено руководителей на эту дату"
 
@@ -1420,7 +1423,7 @@ class GroupScheduleParser(BaseExcelParser):
         )
 
     def format_schedule(self, members: List[GroupMemberInfo], date: datetime) -> str:
-        """Format group schedule for display."""
+        """Format group files_processing for display."""
         if not members:
             return f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы"
 
@@ -1470,7 +1473,7 @@ class GroupScheduleParser(BaseExcelParser):
 
                 df = self.read_excel_file(schedule_file)
                 if df is None:
-                    logger.warning(f"Failed to read schedule file for {div}")
+                    logger.warning(f"Failed to read files_processing file for {div}")
                     continue
 
                 header_info = self._get_header_columns()
@@ -1616,7 +1619,7 @@ class GroupScheduleParser(BaseExcelParser):
         page: int = 1,
         members_per_page: int = 20,
     ) -> tuple[str, int, bool, bool]:
-        """Format group schedule for head with pagination."""
+        """Format group files_processing for head with pagination."""
         if not group_members:
             return (
                 f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы",
@@ -1672,7 +1675,7 @@ class GroupScheduleParser(BaseExcelParser):
         page: int = 1,
         members_per_page: int = 20,
     ) -> tuple[str, int, bool, bool]:
-        """Format group schedule for regular user with pagination."""
+        """Format group files_processing for regular user with pagination."""
         if not group_members:
             return (
                 f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
@@ -1736,26 +1739,26 @@ class GroupScheduleParser(BaseExcelParser):
 
 # Factory class for creating parsers
 class ScheduleParserFactory:
-    """Factory for creating schedule parsers."""
+    """Factory for creating files_processing parsers."""
 
     @staticmethod
     def create_schedule_parser(uploads_folder: str = "uploads") -> ScheduleParser:
-        """Create a schedule parser instance."""
+        """Create a files_processing parser instance."""
         return ScheduleParser(uploads_folder)
 
     @staticmethod
     def create_duty_parser(uploads_folder: str = "uploads") -> DutyScheduleParser:
-        """Create a duty schedule parser instance."""
+        """Create a duty files_processing parser instance."""
         return DutyScheduleParser(uploads_folder)
 
     @staticmethod
     def create_head_parser(uploads_folder: str = "uploads") -> HeadScheduleParser:
-        """Create a head schedule parser instance."""
+        """Create a head files_processing parser instance."""
         return HeadScheduleParser(uploads_folder)
 
     @staticmethod
     def create_group_parser(uploads_folder: str = "uploads") -> GroupScheduleParser:
-        """Create a group schedule parser instance."""
+        """Create a group files_processing parser instance."""
         return GroupScheduleParser(uploads_folder)
 
     @staticmethod

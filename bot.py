@@ -32,7 +32,7 @@ from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.middlewares.GroupsMiddleware import GroupsMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.services.logger import setup_logging
-from tgbot.services.scheduler import SchedulerManager
+from tgbot.services.schedulers.scheduler import SchedulerManager
 
 bot_config = load_config(".env")
 

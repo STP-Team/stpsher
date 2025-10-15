@@ -1,8 +1,10 @@
+"""Сервис расчета уровней."""
+
 from typing import Tuple
 
 
 class LevelingSystem:
-    """Система уровней, основанная на достижении определенных этапов, с отслеживанием прогресса"""
+    """Система уровней, основанная на достижении определенных этапов, с отслеживанием прогресса."""
 
     # Определяем пул уровней: (минимальный уровень, кол-во баллов за уровень)
     milestones = [
@@ -20,7 +22,7 @@ class LevelingSystem:
 
     @classmethod
     def calculate_level(cls, achievements_sum: int) -> int:
-        """Рассчитываем уровень пользователя исходя из количества заработанных баллов за достижения
+        """Рассчитываем уровень пользователя.
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
@@ -63,17 +65,17 @@ class LevelingSystem:
 
     @classmethod
     def get_level_progress(cls, achievements_sum: int) -> Tuple[int, int, int, int]:
-        """Рассчитываем детальный прогресс уровня пользователя
+        """Рассчитывает детальный прогресс уровня пользователя.
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
 
         Returns:
             Tuple of (current_level, current_level_points, next_level_requirement, points_to_next_level)
-            - current_level: User's current level
-            - current_level_points: Points earned towards current level
-            - next_level_requirement: Total points needed for next level
-            - points_to_next_level: Points still needed to reach next level
+            - current_level: Текущий уровень пользователя
+            - current_level_points: Очки, заработанные для текущего уровня
+            - next_level_requirement: Общее количество очков, необходимое для перехода на следующий уровень
+            - points_to_next_level: Очки, необходимые для перехода на следующий уровень
         """
         current_level = cls.calculate_level(achievements_sum)
 
@@ -103,7 +105,7 @@ class LevelingSystem:
 
     @classmethod
     def _get_total_points_for_level(cls, target_level: int) -> int:
-        """Рассчитать общее количество баллов, необходимое для достижения определенного уровня
+        """Рассчитывает общее количество баллов, необходимое для достижения определенного уровня.
 
         Args:
             target_level: Целевой уровень для расчета необходимого кол-ва баллов
@@ -140,21 +142,8 @@ class LevelingSystem:
         return total_points
 
     @classmethod
-    def get_points_for_next_level(cls, achievements_sum: int) -> int:
-        """Хелпер для расчета очков для следующего уровня
-
-        Args:
-            achievements_sum: Общая сумма баллов за достижения
-
-        Returns:
-            Кол-во очков для достижения следующего уровня
-        """
-        _, _, _, points_needed = cls.get_level_progress(achievements_sum)
-        return points_needed
-
-    @classmethod
     def get_level_info_text(cls, achievements_sum: int, user_balance: int) -> str:
-        """Форматирует текст, отображающий прогресс уровня для меню пользователя
+        """Форматирует текст, отображающий прогресс уровня для меню пользователя.
 
         Args:
             achievements_sum: Общая сумма баллов за достижения
@@ -192,10 +181,14 @@ class LevelingSystem:
 
     @classmethod
     def _create_progress_bar(cls, percent: int, length: int = 12) -> str:
-        """Создаем визуальную строку с прогрессом уровня
-        :param percent: Процент прогресса
-        :param length: Длина строки прогресса
-        :return:
+        """Создает визуальную строку с прогрессом уровня.
+
+        Args:
+            percent: Процент прогресса
+            length: Длина строки прогресса
+
+        Returns:
+            Строка с прогресс баром
         """
         filled = int((percent / 100) * length)
         empty = length - filled
@@ -203,7 +196,7 @@ class LevelingSystem:
 
     @classmethod
     def _get_milestone_info(cls, current_level: int) -> str:
-        """Получает информацию о том, к какому этапу относится текущий уровень
+        """Получает информацию о том, к какому этапу относится текущий уровень.
 
         Args:
             current_level: Текущий уровень пользователя

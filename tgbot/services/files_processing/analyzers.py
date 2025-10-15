@@ -34,7 +34,7 @@ class ScheduleAnalyzer:
 
     @staticmethod
     def calculate_work_hours(schedule: str) -> float:
-        """Calculate work hours from schedule"""
+        """Calculate work hours from files_processing"""
         time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
         match = re.search(time_pattern, schedule)
 
@@ -62,7 +62,7 @@ class ScheduleAnalyzer:
     ) -> tuple[
         list[Any], list[Any], list[Any], list[Any], list[Any], list[Any], list[Any]
     ]:
-        """Analyze schedule and categorize by type"""
+        """Analyze files_processing and categorize by type"""
         work_days = []
         days_off = []
         vacation_days = []

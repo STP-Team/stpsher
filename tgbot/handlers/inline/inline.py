@@ -17,7 +17,7 @@ from tgbot.filters.role import (
     SpecialistFilter,
 )
 from tgbot.misc.helpers import format_fullname, get_role
-from tgbot.services.schedule.schedule_handlers import ScheduleHandlerService
+from tgbot.services.files_processing.schedule_handlers import ScheduleHandlerService
 
 logger = logging.getLogger(__name__)
 

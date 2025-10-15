@@ -13,7 +13,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stp_database import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
-from tgbot.services.schedule.studies_parser import StudiesScheduleParser, StudySession
+from tgbot.services.files_processing.studies_parser import (
+    StudiesScheduleParser,
+    StudySession,
+)
 from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)

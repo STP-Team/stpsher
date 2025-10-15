@@ -216,6 +216,7 @@ async def search_user_info_getter(
             "is_mip": is_mip,
             "is_root": is_root,
             "is_casino_allowed": searched_user.is_casino_allowed,
+            "is_trainee": searched_user.is_trainee,
         }
 
     except Exception as e:
@@ -291,8 +292,6 @@ async def search_access_level_getter(
             pass
 
     return {
-        "is_head": is_head,
-        "is_mip": is_mip,
         "roles": formatted_roles,
         "selected_user_name": selected_user_name,
         "current_role_name": current_role_name,

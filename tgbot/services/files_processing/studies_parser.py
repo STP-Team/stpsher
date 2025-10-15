@@ -1,4 +1,4 @@
-"""Studies schedule parser for processing and displaying training schedules."""
+"""Studies files_processing parser for processing and displaying training schedules."""
 
 import logging
 from datetime import datetime
@@ -422,7 +422,7 @@ class StudiesScheduleParser(BaseExcelParser):
         return "\n".join(lines)
 
     def format_schedule(self, data: List, date: datetime) -> str:
-        """Format schedule data for display - required by BaseExcelParser."""
+        """Format files_processing data for display - required by BaseExcelParser."""
         # For studies parser, this method formats study sessions
         if isinstance(data, list) and data and isinstance(data[0], StudySession):
             return self.format_studies_schedule(

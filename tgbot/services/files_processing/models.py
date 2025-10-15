@@ -1,4 +1,4 @@
-"""Data models for schedule operations."""
+"""Data models for files_processing operations."""
 
 from dataclasses import dataclass
 from typing import Optional
