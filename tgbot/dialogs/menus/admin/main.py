@@ -11,7 +11,6 @@ from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.menus.widgets import SUPPORT_BTN
 from tgbot.dialogs.states.admin import AdminSG
 
 menu_window = Window(
@@ -30,7 +29,7 @@ menu_window = Window(
         ),
         # Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
-    SUPPORT_BTN,
+    # SUPPORT_BTN,
     state=AdminSG.menu,
 )
 
