@@ -22,6 +22,15 @@ class Game(StatesGroup):
     no_activations = State()
     activation_details = State()
 
+    # Казино
+    casino = State()
+    casino_slots = State()
+    casino_dice = State()
+    casino_darts = State()
+    casino_bowling = State()
+    casino_waiting = State()
+    casino_result = State()
+
     # Инвентарь
     inventory = State()
     inventory_details = State()

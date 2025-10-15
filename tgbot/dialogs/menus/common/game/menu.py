@@ -21,6 +21,15 @@ from tgbot.dialogs.menus.common.game.activations import (
     activations_window,
     no_activations_window,
 )
+from tgbot.dialogs.menus.common.game.casino import (
+    casino_bowling_window,
+    casino_darts_window,
+    casino_dice_window,
+    casino_result_window,
+    casino_slots_window,
+    casino_waiting_window,
+    casino_window,
+)
 from tgbot.dialogs.menus.common.game.history import (
     history_details_window,
     history_window,
@@ -64,7 +73,7 @@ game_window = Window(
         SwitchTo(
             Const("🎒 Инвентарь"), id="inventory", state=Game.inventory, when="is_user"
         ),
-        Button(Const("🎲 Казино"), id="casino", when="is_user"),
+        SwitchTo(Const("🎲 Казино"), id="casino", state=Game.casino, when="is_user"),
     ),
     SwitchTo(
         Const("🎯 Достижения"),
@@ -144,5 +153,12 @@ game_dialog = Dialog(
     inventory_details_window,
     history_window,
     history_details_window,
+    casino_window,
+    casino_slots_window,
+    casino_dice_window,
+    casino_darts_window,
+    casino_bowling_window,
+    casino_waiting_window,
+    casino_result_window,
     on_start=on_start,
 )
