@@ -1,6 +1,4 @@
-"""
-Studies schedule parser for processing and displaying training schedules.
-"""
+"""Studies schedule parser for processing and displaying training schedules."""
 
 import logging
 from datetime import datetime

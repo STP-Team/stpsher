@@ -15,8 +15,7 @@ class ProductionCalendarAPI:
         self._holidays_cache: Dict[int, Set[datetime.date]] = {}
 
     async def get_holidays(self, year: int) -> Optional[Set[datetime.date]]:
-        """
-        Получает список праздничных дней для указанного года
+        """Получает список праздничных дней для указанного года
 
         :param year: Год
         :return: Множество праздничных дат или None при ошибке
@@ -48,8 +47,7 @@ class ProductionCalendarAPI:
             return None
 
     async def get_holiday_info(self, year: int) -> Optional[Dict[datetime.date, str]]:
-        """
-        Получает информацию о праздниках с их названиями
+        """Получает информацию о праздниках с их названиями
 
         :param year: Год
         :return: Словарь {дата: название праздника} или None при ошибке
@@ -82,8 +80,7 @@ class ProductionCalendarAPI:
             return None
 
     async def is_holiday(self, date: datetime.date) -> bool:
-        """
-        Проверяет, является ли указанная дата праздничной
+        """Проверяет, является ли указанная дата праздничной
 
         :param date: Дата для проверки
         :return: True если праздник, False если нет
@@ -94,8 +91,7 @@ class ProductionCalendarAPI:
         return date in holidays
 
     async def get_holiday_name(self, date: datetime.date) -> Optional[str]:
-        """
-        Получает название праздника для указанной даты
+        """Получает название праздника для указанной даты
 
         :param date: Дата
         :return: Название праздника или None если не праздник

@@ -1,11 +1,13 @@
+"""Запуск диалога для root."""
+
 from aiogram import F, Router
 from aiogram.filters import CommandStart
-from aiogram.types import CallbackQuery, Message
-from stp_database import Employee
+from aiogram.types import Message
+from aiogram_dialog import DialogManager, StartMode
+from aiogram_dialog.api.exceptions import NoContextError
 
+from tgbot.dialogs.states.root import RootSG
 from tgbot.filters.role import RootFilter
-from tgbot.keyboards.admin.main import main_kb
-from tgbot.keyboards.user.main import MainMenu
 
 root_router = Router()
 root_router.message.filter(F.chat.type == "private", RootFilter())
@@ -13,24 +15,16 @@ root_router.callback_query.filter(F.message.chat.type == "private", RootFilter()
 
 
 @root_router.message(CommandStart())
-async def admin_start_cmd(message: Message, user: Employee):
-    await message.answer(
-        f"""👋 Привет, <b>{user.fullname}</b>!
+async def root_start(_message: Message, dialog_manager: DialogManager):
+    """Запуск/сброс состояния диалога для root.
 
-Я - бот-помощник СТП
+    Args:
+        _message: Сообщение пользователя
+        dialog_manager: Менеджер диалога
+    """
+    try:
+        await dialog_manager.done()
+    except NoContextError:
+        pass
 
-Здесь ты можешь управлять основными функциями бота""",
-        reply_markup=main_kb(),
-    )
-
-
-@root_router.callback_query(MainMenu.filter(F.menu == "main"))
-async def admin_start_cb(callback: CallbackQuery, user: Employee):
-    await callback.message.edit_text(
-        f"""👋 Привет, <b>{user.fullname}</b>!
-
-Я - бот-помощник СТП
-
-Здесь ты можешь управлять основными функциями бота""",
-        reply_markup=main_kb(),
-    )
+    await dialog_manager.start(RootSG.menu, mode=StartMode.RESET_STACK)

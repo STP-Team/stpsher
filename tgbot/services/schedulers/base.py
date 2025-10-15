@@ -1,6 +1,4 @@
-"""
-Базовый класс для планировщиков задач
-"""
+"""Базовый класс для планировщиков задач"""
 
 import logging
 from abc import ABC, abstractmethod
@@ -13,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseScheduler(ABC):
-    """
-    Базовый класс для всех планировщиков задач
+    """Базовый класс для всех планировщиков задач
 
     Предоставляет общий интерфейс для настройки и управления
     категорией запланированных задач.
@@ -26,8 +23,7 @@ class BaseScheduler(ABC):
 
     @abstractmethod
     def setup_jobs(self, scheduler: AsyncIOScheduler, session_pool, bot: Bot):
-        """
-        Настройка всех задач данной категории
+        """Настройка всех задач данной категории
 
         Args:
             scheduler: Экземпляр AsyncIOScheduler
@@ -45,8 +41,7 @@ class BaseScheduler(ABC):
         name: Optional[str] = None,
         **trigger_args,
     ):
-        """
-        Добавляет задачу в планировщик с логированием
+        """Добавляет задачу в планировщик с логированием
 
         Args:
             scheduler: Планировщик

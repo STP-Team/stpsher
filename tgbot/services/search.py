@@ -1,10 +1,9 @@
 import logging
 from typing import Sequence
 
-from stp_database import Employee
-from stp_database.repo.STP.requests import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.helpers import get_role
+from tgbot.misc.helpers import format_fullname, get_role
 from tgbot.services.leveling import LevelingSystem
 
 logger = logging.getLogger(__name__)
@@ -20,8 +19,7 @@ class SearchService:
     def filter_users_by_type(
         users: Sequence[Employee], search_type: str
     ) -> list[Employee]:
-        """
-        Фильтрация пользователей по типу поиска
+        """Фильтрация пользователей по типу поиска
 
         :param users: Список пользователей
         :param search_type: Тип поиска (specialists, heads, all)
@@ -118,7 +116,7 @@ class SearchService:
         """Получить общую статистику группы руководителя по его ID"""
         try:
             # Получаем руководителя по ID
-            head_user = await stp_repo.employee.get_user(user_id=head_user_id)
+            head_user = await stp_repo.employee.get_users(user_id=head_user_id)
             if not head_user:
                 return {
                     "total_users": 0,
@@ -144,23 +142,27 @@ class SearchService:
 
     @staticmethod
     def format_user_info_base(user: Employee, user_head: Employee = None) -> str:
-        """
-        Формирует базовую информацию о пользователе
+        """Формирует базовую информацию о пользователе
 
         :param user: Сотрудник
         :param user_head: Руководитель (опционально)
         :return: Отформатированная строка с информацией
         """
         # Формирование основной информации о пользователе
-        user_info = f"""<b>👤 {user.fullname}</b>
+        user_info = f"""<b>{format_fullname(user.fullname, False, True, user.username, user.user_id)}</b>
 
 <b>💼 Должность:</b> {user.position} {user.division}"""
 
         if user_head:
-            user_info += f"\n<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>"
-
-        if user.username:
-            user_info += f"\n\n<b>📱 Telegram:</b> @{user.username}"
+            user_info += f"\n<b>👑 Руководитель:</b> {
+                format_fullname(
+                    user_head.fullname,
+                    True,
+                    True,
+                    user_head.username,
+                    user_head.user_id,
+                )
+            }"
 
         if user.email:
             user_info += f"\n<b>📧 Email:</b> {user.email}"
@@ -175,8 +177,7 @@ class SearchService:
         user_head: Employee = None,
         viewer_role: int = 1,
     ) -> str:
-        """
-        Формирует информацию о пользователе в зависимости от роли смотрящего
+        """Формирует информацию о пользователе в зависимости от роли смотрящего
 
         :param user: Сотрудник
         :param user_head: Руководитель (опционально)
@@ -191,7 +192,15 @@ class SearchService:
             user_info += f"<b>💼 Должность:</b> {user.position or 'Не указано'}\n"
 
             if user_head:
-                user_info += f"<b>👑 Руководитель:</b> <a href='t.me/{user_head.username}'>{user.head}</a>\n\n"
+                user_info += f"<b>👑 Руководитель:</b> {
+                    format_fullname(
+                        user_head.fullname,
+                        True,
+                        True,
+                        user_head.username,
+                        user_head.user_id,
+                    )
+                }\n\n"
 
             user_info += f"<b>📱 Telegram:</b> @{user.username or 'не указан'}\n"
 
@@ -214,8 +223,7 @@ class SearchService:
 
     @staticmethod
     def format_head_group_info(group_stats: dict) -> str:
-        """
-        Формирует информацию о группе руководителя
+        """Формирует информацию о группе руководителя
 
         :param group_stats: Статистика группы
         :return: Дополнительная информация для руководителей

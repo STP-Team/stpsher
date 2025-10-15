@@ -1,6 +1,6 @@
 import datetime
 
-from .calculator import SalaryCalculationResult
+from .salary_calculator import SalaryCalculationResult
 
 
 class SalaryFormatter:
@@ -66,7 +66,7 @@ class SalaryFormatter:
                 f"Ночные праздничные доп. смены: {round(result.additional_shift_night_holiday_hours)}ч × {result.additional_shift_night_holiday_rate:.2f} ₽ = {round(result.additional_shift_night_holiday_hours * result.additional_shift_night_holiday_rate)} ₽"
             )
 
-        message_text = f"""💰 <b>Расчет зарплаты</b>
+        message_text = f"""💰 <b>Зарплата</b>
 
 📅 <b>Период:</b> {result.current_month_name} {result.current_year}
 
