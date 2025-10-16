@@ -204,9 +204,9 @@ async def search_user_info_getter(
         if searched_user.head:
             user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        user_info = f"""<b>{format_fullname(user.fullname, False, True, user.username, user.user_id)}</b>
+        user_info = f"""<b>{format_fullname(searched_user.fullname, False, True, searched_user.username, searched_user.user_id)}</b>
 
-<b>💼 Должность:</b> {user.position} {user.division}"""
+<b>💼 Должность:</b> {searched_user.position} {searched_user.division}"""
 
         if user_head:
             user_info += f"\n<b>👑 Руководитель:</b> {
@@ -219,10 +219,12 @@ async def search_user_info_getter(
                 )
             }"
 
-        if user.email:
-            user_info += f"\n<b>📧 Email:</b> {user.email}"
+        if searched_user.email:
+            user_info += f"\n<b>📧 Email:</b> {searched_user.email}"
 
-        user_info += f"\n\n🛡️ <b>Уровень доступа:</b> {get_role(user.role)['name']}"
+        user_info += (
+            f"\n\n🛡️ <b>Уровень доступа:</b> {get_role(searched_user.role)['name']}"
+        )
 
         return {
             "user_info": user_info,
