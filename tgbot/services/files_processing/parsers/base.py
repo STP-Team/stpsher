@@ -111,30 +111,6 @@ class BaseParser(ABC):
             return 0, 0
 
     @staticmethod
-    def calculate_work_hours(time_str: str) -> float:
-        """Рассчитывает рабочие часы по временному диапазону.
-
-        Args:
-            time_str: Строка временного диапазона
-
-        Returns:
-            Кол-во рабочих часов
-        """
-        start_minutes, end_minutes = BaseParser.parse_time_range(time_str)
-
-        if start_minutes == 0 and end_minutes == 0:
-            return 0.0
-
-        work_minutes = end_minutes - start_minutes
-
-        # Вычесть 1 час на обед, если смена >= 8 часов
-        work_hours = work_minutes / 60
-        if work_hours >= 8:
-            work_hours -= 1
-
-        return round(work_hours, 1)
-
-    @staticmethod
     def names_match(name1: str, name2: str) -> bool:
         """Проверяет, совпадают ли два имени (с учетом незначительных различий).
 

@@ -7,6 +7,7 @@
 import re
 from typing import Dict, List, Tuple
 
+from ..parsers.base import BaseParser
 from .models import DayInfo
 
 
@@ -43,32 +44,43 @@ class ScheduleAnalyzer:
             return "work"
 
     @staticmethod
-    def calculate_work_hours(schedule: str) -> float:
-        """Рассчитывает рабочие часы из записи расписания.
+    def calculate_work_hours(time_str: str) -> float:
+        """Рассчитывает рабочие часы по временному диапазону.
 
         Args:
-            schedule: Строка с расписанием (например, "09:00-18:00")
+            time_str: Строка временного диапазона (может содержать несколько диапазонов)
 
         Returns:
-            Количество рабочих часов (с учетом обеденного перерыва для смен >= 8 часов)
+            Кол-во рабочих часов
         """
-        time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
-        match = re.search(time_pattern, schedule)
-
-        if not match:
+        if not time_str or not time_str.strip():
             return 0.0
 
-        start_hour, start_min, end_hour, end_min = map(int, match.groups())
-        start_minutes = start_hour * 60 + start_min
-        end_minutes = end_hour * 60 + end_min
+        # Паттерн для поиска временных диапазонов
+        time_pattern = r"\d{1,2}:\d{2}-\d{1,2}:\d{2}"
+        time_ranges = re.findall(time_pattern, time_str)
 
-        if end_minutes < start_minutes:
-            end_minutes += 24 * 60
+        if not time_ranges:
+            return 0.0
 
-        work_minutes = end_minutes - start_minutes
-        work_hours = work_minutes / 60
+        total_work_minutes = 0
 
-        if work_hours >= 8:
+        # Обработать каждый временной диапазон
+        for time_range in time_ranges:
+            start_minutes, end_minutes = BaseParser.parse_time_range(time_range)
+
+            if start_minutes == 0 and end_minutes == 0:
+                continue
+
+            work_minutes = end_minutes - start_minutes
+            total_work_minutes += work_minutes
+
+        # Конвертировать в часы
+        work_hours = total_work_minutes / 60
+
+        # Вычесть 1 час на обед только для одного непрерывного диапазона >= 8 часов
+        # Если несколько диапазонов, обед уже учтен в промежутке между ними
+        if len(time_ranges) == 1 and work_hours >= 8:
             work_hours -= 1
 
         return round(work_hours, 1)

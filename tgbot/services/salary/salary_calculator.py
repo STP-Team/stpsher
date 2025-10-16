@@ -7,8 +7,13 @@ from stp_database import Employee
 
 from infrastructure.api.production_calendar import production_calendar
 from tgbot.misc.dicts import russian_months
+from tgbot.services.files_processing.core.analyzers import ScheduleAnalyzer
+from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 from .pay_rates import PayRateService
+
+# Create a global instance of ScheduleParser for salary calculations
+schedule_parser = ScheduleParser()
 
 
 @dataclass
@@ -128,32 +133,40 @@ class SalaryCalculator:
 
         for day, schedule_time in schedule_data.items():
             if schedule_time and schedule_time not in ["Не указано", "В", "О"]:
-                # Парсим время в виде "08:00-17:00"
-                time_match = re.search(
-                    r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})", schedule_time
-                )
-                if time_match:
-                    start_hour, start_min, end_hour, end_min = map(
-                        int, time_match.groups()
-                    )
-                    start_minutes = start_hour * 60 + start_min
-                    end_minutes = end_hour * 60 + end_min
+                # Используем ScheduleAnalyzer для подсчета рабочих часов (с учетом обеда)
+                day_hours = ScheduleAnalyzer.calculate_work_hours(schedule_time)
 
-                    if end_minutes < start_minutes:
-                        end_minutes += 24 * 60
+                if day_hours > 0:
+                    # Парсим временные диапазоны для подсчета ночных часов
+                    time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
+                    time_matches = re.findall(time_pattern, schedule_time)
 
-                    day_hours = (end_minutes - start_minutes) / 60
+                    shift_night_hours = 0.0
+                    total_raw_hours = 0.0
 
-                    # Считаем ночные часы для этой смены
-                    shift_night_hours = SalaryCalculator._calculate_night_hours(
-                        start_hour, start_min, end_hour, end_min
-                    )
+                    # Обрабатываем каждый временной диапазон для ночных часов
+                    for match in time_matches:
+                        start_hour, start_min, end_hour, end_min = map(int, match)
+                        start_minutes = start_hour * 60 + start_min
+                        end_minutes = end_hour * 60 + end_min
 
-                    # Для 12-часовой смены отнимаем 1 час на обед
-                    if day_hours == 12:
-                        day_hours = 11
-                        if shift_night_hours > 0:
-                            shift_night_hours = shift_night_hours * (11 / 12)
+                        if end_minutes < start_minutes:
+                            end_minutes += 24 * 60
+
+                        range_hours = (end_minutes - start_minutes) / 60
+                        total_raw_hours += range_hours
+
+                        # Считаем ночные часы для этого диапазона
+                        range_night_hours = SalaryCalculator._calculate_night_hours(
+                            start_hour, start_min, end_hour, end_min
+                        )
+                        shift_night_hours += range_night_hours
+
+                    # Если был вычет на обед, пропорционально уменьшаем ночные часы
+                    if total_raw_hours > day_hours and shift_night_hours > 0:
+                        shift_night_hours = shift_night_hours * (
+                            day_hours / total_raw_hours
+                        )
 
                     # Проверка на праздничный день
                     try:
