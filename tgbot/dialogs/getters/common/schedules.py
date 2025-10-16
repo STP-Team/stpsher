@@ -7,7 +7,11 @@ from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis
-from tgbot.services.files_processing.schedule_handlers import schedule_service
+from tgbot.services.files_processing.formatters.schedule import (
+    get_current_date,
+    get_current_month,
+)
+from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 
 async def user_schedule_getter(
@@ -24,9 +28,7 @@ async def user_schedule_getter(
         Возвращает словарь для смены месяца графика
     """
     # Get month from dialog_data or use current month as default
-    current_month = dialog_manager.dialog_data.get(
-        "current_month", schedule_service.get_current_month()
-    )
+    current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
 
@@ -72,7 +74,7 @@ async def duty_schedule_getter(
     """
     current_date_str = dialog_manager.dialog_data.get("current_date")
     if current_date_str is None:
-        current_date = schedule_service.get_current_date()
+        current_date = get_current_date()
     else:
         current_date = datetime.fromisoformat(current_date_str)
 
@@ -81,7 +83,7 @@ async def duty_schedule_getter(
     )
 
     date_display = current_date.strftime("%d.%m")
-    is_today = current_date.date() == schedule_service.get_current_date().date()
+    is_today = current_date.date() == get_current_date().date()
 
     return {
         "duties_text": duties_text,
@@ -105,7 +107,7 @@ async def head_schedule_getter(
     """
     current_date_str = dialog_manager.dialog_data.get("current_date")
     if current_date_str is None:
-        current_date = schedule_service.get_current_date()
+        current_date = get_current_date()
     else:
         current_date = datetime.fromisoformat(current_date_str)
 
@@ -114,7 +116,7 @@ async def head_schedule_getter(
     )
 
     date_display = current_date.strftime("%d.%m")
-    is_today = current_date.date() == schedule_service.get_current_date().date()
+    is_today = current_date.date() == get_current_date().date()
 
     return {
         "heads_text": heads_text,
@@ -138,7 +140,7 @@ async def group_schedule_getter(
     """
     current_date_str = dialog_manager.dialog_data.get("current_date")
     if current_date_str is None:
-        current_date = schedule_service.get_current_date()
+        current_date = get_current_date()
     else:
         current_date = datetime.fromisoformat(current_date_str)
 
@@ -155,7 +157,7 @@ async def group_schedule_getter(
     )
 
     date_display = current_date.strftime("%d.%m")
-    is_today = current_date.date() == schedule_service.get_current_date().date()
+    is_today = current_date.date() == get_current_date().date()
 
     return {
         "group_text": group_text,

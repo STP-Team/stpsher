@@ -1,13 +1,93 @@
-"""Schedule formatting functionality."""
+"""Форматирование графиков.
+
+Модуль предоставляет инструменты для форматирования расписаний
+в компактном и детальном форматах.
+"""
 
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from .models import DayInfo
+from tgbot.misc.helpers import tz
+from tgbot.services.files_processing.core.models import DayInfo
+
+# Маппинг названий месяцев (Английский -> Русский)
+MONTH_NAMES_MAP = {
+    "january": "январь",
+    "february": "февраль",
+    "march": "март",
+    "april": "апрель",
+    "may": "май",
+    "june": "июнь",
+    "july": "июль",
+    "august": "август",
+    "september": "сентябрь",
+    "october": "октябрь",
+    "november": "ноябрь",
+    "december": "декабрь",
+}
+
+
+def extract_day_number(day_str: str) -> int:
+    """Извлекает номер дня из строки дня.
+
+    Args:
+        day_str: Строка дня (например, '15 (Пн)')
+
+    Returns:
+        Номер дня или 0 при ошибке
+    """
+    try:
+        return int(day_str.split()[0])
+    except (ValueError, IndexError):
+        return 0
+
+
+def is_current_month(month: str) -> bool:
+    """Проверяет является ли указанный месяц текущим.
+
+    Args:
+        month: Название месяца
+
+    Returns:
+        True если месяц текущий, иначе False
+    """
+    now = datetime.now()
+    current_month_en = now.strftime("%B").lower()
+    current_month_ru = MONTH_NAMES_MAP.get(current_month_en, current_month_en)
+    return month.lower() == current_month_ru
+
+
+def get_current_day() -> int:
+    """Получает текущий день месяца.
+
+    Returns:
+        Номер текущего дня
+    """
+    return datetime.now().day
+
+
+def get_current_month() -> str:
+    """Получает текущий месяц в русском формате.
+
+    Returns:
+        Название текущего месяца на русском языке
+    """
+    now = datetime.now()
+    current_month_en = now.strftime("%B").lower()
+    return MONTH_NAMES_MAP.get(current_month_en, current_month_en)
+
+
+def get_current_date() -> datetime:
+    """Получает текущую дату и время по Екатеринбургу.
+
+    Returns:
+        Текущая дата и время с учетом временной зоны
+    """
+    return datetime.now(tz)
 
 
 class ScheduleFormatter:
-    """Formatter for schedules"""
+    """Форматтер для расписаний с компактным и детальным режимами."""
 
     @staticmethod
     def format_compact(
@@ -19,41 +99,34 @@ class ScheduleFormatter:
         army_days: List[DayInfo],
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
+        current_day_duty: Optional[str] = None,
     ) -> str:
-        """Compact files_processing format"""
+        """Компактный формат расписания.
+
+        Args:
+            month: Название месяца
+            work_days: Список рабочих дней
+            days_off: Список выходных дней
+            vacation_days: Список дней отпуска
+            vacation_bs_days: Список дней отпуска БС
+            army_days: Список дней в военкомате
+            sick_days: Список дней на больничном
+            missing_days: Список дней отсутствия
+            current_day_duty: Информация о дежурстве на текущий день (например, "09:00-18:00 С")
+
+        Returns:
+            Отформатированная строка расписания
+        """
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>"]
 
-        # Get current day and month
-        now = datetime.now()
-        current_day = now.day
-        current_month = now.strftime("%B").lower()
-
-        # Convert month names
-        month_names = {
-            "january": "январь",
-            "february": "февраль",
-            "march": "март",
-            "april": "апрель",
-            "may": "май",
-            "june": "июнь",
-            "july": "июль",
-            "august": "август",
-            "september": "сентябрь",
-            "october": "октябрь",
-            "november": "ноябрь",
-            "december": "декабрь",
-        }
-
         # Check if we're viewing the current month
-        is_current_month = month.lower() == month_names.get(
-            current_month, current_month
-        )
-        effective_current_day = current_day if is_current_month else None
+        viewing_current_month = is_current_month(month)
+        effective_current_day = get_current_day() if viewing_current_month else None
 
         # Add today's schedule line if viewing current month
-        if is_current_month:
+        if viewing_current_month:
             today_line = ScheduleFormatter._get_today_schedule_line(
-                current_day,
+                effective_current_day,
                 work_days,
                 days_off,
                 vacation_days,
@@ -61,6 +134,7 @@ class ScheduleFormatter:
                 army_days,
                 sick_days,
                 missing_days,
+                duty_info=current_day_duty,  # Pass duty info for today
             )
             if today_line:
                 lines.append("")
@@ -135,11 +209,25 @@ class ScheduleFormatter:
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
-        """Detailed files_processing format"""
+        """Детальный формат расписания.
+
+        Args:
+            month: Название месяца
+            work_days: Список рабочих дней
+            days_off: Список выходных дней
+            vacation_days: Список дней отпуска
+            vacation_bs_days: Список дней отпуска БС
+            army_days: Список дней в военкомате
+            sick_days: Список дней на больничном
+            missing_days: Список дней отсутствия
+
+        Returns:
+            Отформатированная строка расписания с детальной информацией
+        """
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>\n"]
 
         # Get current day
-        current_day = datetime.now().day
+        current_day = get_current_day()
 
         all_days = []
         for day_info in work_days:
@@ -156,12 +244,6 @@ class ScheduleFormatter:
             all_days.append((day_info, "sick"))
         for day_info in missing_days:
             all_days.append((day_info, "missing"))
-
-        def extract_day_number(day_str: str) -> int:
-            try:
-                return int(day_str.split()[0])
-            except (ValueError, IndexError):
-                return 0
 
         all_days.sort(key=lambda x: extract_day_number(x[0].day))
 
@@ -267,7 +349,15 @@ class ScheduleFormatter:
     def _group_consecutive_schedule(
         work_days: List[DayInfo], current_day: int = None
     ) -> List[str]:
-        """Group consecutive days with same files_processing"""
+        """Группирует последовательные дни с одинаковым графиком.
+
+        Args:
+            work_days: Список рабочих дней
+            current_day: Номер текущего дня (для подсветки)
+
+        Returns:
+            Список отформатированных строк с группами дней
+        """
         if not work_days:
             return []
 
@@ -311,79 +401,9 @@ class ScheduleFormatter:
         army_days: List[DayInfo],
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
+        duty_info: Optional[str] = None,
     ) -> Optional[str]:
-        """Get today's schedule line with emoji."""
-
-        def extract_day_number(day_str: str) -> int:
-            try:
-                return int(day_str.split()[0])
-            except (ValueError, IndexError):
-                return 0
-
-        # Check work days
-        for day_info in work_days:
-            if extract_day_number(day_info.day) == current_day:
-                return f"<blockquote>📍 <b>Сегодня:</b> <code>{day_info.schedule}</code></blockquote>"
-
-        # Check days off
-        for day_info in days_off:
-            if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏠 Выходной</blockquote>"
-
-        # Check vacation
-        for day_info in vacation_days:
-            if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏖 Отпуск</blockquote>"
-
-        # Check vacation BS
-        for day_info in vacation_bs_days:
-            if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏖 БС</blockquote>"
-
-        # Check army
-        for day_info in army_days:
-            if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🎖️ Военкомат</blockquote>"
-
-        # Check sick days
-        for day_info in sick_days:
-            if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏥 Больничный</blockquote>"
-
-        # Check missing days
-        for day_info in missing_days:
-            if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🕵️‍♂️ Отсутствие</blockquote>"
-
-        return None
-
-    @staticmethod
-    def _get_today_schedule_line_with_duties(
-        current_day: int,
-        schedule_data_with_duties: Dict[str, Tuple[str, Optional[str]]],
-        work_days: List[DayInfo],
-        days_off: List[DayInfo],
-        vacation_days: List[DayInfo],
-        vacation_bs_days: List[DayInfo],
-        army_days: List[DayInfo],
-        sick_days: List[DayInfo],
-        missing_days: List[DayInfo],
-    ) -> Optional[str]:
-        """Get today's schedule line with emoji and duty info."""
-
-        def extract_day_number(day_str: str) -> int:
-            try:
-                return int(day_str.split()[0])
-            except (ValueError, IndexError):
-                return 0
-
-        # Find today's duty info
-        duty_info = None
-        for day_key, (schedule, duty) in schedule_data_with_duties.items():
-            if extract_day_number(day_key) == current_day:
-                duty_info = duty
-                break
-
+        """Get today's schedule line with emoji (optionally with duty info)."""
         # Check work days
         for day_info in work_days:
             if extract_day_number(day_info.day) == current_day:
@@ -426,6 +446,39 @@ class ScheduleFormatter:
                 return "<blockquote>📍 <b>Сегодня:</b> 🕵️‍♂️ Отсутствие</blockquote>"
 
         return None
+
+    @staticmethod
+    def _get_today_schedule_line_with_duties(
+        current_day: int,
+        schedule_data_with_duties: Dict[str, Tuple[str, Optional[str]]],
+        work_days: List[DayInfo],
+        days_off: List[DayInfo],
+        vacation_days: List[DayInfo],
+        vacation_bs_days: List[DayInfo],
+        army_days: List[DayInfo],
+        sick_days: List[DayInfo],
+        missing_days: List[DayInfo],
+    ) -> Optional[str]:
+        """Get today's schedule line with emoji and duty info (wrapper for unified method)."""
+        # Find today's duty info
+        duty_info = None
+        for day_key, (schedule, duty) in schedule_data_with_duties.items():
+            if extract_day_number(day_key) == current_day:
+                duty_info = duty
+                break
+
+        # Use the unified method
+        return ScheduleFormatter._get_today_schedule_line(
+            current_day,
+            work_days,
+            days_off,
+            vacation_days,
+            vacation_bs_days,
+            army_days,
+            sick_days,
+            missing_days,
+            duty_info,
+        )
 
     @staticmethod
     def _format_consecutive_days(days: List[str], current_day: int = None) -> str:
@@ -514,34 +567,12 @@ class ScheduleFormatter:
         """Detailed files_processing format with duty information"""
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>"]
 
-        # Get current day and month
-        now = datetime.now()
-        current_day = now.day
-        current_month = now.strftime("%B").lower()
-
-        # Convert month names
-        month_names = {
-            "january": "январь",
-            "february": "февраль",
-            "march": "март",
-            "april": "апрель",
-            "may": "май",
-            "june": "июнь",
-            "july": "июль",
-            "august": "август",
-            "september": "сентябрь",
-            "october": "октябрь",
-            "november": "ноябрь",
-            "december": "декабрь",
-        }
-
         # Check if we're viewing the current month
-        is_current_month = month.lower() == month_names.get(
-            current_month, current_month
-        )
+        viewing_current_month = is_current_month(month)
+        current_day = get_current_day()
 
         # Add today's schedule line if viewing current month
-        if is_current_month:
+        if viewing_current_month:
             today_line = ScheduleFormatter._get_today_schedule_line_with_duties(
                 current_day,
                 schedule_data_with_duties,
@@ -574,12 +605,6 @@ class ScheduleFormatter:
             all_days.append((day_info, "sick"))
         for day_info in missing_days:
             all_days.append((day_info, "missing"))
-
-        def extract_day_number(day_str: str) -> int:
-            try:
-                return int(day_str.split()[0])
-            except (ValueError, IndexError):
-                return 0
 
         all_days.sort(key=lambda x: extract_day_number(x[0].day))
 
@@ -624,7 +649,7 @@ class ScheduleFormatter:
         for day_info, day_type in all_days:
             # Check if this is the current day (only if viewing current month)
             day_num = extract_day_number(day_info.day)
-            is_current_day = is_current_month and day_num == current_day
+            is_current_day_flag = viewing_current_month and day_num == current_day
 
             # Get duty information for this day
             duty_info = None
@@ -637,7 +662,7 @@ class ScheduleFormatter:
                 schedule_text = day_info.schedule
                 if duty_info:
                     schedule_text += f" ({duty_info})"
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: {schedule_text}</u>"
                 else:
                     line_content = f"{day_info.day}: <code>{schedule_text}</code>"
@@ -648,37 +673,37 @@ class ScheduleFormatter:
                 day_text = "Выходной"
                 if duty_info:
                     day_text += f" ({duty_info})"
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: {day_text}</u>"
                 else:
                     line_content = f"{day_info.day}: {day_text}"
                 days_off_count += 1
             elif day_type == "vacation":
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: ⛱️ Отпуск</u>"
                 else:
                     line_content = f"{day_info.day}: ⛱️ Отпуск"
                 vacation_days_count += 1
             elif day_type == "vacation_bs":
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: ⛱️ БС</u>"
                 else:
                     line_content = f"{day_info.day}: ⛱️ БС"
                 vacation_bs_days_count += 1
             elif day_type == "army":
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: 🎖️ Военкомат</u>"
                 else:
                     line_content = f"{day_info.day}: 🎖️ Военкомат"
                 army_days_count += 1
             elif day_type == "sick":
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: 🤒 Больничный</u>"
                 else:
                     line_content = f"{day_info.day}: 🤒 Больничный"
                 sick_days_count += 1
             elif day_type == "missing":
-                if is_current_day:
+                if is_current_day_flag:
                     line_content = f"<u>{day_info.day}: 🕵️‍♂️ Отсутствие</u>"
                 else:
                     line_content = f"{day_info.day}: 🕵️‍♂️ Отсутствие"

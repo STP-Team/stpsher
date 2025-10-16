@@ -915,9 +915,9 @@ def _user_matches_achievement_criteria(user, achievement) -> bool:
             if achievement_division == "НЦК":
                 if user_division != "НЦК":
                     return False
-            # Если достижение для НТП - пользователь может быть из НТП, НТП1, НТП2
+            # Если достижение для НТП - пользователь может быть из НТП1, НТП2
             elif achievement_division == "НТП":
-                if user_division not in ["НТП", "НТП1", "НТП2"]:
+                if user_division not in ["НТП1", "НТП2"]:
                     return False
             # Для других направлений - точное совпадение
             else:

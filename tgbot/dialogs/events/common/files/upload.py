@@ -14,7 +14,12 @@ from sqlalchemy.orm import Session
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.files import Files
-from tgbot.services.files_processing.file_processor import (
+from tgbot.services.files_processing.detectors.changes import ScheduleChangeDetector
+from tgbot.services.files_processing.processors.users import (
+    process_fired_users_with_stats,
+    process_user_changes,
+)
+from tgbot.services.files_processing.utils.files import (
     FileProcessor,
     FileStatsExtractor,
     FileTypeDetector,
@@ -144,7 +149,7 @@ async def on_document_uploaded(
         # Шаг 2: Сохраняем в БД
         current_step += 1
         await update_progress(current_step, total_steps, "Сохранение в базу данных...")
-        await stp_repo.upload.add_file_history(
+        await stp_repo.upload.add_file(
             file_id=document.file_id,
             file_name=file_name,
             file_size=actual_size,
@@ -185,10 +190,6 @@ async def on_document_uploaded(
             if main_db:
                 try:
                     from tgbot.misc.helpers import format_fullname
-                    from tgbot.services.files_processing.user_processor import (
-                        process_fired_users_with_stats,
-                        process_user_changes,
-                    )
 
                     fired_names = await process_fired_users_with_stats(
                         [file_path], main_db
@@ -266,9 +267,6 @@ async def on_document_uploaded(
                 )
                 try:
                     from tgbot.misc.helpers import format_fullname
-                    from tgbot.services.files_processing.change_detector import (
-                        ScheduleChangeDetector,
-                    )
 
                     change_detector = ScheduleChangeDetector()
 

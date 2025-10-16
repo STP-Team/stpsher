@@ -7,9 +7,13 @@ from stp_database import Employee
 
 from infrastructure.api.production_calendar import production_calendar
 from tgbot.misc.dicts import russian_months
-from tgbot.services.files_processing import ScheduleParser
+from tgbot.services.files_processing.core.analyzers import ScheduleAnalyzer
+from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 from .pay_rates import PayRateService
+
+# Create a global instance of ScheduleParser for salary calculations
+schedule_parser = ScheduleParser()
 
 
 @dataclass
@@ -111,6 +115,15 @@ class SalaryCalculator:
                 if overlap_end > overlap_start:
                     total_night_minutes += overlap_end - overlap_start
 
+        # Проверяем ночные часы в начале того же дня (00:00-06:00)
+        # Это для случаев типа 03:00-09:00, которые не переходят через полночь
+        elif start_minutes < night_end and end_minutes > 0:
+            # Диапазон находится в пределах одного дня, но может попадать в утренние ночные часы
+            overlap_start = max(start_minutes, 0)
+            overlap_end = min(end_minutes, night_end)
+            if overlap_end > overlap_start:
+                total_night_minutes += overlap_end - overlap_start
+
         return total_night_minutes / 60  # Конвертируем в часы
 
     @staticmethod
@@ -129,32 +142,40 @@ class SalaryCalculator:
 
         for day, schedule_time in schedule_data.items():
             if schedule_time and schedule_time not in ["Не указано", "В", "О"]:
-                # Парсим время в виде "08:00-17:00"
-                time_match = re.search(
-                    r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})", schedule_time
-                )
-                if time_match:
-                    start_hour, start_min, end_hour, end_min = map(
-                        int, time_match.groups()
-                    )
-                    start_minutes = start_hour * 60 + start_min
-                    end_minutes = end_hour * 60 + end_min
+                # Используем ScheduleAnalyzer для подсчета рабочих часов (с учетом обеда)
+                day_hours = ScheduleAnalyzer.calculate_work_hours(schedule_time)
 
-                    if end_minutes < start_minutes:
-                        end_minutes += 24 * 60
+                if day_hours > 0:
+                    # Парсим временные диапазоны для подсчета ночных часов
+                    time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
+                    time_matches = re.findall(time_pattern, schedule_time)
 
-                    day_hours = (end_minutes - start_minutes) / 60
+                    shift_night_hours = 0.0
+                    total_raw_hours = 0.0
 
-                    # Считаем ночные часы для этой смены
-                    shift_night_hours = SalaryCalculator._calculate_night_hours(
-                        start_hour, start_min, end_hour, end_min
-                    )
+                    # Обрабатываем каждый временной диапазон для ночных часов
+                    for match in time_matches:
+                        start_hour, start_min, end_hour, end_min = map(int, match)
+                        start_minutes = start_hour * 60 + start_min
+                        end_minutes = end_hour * 60 + end_min
 
-                    # Для 12-часовой смены отнимаем 1 час на обед
-                    if day_hours == 12:
-                        day_hours = 11
-                        if shift_night_hours > 0:
-                            shift_night_hours = shift_night_hours * (11 / 12)
+                        if end_minutes < start_minutes:
+                            end_minutes += 24 * 60
+
+                        range_hours = (end_minutes - start_minutes) / 60
+                        total_raw_hours += range_hours
+
+                        # Считаем ночные часы для этого диапазона
+                        range_night_hours = SalaryCalculator._calculate_night_hours(
+                            start_hour, start_min, end_hour, end_min
+                        )
+                        shift_night_hours += range_night_hours
+
+                    # Если был вычет на обед, пропорционально уменьшаем ночные часы
+                    if total_raw_hours > day_hours and shift_night_hours > 0:
+                        shift_night_hours = shift_night_hours * (
+                            day_hours / total_raw_hours
+                        )
 
                     # Проверка на праздничный день
                     try:
@@ -165,7 +186,8 @@ class SalaryCalculator:
                         )
 
                         if is_holiday and holiday_name:
-                            holiday_hours += day_hours
+                            # Разделяем праздничные часы на дневные и ночные
+                            holiday_hours += day_hours - shift_night_hours
                             night_holiday_hours += shift_night_hours
                             if is_additional_shift:
                                 days_worked.append(
@@ -215,8 +237,6 @@ class SalaryCalculator:
                 f"Не найдено ЧТС для '{user.division}' на позиции '{user.position}'"
             )
 
-        # Get files_processing data
-        schedule_parser = ScheduleParser()
         try:
             schedule_data, additional_shifts_data = (
                 schedule_parser.get_user_schedule_with_additional_shifts(

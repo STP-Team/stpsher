@@ -7,6 +7,12 @@ from aiogram_dialog import DialogManager
 from stp_database import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname
+from tgbot.services.files_processing.utils.files import (
+    FileTypeDetector,
+    generate_detailed_stats_text,
+    generate_studies_stats_text,
+    generate_user_changes_text,
+)
 
 
 async def get_local_files(**kwargs) -> dict:
@@ -218,13 +224,6 @@ async def get_upload_status(dialog_manager: DialogManager, **_kwargs) -> dict:
     Returns:
         Словарь с информацией о загрузке и обработке
     """
-    from tgbot.services.files_processing.file_processor import (
-        FileTypeDetector,
-        generate_detailed_stats_text,
-        generate_studies_stats_text,
-        generate_user_changes_text,
-    )
-
     data = dialog_manager.dialog_data
 
     file_name = data.get("upload_file_name", "Неизвестно")
