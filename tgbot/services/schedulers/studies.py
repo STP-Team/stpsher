@@ -13,7 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stp_database import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
-from tgbot.services.files_processing.studies_parser import (
+from tgbot.services.files_processing.parsers.studies import (
     StudiesScheduleParser,
     StudySession,
 )

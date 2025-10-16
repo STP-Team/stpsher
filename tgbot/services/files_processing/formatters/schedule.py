@@ -8,12 +8,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 from tgbot.misc.helpers import tz
-
-from .models import DayInfo
-
-# ============================================================================
-# Константы и утилиты уровня модуля
-# ============================================================================
+from tgbot.services.files_processing.core.models import DayInfo
 
 # Маппинг названий месяцев (Английский -> Русский)
 MONTH_NAMES_MAP = {

@@ -8,8 +8,7 @@ from typing import List, Optional, Tuple
 import pandas as pd
 from pandas import DataFrame
 
-from ...misc.helpers import short_name
-from .base_parsers import BaseParser
+from .base import BaseParser
 
 logger = logging.getLogger(__name__)
 
@@ -276,153 +275,29 @@ class StudiesScheduleParser(BaseParser):
             logger.error(f"Error getting studies for user {user_fullname}: {e}")
             return []
 
-    @staticmethod
     def format_studies_schedule(
-        sessions: List[StudySession], title: str = "📚 Обучения"
+        self, sessions: List[StudySession], title: str = "📚 Обучения"
     ) -> str:
         """Format study sessions for display."""
-        if not sessions:
-            return f"<b>{title}</b>\n\n❌ Не найдено обучений"
+        from ..formatters import StudiesFormatter
 
-        lines = [f"<b>{title}</b>\n"]
-
-        # Group sessions by date
-        sessions_by_date = {}
-        for session in sessions:
-            date_key = session.date.strftime("%d.%m.%Y")
-            if date_key not in sessions_by_date:
-                sessions_by_date[date_key] = []
-            sessions_by_date[date_key].append(session)
-
-        # Sort dates
-        sorted_dates = sorted(
-            sessions_by_date.keys(), key=lambda x: datetime.strptime(x, "%d.%m.%Y")
-        )
-
-        for date_str in sorted_dates:
-            date_sessions = sessions_by_date[date_str]
-            lines.append(f"📅 <b>{date_str}</b>\n")
-
-            for session in date_sessions:
-                lines.append(f"⏰ <b>{session.time}</b> ({session.duration})")
-                lines.append(f"📖 {session.title}")
-
-                if session.experience_level:
-                    lines.append(f"👥 {session.experience_level}")
-
-                if session.trainer:
-                    lines.append(f"🎓 Тренер: {session.trainer}")
-
-                # Show participant count
-                if session.participants:
-                    present_count = sum(
-                        1
-                        for _, _, _, attendance, _ in session.participants
-                        if attendance == "+"
-                    )
-                    total_count = len(session.participants)
-                    lines.append(f"👤 Участников: {present_count}/{total_count}")
-
-                lines.append("")
-
-        # Remove last empty line
-        if lines and lines[-1] == "":
-            lines.pop()
-
-        return "\n".join(lines)
+        return StudiesFormatter.format_studies_schedule(sessions, title)
 
     def format_user_studies_schedule(
         self, sessions: List[StudySession], user_fullname: str
     ) -> str:
         """Format study sessions for specific user."""
-        if not sessions:
-            return "<b>📚 Твои обучения</b>\n\n❌ Не найдено обучений"
+        from ..formatters import StudiesFormatter
 
-        lines = ["<b>📚 Твои обучения</b>\n"]
-
-        # Sort by date
-        sorted_sessions = sorted(sessions, key=lambda x: x.date)
-
-        for session in sorted_sessions:
-            lines.append(f"📅 <b>{session.date.strftime('%d.%m.%Y')}</b>")
-            lines.append(f"⏰ {session.time} ({session.duration})")
-            lines.append(f"📖 {session.title}")
-
-            if session.experience_level:
-                lines.append(f"👥 {session.experience_level}")
-
-            if session.trainer:
-                lines.append(f"🎓 Тренер: {session.trainer}")
-
-            # Show user's attendance status
-            for area, name, rg, attendance, reason in session.participants:
-                if self.names_match(user_fullname, name):
-                    status_icon = (
-                        "✅"
-                        if attendance == "+"
-                        else "❌"
-                        if attendance == "-"
-                        else "❓"
-                    )
-                    lines.append(f"{status_icon} Статус: {attendance}")
-                    if reason:
-                        lines.append(f"📝 Причина: {reason}")
-                    break
-
-            lines.append("")
-
-        # Remove last empty line
-        if lines and lines[-1] == "":
-            lines.pop()
-
-        return "\n".join(lines)
+        return StudiesFormatter.format_user_studies_schedule(
+            sessions, user_fullname, self.names_match
+        )
 
     def format_studies_detailed(self, sessions: List[StudySession]) -> str:
         """Format study sessions with detailed participant information."""
-        if not sessions:
-            return "<b>📚 Детальное расписание обучений</b>\n\n❌ Не найдено обучений"
+        from ..formatters import StudiesFormatter
 
-        lines = ["<b>📚 Детальное расписание обучений</b>\n"]
-
-        for session in sorted(sessions, key=lambda x: x.date):
-            lines.append(f"📅 <b>{session.date.strftime('%d.%m.%Y')}</b>")
-            lines.append(f"⏰ {session.time} ({session.duration})")
-            lines.append(f"📖 {session.title}")
-
-            if session.experience_level:
-                lines.append(f"👥 {session.experience_level}")
-
-            if session.trainer:
-                lines.append(f"🎓 Тренер: {session.trainer}")
-
-            lines.append("")
-            lines.append("<b>👥 Участники:</b>")
-
-            if session.participants:
-                for area, name, rg, attendance, reason in session.participants:
-                    status_icon = (
-                        "✅"
-                        if attendance == "+"
-                        else "❌"
-                        if attendance == "-"
-                        else "❓"
-                    )
-                    participant_line = f"{status_icon} {short_name(name)} ({area})"
-                    if rg:
-                        participant_line += f" - РГ: {rg}"
-                    if reason:
-                        participant_line += f" - {reason}"
-                    lines.append(participant_line)
-            else:
-                lines.append("• Список участников пуст")
-
-            lines.append("")
-
-        # Remove last empty line
-        if lines and lines[-1] == "":
-            lines.pop()
-
-        return "\n".join(lines)
+        return StudiesFormatter.format_studies_detailed(sessions)
 
     def format_schedule(self, data: List, date: datetime) -> str:
         """Format files_processing data for display - required by BaseExcelParser."""

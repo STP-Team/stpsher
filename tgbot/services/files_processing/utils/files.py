@@ -9,7 +9,7 @@ from typing import Optional
 import pandas as pd
 
 from tgbot.misc.helpers import format_fullname
-from tgbot.services.files_processing.base_parsers import BaseParser
+from tgbot.services.files_processing.parsers.base import BaseParser
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)
@@ -296,9 +296,7 @@ class FileProcessor:
             return None
 
         try:
-            from tgbot.services.files_processing.studies_parser import (
-                StudiesScheduleParser,
-            )
+            from ..parsers import StudiesScheduleParser
 
             parser = StudiesScheduleParser()
             sessions = parser.parse_studies_file(file_path)

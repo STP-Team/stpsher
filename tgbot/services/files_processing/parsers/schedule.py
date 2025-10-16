@@ -18,13 +18,14 @@ from typing import Dict, List, Optional, Tuple
 
 from stp_database import Employee, MainRequestsRepo
 
-from ...misc.helpers import format_fullname, tz
-from .analyzers import ScheduleAnalyzer
-from .base_parsers import BaseParser
-from .excel import ExcelReader
-from .file_managers import MonthManager
-from .formatters import ScheduleFormatter
-from .models import DutyInfo, GroupMemberInfo, HeadInfo
+from tgbot.misc.helpers import format_fullname, tz
+
+from ..core.analyzers import ScheduleAnalyzer
+from ..core.excel import ExcelReader
+from ..core.models import DutyInfo, GroupMemberInfo, HeadInfo
+from ..formatters.schedule import ScheduleFormatter
+from ..managers.files import MonthManager
+from .base import BaseParser
 
 logger = logging.getLogger(__name__)
 

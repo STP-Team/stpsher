@@ -16,10 +16,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from ...misc.helpers import short_name
-from .cache import get_cache
-from .excel import ExcelReader
-from .file_managers import ScheduleFileManager
+from tgbot.misc.helpers import short_name
+from tgbot.services.files_processing.core.cache import get_cache
+from tgbot.services.files_processing.core.excel import ExcelReader
+from tgbot.services.files_processing.managers.files import ScheduleFileManager
 
 logger = logging.getLogger(__name__)
 

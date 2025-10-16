@@ -7,11 +7,11 @@ from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis
-from tgbot.services.files_processing.formatters import (
+from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
     get_current_month,
 )
-from tgbot.services.files_processing.schedule_handlers import schedule_service
+from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 
 async def user_schedule_getter(

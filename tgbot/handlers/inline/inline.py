@@ -17,10 +17,8 @@ from tgbot.filters.role import (
     SpecialistFilter,
 )
 from tgbot.misc.helpers import format_fullname, get_role
-from tgbot.services.files_processing.formatters import get_current_month
-from tgbot.services.files_processing.schedule_handlers import (
-    schedule_service,
-)
+from tgbot.services.files_processing.formatters.schedule import get_current_month
+from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 logger = logging.getLogger(__name__)
 

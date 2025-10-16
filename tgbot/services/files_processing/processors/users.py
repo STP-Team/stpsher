@@ -8,9 +8,11 @@ import pandas as pd
 from stp_database import Employee
 from stp_database.repo.STP.employee import EmployeeRepo
 
-from tgbot.services.files_processing.base_parsers import BaseParser
-from tgbot.services.files_processing.file_processor import find_header_columns
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
+
+from ..parsers.base import BaseParser
+from ..utils.files import find_header_columns
+from ..utils.schedule import extract_division_from_filename
 
 logger = logging.getLogger(__name__)
 
@@ -48,26 +50,6 @@ async def _update_existing_user(db_user: Employee, excel_user: Dict[str, str]) -
         updated = True
 
     return True if updated else False
-
-
-def extract_division_from_filename(filename: str) -> str:
-    """Достает направление из названия файла.
-
-    Args:
-        filename: Название файла
-
-    Returns:
-        Направление, которому принадлежит файл
-    """
-    filename_upper = filename.upper()
-
-    division_map = {"НЦК": "НЦК", "НТП1": "НТП1", "НТП2": "НТП2"}
-
-    for key, value in division_map.items():
-        if key in filename_upper:
-            return value
-
-    return "НТП"
 
 
 def get_users_from_excel(file_name: str) -> List[Dict[str, str]]:

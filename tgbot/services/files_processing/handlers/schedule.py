@@ -13,22 +13,18 @@ from stp_database import Employee
 
 from tgbot.keyboards.auth import auth_kb
 
-# Импорт полностью оптимизированных парсеров с кэшированием
-from tgbot.services.files_processing import (
-    DutyScheduleParser,
-    GroupScheduleParser,
-    HeadScheduleParser,
-    ScheduleAnalyzer,
-    ScheduleFormatter,
-    ScheduleParser,
-)
-from tgbot.services.files_processing.exceptions import (
+from ..core.analyzers import ScheduleAnalyzer
+from ..core.exceptions import (
     ScheduleError,
     ScheduleFileNotFoundError,
     UserNotFoundError,
 )
-from tgbot.services.files_processing.formatters import (
-    get_current_date,
+from ..formatters.schedule import ScheduleFormatter, get_current_date
+from ..parsers.schedule import (
+    DutyScheduleParser,
+    GroupScheduleParser,
+    HeadScheduleParser,
+    ScheduleParser,
 )
 
 logger = logging.getLogger(__name__)
