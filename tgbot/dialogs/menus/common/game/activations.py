@@ -91,7 +91,7 @@ activation_details_window = Window(
 {selected_activation[bought_at]}{user_comment_text}"""),
     Row(
         SwitchTo(
-            Const("✅ Одобрить"), id="approve", state=Game.activation_reject_comment
+            Const("✅ Одобрить"), id="approve", state=Game.activation_approve_comment
         ),
         SwitchTo(
             Const("❌ Отклонить"), id="reject", state=Game.activation_reject_comment
