@@ -1,42 +1,61 @@
+"""Сервис обработчиков расписаний - Оптимизирован.
+
+Модуль предоставляет главный сервис для обработки операций с расписаниями,
+включая графики сотрудников, дежурных, руководителей и групповые графики.
+"""
+
 import datetime
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 from stp_database import Employee
 
 from tgbot.keyboards.auth import auth_kb
 from tgbot.misc.dicts import russian_months
 from tgbot.misc.helpers import tz
+
+# Импорт полностью оптимизированных парсеров с кэшированием
+from tgbot.services.files_processing import (
+    DutyScheduleParser,
+    GroupScheduleParser,
+    HeadScheduleParser,
+    ScheduleAnalyzer,
+    ScheduleFormatter,
+    ScheduleParser,
+)
 from tgbot.services.files_processing.exceptions import (
     ScheduleError,
     ScheduleFileNotFoundError,
     UserNotFoundError,
-)
-from tgbot.services.files_processing.formatters import ScheduleFormatter
-from tgbot.services.files_processing.parsers import (
-    DutyScheduleParser,
-    GroupScheduleParser,
-    HeadScheduleParser,
-    ScheduleParser,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class ScheduleHandlerService:
-    """Сервис для обработки операций с расписанием"""
+    """Сервис для обработки операций с расписаниями с оптимизированными парсерами."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Инициализирует сервис обработчика расписаний со всеми необходимыми парсерами."""
         self.schedule_parser = ScheduleParser()
         self.duty_parser = DutyScheduleParser()
         self.head_parser = HeadScheduleParser()
         self.group_parser = GroupScheduleParser()
         self.formatter = ScheduleFormatter()
+        self.analyzer = ScheduleAnalyzer()
 
     @staticmethod
     async def check_user_auth(callback: CallbackQuery, user: Employee) -> bool:
-        """Проверяет авторизацию пользователя"""
+        """Проверяет авторизацию пользователя.
+
+        Args:
+            callback: Callback query от Telegram
+            user: Экземпляр пользователя с моделью Employee
+
+        Returns:
+            Статус авторизации пользователя
+        """
         if not user:
             await callback.message.answer(
                 """👋 Привет
@@ -51,9 +70,20 @@ class ScheduleHandlerService:
 
     @staticmethod
     async def handle_schedule_error(
-        callback: CallbackQuery, error: Exception, fallback_markup=None
+        callback: CallbackQuery,
+        error: Exception,
+        fallback_markup: Optional[InlineKeyboardMarkup] = None,
     ) -> None:
-        """Обработка ошибок расписания"""
+        """Обработка ошибок расписания.
+
+        Args:
+            callback: Callback query от Telegram
+            error: Ошибка от Python
+            fallback_markup: Клавиатура для отображения при ошибке
+
+        Returns:
+            None
+        """
         if isinstance(error, UserNotFoundError):
             error_msg = "❌ Пользователь не найден в расписании"
         elif isinstance(error, ScheduleFileNotFoundError):
@@ -76,47 +106,68 @@ class ScheduleHandlerService:
 
     @staticmethod
     def get_current_month() -> str:
-        """Получает текущий месяц"""
+        """Получает текущий месяц в русском формате."""
         return russian_months[datetime.datetime.now().month]
 
     @staticmethod
-    def get_current_date():
-        """Получает текущую дату по Екатеринбургу"""
+    def get_current_date() -> datetime.datetime:
+        """Получает текущую дату и время по Екатеринбургу."""
         return datetime.datetime.now(tz)
-
-    def parse_date_from_callback(self, date_str: str) -> datetime.datetime:
-        """Парсит дату из callback data"""
-        target_date = datetime.datetime.strptime(date_str, "%Y-%m-%d")
-        return self.yekaterinburg_tz.localize(target_date)
 
     async def get_user_schedule_response(
         self, user: Employee, month: str, compact: bool = True, stp_repo=None
     ) -> str:
-        """Получает расписание пользователя с информацией о дежурствах"""
-        if stp_repo:
-            # Fetch duty information when stp_repo is available (for heads/MIP viewing others)
-            return await self.schedule_parser.get_user_schedule_formatted_with_duties(
-                fullname=user.fullname,
-                month=month,
-                division=user.division,
-                compact=compact,
-                stp_repo=stp_repo,
-            )
-        else:
-            # Use regular files_processing when no stp_repo (for users viewing their own files_processing)
-            return self.schedule_parser.get_user_schedule_formatted(
-                fullname=user.fullname,
-                month=month,
-                division=user.division,
-                compact=compact,
-            )
+        """Получает расписание пользователя.
+
+        Args:
+            user: Объект сотрудника
+            month: Название месяца
+            compact: Использовать компактный формат
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Отформатированная строка с расписанием
+        """
+        try:
+            if stp_repo:
+                # Fetch schedule with duties (optimized)
+                return (
+                    await self.schedule_parser.get_user_schedule_formatted_with_duties(
+                        fullname=user.fullname,
+                        month=month,
+                        division=user.division,
+                        compact=compact,
+                        stp_repo=stp_repo,
+                    )
+                )
+            else:
+                # Regular schedule (optimized)
+                return self.schedule_parser.get_user_schedule_formatted(
+                    fullname=user.fullname,
+                    month=month,
+                    division=user.division,
+                    compact=compact,
+                )
+
+        except Exception as e:
+            logger.error(f"Schedule error (optimized): {e}", exc_info=True)
+            return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
 
     async def get_duties_response(
         self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None
     ) -> str:
-        """Получает расписание дежурных"""
+        """Получает расписание дежурных.
+
+        Args:
+            division: Направление
+            date: Дата (по умолчанию текущая)
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Отформатированная строка с дежурствами
+        """
         if date is None:
-            date = schedule_service.get_current_date()
+            date = self.get_current_date()
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
@@ -141,8 +192,8 @@ class ScheduleHandlerService:
             duties = active_duties
 
         # Check if today's date is selected to highlight current duties
-        today = schedule_service.get_current_date()
-        highlight_current = (date.date() == today) and stp_repo
+        today = self.get_current_date()
+        highlight_current = (date.date() == today.date()) and stp_repo
 
         # Get formatted duties files_processing with optional current duty highlighting
         return await self.duty_parser.format_schedule(
@@ -152,9 +203,18 @@ class ScheduleHandlerService:
     async def get_heads_response(
         self, division: str, date: Optional[datetime.datetime] = None, stp_repo=None
     ) -> str:
-        """Получает расписание руководителей групп"""
+        """Получает расписание руководителей групп.
+
+        Args:
+            division: Направление
+            date: Дата (по умолчанию текущая)
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Отформатированная строка с руководителями
+        """
         if date is None:
-            date = schedule_service.get_current_date()
+            date = self.get_current_date()
 
         heads = await self.head_parser.get_heads_for_date(date, division, stp_repo)
 
@@ -167,23 +227,26 @@ class ScheduleHandlerService:
         page: int = 1,
         stp_repo=None,
         is_head: bool = False,
-    ) -> tuple[str, int, bool, bool]:
-        """Получает групповое расписание для пользователя или руководителя
+    ) -> Tuple[str, int, bool, bool]:
+        """Получает групповое расписание для пользователя или руководителя.
 
-        :param user: Пользователь
-        :param date: Дата (по умолчанию сегодня)
-        :param page: Страница для пагинации
-        :param stp_repo: Репозиторий БД
-        :param is_head: Является ли пользователь руководителем
-        :return: (текст, общее количество страниц, есть предыдущая, есть следующая)
+        Args:
+            user: Объект сотрудника
+            date: Дата (по умолчанию текущая)
+            page: Номер страницы для пагинации
+            stp_repo: Репозиторий базы данных
+            is_head: Является ли пользователь руководителем
+
+        Returns:
+            Кортеж (текст, всего_страниц, есть_предыдущая, есть_следующая)
         """
         if date is None:
-            date = schedule_service.get_current_date()
+            date = self.get_current_date()
 
         try:
             if is_head:
                 # Для руководителя - показываем его группу
-                group_members = await self.group_parser.get_group_members_for_head(
+                group_members = await self.group_parser.get_group_members(
                     user.fullname, date, user.division, stp_repo
                 )
                 return self.group_parser.format_group_schedule_for_head(

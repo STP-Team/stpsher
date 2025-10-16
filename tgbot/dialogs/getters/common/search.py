@@ -16,7 +16,6 @@ from tgbot.dialogs.getters.common.game.kpi import (
 from tgbot.dialogs.getters.common.schedules import user_schedule_getter
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname, get_role, get_status_emoji
-from tgbot.services.search import SearchService
 
 
 async def search_getter(
@@ -171,7 +170,11 @@ async def search_user_info_getter(
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
-) -> dict[str, str]:
+) -> (
+    dict[str, str]
+    | dict[str, Employee | Sequence[Employee] | None | bool | Mapped[bool]]
+    | dict[str, str | bool]
+):
     """Геттер для получения информации о выбранном пользователе.
 
     Args:
@@ -197,16 +200,29 @@ async def search_user_info_getter(
             return {"user_info": "❌ Пользователь не найден"}
 
         # Получаем руководителя если есть
-        searched_user_head = None
+        user_head = None
         if searched_user.head:
-            searched_user_head = await stp_repo.employee.get_users(
-                fullname=searched_user.head
-            )
+            user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        # Формируем информацию о пользователе с учетом роли просматривающего
-        user_info = SearchService.format_user_info_base(
-            searched_user, searched_user_head
-        )
+        user_info = f"""<b>{format_fullname(user.fullname, False, True, user.username, user.user_id)}</b>
+
+<b>💼 Должность:</b> {user.position} {user.division}"""
+
+        if user_head:
+            user_info += f"\n<b>👑 Руководитель:</b> {
+                format_fullname(
+                    user_head.fullname,
+                    True,
+                    True,
+                    user_head.username,
+                    user_head.user_id,
+                )
+            }"
+
+        if user.email:
+            user_info += f"\n<b>📧 Email:</b> {user.email}"
+
+        user_info += f"\n\n🛡️ <b>Уровень доступа:</b> {get_role(user.role)['name']}"
 
         return {
             "user_info": user_info,

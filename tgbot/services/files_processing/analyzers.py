@@ -1,17 +1,27 @@
+"""Анализатор расписаний.
+
+Модуль предоставляет функциональность для анализа и категоризации
+записей расписания.
+"""
+
 import re
-from typing import Any, Dict
+from typing import Dict, List, Tuple
 
 from .models import DayInfo
 
 
 class ScheduleAnalyzer:
-    """Анализатор для расписаний"""
+    """Анализатор для расписаний с поддержкой категоризации и расчета часов."""
 
     @staticmethod
     def categorize_schedule_entry(schedule_value: str) -> str:
-        """Категория смены
-        :param schedule_value: Значение клетки
-        :return:
+        """Определяет категорию записи расписания.
+
+        Args:
+            schedule_value: Значение клетки расписания
+
+        Returns:
+            Категория: work, vacation, vacation_bs, army, sick, missing, или day_off
         """
         schedule_clean = schedule_value.strip().upper()
 
@@ -34,7 +44,14 @@ class ScheduleAnalyzer:
 
     @staticmethod
     def calculate_work_hours(schedule: str) -> float:
-        """Calculate work hours from files_processing"""
+        """Рассчитывает рабочие часы из записи расписания.
+
+        Args:
+            schedule: Строка с расписанием (например, "09:00-18:00")
+
+        Returns:
+            Количество рабочих часов (с учетом обеденного перерыва для смен >= 8 часов)
+        """
         time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
         match = re.search(time_pattern, schedule)
 
@@ -59,10 +76,23 @@ class ScheduleAnalyzer:
     @staticmethod
     def analyze_schedule(
         schedule_data: Dict[str, str],
-    ) -> tuple[
-        list[Any], list[Any], list[Any], list[Any], list[Any], list[Any], list[Any]
+    ) -> Tuple[
+        List[DayInfo],
+        List[DayInfo],
+        List[DayInfo],
+        List[DayInfo],
+        List[DayInfo],
+        List[DayInfo],
+        List[DayInfo],
     ]:
-        """Analyze files_processing and categorize by type"""
+        """Анализирует расписание и категоризирует по типам.
+
+        Args:
+            schedule_data: Словарь с данными расписания {день: значение}
+
+        Returns:
+            Кортеж из 7 списков: (рабочие_дни, выходные, отпуск, отпуск_бс, военкомат, больничный, отсутствия)
+        """
         work_days = []
         days_off = []
         vacation_days = []

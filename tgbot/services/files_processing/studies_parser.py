@@ -8,7 +8,8 @@ from typing import List, Optional, Tuple
 import pandas as pd
 from pandas import DataFrame
 
-from .parsers import BaseExcelParser
+from ...misc.helpers import short_name
+from .base_parsers import BaseParser
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +41,15 @@ class StudySession:
         return f"<StudySession {self.date.strftime('%d.%m.%Y')} {self.time} '{self.title}'>"
 
 
-class StudiesScheduleParser(BaseExcelParser):
+class StudiesScheduleParser(BaseParser):
     """Parser for studies/training schedules."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)
+
+    def parse(self, *args, **kwargs):
+        """Implementation of abstract parse method."""
+        pass
 
     def parse_studies_file(self, file_path: Path) -> List[StudySession]:
         """Parse studies Excel file and return list of study sessions."""
@@ -258,7 +263,7 @@ class StudiesScheduleParser(BaseExcelParser):
             user_sessions = []
             for session in all_sessions:
                 for area, name, rg, attendance, reason in session.participants:
-                    if self.utils.names_match(user_fullname, name):
+                    if self.names_match(user_fullname, name):
                         user_sessions.append(session)
                         break
 
@@ -351,7 +356,7 @@ class StudiesScheduleParser(BaseExcelParser):
 
             # Show user's attendance status
             for area, name, rg, attendance, reason in session.participants:
-                if self.utils.names_match(user_fullname, name):
+                if self.names_match(user_fullname, name):
                     status_icon = (
                         "✅"
                         if attendance == "+"
@@ -402,9 +407,7 @@ class StudiesScheduleParser(BaseExcelParser):
                         if attendance == "-"
                         else "❓"
                     )
-                    participant_line = (
-                        f"{status_icon} {self.utils.short_name(name)} ({area})"
-                    )
+                    participant_line = f"{status_icon} {short_name(name)} ({area})"
                     if rg:
                         participant_line += f" - РГ: {rg}"
                     if reason:

@@ -60,7 +60,7 @@ def extract_division_from_filename(filename: str) -> str:
     """
     filename_upper = filename.upper()
 
-    division_map = {"НЦК": "НЦК", "НТП1": "НТП1", "НТП2": "НТП2", "НТП": "НТП"}
+    division_map = {"НЦК": "НЦК", "НТП1": "НТП1", "НТП2": "НТП2"}
 
     for key, value in division_map.items():
         if key in filename_upper:

@@ -1,379 +1,36 @@
-"""Optimized and refactored files_processing parsers with common utilities."""
+"""Парсеры графиков с использованием FastExcelReader и кешированием.
+
+Модуль предоставляет полностью оптимизированные парсеры для работы с:
+- Графиками сотрудников (ScheduleParser)
+- Графиками дежурных (DutyScheduleParser)
+- Графиками руководителей (HeadScheduleParser)
+- Групповыми графиками (GroupScheduleParser)
+
+Все парсеры используют кэширование для максимальной производительности.
+"""
 
 import calendar
 import logging
 import re
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import pandas as pd
-from openpyxl import load_workbook
-from pandas import DataFrame
 from stp_database import Employee, MainRequestsRepo
 
 from ...misc.helpers import format_fullname, tz
-from . import DutyInfo, HeadInfo
 from .analyzers import ScheduleAnalyzer
+from .base_parsers import BaseParser
+from .excel import ExcelReader
+from .file_managers import MonthManager
 from .formatters import ScheduleFormatter
-from .managers import MonthManager, ScheduleFileManager
-from .models import GroupMemberInfo
+from .models import DutyInfo, GroupMemberInfo, HeadInfo
 
 logger = logging.getLogger(__name__)
 
 
-class CommonUtils:
-    """Common utility functions used across all parsers."""
-
-    @staticmethod
-    def get_cell_value(df: pd.DataFrame, row: int, col: int) -> str:
-        """Safely get cell value from DataFrame."""
-        try:
-            if row < len(df) and col < len(df.columns):
-                value = df.iloc[row, col]
-                return str(value) if pd.notna(value) else ""
-            return ""
-        except (IndexError, TypeError):
-            return ""
-
-    @staticmethod
-    def is_valid_name(name_cell: str) -> bool:
-        """Check if cell contains a valid full name."""
-        if not name_cell or name_cell.strip() in ["", "nan", "None"]:
-            return False
-        parts = name_cell.strip().split()
-        return len(parts) >= 2
-
-    @staticmethod
-    def names_match(name1: str, name2: str) -> bool:
-        """Check if two names match (considering minor differences)."""
-        if not name1 or not name2:
-            return False
-
-        name1_clean = name1.strip()
-        name2_clean = name2.strip()
-
-        if name1_clean == name2_clean:
-            return True
-
-        parts1 = name1_clean.split()
-        parts2 = name2_clean.split()
-
-        if len(parts1) >= 2 and len(parts2) >= 2:
-            return parts1[0] == parts2[0] and parts1[1] == parts2[1]
-
-        return False
-
-    @staticmethod
-    def is_time_format(text: str) -> bool:
-        """Check if text contains time format (HH:MM-HH:MM)."""
-        if not text:
-            return False
-        time_pattern = r"\d{1,2}:\d{2}-\d{1,2}:\d{2}"
-        return bool(re.search(time_pattern, text.strip()))
-
-    @staticmethod
-    def parse_time_range(time_str: str) -> Tuple[int, int]:
-        """Parse time range string into start and end minutes."""
-        try:
-            if "-" not in time_str:
-                return 0, 0
-
-            start_time, end_time = time_str.split("-")
-            start_parts = start_time.strip().split(":")
-            end_parts = end_time.strip().split(":")
-
-            start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
-            end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
-
-            # Handle overnight shifts
-            if end_minutes < start_minutes:
-                end_minutes += 24 * 60
-
-            return start_minutes, end_minutes
-
-        except (ValueError, IndexError):
-            return 0, 0
-
-
-class TimeUtils:
-    """Utilities for time parsing and sorting."""
-
-    @staticmethod
-    def extract_start_time(working_hours: str) -> str:
-        """Extract start time from working hours string."""
-        if not working_hours or working_hours == "Не указано":
-            return "Не указано"
-
-        time_pattern = r"(\d{1,2}:\d{2})"
-        match = re.search(time_pattern, working_hours)
-
-        if match:
-            return match.group(1)
-
-        return "Не указано"
-
-    @staticmethod
-    def parse_time_for_sorting(time_str: str) -> Tuple[int, int]:
-        """Parse time string for sorting purposes."""
-        if not time_str or time_str == "Не указано":
-            return 99, 0  # Put "not specified" at the end
-
-        try:
-            hour, minute = time_str.split(":")
-            return int(hour), int(minute)
-        except (ValueError, IndexError):
-            return 99, 0
-
-
-class DateColumnFinder:
-    """Utility class for finding date columns in DataFrames."""
-
-    @staticmethod
-    def find_date_column(
-        df: pd.DataFrame, target_date: datetime, search_rows: int = 5
-    ) -> Optional[int]:
-        """Find column for target date by first locating the correct month section."""
-        target_day = target_date.day
-        target_month = target_date.month
-
-        # Russian month names
-        month_names = {
-            1: "ЯНВАРЬ",
-            2: "ФЕВРАЛЬ",
-            3: "МАРТ",
-            4: "АПРЕЛЬ",
-            5: "МАЙ",
-            6: "ИЮНЬ",
-            7: "ИЮЛЬ",
-            8: "АВГУСТ",
-            9: "СЕНТЯБРЬ",
-            10: "ОКТЯБРЬ",
-            11: "НОЯБРЬ",
-            12: "ДЕКАБРЬ",
-        }
-
-        target_month_name = month_names[target_month]
-        logger.debug(f"Searching for day {target_day} in month '{target_month_name}'")
-
-        # Step 1: Find the month section
-        month_start_col = None
-
-        # Look for the month header
-        for row_idx in range(min(3, len(df))):
-            for col_idx in range(len(df.columns)):
-                cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
-
-                if target_month_name in cell_value.upper():
-                    month_start_col = col_idx
-                    logger.debug(
-                        f"Found month '{target_month_name}' starting at column {col_idx}"
-                    )
-                    break
-            if month_start_col is not None:
-                break
-
-        if month_start_col is None:
-            logger.warning(f"Month '{target_month_name}' not found in headers")
-            # Fallback to old method
-            return DateColumnFinder._find_date_column_fallback(
-                df, target_date, search_rows
-            )
-
-        # Step 2: Determine the end of this month's section
-        # Look for the next month header or end of data
-        month_end_col = len(df.columns) - 1  # Default to end of sheet
-
-        for next_month in range(target_month + 1, 13):  # Check subsequent months
-            next_month_name = month_names[next_month]
-            for row_idx in range(min(3, len(df))):
-                for col_idx in range(month_start_col + 1, len(df.columns)):
-                    cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
-                    if next_month_name in cell_value.upper():
-                        month_end_col = col_idx - 1
-                        logger.debug(
-                            f"Month section ends at column {month_end_col} (before {next_month_name})"
-                        )
-                        break
-                if month_end_col < len(df.columns) - 1:
-                    break
-            if month_end_col < len(df.columns) - 1:
-                break
-
-        logger.debug(
-            f"Searching for day {target_day} in columns {month_start_col} to {month_end_col}"
-        )
-
-        # Step 3: Look for the target day within this month's section
-        for row_idx in range(min(search_rows, len(df))):
-            for col_idx in range(month_start_col, month_end_col + 1):
-                cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
-
-                if not cell_value:
-                    continue
-
-                cell_value = cell_value.strip()
-
-                # Look for exact day pattern like "28Чт"
-                day_pattern = r"^(\d{1,2})[А-Яа-я]{0,2}$"
-                match = re.search(day_pattern, cell_value)
-
-                if match and int(match.group(1)) == target_day:
-                    logger.debug(
-                        f"Found day {target_day} at row {row_idx}, col {col_idx} in {target_month_name}: '{cell_value}'"
-                    )
-                    return col_idx
-
-                # Also check for simple day number
-                if cell_value == str(target_day):
-                    logger.debug(
-                        f"Found simple day {target_day} at row {row_idx}, col {col_idx} in {target_month_name}"
-                    )
-                    return col_idx
-
-        logger.warning(f"Day {target_day} not found in {target_month_name} section")
-        return None
-
-    @staticmethod
-    def _find_date_column_fallback(
-        df: pd.DataFrame, target_date: datetime, search_rows: int = 5
-    ) -> Optional[int]:
-        """Fallback method - original logic for when month-based search fails."""
-        target_day = target_date.day
-
-        for row_idx in range(min(search_rows, len(df))):
-            for col_idx in range(len(df.columns)):
-                cell_value = CommonUtils.get_cell_value(df, row_idx, col_idx)
-
-                if not cell_value:
-                    continue
-
-                # Pattern for day with letters (like "28Чт")
-                day_pattern = r"^(\d{1,2})[А-Яа-я]{1,2}$"
-                match = re.search(day_pattern, cell_value.strip())
-
-                if match and int(match.group(1)) == target_day:
-                    logger.debug(f"Fallback: Found date column {target_day}: {col_idx}")
-                    return col_idx
-
-        return None
-
-
-class BaseExcelParser(ABC):
-    """Abstract base class for Excel parsers."""
-
-    def __init__(self, uploads_folder: str = "uploads"):
-        self.file_manager = ScheduleFileManager(uploads_folder)
-        self.utils = CommonUtils()
-        self.date_finder = DateColumnFinder()
-        self.time_utils = TimeUtils()
-
-    @staticmethod
-    def read_excel_file(
-        file_path: Path, sheet_name: str = "ГРАФИК"
-    ) -> Optional[DataFrame]:
-        """Read Excel file and return DataFrame."""
-        try:
-            df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
-            logger.debug(f"Successfully read sheet: {sheet_name}")
-            return df
-        except Exception as e:
-            logger.debug(f"Failed to read sheet '{sheet_name}': {e}")
-            return None
-
-    def find_user_row(
-        self, df: pd.DataFrame, fullname: str, search_cols: int = 3
-    ) -> Optional[int]:
-        """Find row containing user's full name."""
-        for row_idx in range(len(df)):
-            for col_idx in range(min(search_cols, len(df.columns))):
-                cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
-
-                if fullname in cell_value:
-                    logger.debug(f"User '{fullname}' found in row {row_idx}")
-                    return row_idx
-
-        return None
-
-    @abstractmethod
-    def format_schedule(self, data: List, date: datetime) -> str:
-        """Format files_processing data for display."""
-        pass
-
-
-class MonthlyScheduleParser(BaseExcelParser, ABC):
-    """Parser for monthly schedules."""
-
-    @staticmethod
-    def find_month_columns(df: pd.DataFrame, month: str) -> Tuple[int, int]:
-        """Find start and end columns for specified month."""
-        month = MonthManager.normalize_month(month)
-
-        def find_month_index(
-            target_month: str, target_first_col: int = 0
-        ) -> Optional[int]:
-            for col_idx in range(target_first_col, len(df.columns)):
-                # Check in headers
-                col_name = (
-                    str(df.columns[col_idx]).upper() if df.columns[col_idx] else ""
-                )
-                if target_month in col_name:
-                    return col_idx
-
-                # Check in first few rows
-                for row_idx in range(min(5, len(df))):
-                    val = df.iat[row_idx, col_idx]
-                    if isinstance(val, str) and target_month in val.upper():
-                        return col_idx
-            return None
-
-        start_column = find_month_index(month)
-        if start_column is None:
-            raise ValueError(f"Month {month} not found in files_processing")
-
-        # Find end column (before next month)
-        end_column = len(df.columns) - 1
-        for m in MonthManager.MONTHS_ORDER:
-            if m != month:
-                next_month_col = find_month_index(m, start_column + 1)
-                if next_month_col is not None:
-                    end_column = next_month_col - 1
-                    break
-
-        logger.debug(f"Month '{month}' found in columns {start_column}-{end_column}")
-        return start_column, end_column
-
-    def find_day_headers(
-        self, df: pd.DataFrame, start_column: int, end_column: int
-    ) -> Dict[int, str]:
-        """Find day headers in specified column range."""
-        day_headers = {}
-
-        for row_idx in range(min(5, len(df))):
-            for col_idx in range(start_column, end_column + 1):
-                cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
-
-                # Pattern for day with letters
-                day_pattern = r"(\d{1,2})([А-Яа-я]{1,2})"
-                match = re.search(day_pattern, cell_value)
-
-                if match:
-                    day_num = match.group(1)
-                    day_name = match.group(2)
-                    day_headers[col_idx] = f"{day_num} ({day_name})"
-                elif (
-                    cell_value.strip().isdigit() and 1 <= int(cell_value.strip()) <= 31
-                ):
-                    day_headers[col_idx] = cell_value.strip()
-
-        logger.debug(f"Found {len(day_headers)} days in headers")
-        return day_headers
-
-
-class ScheduleParser(MonthlyScheduleParser):
-    """Main files_processing parser class."""
+class ScheduleParser(BaseParser):
+    """Полностью оптимизированный парсер графиков с кэшированием."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)
@@ -383,139 +40,59 @@ class ScheduleParser(MonthlyScheduleParser):
     def get_user_schedule(
         self, fullname: str, month: str, division: str
     ) -> Dict[str, str]:
-        """Get user's files_processing for specified month."""
+        """Получает график пользователя с использованием оптимизированного быстрого чтения.
+
+        Args:
+            fullname: ФИО пользователя
+            month: Название месяца
+            division: Направление
+
+        Returns:
+            Словарь с графиком {день: значение}
+
+        Raises:
+            FileNotFoundError: Если файл графика не найден
+        """
         try:
             schedule_file = self.file_manager.find_schedule_file(division)
             if not schedule_file:
                 raise FileNotFoundError(f"Файл графика для {division} не найден")
 
-            df = self.read_excel_file(schedule_file)
-            if df is None:
-                raise ValueError("Не удалось прочитать файл графика")
+            # Use FastExcelReader with caching
+            reader = ExcelReader(schedule_file)
+            schedule = reader.extract_user_schedule(fullname, month)
 
-            start_column, end_column = self.find_month_columns(df, month)
-            day_headers = self.find_day_headers(df, start_column, end_column)
-
-            user_row_idx = self.find_user_row(df, fullname)
-            if user_row_idx is None:
-                raise ValueError(f"Сотрудник {fullname} не найден в графике")
-
-            schedule = {}
-            for col_idx in range(start_column, end_column + 1):
-                if col_idx in day_headers:
-                    day = day_headers[col_idx]
-                    schedule_value = self.utils.get_cell_value(
-                        df, user_row_idx, col_idx
-                    ).strip()
-
-                    if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
-                        schedule_value = "Не указано"
-
-                    schedule[day] = schedule_value
-
-            logger.info(f"Found {len(schedule)} days for {fullname} in {month}")
+            logger.info(
+                f"[Optimized] Found {len(schedule)} days for {fullname} in {month}"
+            )
             return schedule
 
         except Exception as e:
-            logger.error(f"Error getting files_processing: {e}")
+            logger.error(f"Error getting schedule: {e}")
             raise
-
-    def get_user_schedule_with_additional_shifts(
-        self, fullname: str, month: str, division: str
-    ) -> Tuple[Dict[str, str], Dict[str, str]]:
-        """Get user's files_processing with additional shifts detected by color #cc99ff."""
-        try:
-            schedule_file = self.file_manager.find_schedule_file(division)
-            if not schedule_file:
-                raise FileNotFoundError(f"Файл графика для {division} не найден")
-
-            # Load with openpyxl to access cell formatting
-            wb = load_workbook(schedule_file, data_only=False)
-            ws = wb["ГРАФИК"] if "ГРАФИК" in wb.sheetnames else wb.active
-
-            # Also load with pandas for easier data access
-            df = self.read_excel_file(schedule_file)
-            if df is None:
-                raise ValueError("Не удалось прочитать файл графика")
-
-            start_column, end_column = self.find_month_columns(df, month)
-            day_headers = self.find_day_headers(df, start_column, end_column)
-
-            user_row_idx = self.find_user_row(df, fullname)
-            if user_row_idx is None:
-                raise ValueError(f"Сотрудник {fullname} не найден в графике")
-
-            schedule = {}
-            additional_shifts = {}
-
-            for col_idx in range(start_column, end_column + 1):
-                if col_idx in day_headers:
-                    day = day_headers[col_idx]
-                    schedule_value = self.utils.get_cell_value(
-                        df, user_row_idx, col_idx
-                    ).strip()
-
-                    if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
-                        schedule_value = "Не указано"
-
-                    # Check cell color in openpyxl (1-indexed)
-                    cell = ws.cell(row=user_row_idx + 1, column=col_idx + 1)
-                    is_additional_shift = self._is_additional_shift_color(cell)
-
-                    if is_additional_shift and schedule_value not in [
-                        "Не указано",
-                        "В",
-                        "О",
-                        "0",
-                        "0.0",
-                    ]:
-                        additional_shifts[day] = schedule_value
-                    else:
-                        schedule[day] = schedule_value
-
-            logger.debug(
-                f"Found {len(schedule)} regular days and {len(additional_shifts)} additional shifts for {fullname} in {month}"
-            )
-            return schedule, additional_shifts
-
-        except Exception as e:
-            logger.error(f"Error getting files_processing with additional shifts: {e}")
-            raise
-
-    @staticmethod
-    def _is_additional_shift_color(cell) -> bool:
-        """Check if cell has the additional shift color #cc99ff."""
-        try:
-            if cell.fill and cell.fill.start_color:
-                color = cell.fill.start_color
-
-                # Convert color to hex if it's a Color object
-                if hasattr(color, "rgb") and color.rgb:
-                    hex_color = color.rgb
-                    if isinstance(hex_color, str) and len(hex_color) >= 6:
-                        # Remove alpha channel if present (ARGB -> RGB)
-                        if len(hex_color) == 8:
-                            hex_color = hex_color[2:]
-                        # Check if it matches #cc99ff (case insensitive)
-                        return hex_color.lower() == "cc99ff"
-
-                # Also check indexed colors if available
-                if hasattr(color, "indexed") and color.indexed is not None:
-                    # This would require a color palette lookup
-                    # For now, we'll rely on RGB values
-                    pass
-
-            return False
-        except Exception as e:
-            logger.debug(f"Error checking cell color: {e}")
-            return False
 
     async def get_user_schedule_with_duties(
-        self, fullname: str, month: str, division: str, stp_repo=None
-    ) -> Dict[str, tuple[str, Optional[str]]]:
-        """Get user's files_processing with duty information for specified month."""
+        self,
+        fullname: str,
+        month: str,
+        division: str,
+        stp_repo=None,
+        current_day_only: bool = False,
+    ) -> Dict[str, Tuple[str, Optional[str]]]:
+        """Получает график пользователя с информацией о дежурствах (оптимизировано).
+
+        Args:
+            fullname: ФИО пользователя
+            month: Название месяца
+            division: Направление
+            stp_repo: Репозиторий базы данных
+            current_day_only: Если True, получает дежурство только для текущего дня (быстрее для компактного вида)
+
+        Returns:
+            Словарь с маппингом день -> (график, информация_о_дежурстве)
+        """
         try:
-            # Get regular files_processing data
+            # Get schedule using fast reader
             schedule_data = self.get_user_schedule(fullname, month, division)
 
             if not schedule_data or not stp_repo:
@@ -523,67 +100,70 @@ class ScheduleParser(MonthlyScheduleParser):
                     day: (schedule, None) for day, schedule in schedule_data.items()
                 }
 
-            # Get duty parser to check for duty information
+            # Get duty parser
             duty_parser = DutyScheduleParser()
 
-            # OPTIMIZATION: Get all duties for the month at once instead of day by day
+            # Get current date info
             current_year = datetime.now().year
+            current_month_num = datetime.now().month
+            current_day_num = datetime.now().day
             month_num = MonthManager.get_month_number(month)
 
-            try:
-                # Create a date object for the first day of the month to get month duties
-                first_day_of_month = datetime(current_year, month_num, 1)
+            # Check if we're viewing the current month
+            is_current_month = (current_year, month_num) == (
+                current_year,
+                current_month_num,
+            )
 
-                # Get all duties for the entire month at once
-                month_duties = await duty_parser.get_duties_for_month(
-                    first_day_of_month, division, stp_repo
-                )
+            month_duties = {}
 
-                logger.debug(
-                    f"Retrieved duties for {len(month_duties)} days in month {month}"
-                )
+            # OPTIMIZATION: For current_day_only mode, only fetch today's duty
+            if current_day_only and is_current_month:
+                try:
+                    current_date = datetime(current_year, month_num, current_day_num)
+                    today_duties = await duty_parser.get_duties_for_date(
+                        current_date, division, stp_repo
+                    )
+                    if today_duties:
+                        month_duties[current_day_num] = today_duties
+                    logger.debug(
+                        f"[Optimized] Retrieved duty for current day only ({current_day_num})"
+                    )
+                except Exception as e:
+                    logger.debug(f"Failed to get current day duty: {e}")
+            else:
+                # Full month duties (for detailed view or non-current month)
+                try:
+                    first_day_of_month = datetime(current_year, month_num, 1)
+                    month_duties = await duty_parser.get_duties_for_month(
+                        first_day_of_month, division, stp_repo
+                    )
+                    logger.debug(
+                        f"[Optimized] Retrieved duties for {len(month_duties)} days in {month}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to get month duties: {e}")
+                    month_duties = {}
 
-            except Exception as e:
-                logger.warning(
-                    f"Failed to get month duties, falling back to individual day queries: {e}"
-                )
-                month_duties = {}
-
-            # Create result with duty information
+            # Build result with duty information
             schedule_with_duties = {}
 
             for day, schedule in schedule_data.items():
                 duty_info = None
 
-                # Try to parse the date and check for duty information
                 try:
-                    # Extract day number from day string (e.g., "1 (Пн)" -> 1)
-                    import re
-
                     day_match = re.search(r"(\d+)", day)
                     if day_match:
                         day_num = int(day_match.group(1))
 
-                        # Check if we have month duties data
                         if month_duties and day_num in month_duties:
-                            # Use optimized month data
                             duties = month_duties[day_num]
-                        else:
-                            # Fallback to individual day query
-                            try:
-                                date = datetime(current_year, month_num, day_num)
-                                duties = await duty_parser.get_duties_for_date(
-                                    date, division, stp_repo
-                                )
-                            except ValueError:
-                                # Invalid date, skip duty check
-                                duties = []
 
-                        # Check if user is on duty
-                        for duty in duties:
-                            if self.utils.names_match(fullname, duty.name):
-                                duty_info = f"{duty.schedule} {duty.shift_type}"
-                                break
+                            # Check if user is on duty
+                            for duty in duties:
+                                if self.names_match(fullname, duty.name):
+                                    duty_info = f"{duty.schedule} {duty.shift_type}"
+                                    break
 
                 except Exception as e:
                     logger.debug(f"Error checking duty for {fullname} on {day}: {e}")
@@ -593,8 +173,7 @@ class ScheduleParser(MonthlyScheduleParser):
             return schedule_with_duties
 
         except Exception as e:
-            logger.error(f"Error getting files_processing with duties: {e}")
-            # Fallback to regular files_processing without duties
+            logger.error(f"Error getting schedule with duties: {e}")
             schedule_data = self.get_user_schedule(fullname, month, division)
             return {day: (schedule, None) for day, schedule in schedule_data.items()}
 
@@ -605,7 +184,17 @@ class ScheduleParser(MonthlyScheduleParser):
         division: str,
         compact: bool = False,
     ) -> str:
-        """Get formatted user files_processing."""
+        """Получает отформатированный график пользователя (оптимизировано).
+
+        Args:
+            fullname: ФИО пользователя
+            month: Название месяца
+            division: Направление
+            compact: Использовать компактный формат
+
+        Returns:
+            Отформатированная строка с графиком
+        """
         try:
             schedule_data = self.get_user_schedule(fullname, month, division)
 
@@ -631,16 +220,33 @@ class ScheduleParser(MonthlyScheduleParser):
         compact: bool = False,
         stp_repo=None,
     ) -> str:
-        """Get formatted user files_processing with duty information."""
+        """Получает отформатированный график пользователя с дежурствами (оптимизировано).
+
+        Для компактного вида: получает дежурство только текущего дня (быстро)
+        Для детального вида: получает дежурства за весь месяц (медленнее, но полно)
+
+        Args:
+            fullname: ФИО пользователя
+            month: Название месяца
+            division: Направление
+            compact: Использовать компактный формат
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Отформатированная строка с графиком и дежурствами
+        """
         try:
             schedule_data_with_duties = await self.get_user_schedule_with_duties(
-                fullname, month, division, stp_repo
+                fullname,
+                month,
+                division,
+                stp_repo,
+                current_day_only=compact,
             )
 
             if not schedule_data_with_duties:
-                return f"❌ Schedule for <b>{fullname}</b> in {month} not found"
+                return f"❌ Не найден график для <b>{fullname}</b> на {month}"
 
-            # Extract regular files_processing data for analysis
             schedule_data = {
                 day: schedule
                 for day, (schedule, _) in schedule_data_with_duties.items()
@@ -648,9 +254,25 @@ class ScheduleParser(MonthlyScheduleParser):
             analysis = self.analyzer.analyze_schedule(schedule_data)
 
             if compact:
-                # For compact view, use regular formatting without duties
-                return self.formatter.format_compact(month, *analysis)
+                # Extract current day's duty info for compact view
+                current_day_duty = None
+                current_day_num = datetime.now().day
+                for day_key, (_, duty_info) in schedule_data_with_duties.items():
+                    day_match = re.search(r"(\d+)", day_key)
+                    if day_match and int(day_match.group(1)) == current_day_num:
+                        current_day_duty = duty_info
+                        break
+
+                logger.debug(
+                    f"[Excel] Компактный вид дежурного: {current_day_duty or 'None'}"
+                )
+
+                # Для компактного вида отображаем только текущий день дежурств
+                return self.formatter.format_compact(
+                    month, *analysis, current_day_duty=current_day_duty
+                )
             else:
+                # Для детального вида отображаем график дежурств на весь месяц
                 return self.formatter.format_detailed_with_duties(
                     month, schedule_data_with_duties, *analysis
                 )
@@ -659,18 +281,28 @@ class ScheduleParser(MonthlyScheduleParser):
             logger.error(f"Schedule formatting error: {e}")
             return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
 
-    def format_schedule(self, data: List, date: datetime) -> str:
-        """Format files_processing data for display."""
-        # Implementation depends on data structure
-        return ""
+    def parse(self, *args, **kwargs):
+        """Реализация абстрактного метода parse.
+
+        Returns:
+            Результат get_user_schedule
+        """
+        return self.get_user_schedule(*args, **kwargs)
 
 
-class BaseDutyParser(BaseExcelParser, ABC):
-    """Base class for duty-related parsers."""
+class DutyScheduleParser(BaseParser):
+    """Полностью оптимизированный парсер графика дежурных с кэшированием."""
 
     @staticmethod
     def get_duty_sheet_name(date: datetime) -> str:
-        """Generate sheet name for duty files_processing."""
+        """Генерирует название листа для графика дежурных.
+
+        Args:
+            date: Дата для определения месяца
+
+        Returns:
+            Название листа (например, "Дежурство Январь")
+        """
         month_names = [
             "Январь",
             "Февраль",
@@ -690,7 +322,14 @@ class BaseDutyParser(BaseExcelParser, ABC):
 
     @staticmethod
     def parse_duty_entry(cell_value: str) -> Tuple[str, str]:
-        """Parse duty entry to extract shift type and time."""
+        """Разбирает запись дежурства для извлечения типа смены и времени.
+
+        Args:
+            cell_value: Значение ячейки (например, "П 09:00-18:00")
+
+        Returns:
+            Кортеж (тип_смены, график)
+        """
         if not cell_value or cell_value.strip() in ["", "nan", "None"]:
             return "", ""
 
@@ -706,204 +345,49 @@ class BaseDutyParser(BaseExcelParser, ABC):
             else:
                 return "", cell_value
 
-
-class DutyScheduleParser(BaseDutyParser):
-    """Parser for duty schedules."""
-
-    async def get_current_senior_duty(
-        self, division: str, stp_repo: MainRequestsRepo
-    ) -> Optional[DutyInfo]:
-        """Get current senior duty for division based on current time."""
-        date = datetime.now(tz)
-
-        try:
-            # Get all duties for today
-            duties = await self.get_duties_for_date(date, division, stp_repo)
-
-            # Filter for senior duties only
-            senior_duties = [duty for duty in duties if duty.shift_type == "С"]
-
-            if not senior_duties:
-                return None
-
-            # Find the current senior duty based on time
-            for duty in senior_duties:
-                if self.utils.is_time_format(duty.schedule):
-                    start_minutes, end_minutes = self.utils.parse_time_range(
-                        duty.schedule
-                    )
-                    current_datetime = date
-                    current_time_minutes = (
-                        current_datetime.hour * 60 + current_datetime.minute
-                    )
-                    # Check if current time is within duty hours
-                    if start_minutes <= current_time_minutes <= end_minutes:
-                        return duty
-
-                    # Handle overnight shifts (end time is next day)
-                    elif end_minutes > 24 * 60:  # Overnight shift
-                        if (
-                            current_time_minutes >= start_minutes
-                            or current_time_minutes <= (end_minutes - 24 * 60)
-                        ):
-                            return duty
-
-            # If no active duty found, return None (no fallback)
-            return None
-
-        except Exception as e:
-            logger.error(f"Error getting current senior duty for {division}: {e}")
-            return None
-
-    async def get_current_helper_duty(
-        self, division: str, stp_repo: MainRequestsRepo
-    ) -> Optional[DutyInfo]:
-        """Get current helper duty for division based on current time."""
-        date = datetime.now(tz)
-
-        try:
-            # Get all duties for today
-            duties = await self.get_duties_for_date(date, division, stp_repo)
-
-            # Filter for helper duties only
-            helper_duties = [duty for duty in duties if duty.shift_type == "П"]
-
-            if not helper_duties:
-                return None
-
-            # Find the current helper duty based on time
-            for duty in helper_duties:
-                if self.utils.is_time_format(duty.schedule):
-                    start_minutes, end_minutes = self.utils.parse_time_range(
-                        duty.schedule
-                    )
-                    current_datetime = date.now()
-                    current_time_minutes = (
-                        current_datetime.hour * 60 + current_datetime.minute
-                    )
-                    # Check if current time is within duty hours
-                    if start_minutes <= current_time_minutes <= end_minutes:
-                        return duty
-
-                    # Handle overnight shifts (end time is next day)
-                    elif end_minutes > 24 * 60:  # Overnight shift
-                        if (
-                            current_time_minutes >= start_minutes
-                            or current_time_minutes <= (end_minutes - 24 * 60)
-                        ):
-                            return duty
-
-            # If no active duty found, return None (no fallback)
-            return None
-
-        except Exception as e:
-            logger.error(f"Error getting current helper duty for {division}: {e}")
-            return None
-
     async def get_duties_for_month(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> Dict[int, List[DutyInfo]]:
-        """Get list of duty officers for entire month. Returns dict with day number as key."""
+        """Получает все дежурства за весь месяц (оптимизировано с кэшированием).
+
+        Args:
+            date: Дата в нужном месяце
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Словарь {день_месяца: список_дежурных}
+        """
         try:
-            # For НТП divisions, use separate seniority file
-            if division in ["НТП", "НТП1", "НТП2"]:
+            # Определяем файл дежурств
+            if division in ["НТП1", "НТП2"]:
                 duty_file = self.file_manager.uploads_folder / "Старшинство_НТП.xlsx"
-                if not duty_file.exists():
-                    raise FileNotFoundError(
-                        "Файл графика дежурных 'Старшинство_НТП.xlsx' не найден"
-                    )
-                schedule_file = duty_file
-            # For НЦК division, use separate seniority file
             elif division == "НЦК":
                 duty_file = self.file_manager.uploads_folder / "Старшинство_НЦК.xlsx"
-                if not duty_file.exists():
-                    raise FileNotFoundError(
-                        "Файл графика дежурных 'Старшинство_НЦК.xlsx' не найден"
-                    )
-                schedule_file = duty_file
             else:
-                schedule_file = self.file_manager.find_schedule_file(division)
-                if not schedule_file:
-                    raise FileNotFoundError(
-                        f"Файл графика дежурных для {division} не найден"
-                    )
+                duty_file = self.file_manager.find_schedule_file(division)
+
+            if not duty_file or not duty_file.exists():
+                raise FileNotFoundError(
+                    f"Файл график для дежурных {division} не найден"
+                )
 
             sheet_name = self.get_duty_sheet_name(date)
 
-            try:
-                df = self.read_excel_file(schedule_file, sheet_name)
-            except Exception as e:
-                logger.warning(
-                    f"Failed to read files_processing with primary sheet name: {e}"
-                )
-
-                # For НТП and НЦК divisions, try different sheet name patterns
-                if division in ["НТП", "НТП1", "НТП2", "НЦК"]:
-                    # Try just the month name
-                    month_names = [
-                        "Январь",
-                        "Февраль",
-                        "Март",
-                        "Апрель",
-                        "Май",
-                        "Июнь",
-                        "Июль",
-                        "Август",
-                        "Сентябрь",
-                        "Октябрь",
-                        "Ноябрь",
-                        "Декабрь",
-                    ]
-                    month_name = month_names[date.month - 1]
-                    try:
-                        df = self.read_excel_file(schedule_file, month_name)
-                        logger.debug(
-                            f"Successfully read {division} duty sheet with name: {month_name}"
-                        )
-                    except Exception as e2:
-                        logger.warning(
-                            f"Failed to read {division} duty sheet with month name '{month_name}': {e2}"
-                        )
-                        df = None
-                else:
-                    df = None
-
-            if df is None:
-                logger.debug(
-                    f"[График дежурных] Не удалось найти график дежурных на {date} для {division}"
-                )
-                raise ValueError("Не удалось найти график дежурных")
-
-            # Find all date columns for the month
+            # Читаем файл с графиком
+            reader = ExcelReader(duty_file, sheet_name)
+            df = reader.df
             month_duties = {}
 
-            # Find all columns that might contain days from this month
+            # Находим все колонки с датами для месяца
             days_in_month = calendar.monthrange(date.year, date.month)[1]
 
-            # Find date columns for all days in the month
-            date_columns = {}
-            for day in range(1, days_in_month + 1):
-                try:
-                    day_date = datetime(date.year, date.month, day)
-                    date_col = self.date_finder.find_date_column(
-                        df, day_date, search_rows=3
-                    )
-                    if date_col is not None:
-                        date_columns[day] = date_col
-                except ValueError:
-                    # Invalid date, skip
-                    continue
-
-            logger.debug(
-                f"Found date columns for {len(date_columns)} days in month {date.month}"
-            )
-
-            # Parse duties for all found dates at once
+            # Сканим все строки и колонки
             for row_idx in range(len(df)):
-                # Find name in first few columns
+                # Находим ФИО сотрудника в первых колонках
                 name = ""
-                for col_idx in range(min(3, len(df.columns))):
-                    cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
+                for col_idx in range(min(3, df.shape[1])):
+                    cell_value = reader.get_cell(row_idx, col_idx)
 
                     if (
                         len(cell_value.split()) >= 3
@@ -916,189 +400,171 @@ class DutyScheduleParser(BaseDutyParser):
                 if not name:
                     continue
 
-                # Get user info once per person (optimization)
+                # Получаем инфо о сотруднике из БД
                 user: Employee = await stp_repo.employee.get_users(fullname=name)
                 if not user:
                     continue
 
-                # Check duty information for all dates in the month
-                for day, date_col in date_columns.items():
-                    if date_col < len(df.columns):
-                        duty_cell = self.utils.get_cell_value(df, row_idx, date_col)
+                # Проверяем все дни в месяце
+                for day in range(1, days_in_month + 1):
+                    try:
+                        day_date = datetime(date.year, date.month, day)
+                        day_col = reader.find_date_column(day_date)
 
-                        if duty_cell and duty_cell.strip() not in [
-                            "",
-                            "nan",
-                            "None",
-                            "0",
-                            "0.0",
-                        ]:
-                            shift_type, schedule = self.parse_duty_entry(duty_cell)
+                        if day_col is not None and day_col < df.shape[1]:
+                            duty_cell = reader.get_cell(row_idx, day_col)
 
-                            if shift_type in ["С", "П"] and self.utils.is_time_format(
-                                schedule
-                            ):
-                                if day not in month_duties:
-                                    month_duties[day] = []
+                            if duty_cell and duty_cell.strip() not in [
+                                "",
+                                "nan",
+                                "None",
+                                "0",
+                                "0.0",
+                            ]:
+                                shift_type, schedule = self.parse_duty_entry(duty_cell)
 
-                                month_duties[day].append(
-                                    DutyInfo(
-                                        name=name,
-                                        user_id=user.user_id,
-                                        username=user.username,
-                                        schedule=schedule,
-                                        shift_type=shift_type,
-                                        work_hours=schedule,
+                                if shift_type in ["С", "П"] and self.is_time_format(
+                                    schedule
+                                ):
+                                    if day not in month_duties:
+                                        month_duties[day] = []
+
+                                    month_duties[day].append(
+                                        DutyInfo(
+                                            name=name,
+                                            user_id=user.user_id,
+                                            username=user.username,
+                                            schedule=schedule,
+                                            shift_type=shift_type,
+                                            work_hours=schedule,
+                                        )
                                     )
-                                )
+                    except (ValueError, Exception):
+                        continue
 
             total_duties = sum(len(duties) for duties in month_duties.values())
-            logger.info(
-                f"Found duties for {len(month_duties)} days in month {date.month}/{date.year}, total {total_duties} duties"
+            logger.debug(
+                f"[Excel] Найдены дежурные на {len(month_duties)} дней, всего {total_duties} дежурных"
             )
             return month_duties
 
         except Exception as e:
-            logger.debug(f"[Дежурные] Не удалось найти график дежурных: {e}")
+            logger.debug(f"[Excel] Ошибка проверки дежурных на месяц: {e}")
             return {}
 
     async def get_duties_for_date(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> List[DutyInfo]:
-        """Get list of duty officers for specified date."""
+        """Получает дежурства для конкретной даты (оптимизировано).
+
+        Args:
+            date: Дата
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Список дежурных на эту дату
+        """
         try:
-            # For НТП divisions, use separate seniority file
-            if division in ["НТП", "НТП1", "НТП2"]:
-                duty_file = self.file_manager.uploads_folder / "Старшинство_НТП.xlsx"
-                if not duty_file.exists():
-                    raise FileNotFoundError(
-                        "Файл графика дежурных 'Старшинство_НТП.xlsx' не найден"
-                    )
-                schedule_file = duty_file
-            # For НЦК division, use separate seniority file
-            elif division == "НЦК":
-                duty_file = self.file_manager.uploads_folder / "Старшинство_НЦК.xlsx"
-                if not duty_file.exists():
-                    raise FileNotFoundError(
-                        "Файл графика дежурных 'Старшинство_НЦК.xlsx' не найден"
-                    )
-                schedule_file = duty_file
-            else:
-                schedule_file = self.file_manager.find_schedule_file(division)
-                if not schedule_file:
-                    raise FileNotFoundError(
-                        f"Duty files_processing file for {division} not found"
-                    )
+            # Сперва пробуем использовать кеш
+            month_duties = await self.get_duties_for_month(date, division, stp_repo)
 
-            sheet_name = self.get_duty_sheet_name(date)
+            if date.day in month_duties:
+                return month_duties[date.day]
 
-            try:
-                df = self.read_excel_file(schedule_file, sheet_name)
-            except Exception as e:
-                logger.warning(
-                    f"Failed to read files_processing with primary sheet name: {e}"
-                )
-
-                # For НТП and НЦК divisions, try different sheet name patterns
-                if division in ["НТП", "НТП1", "НТП2", "НЦК"]:
-                    # Try just the month name
-                    month_names = [
-                        "Январь",
-                        "Февраль",
-                        "Март",
-                        "Апрель",
-                        "Май",
-                        "Июнь",
-                        "Июль",
-                        "Август",
-                        "Сентябрь",
-                        "Октябрь",
-                        "Ноябрь",
-                        "Декабрь",
-                    ]
-                    month_name = month_names[date.month - 1]
-                    try:
-                        df = self.read_excel_file(schedule_file, month_name)
-                        logger.debug(
-                            f"Successfully read {division} duty sheet with name: {month_name}"
-                        )
-                    except Exception as e2:
-                        logger.warning(
-                            f"Failed to read {division} duty sheet with month name '{month_name}': {e2}"
-                        )
-                        df = None
-                else:
-                    df = None
-
-            if df is None:
-                logger.debug(
-                    f"[График дежурных] Не удалось найти график дежурных на {date} для {division}"
-                )
-                raise ValueError("Не удалось найти график дежурных")
-
-            date_col = self.date_finder.find_date_column(df, date, search_rows=3)
-            if date_col is None:
-                logger.warning(f"Date {date.day} not found in duty files_processing")
-                return []
-
-            duties = []
-
-            for row_idx in range(len(df)):
-                # Find name in first few columns
-                name = ""
-                for col_idx in range(min(3, len(df.columns))):
-                    cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
-
-                    if (
-                        len(cell_value.split()) >= 3
-                        and re.search(r"[А-Яа-я]", cell_value)
-                        and not re.search(r"\d", cell_value)
-                    ):
-                        name = cell_value.strip()
-                        break
-
-                if not name:
-                    continue
-
-                # Check duty information for this date
-                if date_col < len(df.columns):
-                    duty_cell = self.utils.get_cell_value(df, row_idx, date_col)
-
-                    if duty_cell and duty_cell.strip() not in [
-                        "",
-                        "nan",
-                        "None",
-                        "0",
-                        "0.0",
-                    ]:
-                        shift_type, schedule = self.parse_duty_entry(duty_cell)
-
-                        if shift_type in ["С", "П"] and self.utils.is_time_format(
-                            schedule
-                        ):
-                            user: Employee = await stp_repo.employee.get_users(
-                                fullname=name
-                            )
-                            if user:
-                                duties.append(
-                                    DutyInfo(
-                                        name=name,
-                                        user_id=user.user_id,
-                                        username=user.username,
-                                        schedule=schedule,
-                                        shift_type=shift_type,
-                                        work_hours=schedule,
-                                    )
-                                )
-
-            logger.info(
-                f"Found {len(duties)} duty officers for {date.strftime('%d.%m.%Y')}"
-            )
-            return duties
+            return []
 
         except Exception as e:
-            logger.debug(f"[Дежурные] Не удалось найти график дежурных:  {e}")
+            logger.debug(f"[Excel] Ошибка получения дежурных для даты: {e}")
             return []
+
+    async def get_current_senior_duty(
+        self, division: str, stp_repo: MainRequestsRepo
+    ) -> Optional[DutyInfo]:
+        """Получает текущего старшего дежурного (оптимизировано).
+
+        Args:
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Информация о текущем старшем дежурном или None
+        """
+        date = datetime.now(tz)
+
+        try:
+            duties = await self.get_duties_for_date(date, division, stp_repo)
+            senior_duties = [duty for duty in duties if duty.shift_type == "С"]
+
+            if not senior_duties:
+                return None
+
+            # Find current duty based on time
+            for duty in senior_duties:
+                if self.is_time_format(duty.schedule):
+                    start_minutes, end_minutes = self.parse_time_range(duty.schedule)
+                    current_time_minutes = date.hour * 60 + date.minute
+
+                    if start_minutes <= current_time_minutes <= end_minutes:
+                        return duty
+
+                    # Handle overnight shifts
+                    if end_minutes > 24 * 60:
+                        if (
+                            current_time_minutes >= start_minutes
+                            or current_time_minutes <= (end_minutes - 24 * 60)
+                        ):
+                            return duty
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting current senior duty: {e}")
+            return None
+
+    async def get_current_helper_duty(
+        self, division: str, stp_repo: MainRequestsRepo
+    ) -> Optional[DutyInfo]:
+        """Получает текущего помощника дежурного (оптимизировано).
+
+        Args:
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Информация о текущем помощнике дежурного или None
+        """
+        date = datetime.now(tz)
+
+        try:
+            duties = await self.get_duties_for_date(date, division, stp_repo)
+            helper_duties = [duty for duty in duties if duty.shift_type == "П"]
+
+            if not helper_duties:
+                return None
+
+            # Find current duty based on time
+            for duty in helper_duties:
+                if self.is_time_format(duty.schedule):
+                    start_minutes, end_minutes = self.parse_time_range(duty.schedule)
+                    current_time_minutes = date.hour * 60 + date.minute
+
+                    if start_minutes <= current_time_minutes <= end_minutes:
+                        return duty
+
+                    # Handle overnight shifts
+                    if end_minutes > 24 * 60:
+                        if (
+                            current_time_minutes >= start_minutes
+                            or current_time_minutes <= (end_minutes - 24 * 60)
+                        ):
+                            return duty
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting current helper duty: {e}")
+            return None
 
     async def format_schedule(
         self,
@@ -1108,7 +574,18 @@ class DutyScheduleParser(BaseDutyParser):
         division: str = None,
         stp_repo=None,
     ) -> str:
-        """Format duties for date display."""
+        """Форматирует дежурства для отображения (оптимизировано).
+
+        Args:
+            duties: Список дежурных
+            date: Дата
+            highlight_current: Подсвечивать текущих дежурных
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Отформатированная строка с дежурствами
+        """
         if not duties:
             return f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдено дежурных на эту дату"
 
@@ -1128,7 +605,7 @@ class DutyScheduleParser(BaseDutyParser):
         time_groups = {}
         for duty in duties:
             time_schedule = duty.schedule
-            if not time_schedule or not self.utils.is_time_format(time_schedule):
+            if not time_schedule or not self.is_time_format(time_schedule):
                 continue
 
             if time_schedule not in time_groups:
@@ -1143,7 +620,7 @@ class DutyScheduleParser(BaseDutyParser):
 
         # Sort by time
         sorted_times = sorted(
-            time_groups.keys(), key=lambda t: self.utils.parse_time_range(t)[0]
+            time_groups.keys(), key=lambda t: self.parse_time_range(t)[0]
         )
 
         # Identify current duty time slots
@@ -1163,10 +640,8 @@ class DutyScheduleParser(BaseDutyParser):
                     ):
                         current_time_slots.add(time_schedule)
 
-        # Check if we need to start/end blockquote
+        # Build formatted output
         in_blockquote = False
-
-        # Count current slots for spacing logic
         current_slots_count = len(current_time_slots)
 
         for i, time_schedule in enumerate(sorted_times):
@@ -1177,37 +652,26 @@ class DutyScheduleParser(BaseDutyParser):
             if is_current_slot and not in_blockquote:
                 lines.append(f"<blockquote>⏰ {time_schedule}")
                 in_blockquote = True
-            # End blockquote if we were in one but this slot is not current
             elif not is_current_slot and in_blockquote:
                 lines.append("</blockquote>")
                 in_blockquote = False
-                # Add time header without <b> tags
                 lines.append(f"⏰ {time_schedule}")
             else:
-                # Add time header without <b> tags
                 lines.append(f"⏰ {time_schedule}")
 
             # Add senior officers
             for duty in group["seniors"]:
                 lines.append(
-                    f"Дежурный - {
-                        format_fullname(
-                            duty.name, True, True, duty.username, duty.user_id
-                        )
-                    }"
+                    f"Дежурный - {format_fullname(duty.name, True, True, duty.username, duty.user_id)}"
                 )
 
             # Add helpers
             for duty in group["helpers"]:
                 lines.append(
-                    f"Помощник - {
-                        format_fullname(
-                            duty.name, True, True, duty.username, duty.user_id
-                        )
-                    }"
+                    f"Помощник - {format_fullname(duty.name, True, True, duty.username, duty.user_id)}"
                 )
 
-            # Check if next slot is current to decide whether to close blockquote
+            # Check if next slot is current
             next_is_current = False
             if i + 1 < len(sorted_times):
                 next_time_schedule = sorted_times[i + 1]
@@ -1215,14 +679,11 @@ class DutyScheduleParser(BaseDutyParser):
 
             # Add spacing logic
             if is_current_slot and not next_is_current and in_blockquote:
-                # End blockquote if this was current slot and next is not current (or this is last slot)
                 lines.append("</blockquote>")
                 in_blockquote = False
             elif not is_current_slot:
-                # Regular spacing for non-current slots
                 lines.append("")
             elif is_current_slot and next_is_current:
-                # Add empty line between current slots if there are few current slots (≤3)
                 if current_slots_count <= 3:
                     lines.append("")
 
@@ -1232,47 +693,60 @@ class DutyScheduleParser(BaseDutyParser):
 
         return "\n".join(lines)
 
+    def parse(self, *args, **kwargs):
+        """Реализация абстрактного метода parse."""
+        pass
 
-class HeadScheduleParser(BaseExcelParser):
-    """Parser for head schedules."""
+
+class HeadScheduleParser(BaseParser):
+    """Полностью оптимизированный парсер графика руководителей с кэшированием."""
 
     async def get_heads_for_date(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> List[HeadInfo]:
-        """Get list of heads for specified date."""
+        """Получает руководителей на дату (оптимизировано с кэшированием).
+
+        Args:
+            date: Дата
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Список руководителей на эту дату
+        """
         duty_parser = DutyScheduleParser()
         duties = await duty_parser.get_duties_for_date(date, division, stp_repo)
 
         try:
-            # For НТП divisions, use НТП2 file since НТП1 doesn't contain head data
-            if division in ["НТП", "НТП1", "НТП2"]:
+            # Determine schedule file
+            if division in ["НТП1", "НТП2"]:
                 schedule_file = self.file_manager.find_schedule_file("НТП2")
             else:
                 schedule_file = self.file_manager.find_schedule_file(division)
 
             if not schedule_file:
-                raise FileNotFoundError(
-                    f"Head files_processing file for {division} not found"
-                )
+                raise FileNotFoundError(f"Schedule file for {division} not found")
 
-            df = self.read_excel_file(schedule_file, "ГРАФИК")
-            if df is None:
-                raise ValueError("Failed to read head files_processing")
+            # Use FastExcelReader with caching
+            reader = ExcelReader(schedule_file, "ГРАФИК")
+            df = reader.df
 
-            date_col = self.date_finder.find_date_column(df, date)
+            # Find date column
+            date_col = reader.find_date_column(date)
             if date_col is None:
-                logger.warning(f"Date {date.day} not found in head files_processing")
+                logger.warning(f"Date {date.day} not found in head schedule")
                 return []
 
             heads = []
 
+            # Scan through rows to find heads
             for row_idx in range(len(df)):
                 position_found = False
                 name = ""
 
-                # Look for position and name in first few columns
-                for col_idx in range(min(5, len(df.columns))):
-                    cell_value = self.utils.get_cell_value(df, row_idx, col_idx)
+                # Look for position and name in first columns
+                for col_idx in range(min(5, df.shape[1])):
+                    cell_value = reader.get_cell(row_idx, col_idx)
 
                     if "Руководитель группы" in cell_value:
                         position_found = True
@@ -1288,11 +762,11 @@ class HeadScheduleParser(BaseExcelParser):
                 if not position_found or not name:
                     continue
 
-                # Check files_processing for this date
-                if date_col < len(df.columns):
-                    schedule_cell = self.utils.get_cell_value(df, row_idx, date_col)
+                # Check schedule for this date
+                if date_col < df.shape[1]:
+                    schedule_cell = reader.get_cell(row_idx, date_col)
                     if schedule_cell and schedule_cell.strip():
-                        if self.utils.is_time_format(schedule_cell):
+                        if self.is_time_format(schedule_cell):
                             duty_info = await self._check_duty_for_head(name, duties)
                             user: Employee = await stp_repo.employee.get_users(
                                 fullname=name
@@ -1308,7 +782,9 @@ class HeadScheduleParser(BaseExcelParser):
                                     )
                                 )
 
-            logger.info(f"Found {len(heads)} heads for {date.strftime('%d.%m.%Y')}")
+            logger.info(
+                f"[Optimized] Found {len(heads)} heads for {date.strftime('%d.%m.%Y')}"
+            )
             return heads
 
         except Exception as e:
@@ -1318,18 +794,36 @@ class HeadScheduleParser(BaseExcelParser):
     async def _check_duty_for_head(
         self, head_name: str, duties: List[DutyInfo]
     ) -> Optional[str]:
-        """Check if head is on duty."""
+        """Проверяет есть ли руководитель в графике дежурных.
+
+        Args:
+            head_name: ФИО руководителя
+            duties: Список дежурных
+
+        Returns:
+
+        """
         try:
             for duty in duties:
-                if self.utils.names_match(head_name, duty.name):
+                if self.names_match(head_name, duty.name):
                     return f"{duty.schedule} {duty.shift_type}"
             return None
         except Exception as e:
-            logger.debug(f"Error checking duty for {head_name}: {e}")
+            logger.debug(
+                f"[График] Ошибка проверки дежурств для руководителя {head_name}: {e}"
+            )
             return None
 
     def format_schedule(self, heads: List[HeadInfo], date: datetime) -> str:
-        """Format heads files_processing for display."""
+        """Форматирует график руководителей для отображения.
+
+        Args:
+            heads: Список руководителей
+            date: Дата
+
+        Returns:
+            Отформатированная строка с графиком руководителей
+        """
         if not heads:
             return f"<b>👑 Руководители • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдено руководителей на эту дату"
 
@@ -1339,7 +833,7 @@ class HeadScheduleParser(BaseExcelParser):
         time_groups = {}
         for head in heads:
             time_schedule = head.schedule
-            if not time_schedule or not self.utils.is_time_format(time_schedule):
+            if not time_schedule or not self.is_time_format(time_schedule):
                 continue
 
             time_match = re.search(r"(\d{1,2}:\d{2}-\d{1,2}:\d{2})", time_schedule)
@@ -1351,7 +845,7 @@ class HeadScheduleParser(BaseExcelParser):
 
         # Sort by time
         sorted_times = sorted(
-            time_groups.keys(), key=lambda t: self.utils.parse_time_range(t)[0]
+            time_groups.keys(), key=lambda t: self.parse_time_range(t)[0]
         )
 
         for time_schedule in sorted_times:
@@ -1359,9 +853,7 @@ class HeadScheduleParser(BaseExcelParser):
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
-                head_line = f"{
-                    format_fullname(head.name, True, True, head.username, head.user_id)
-                }"
+                head_line = f"{format_fullname(head.name, True, True, head.username, head.user_id)}"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"
@@ -1375,9 +867,13 @@ class HeadScheduleParser(BaseExcelParser):
 
         return "\n".join(lines)
 
+    def parse(self, *args, **kwargs):
+        """Реализация абстрактного метода parse."""
+        pass
 
-class GroupScheduleParser(BaseExcelParser):
-    """Parser for group schedules."""
+
+class GroupScheduleParser(BaseParser):
+    """Полностью оптимизированный парсер группового графика с кэшированием."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)
@@ -1386,14 +882,42 @@ class GroupScheduleParser(BaseExcelParser):
     def _group_members_by_start_time(
         self, members: List[GroupMemberInfo]
     ) -> Dict[str, List[GroupMemberInfo]]:
-        """Group members by their start time."""
+        """Группирует членов группы по времени начала работы.
+
+        Args:
+            members: Список членов группы
+
+        Returns:
+            Словарь {время_начала: список_сотрудников}
+        """
         grouped = defaultdict(list)
 
         for member in members:
-            start_time = self.time_utils.extract_start_time(member.working_hours)
+            start_time = self._extract_start_time(member.working_hours)
             grouped[start_time].append(member)
 
         return dict(grouped)
+
+    @staticmethod
+    def _extract_start_time(working_hours: str) -> str:
+        """Извлекает время начала из строки рабочих часов.
+
+        Args:
+            working_hours: Строка с рабочими часами
+
+        Returns:
+            Время начала работы
+        """
+        if not working_hours or working_hours == "Не указано":
+            return "Не указано"
+
+        time_pattern = r"(\d{1,2}:\d{2})"
+        match = re.search(time_pattern, working_hours)
+
+        if match:
+            return match.group(1)
+
+        return "Не указано"
 
     def _format_member_with_link(self, member: GroupMemberInfo) -> str:
         """Format member name with link and working hours."""
@@ -1401,11 +925,9 @@ class GroupScheduleParser(BaseExcelParser):
             member.name, True, True, member.username, member.user_id
         )
 
-        # Add working hours
         working_hours = member.working_hours or "Не указано"
         result = f"{user_link} <code>{working_hours}</code>"
 
-        # Add duty information if available
         if member.duty_info:
             result += f" ({member.duty_info})"
 
@@ -1417,49 +939,41 @@ class GroupScheduleParser(BaseExcelParser):
         """Sort members by start time."""
         return sorted(
             members,
-            key=lambda m: self.time_utils.parse_time_for_sorting(
-                self.time_utils.extract_start_time(m.working_hours)
+            key=lambda m: self._parse_time_for_sorting(
+                self._extract_start_time(m.working_hours)
             ),
         )
 
-    def format_schedule(self, members: List[GroupMemberInfo], date: datetime) -> str:
-        """Format group files_processing for display."""
-        if not members:
-            return f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы"
+    @staticmethod
+    def _parse_time_for_sorting(time_str: str) -> Tuple[int, int]:
+        """Parse time string for sorting purposes."""
+        if not time_str or time_str == "Не указано":
+            return 99, 0
 
-        # Group by start time
-        grouped_by_start_time = self._group_members_by_start_time(members)
+        try:
+            hour, minute = time_str.split(":")
+            return int(hour), int(minute)
+        except (ValueError, IndexError):
+            return 99, 0
 
-        # Sort groups by time
-        sorted_start_times = sorted(
-            grouped_by_start_time.keys(), key=self.time_utils.parse_time_for_sorting
-        )
-
-        lines = [f"👥 <b>Group for {date.strftime('%d.%m.%Y')}</b>", ""]
-
-        for start_time in sorted_start_times:
-            members_group = grouped_by_start_time[start_time]
-            lines.append(f"🕒 <b>{start_time}</b>")
-
-            for member in members_group:
-                lines.append(self._format_member_with_link(member))
-
-            lines.append("")
-
-        # Remove last empty line
-        if lines and lines[-1] == "":
-            lines.pop()
-
-        return "\n".join(lines)
-
-    async def get_group_members_for_head(
+    async def get_group_members(
         self, head_fullname: str, date: datetime, division: str, stp_repo
     ) -> List[GroupMemberInfo]:
-        """Get list of group members for a head."""
+        """Получает членов группы для руководителя (оптимизировано с кэшированием).
+
+        Args:
+            head_fullname: ФИО руководителя
+            date: Дата
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Список членов группы
+        """
         try:
             group_members = []
 
-            # For НТП divisions, process both НТП1 and НТП2 files
+            # Determine divisions to check
             if "НТП" in division:
                 divisions_to_check = ["НТП1", "НТП2"]
             else:
@@ -1471,17 +985,16 @@ class GroupScheduleParser(BaseExcelParser):
                     logger.warning(f"Schedule file for {div} not found")
                     continue
 
-                df = self.read_excel_file(schedule_file)
-                if df is None:
-                    logger.warning(f"Failed to read files_processing file for {div}")
-                    continue
+                # Use FastExcelReader with caching
+                reader = ExcelReader(schedule_file, "ГРАФИК")
+                df = reader.df
 
-                header_info = self._get_header_columns()
-                date_column = self.date_finder.find_date_column(df, date)
+                # Find date column
+                date_column = reader.find_date_column(date)
 
-                # Process members from this division file
+                # Process members from this division
                 division_members = await self._process_division_members(
-                    df, head_fullname, date_column, header_info, stp_repo
+                    reader, head_fullname, date_column, stp_repo
                 )
                 group_members.extend(division_members)
 
@@ -1493,10 +1006,9 @@ class GroupScheduleParser(BaseExcelParser):
                             date, div, stp_repo
                         )
                         for member in group_members:
-                            # Check if this member is on duty (skip if already has duty info)
                             if not hasattr(member, "duty_info") or not member.duty_info:
                                 for duty in duties:
-                                    if self.utils.names_match(member.name, duty.name):
+                                    if self.names_match(member.name, duty.name):
                                         member.duty_info = (
                                             f"{duty.schedule} {duty.shift_type}"
                                         )
@@ -1507,51 +1019,57 @@ class GroupScheduleParser(BaseExcelParser):
                         )
 
             logger.info(
-                f"Found {len(group_members)} total members for head {head_fullname} across divisions"
+                f"[Optimized] Found {len(group_members)} members for head {head_fullname}"
             )
             return self._sort_members_by_time(group_members)
 
         except Exception as e:
-            logger.error(f"Error getting group members for {head_fullname}: {e}")
+            logger.error(f"Error getting group members for head: {e}")
             return []
 
     async def _process_division_members(
-        self, df, head_fullname: str, date_column, header_info, stp_repo
+        self, reader: ExcelReader, head_fullname: str, date_column, stp_repo
     ) -> List[GroupMemberInfo]:
-        """Process members from a single division file."""
-        division_members = []
+        """Обрабатывает членов группы из файла направления (оптимизировано).
 
-        for row_idx in range(header_info["header_row"] + 1, len(df)):
-            name_cell = self.utils.get_cell_value(df, row_idx, 0)
-            schedule_cell = self.utils.get_cell_value(
-                df, row_idx, header_info.get("schedule_col", 1)
-            )
-            position_cell = self.utils.get_cell_value(
-                df, row_idx, header_info.get("position_col", 4)
-            )
-            head_cell = self.utils.get_cell_value(
-                df, row_idx, header_info.get("head_col", 5)
-            )
+        Args:
+            reader: Читатель Excel
+            head_fullname: ФИО руководителя
+            date_column: Индекс столбца даты
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Список членов группы из этого направления
+        """
+        division_members = []
+        df = reader.df
+
+        # Scan through all rows
+        for row_idx in range(len(df)):
+            name_cell = reader.get_cell(row_idx, 0)
+            schedule_cell = reader.get_cell(row_idx, 1)
+            position_cell = reader.get_cell(row_idx, 4)
+            head_cell = reader.get_cell(row_idx, 5)
 
             # Check if this person belongs to the specified head
-            if not self.utils.names_match(head_fullname, head_cell):
+            if not self.names_match(head_fullname, head_cell):
                 continue
 
-            if not self.utils.is_valid_name(name_cell):
+            if not name_cell or len(name_cell.split()) < 2:
                 continue
 
             # Get working hours for the specific date
             working_hours = "Не указано"
             if date_column is not None:
-                hours_cell = self.utils.get_cell_value(df, row_idx, date_column)
+                hours_cell = reader.get_cell(row_idx, date_column)
                 if hours_cell and hours_cell.strip():
-                    if self.utils.is_time_format(hours_cell):
+                    if self.is_time_format(hours_cell):
                         working_hours = hours_cell
                     else:
-                        # Non-time value (vacation, day off, etc.) - skip this person
+                        # Non-time value - skip
                         continue
                 else:
-                    # Empty cell means day off - skip this person
+                    # Empty cell - skip
                     continue
 
             # Get user from database
@@ -1581,7 +1099,17 @@ class GroupScheduleParser(BaseExcelParser):
     async def get_group_members_for_user(
         self, user_fullname: str, date: datetime, division: str, stp_repo
     ) -> List[GroupMemberInfo]:
-        """Get list of group colleagues for a regular user."""
+        """Получает коллег по группе для пользователя (оптимизировано).
+
+        Args:
+            user_fullname: ФИО пользователя
+            date: Дата
+            division: Направление
+            stp_repo: Репозиторий базы данных
+
+        Returns:
+            Список коллег по группе
+        """
         try:
             user = await stp_repo.employee.get_users(fullname=user_fullname)
             if not user or not user.head:
@@ -1591,26 +1119,15 @@ class GroupScheduleParser(BaseExcelParser):
                 return []
 
             # Get all members under the same head
-            all_members = await self.get_group_members_for_head(
+            all_members = await self.get_group_members(
                 user.head, date, division, stp_repo
             )
 
             return self._sort_members_by_time(all_members)
 
         except Exception as e:
-            logger.error(f"Error getting colleagues for {user_fullname}: {e}")
+            logger.error(f"Error getting colleagues for user: {e}")
             return []
-
-    @staticmethod
-    def _get_header_columns() -> dict:
-        """Find header columns in the DataFrame."""
-        # This is a simplified implementation - adjust based on actual Excel structure
-        return {
-            "header_row": 0,
-            "schedule_col": 1,
-            "position_col": 4,
-            "head_col": 5,
-        }
 
     def format_group_schedule_for_head(
         self,
@@ -1618,8 +1135,18 @@ class GroupScheduleParser(BaseExcelParser):
         group_members: List[GroupMemberInfo],
         page: int = 1,
         members_per_page: int = 20,
-    ) -> tuple[str, int, bool, bool]:
-        """Format group files_processing for head with pagination."""
+    ) -> Tuple[str, int, bool, bool]:
+        """Форматирует групповой график для руководителя с пагинацией.
+
+        Args:
+            date: Дата
+            group_members: Список членов группы
+            page: Номер страницы
+            members_per_page: Членов на странице
+
+        Returns:
+            Кортеж (текст, всего_страниц, есть_предыдущая, есть_следующая)
+        """
         if not group_members:
             return (
                 f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ Не найдены участники группы",
@@ -1639,13 +1166,12 @@ class GroupScheduleParser(BaseExcelParser):
         # Group by start time
         grouped_by_start_time = self._group_members_by_start_time(page_members)
         sorted_start_times = sorted(
-            grouped_by_start_time.keys(), key=self.time_utils.parse_time_for_sorting
+            grouped_by_start_time.keys(), key=self._parse_time_for_sorting
         )
 
         # Build message
         lines = [f"❤️ <b>Твоя группа • {date.strftime('%d.%m.%Y')}</b>"]
 
-        # Add pagination info
         if total_pages > 1:
             lines.append(
                 f"<i>Страница {page} из {total_pages}\nОтображено {len(page_members)} из {total_members} участников</i>"
@@ -1662,7 +1188,6 @@ class GroupScheduleParser(BaseExcelParser):
 
             lines.append("")
 
-        # Remove last empty line
         if lines and lines[-1] == "":
             lines.pop()
 
@@ -1674,8 +1199,18 @@ class GroupScheduleParser(BaseExcelParser):
         group_members: List[GroupMemberInfo],
         page: int = 1,
         members_per_page: int = 20,
-    ) -> tuple[str, int, bool, bool]:
-        """Format group files_processing for regular user with pagination."""
+    ) -> Tuple[str, int, bool, bool]:
+        """Форматирует групповой график для пользователя с пагинацией.
+
+        Args:
+            date: Дата
+            group_members: Список членов группы
+            page: Номер страницы
+            members_per_page: Членов на странице
+
+        Returns:
+            Кортеж (текст, всего_страниц, есть_предыдущая, есть_следующая)
+        """
         if not group_members:
             return (
                 f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>\n\n❌ График для группы не найден",
@@ -1707,13 +1242,12 @@ class GroupScheduleParser(BaseExcelParser):
         # Group by start time
         grouped_by_start_time = self._group_members_by_start_time(page_colleagues)
         sorted_start_times = sorted(
-            grouped_by_start_time.keys(), key=self.time_utils.parse_time_for_sorting
+            grouped_by_start_time.keys(), key=self._parse_time_for_sorting
         )
 
         # Build message
         lines = [f"❤️ <b>Моя группа • {date.strftime('%d.%m.%Y')}</b>"]
 
-        # Add pagination info
         if total_pages > 1:
             lines.append(
                 f"<i>Страница {page} из {total_pages}\nОтображено {len(page_colleagues)} из {total_colleagues} участников</i>"
@@ -1730,41 +1264,11 @@ class GroupScheduleParser(BaseExcelParser):
 
             lines.append("")
 
-        # Remove last empty line
         if lines and lines[-1] == "":
             lines.pop()
 
         return "\n".join(lines), total_pages, page > 1, page < total_pages
 
-
-# Factory class for creating parsers
-class ScheduleParserFactory:
-    """Factory for creating files_processing parsers."""
-
-    @staticmethod
-    def create_schedule_parser(uploads_folder: str = "uploads") -> ScheduleParser:
-        """Create a files_processing parser instance."""
-        return ScheduleParser(uploads_folder)
-
-    @staticmethod
-    def create_duty_parser(uploads_folder: str = "uploads") -> DutyScheduleParser:
-        """Create a duty files_processing parser instance."""
-        return DutyScheduleParser(uploads_folder)
-
-    @staticmethod
-    def create_head_parser(uploads_folder: str = "uploads") -> HeadScheduleParser:
-        """Create a head files_processing parser instance."""
-        return HeadScheduleParser(uploads_folder)
-
-    @staticmethod
-    def create_group_parser(uploads_folder: str = "uploads") -> GroupScheduleParser:
-        """Create a group files_processing parser instance."""
-        return GroupScheduleParser(uploads_folder)
-
-    @staticmethod
-    async def get_current_senior_duty(
-        division: str, stp_repo, uploads_folder: str = "uploads"
-    ) -> Optional[DutyInfo]:
-        """Get current senior duty for division - convenience method."""
-        parser = ScheduleParserFactory.create_duty_parser(uploads_folder)
-        return await parser.get_current_senior_duty(division, stp_repo)
+    def parse(self, *args, **kwargs):
+        """Реализация абстрактного метода parse."""
+        pass

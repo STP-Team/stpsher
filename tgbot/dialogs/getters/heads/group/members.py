@@ -15,7 +15,6 @@ from tgbot.dialogs.getters.common.game.kpi import (
 from tgbot.dialogs.getters.common.schedules import user_schedule_getter
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname, get_role
-from tgbot.services.search import SearchService
 
 
 async def group_members_getter(
@@ -78,15 +77,30 @@ async def member_info_getter(
             return {"user_info": "❌ Пользователь не найден"}
 
         # Получаем руководителя если есть
-        searched_user_head = None
+        user_head = None
         if searched_user.head:
-            searched_user_head = await stp_repo.employee.get_users(
-                fullname=searched_user.head
-            )
+            user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        # Формируем информацию о пользователе
-        user_info = SearchService.format_user_info_base(
-            searched_user, searched_user_head
+        user_info = f"""<b>{format_fullname(searched_user.fullname, False, True, searched_user.username, searched_user.user_id)}</b>
+
+<b>💼 Должность:</b> {searched_user.position} {searched_user.division}"""
+
+        if user_head:
+            user_info += f"\n<b>👑 Руководитель:</b> {
+                format_fullname(
+                    user_head.fullname,
+                    True,
+                    True,
+                    user_head.username,
+                    user_head.user_id,
+                )
+            }"
+
+        if searched_user.email:
+            user_info += f"\n<b>📧 Email:</b> {searched_user.email}"
+
+        user_info += (
+            f"\n\n🛡️ <b>Уровень доступа:</b> {get_role(searched_user.role)['name']}"
         )
 
         return {
