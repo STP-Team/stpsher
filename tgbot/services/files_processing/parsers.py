@@ -382,7 +382,10 @@ class DutyScheduleParser(BaseParser):
             # Находим все колонки с датами для месяца
             days_in_month = calendar.monthrange(date.year, date.month)[1]
 
-            # Сканим все строки и колонки
+            # Собираем все уникальные ФИО
+            names_to_fetch = set()
+            row_name_map = {}  # Map row_idx to name
+
             for row_idx in range(len(df)):
                 # Находим ФИО сотрудника в первых колонках
                 name = ""
@@ -397,21 +400,46 @@ class DutyScheduleParser(BaseParser):
                         name = cell_value.strip()
                         break
 
-                if not name:
+                if name:
+                    names_to_fetch.add(name)
+                    row_name_map[row_idx] = name
+
+            if not names_to_fetch:
+                return {}
+
+            # OPTIMIZATION 2: Batch fetch all employees at once
+            employee_cache = {}
+            for name in names_to_fetch:
+                try:
+                    user: Employee = await stp_repo.employee.get_users(fullname=name)
+                    if user:
+                        employee_cache[name] = user
+                except Exception as e:
+                    logger.debug(f"Error fetching user {name}: {e}")
+
+            if not employee_cache:
+                return {}
+
+            # OPTIMIZATION 3: Pre-compute date columns for all days
+            date_column_cache = {}
+            for day in range(1, days_in_month + 1):
+                day_date = datetime(date.year, date.month, day)
+                day_col = reader.find_date_column(day_date)
+                if day_col is not None:
+                    date_column_cache[day] = day_col
+
+            # Сканим все строки и колонки
+            for row_idx, name in row_name_map.items():
+                # Skip if employee not found in cache
+                if name not in employee_cache:
                     continue
 
-                # Получаем инфо о сотруднике из БД
-                user: Employee = await stp_repo.employee.get_users(fullname=name)
-                if not user:
-                    continue
+                user = employee_cache[name]
 
                 # Проверяем все дни в месяце
-                for day in range(1, days_in_month + 1):
+                for day, day_col in date_column_cache.items():
                     try:
-                        day_date = datetime(date.year, date.month, day)
-                        day_col = reader.find_date_column(day_date)
-
-                        if day_col is not None and day_col < df.shape[1]:
+                        if day_col < df.shape[1]:
                             duty_cell = reader.get_cell(row_idx, day_col)
 
                             if duty_cell and duty_cell.strip() not in [
@@ -591,15 +619,51 @@ class DutyScheduleParser(BaseParser):
 
         lines = [f"<b>👮‍♂️ Дежурные • {date.strftime('%d.%m.%Y')}</b>\n"]
 
-        # Get current duties if highlighting is needed
         current_senior = None
         current_helper = None
-        if highlight_current and division and stp_repo:
+        if highlight_current:
             try:
-                current_senior = await self.get_current_senior_duty(division, stp_repo)
-                current_helper = await self.get_current_helper_duty(division, stp_repo)
+                current_time_minutes = date.hour * 60 + date.minute
+
+                # Находим текущего дежурного
+                senior_duties = [duty for duty in duties if duty.shift_type == "С"]
+                for duty in senior_duties:
+                    if self.is_time_format(duty.schedule):
+                        start_minutes, end_minutes = self.parse_time_range(
+                            duty.schedule
+                        )
+                        if start_minutes <= current_time_minutes <= end_minutes:
+                            current_senior = duty
+                            break
+                        # Handle overnight shifts
+                        if end_minutes > 24 * 60:
+                            if (
+                                current_time_minutes >= start_minutes
+                                or current_time_minutes <= (end_minutes - 24 * 60)
+                            ):
+                                current_senior = duty
+                                break
+
+                # Find current helper from duties list
+                helper_duties = [duty for duty in duties if duty.shift_type == "П"]
+                for duty in helper_duties:
+                    if self.is_time_format(duty.schedule):
+                        start_minutes, end_minutes = self.parse_time_range(
+                            duty.schedule
+                        )
+                        if start_minutes <= current_time_minutes <= end_minutes:
+                            current_helper = duty
+                            break
+                        # Handle overnight shifts
+                        if end_minutes > 24 * 60:
+                            if (
+                                current_time_minutes >= start_minutes
+                                or current_time_minutes <= (end_minutes - 24 * 60)
+                            ):
+                                current_helper = duty
+                                break
             except Exception as e:
-                logger.error(f"Error getting current duties: {e}")
+                logger.error(f"Error computing current duties: {e}")
 
         # Group by time
         time_groups = {}
@@ -737,7 +801,8 @@ class HeadScheduleParser(BaseParser):
                 logger.warning(f"Date {date.day} not found in head schedule")
                 return []
 
-            heads = []
+            candidate_heads = []
+            names_to_fetch = set()
 
             # Scan through rows to find heads
             for row_idx in range(len(df)):
@@ -767,20 +832,43 @@ class HeadScheduleParser(BaseParser):
                     schedule_cell = reader.get_cell(row_idx, date_col)
                     if schedule_cell and schedule_cell.strip():
                         if self.is_time_format(schedule_cell):
-                            duty_info = await self._check_duty_for_head(name, duties)
-                            user: Employee = await stp_repo.employee.get_users(
-                                fullname=name
-                            )
-                            if user:
-                                heads.append(
-                                    HeadInfo(
-                                        name=name,
-                                        user_id=user.user_id,
-                                        username=user.username,
-                                        schedule=schedule_cell.strip(),
-                                        duty_info=duty_info,
-                                    )
-                                )
+                            names_to_fetch.add(name)
+                            candidate_heads.append({
+                                "name": name,
+                                "schedule": schedule_cell.strip(),
+                            })
+
+            if not names_to_fetch:
+                return []
+
+            employee_cache = {}
+            for name in names_to_fetch:
+                try:
+                    user: Employee = await stp_repo.employee.get_users(fullname=name)
+                    if user:
+                        employee_cache[name] = user
+                except Exception as e:
+                    logger.debug(f"Error getting user {name}: {e}")
+
+            # OPTIMIZATION 3: Build heads list from cached data
+            heads = []
+            for candidate in candidate_heads:
+                name = candidate["name"]
+                if name not in employee_cache:
+                    continue
+
+                user = employee_cache[name]
+                duty_info = await self._check_duty_for_head(name, duties)
+
+                heads.append(
+                    HeadInfo(
+                        name=name,
+                        user_id=user.user_id,
+                        username=user.username,
+                        schedule=candidate["schedule"],
+                        duty_info=duty_info,
+                    )
+                )
 
             logger.info(
                 f"[Optimized] Found {len(heads)} heads for {date.strftime('%d.%m.%Y')}"
@@ -1044,7 +1132,10 @@ class GroupScheduleParser(BaseParser):
         division_members = []
         df = reader.df
 
-        # Scan through all rows
+        # OPTIMIZATION 1: First pass - collect all candidate members
+        candidate_members = []
+        names_to_fetch = set()
+
         for row_idx in range(len(df)):
             name_cell = reader.get_cell(row_idx, 0)
             schedule_cell = reader.get_cell(row_idx, 1)
@@ -1072,26 +1163,44 @@ class GroupScheduleParser(BaseParser):
                     # Empty cell - skip
                     continue
 
-            # Get user from database
-            user = None
-            try:
-                user = await stp_repo.employee.get_users(fullname=name_cell.strip())
-            except Exception as e:
-                logger.debug(f"Error getting user {name_cell}: {e}")
+            name_stripped = name_cell.strip()
+            names_to_fetch.add(name_stripped)
+            candidate_members.append({
+                "name": name_stripped,
+                "schedule": schedule_cell.strip() if schedule_cell else "Не указано",
+                "position": position_cell.strip() if position_cell else "Специалист",
+                "working_hours": working_hours,
+            })
 
-            if not user:
-                logger.debug(f"User {name_cell.strip()} not found in DB, skipping")
+        if not names_to_fetch:
+            return []
+
+        # OPTIMIZATION 2: Batch fetch all employees
+        employee_cache = {}
+        for name in names_to_fetch:
+            try:
+                user = await stp_repo.employee.get_users(fullname=name)
+                if user:
+                    employee_cache[name] = user
+            except Exception as e:
+                logger.debug(f"Error getting user {name}: {e}")
+
+        # OPTIMIZATION 3: Build member list from cached data
+        for candidate in candidate_members:
+            name = candidate["name"]
+            if name not in employee_cache:
+                logger.debug(f"User {name} not found in DB, skipping")
                 continue
 
+            user = employee_cache[name]
             member = GroupMemberInfo(
-                name=name_cell.strip(),
+                name=name,
                 user_id=user.user_id,
                 username=user.username,
-                schedule=schedule_cell.strip() if schedule_cell else "Не указано",
-                position=position_cell.strip() if position_cell else "Специалист",
-                working_hours=working_hours,
+                schedule=candidate["schedule"],
+                position=candidate["position"],
+                working_hours=candidate["working_hours"],
             )
-
             division_members.append(member)
 
         return division_members

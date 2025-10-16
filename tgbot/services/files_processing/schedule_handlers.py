@@ -130,7 +130,7 @@ class ScheduleHandlerService:
         """
         try:
             if stp_repo:
-                # Fetch schedule with duties (optimized)
+                # График с дежурными
                 return (
                     await self.schedule_parser.get_user_schedule_formatted_with_duties(
                         fullname=user.fullname,
@@ -141,7 +141,7 @@ class ScheduleHandlerService:
                     )
                 )
             else:
-                # Regular schedule (optimized)
+                # Обычный график
                 return self.schedule_parser.get_user_schedule_formatted(
                     fullname=user.fullname,
                     month=month,
@@ -171,25 +171,9 @@ class ScheduleHandlerService:
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
-        # Фильтруем дежурных, которых нет в базе данных (уволенных)
-        if stp_repo:
-            active_duties = []
-            for duty in duties:
-                try:
-                    user = await stp_repo.employee.get_users(fullname=duty.name)
-                    if user:
-                        active_duties.append(duty)
-                    else:
-                        logger.debug(
-                            f"[График дежурств] Сотрудник {duty.name} не найден в базе данных"
-                        )
-                except Exception as e:
-                    logger.debug(
-                        f"[График дежурств] Ошибка проверки сотрудника {duty.name} в БД: {e}"
-                    )
-                    # Если не можем проверить - включаем пользователя в список дежурных для избежания false negative
-                    active_duties.append(duty)
-            duties = active_duties
+        # OPTIMIZATION: Removed redundant employee validation loop
+        # Employee validation already happens in get_duties_for_month()
+        # which only includes employees found in the database
 
         # Check if today's date is selected to highlight current duties
         today = self.get_current_date()
