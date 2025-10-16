@@ -510,7 +510,7 @@ async def on_inventory_cancel_activation(
                 elif manager_role in [5, 6]:
                     # Для manager_role 5 или 6 уведомляем пользователей с такой же ролью
                     users_with_role = await stp_repo.employee.get_users(
-                        role=manager_role
+                        roles=manager_role
                     )
                     for role_user in users_with_role:
                         if role_user.user_id != user.user_id:
