@@ -80,7 +80,7 @@ class ScheduleAnalyzer:
 
         # Вычесть 1 час на обед только для одного непрерывного диапазона >= 8 часов
         # Если несколько диапазонов, обед уже учтен в промежутке между ними
-        if len(time_ranges) == 1 and work_hours >= 8:
+        if len(time_ranges) == 1 and work_hours > 8:
             work_hours -= 1
 
         return round(work_hours, 1)
