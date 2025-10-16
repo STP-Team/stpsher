@@ -8,8 +8,9 @@ from aiogram_dialog.widgets.kbd import Button
 
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.misc.dicts import russian_months
-from tgbot.services.files_processing.schedule_handlers import (
-    schedule_service,
+from tgbot.services.files_processing.formatters import (
+    get_current_date,
+    get_current_month,
 )
 
 
@@ -58,7 +59,7 @@ async def prev_day(
     """
     current_date_str = dialog_manager.dialog_data.get("current_date")
     if current_date_str is None:
-        current_date = schedule_service.get_current_date()
+        current_date = get_current_date()
     else:
         current_date = datetime.datetime.fromisoformat(current_date_str)
 
@@ -78,7 +79,7 @@ async def next_day(
     """
     current_date_str = dialog_manager.dialog_data.get("current_date")
     if current_date_str is None:
-        current_date = schedule_service.get_current_date()
+        current_date = get_current_date()
     else:
         current_date = datetime.datetime.fromisoformat(current_date_str)
 
@@ -96,7 +97,7 @@ async def today(
         _callback: Callback query от Telegram
         dialog_manager: Менеджер диалога
     """
-    today_date = schedule_service.get_current_date()
+    today_date = get_current_date()
     dialog_manager.dialog_data["current_date"] = today_date.isoformat()
 
 
@@ -110,9 +111,7 @@ async def prev_month(
         _button: Данные кнопки смены дня
         dialog_manager: Менеджер диалога
     """
-    current_month = dialog_manager.dialog_data.get(
-        "current_month", schedule_service.get_current_month()
-    )
+    current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
     prev_month_name = get_prev_month(current_month)
     dialog_manager.dialog_data["current_month"] = prev_month_name
 
@@ -127,9 +126,7 @@ async def next_month(
         _button: Данные кнопки смены дня
         dialog_manager: Менеджер диалога
     """
-    current_month = dialog_manager.dialog_data.get(
-        "current_month", schedule_service.get_current_month()
-    )
+    current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
     next_month_name = get_next_month(current_month)
     dialog_manager.dialog_data["current_month"] = next_month_name
 

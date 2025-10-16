@@ -12,8 +12,6 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 from stp_database import Employee
 
 from tgbot.keyboards.auth import auth_kb
-from tgbot.misc.dicts import russian_months
-from tgbot.misc.helpers import tz
 
 # Импорт полностью оптимизированных парсеров с кэшированием
 from tgbot.services.files_processing import (
@@ -29,12 +27,15 @@ from tgbot.services.files_processing.exceptions import (
     ScheduleFileNotFoundError,
     UserNotFoundError,
 )
+from tgbot.services.files_processing.formatters import (
+    get_current_date,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class ScheduleHandlerService:
-    """Сервис для обработки операций с расписаниями с оптимизированными парсерами."""
+    """Сервис для обработки операций с расписаниями."""
 
     def __init__(self) -> None:
         """Инициализирует сервис обработчика расписаний со всеми необходимыми парсерами."""
@@ -104,16 +105,6 @@ class ScheduleHandlerService:
             logger.error(f"Failed to edit message: {edit_error}")
             await callback.answer(error_msg, show_alert=True)
 
-    @staticmethod
-    def get_current_month() -> str:
-        """Получает текущий месяц в русском формате."""
-        return russian_months[datetime.datetime.now().month]
-
-    @staticmethod
-    def get_current_date() -> datetime.datetime:
-        """Получает текущую дату и время по Екатеринбургу."""
-        return datetime.datetime.now(tz)
-
     async def get_user_schedule_response(
         self, user: Employee, month: str, compact: bool = True, stp_repo=None
     ) -> str:
@@ -167,7 +158,7 @@ class ScheduleHandlerService:
             Отформатированная строка с дежурствами
         """
         if date is None:
-            date = self.get_current_date()
+            date = get_current_date()
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
@@ -176,7 +167,7 @@ class ScheduleHandlerService:
         # which only includes employees found in the database
 
         # Check if today's date is selected to highlight current duties
-        today = self.get_current_date()
+        today = get_current_date()
         highlight_current = (date.date() == today.date()) and stp_repo
 
         # Get formatted duties files_processing with optional current duty highlighting
@@ -198,7 +189,7 @@ class ScheduleHandlerService:
             Отформатированная строка с руководителями
         """
         if date is None:
-            date = self.get_current_date()
+            date = get_current_date()
 
         heads = await self.head_parser.get_heads_for_date(date, division, stp_repo)
 
@@ -225,7 +216,7 @@ class ScheduleHandlerService:
             Кортеж (текст, всего_страниц, есть_предыдущая, есть_следующая)
         """
         if date is None:
-            date = self.get_current_date()
+            date = get_current_date()
 
         try:
             if is_head:

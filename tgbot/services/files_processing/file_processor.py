@@ -9,6 +9,7 @@ from typing import Optional
 import pandas as pd
 
 from tgbot.misc.helpers import format_fullname
+from tgbot.services.files_processing.base_parsers import BaseParser
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,44 @@ logger = logging.getLogger(__name__)
 SCHEDULE_PATTERNS = ["ГРАФИК * I*", "ГРАФИК * II*"]
 DUTIES_PATTERNS = ["Старшинство*", "*Старшинство*", "*старшинство*"]
 STUDIES_PATTERNS = ["Обучения *", "*обучения*"]
+
+
+def find_header_columns(df: pd.DataFrame) -> Optional[dict]:
+    """Находит строки заголовков в датафрейме.
+
+    Args:
+        df: Датафрейм для поиска
+
+    Returns:
+        Словарь со строками и колонками с полезными данными, или None если не найдено
+    """
+    for row_idx in range(min(10, len(df))):
+        row_values = []
+        for col_idx in range(min(10, len(df.columns))):
+            cell_value = (
+                str(df.iloc[row_idx, col_idx])
+                if pd.notna(df.iloc[row_idx, col_idx])
+                else ""
+            )
+            row_values.append(cell_value.strip().upper())
+
+        position_col = head_col = None
+
+        for col_idx, value in enumerate(row_values):
+            if "ДОЛЖНОСТЬ" in value:
+                position_col = col_idx
+            if "РУКОВОДИТЕЛЬ" in value:
+                head_col = col_idx
+
+        if position_col is not None and head_col is not None:
+            return {
+                "header_row": row_idx,
+                "fullname_col": 0,
+                "position_col": position_col,
+                "head_col": head_col,
+            }
+
+    return None
 
 
 class FileTypeDetector:
@@ -106,7 +145,7 @@ class FileStatsExtractor:
         users_found = set()
 
         # Находим строку заголовков и колонки
-        header_info = FileStatsExtractor._find_header_columns(df)
+        header_info = find_header_columns(df)
         if not header_info:
             return 0
 
@@ -118,7 +157,7 @@ class FileStatsExtractor:
                 else ""
             )
 
-            if FileStatsExtractor._is_valid_fullname(fullname_cell):
+            if BaseParser.is_valid_fullname(fullname_cell):
                 users_found.add(fullname_cell.strip())
 
         return len(users_found)
@@ -164,63 +203,6 @@ class FileStatsExtractor:
                     break
 
         return schedule_count
-
-    @staticmethod
-    def _find_header_columns(df: pd.DataFrame) -> Optional[dict]:
-        """Находит строки заголовков.
-
-        Args:
-            df: Датафрейм
-
-        Returns:
-            Словарь со строками и колонками с полезными данными
-        """
-        for row_idx in range(min(10, len(df))):
-            row_values = []
-            for col_idx in range(min(10, len(df.columns))):
-                cell_value = (
-                    str(df.iloc[row_idx, col_idx])
-                    if pd.notna(df.iloc[row_idx, col_idx])
-                    else ""
-                )
-                row_values.append(cell_value.strip().upper())
-
-            position_col = head_col = None
-
-            for col_idx, value in enumerate(row_values):
-                if "ДОЛЖНОСТЬ" in value:
-                    position_col = col_idx
-                if "РУКОВОДИТЕЛЬ" in value:
-                    head_col = col_idx
-
-            if position_col is not None and head_col is not None:
-                return {
-                    "header_row": row_idx,
-                    "fullname_col": 0,
-                    "position_col": position_col,
-                    "head_col": head_col,
-                }
-
-        return None
-
-    @staticmethod
-    def _is_valid_fullname(fullname_cell: str) -> bool:
-        """Проверяет содержит ли ячейка валидные ФИО.
-
-        Args:
-            fullname_cell: Ячейки с ФИО
-
-        Returns:
-            True если ячейка содержит ФИО, иначе False
-        """
-        return (
-            len(fullname_cell.split()) >= 3
-            and re.search(r"[А-Яа-я]", fullname_cell)
-            and not re.search(r"\d", fullname_cell)
-            and fullname_cell.strip() not in ["", "nan", "None"]
-            and "переводы" not in fullname_cell.lower()
-            and "увольнения" not in fullname_cell.lower()
-        )
 
     @staticmethod
     def _is_valid_person_name(text: str) -> bool:

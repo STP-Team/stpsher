@@ -1,4 +1,4 @@
-"""Функциональность форматирования расписаний - Оптимизировано.
+"""Форматирование графиков.
 
 Модуль предоставляет инструменты для форматирования расписаний
 в компактном и детальном форматах.
@@ -6,6 +6,8 @@
 
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
+
+from tgbot.misc.helpers import tz
 
 from .models import DayInfo
 
@@ -67,6 +69,26 @@ def get_current_day() -> int:
         Номер текущего дня
     """
     return datetime.now().day
+
+
+def get_current_month() -> str:
+    """Получает текущий месяц в русском формате.
+
+    Returns:
+        Название текущего месяца на русском языке
+    """
+    now = datetime.now()
+    current_month_en = now.strftime("%B").lower()
+    return MONTH_NAMES_MAP.get(current_month_en, current_month_en)
+
+
+def get_current_date() -> datetime:
+    """Получает текущую дату и время по Екатеринбургу.
+
+    Returns:
+        Текущая дата и время с учетом временной зоны
+    """
+    return datetime.now(tz)
 
 
 class ScheduleFormatter:

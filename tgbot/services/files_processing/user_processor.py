@@ -1,14 +1,15 @@
 """User processing service for handling Excel-based user data changes."""
 
 import logging
-import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import pandas as pd
 from stp_database import Employee
 from stp_database.repo.STP.employee import EmployeeRepo
 
+from tgbot.services.files_processing.base_parsers import BaseParser
+from tgbot.services.files_processing.file_processor import find_header_columns
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ def get_users_from_excel(file_name: str) -> List[Dict[str, str]]:
         logger.info(f"[Изменения] Читаем пользователей из файла: {file_name}")
         df = pd.read_excel(file_path, sheet_name=0, header=None)
 
-        header_info = _find_header_columns(df)
+        header_info = find_header_columns(df)
         if not header_info:
             logger.warning(
                 f"[Изменения] Не найдены необходимые колонки в файле {file_name}"
@@ -105,47 +106,6 @@ def get_users_from_excel(file_name: str) -> List[Dict[str, str]]:
     except Exception as e:
         logger.error(f"[Изменения] Ошибка чтения файла {file_name}: {e}")
         return users
-
-
-def _find_header_columns(df: pd.DataFrame) -> Optional[Dict[str, int]]:
-    """Находит позиции строк и столбцов заголовка.
-
-    Args:
-        df: Датафрейм
-
-    Returns:
-        Строка заголовков
-    """
-    for row_idx in range(min(10, len(df))):
-        row_values = []
-        for col_idx in range(min(10, len(df.columns))):
-            cell_value = (
-                str(df.iloc[row_idx, col_idx])
-                if pd.notna(df.iloc[row_idx, col_idx])
-                else ""
-            )
-            row_values.append(cell_value.strip().upper())
-
-        position_col = head_col = None
-
-        for col_idx, value in enumerate(row_values):
-            if "ДОЛЖНОСТЬ" in value:
-                position_col = col_idx
-            if "РУКОВОДИТЕЛЬ" in value:
-                head_col = col_idx
-
-        if position_col is not None and head_col is not None:
-            logger.info(
-                f"[Изменения] Найдена строка заголовков: {row_idx}, колонки - ФИО: 0, Должность: {position_col}, Руководитель: {head_col}"
-            )
-            return {
-                "header_row": row_idx,
-                "fullname_col": 0,
-                "position_col": position_col,
-                "head_col": head_col,
-            }
-
-    return None
 
 
 def _extract_users_from_dataframe(
@@ -197,7 +157,7 @@ def _extract_users_from_dataframe(
             else ""
         )
 
-        if _is_valid_fullname(fullname_cell):
+        if BaseParser.is_valid_fullname(fullname_cell):
             fullname = fullname_cell.strip()
             position = (
                 position_cell.strip()
@@ -223,23 +183,6 @@ def _extract_users_from_dataframe(
             })
 
     return users
-
-
-def _is_valid_fullname(fullname_cell: str) -> bool:
-    """Проверяет содержит ли ячейка ФИО.
-
-    Args:
-        fullname_cell: Строка ячейки ФИО
-
-    Returns:
-        True если строка является ФИО, иначе False
-    """
-    return (
-        len(fullname_cell.split()) >= 3
-        and re.search(r"[А-Яа-я]", fullname_cell)
-        and not re.search(r"\d", fullname_cell)
-        and fullname_cell.strip() not in ["", "nan", "None"]
-    )
 
 
 async def process_fired_users_with_stats(

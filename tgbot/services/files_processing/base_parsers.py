@@ -1,10 +1,10 @@
-"""Оптимизированные базовые классы парсеров с принципами DRY и быстрыми операциями.
+"""Модуль предоставляет базовые классы для всех парсеров с общей функциональностью.
 
-Модуль предоставляет базовые классы для всех парсеров с общей функциональностью:
+Доступные классы:
 - BaseParser: базовый абстрактный класс
 - MonthlyScheduleParser: парсер для месячных графиков
 - DutyParser: парсер для графиков дежурных
-- BatchScheduleProcessor: обработчик пакетных операций
+- BatchScheduleProcessor: обработчик пакетных операций.
 """
 
 import asyncio
@@ -13,7 +13,6 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -163,6 +162,25 @@ class BaseParser(ABC):
             return parts1[0] == parts2[0] and parts1[1] == parts2[1]
 
         return False
+
+    @staticmethod
+    def is_valid_fullname(fullname_cell: str) -> bool:
+        """Проверяет содержит ли ячейка валидные ФИО.
+
+        Args:
+            fullname_cell: Ячейка с ФИО для проверки
+
+        Returns:
+            True если ячейка содержит валидные ФИО, иначе False
+        """
+        return (
+            len(fullname_cell.split()) >= 3
+            and re.search(r"[А-Яа-я]", fullname_cell)
+            and not re.search(r"\d", fullname_cell)
+            and fullname_cell.strip() not in ["", "nan", "None"]
+            and "переводы" not in fullname_cell.lower()
+            and "увольнения" not in fullname_cell.lower()
+        )
 
     @abstractmethod
     def parse(self, *args, **kwargs):
@@ -324,43 +342,6 @@ class DutyParser(BaseParser):
         pass  # Duty parsing is more complex and kept in original parser
 
 
-class CommonUtils:
-    """Общие утилиты оптимизированные и кэшированные.
-
-    Предоставляет статические методы для работы с записями графиков.
-    """
-
-    @staticmethod
-    @lru_cache(maxsize=256)
-    def categorize_schedule_entry(schedule_value: str) -> str:
-        """Категоризирует записи графика с кэшированием.
-
-        Args:
-            schedule_value: Значение клетки графика
-
-        Returns:
-            Категория: work, vacation, sick, day_off, и т.д.
-        """
-        schedule_clean = schedule_value.strip().upper()
-
-        if not schedule_clean or schedule_clean in ["НЕ УКАЗАНО", "NAN", "NONE", ""]:
-            return "day_off"
-        elif schedule_clean.lower() == "отпуск":
-            return "vacation"
-        elif schedule_clean.lower() == "отпуск бс":
-            return "vacation_bs"
-        elif schedule_clean.lower() == "в":
-            return "army"
-        elif any(word in schedule_clean for word in ["ЛНТС"]):
-            return "sick"
-        elif schedule_clean.lower() == "н":
-            return "missing"
-        elif any(char in schedule_clean for char in ["-", ":"]):
-            return "work"
-        else:
-            return "work"
-
-
 class BatchScheduleProcessor:
     """Обработчик для пакетных операций с графиками.
 
@@ -407,23 +388,3 @@ class BatchScheduleProcessor:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         return results
-
-
-def create_schedule_index(schedules: Dict[str, Dict[str, str]]) -> Dict[str, List[str]]:
-    """Создает индекс для быстрого поиска графиков.
-
-    Args:
-        schedules: Словарь {пользователь: {день: график}}
-
-    Returns:
-        Индекс с маппингом значения графика на пользователей
-    """
-    index: Dict[str, List[str]] = {}
-
-    for user, user_schedule in schedules.items():
-        for day, schedule_value in user_schedule.items():
-            if schedule_value not in index:
-                index[schedule_value] = []
-            index[schedule_value].append(user)
-
-    return index

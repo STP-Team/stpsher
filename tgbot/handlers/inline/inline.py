@@ -17,7 +17,10 @@ from tgbot.filters.role import (
     SpecialistFilter,
 )
 from tgbot.misc.helpers import format_fullname, get_role
-from tgbot.services.files_processing.schedule_handlers import ScheduleHandlerService
+from tgbot.services.files_processing.formatters import get_current_month
+from tgbot.services.files_processing.schedule_handlers import (
+    schedule_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +34,6 @@ user_inline_router.inline_query.filter(
         DutyFilter(),
     )
 )
-
-schedule_service = ScheduleHandlerService()
 
 
 class InlineSearchFilter:
@@ -485,7 +486,7 @@ async def create_default_commands(
 
     # Мой график
     try:
-        current_month = schedule_service.get_current_month()
+        current_month = get_current_month()
         schedule_text = await schedule_service.get_user_schedule_response(
             user=user, month=current_month, compact=True
         )
