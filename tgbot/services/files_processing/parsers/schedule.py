@@ -1,12 +1,10 @@
-"""Парсеры графиков с использованием FastExcelReader и кешированием.
+"""Модуль парсеров графиков.
 
-Модуль предоставляет полностью оптимизированные парсеры для работы с:
+Парсеры для работы с:
 - Графиками сотрудников (ScheduleParser)
 - Графиками дежурных (DutyScheduleParser)
 - Графиками руководителей (HeadScheduleParser)
 - Групповыми графиками (GroupScheduleParser)
-
-Все парсеры используют кэширование для максимальной производительности.
 """
 
 import calendar
@@ -16,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
+from openpyxl import load_workbook
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, tz
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class ScheduleParser(BaseParser):
-    """Полностью оптимизированный парсер графиков с кэшированием."""
+    """Парсер графиков."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)
@@ -41,7 +40,7 @@ class ScheduleParser(BaseParser):
     def get_user_schedule(
         self, fullname: str, month: str, division: str
     ) -> Dict[str, str]:
-        """Получает график пользователя с использованием оптимизированного быстрого чтения.
+        """Получает график пользователя.
 
         Args:
             fullname: ФИО пользователя
@@ -59,17 +58,16 @@ class ScheduleParser(BaseParser):
             if not schedule_file:
                 raise FileNotFoundError(f"Файл графика для {division} не найден")
 
-            # Use FastExcelReader with caching
             reader = ExcelReader(schedule_file)
             schedule = reader.extract_user_schedule(fullname, month)
 
             logger.info(
-                f"[Optimized] Found {len(schedule)} days for {fullname} in {month}"
+                f"[Excel] Найдено {len(schedule)} дней для {fullname} в {month}"
             )
             return schedule
 
         except Exception as e:
-            logger.error(f"Error getting schedule: {e}")
+            logger.error(f"[Excel] Ошибка нахождения графика: {e}")
             raise
 
     async def get_user_schedule_with_duties(
@@ -80,20 +78,19 @@ class ScheduleParser(BaseParser):
         stp_repo=None,
         current_day_only: bool = False,
     ) -> Dict[str, Tuple[str, Optional[str]]]:
-        """Получает график пользователя с информацией о дежурствах (оптимизировано).
+        """Получает график пользователя с информацией о дежурствах.
 
         Args:
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
             stp_repo: Репозиторий базы данных
-            current_day_only: Если True, получает дежурство только для текущего дня (быстрее для компактного вида)
+            current_day_only: Если True, получает дежурство только для текущего дня
 
         Returns:
             Словарь с маппингом день -> (график, информация_о_дежурстве)
         """
         try:
-            # Get schedule using fast reader
             schedule_data = self.get_user_schedule(fullname, month, division)
 
             if not schedule_data or not stp_repo:
@@ -101,16 +98,16 @@ class ScheduleParser(BaseParser):
                     day: (schedule, None) for day, schedule in schedule_data.items()
                 }
 
-            # Get duty parser
+            # Получаем парсер графика дежурных
             duty_parser = DutyScheduleParser()
 
-            # Get current date info
+            # Получаем данные о текущем дне
             current_year = datetime.now().year
             current_month_num = datetime.now().month
             current_day_num = datetime.now().day
             month_num = MonthManager.get_month_number(month)
 
-            # Check if we're viewing the current month
+            # Проверяем открыт ли текущий месяц
             is_current_month = (current_year, month_num) == (
                 current_year,
                 current_month_num,
@@ -118,7 +115,7 @@ class ScheduleParser(BaseParser):
 
             month_duties = {}
 
-            # OPTIMIZATION: For current_day_only mode, only fetch today's duty
+            # Для компактного режима грузим дежурных только за текущий день
             if current_day_only and is_current_month:
                 try:
                     current_date = datetime(current_year, month_num, current_day_num)
@@ -128,25 +125,26 @@ class ScheduleParser(BaseParser):
                     if today_duties:
                         month_duties[current_day_num] = today_duties
                     logger.debug(
-                        f"[Optimized] Retrieved duty for current day only ({current_day_num})"
+                        f"[Excel] Получены дежурные только на текущий день ({current_day_num})"
                     )
                 except Exception as e:
-                    logger.debug(f"Failed to get current day duty: {e}")
+                    logger.debug(
+                        f"[Excel] Ошибка получения дежурных на текущий день: {e}"
+                    )
             else:
-                # Full month duties (for detailed view or non-current month)
+                # Дежурные на весь месяц (для детального просмотра или не текущего месяца)
                 try:
                     first_day_of_month = datetime(current_year, month_num, 1)
                     month_duties = await duty_parser.get_duties_for_month(
                         first_day_of_month, division, stp_repo
                     )
                     logger.debug(
-                        f"[Optimized] Retrieved duties for {len(month_duties)} days in {month}"
+                        f"[Excel] Получены дежурные на {len(month_duties)} дней на {month}"
                     )
                 except Exception as e:
-                    logger.warning(f"Failed to get month duties: {e}")
+                    logger.warning(f"[Excel] Ошибка получения дежурных на месяц: {e}")
                     month_duties = {}
 
-            # Build result with duty information
             schedule_with_duties = {}
 
             for day, schedule in schedule_data.items():
@@ -160,21 +158,23 @@ class ScheduleParser(BaseParser):
                         if month_duties and day_num in month_duties:
                             duties = month_duties[day_num]
 
-                            # Check if user is on duty
+                            # Проверяем есть ли сотрудник в дежурных
                             for duty in duties:
                                 if self.names_match(fullname, duty.name):
                                     duty_info = f"{duty.schedule} {duty.shift_type}"
                                     break
 
                 except Exception as e:
-                    logger.debug(f"Error checking duty for {fullname} on {day}: {e}")
+                    logger.debug(
+                        f"[Excel] Ошибка проверки дежурного для {fullname} на {day}: {e}"
+                    )
 
                 schedule_with_duties[day] = (schedule, duty_info)
 
             return schedule_with_duties
 
         except Exception as e:
-            logger.error(f"Error getting schedule with duties: {e}")
+            logger.error(f"[Excel] Ошибка получения графика с дежурными: {e}")
             schedule_data = self.get_user_schedule(fullname, month, division)
             return {day: (schedule, None) for day, schedule in schedule_data.items()}
 
@@ -185,7 +185,7 @@ class ScheduleParser(BaseParser):
         division: str,
         compact: bool = False,
     ) -> str:
-        """Получает отформатированный график пользователя (оптимизировано).
+        """Получает отформатированный график пользователя.
 
         Args:
             fullname: ФИО пользователя
@@ -200,7 +200,7 @@ class ScheduleParser(BaseParser):
             schedule_data = self.get_user_schedule(fullname, month, division)
 
             if not schedule_data:
-                return f"❌ Schedule for <b>{fullname}</b> in {month} not found"
+                return f"❌ Не найден график для <b>{fullname}</b> на {month}"
 
             analysis = self.analyzer.analyze_schedule(schedule_data)
 
@@ -210,7 +210,7 @@ class ScheduleParser(BaseParser):
                 return self.formatter.format_detailed(month, *analysis)
 
         except Exception as e:
-            logger.error(f"Schedule formatting error: {e}")
+            logger.error(f"[Excel] Ошибка форматирования графика: {e}")
             return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
 
     async def get_user_schedule_formatted_with_duties(
@@ -281,6 +281,104 @@ class ScheduleParser(BaseParser):
         except Exception as e:
             logger.error(f"Schedule formatting error: {e}")
             return f"❌ <b>Ошибка графика:</b>\n<code>{e}</code>"
+
+    @staticmethod
+    def _is_additional_shift_color(cell) -> bool:
+        """Проверяет, является ли цвет ячейки цветом дополнительной смены (#cc99ff).
+
+        Args:
+            cell: Ячейка openpyxl
+
+        Returns:
+            True если ячейка имеет цвет дополнительной смены
+        """
+        try:
+            if cell.fill and cell.fill.start_color:
+                color = cell.fill.start_color.rgb
+                if color:
+                    # Check for #cc99ff color (with or without alpha channel)
+                    color_str = str(color).upper()
+                    return "CC99FF" in color_str
+        except Exception:
+            pass
+        return False
+
+    def get_user_schedule_with_additional_shifts(
+        self, fullname: str, month: str, division: str
+    ) -> Tuple[Dict[str, str], Dict[str, str]]:
+        """Получает график пользователя с разделением на обычные и дополнительные смены.
+
+        Дополнительные смены определяются по цвету ячейки #cc99ff.
+
+        Args:
+            fullname: ФИО пользователя
+            month: Название месяца
+            division: Направление
+
+        Returns:
+            Кортеж (обычный_график, дополнительные_смены)
+
+        Raises:
+            FileNotFoundError: Если файл графика не найден
+            ValueError: Если пользователь не найден
+        """
+        try:
+            schedule_file = self.file_manager.find_schedule_file(division)
+            if not schedule_file:
+                raise FileNotFoundError(f"Файл графика для {division} не найден")
+
+            # Load with openpyxl to access cell formatting
+            wb = load_workbook(schedule_file, data_only=False)
+            ws = wb["ГРАФИК"] if "ГРАФИК" in wb.sheetnames else wb.active
+
+            # Use ExcelReader for data access
+            reader = ExcelReader(schedule_file)
+
+            # Find user row
+            user_row = reader.find_user_row(fullname)
+            if user_row is None:
+                raise ValueError(f"Сотрудник {fullname} не найден в графике")
+
+            # Get month range
+            month_range = reader.get_month_range(month)
+            if month_range is None:
+                raise ValueError(f"Месяц {month} не найден")
+
+            start_col, end_col = month_range
+            day_headers = reader.get_day_headers(start_col, end_col)
+
+            schedule = {}
+            additional_shifts = {}
+
+            for col_idx, day in day_headers.items():
+                schedule_value = reader.get_cell(user_row, col_idx).strip()
+
+                if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
+                    schedule_value = "Не указано"
+
+                # Check cell color in openpyxl (1-indexed)
+                cell = ws.cell(row=user_row + 1, column=col_idx + 1)
+                is_additional_shift = self._is_additional_shift_color(cell)
+
+                if is_additional_shift and schedule_value not in [
+                    "Не указано",
+                    "В",
+                    "О",
+                    "0",
+                    "0.0",
+                ]:
+                    additional_shifts[day] = schedule_value
+                else:
+                    schedule[day] = schedule_value
+
+            logger.info(
+                f"[Optimized] Found {len(schedule)} regular days and {len(additional_shifts)} additional shifts for {fullname} in {month}"
+            )
+            return schedule, additional_shifts
+
+        except Exception as e:
+            logger.error(f"Error getting schedule with additional shifts: {e}")
+            raise
 
     def parse(self, *args, **kwargs):
         """Реализация абстрактного метода parse.

@@ -115,6 +115,15 @@ class SalaryCalculator:
                 if overlap_end > overlap_start:
                     total_night_minutes += overlap_end - overlap_start
 
+        # Проверяем ночные часы в начале того же дня (00:00-06:00)
+        # Это для случаев типа 03:00-09:00, которые не переходят через полночь
+        elif start_minutes < night_end and end_minutes > 0:
+            # Диапазон находится в пределах одного дня, но может попадать в утренние ночные часы
+            overlap_start = max(start_minutes, 0)
+            overlap_end = min(end_minutes, night_end)
+            if overlap_end > overlap_start:
+                total_night_minutes += overlap_end - overlap_start
+
         return total_night_minutes / 60  # Конвертируем в часы
 
     @staticmethod
@@ -177,7 +186,8 @@ class SalaryCalculator:
                         )
 
                         if is_holiday and holiday_name:
-                            holiday_hours += day_hours
+                            # Разделяем праздничные часы на дневные и ночные
+                            holiday_hours += day_hours - shift_night_hours
                             night_holiday_hours += shift_night_hours
                             if is_additional_shift:
                                 days_worked.append(
