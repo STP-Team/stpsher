@@ -11,6 +11,12 @@ from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
 from tgbot.misc.helpers import tz
+from tgbot.services.broadcaster import broadcast
+from tgbot.services.files_processing.parsers.schedule import DutyScheduleParser
+from tgbot.services.mailing import (
+    send_activation_product_email,
+    send_cancel_product_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +163,7 @@ async def on_inventory_activation_comment_input(
         comment: Текст комментария от пользователя
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user = dialog_manager.middleware_data["user"]
     product_info = dialog_manager.dialog_data["selected_inventory_product"]
     user_product_id = product_info["user_product_id"]
     product_name = product_info["product_name"]
@@ -169,6 +176,89 @@ async def on_inventory_activation_comment_input(
             user_comment=comment,
             updated_at=datetime.now(tz),
         )
+
+        # Получаем полную информацию о предмете и покупке для отправки email
+        user_product_detail = await stp_repo.purchase.get_purchase_details(
+            user_product_id
+        )
+
+        if user_product_detail:
+            product = user_product_detail.product_info
+            purchase = user_product_detail.user_purchase
+
+            # Получаем руководителя пользователя
+            user_head = None
+            if user.head:
+                user_head = await stp_repo.employee.get_users(fullname=user.head)
+
+            # Получаем текущего дежурного
+            current_duty_user = None
+            if user_head:
+                duty_scheduler = DutyScheduleParser()
+                current_duty = await duty_scheduler.get_current_senior_duty(
+                    division=str(user_head.division), stp_repo=stp_repo
+                )
+                if current_duty:
+                    current_duty_user = await stp_repo.employee.get_users(
+                        user_id=current_duty.user_id
+                    )
+
+            # Отправляем email уведомление
+            bot_info = await message.bot.get_me()
+            await send_activation_product_email(
+                user,
+                user_head,
+                current_duty_user,
+                product,
+                purchase,
+                bot_username=bot_info.username,
+            )
+
+            # Определяем получателей уведомлений
+            manager_ids = []
+            manager_role = product.manager_role
+
+            if manager_role == 3:
+                # Для manager_role 3 уведомляем только текущих дежурных
+                duty_scheduler = DutyScheduleParser()
+                current_senior = await duty_scheduler.get_current_senior_duty(
+                    user.division, stp_repo
+                )
+                current_helper = await duty_scheduler.get_current_helper_duty(
+                    user.division, stp_repo
+                )
+
+                if current_senior and current_senior.user_id != user.user_id:
+                    manager_ids.append(current_senior.user_id)
+                if current_helper and current_helper.user_id != user.user_id:
+                    manager_ids.append(current_helper.user_id)
+            elif manager_role in [5, 6]:
+                # Для manager_role 5 или 6 уведомляем пользователей с такой же ролью
+                users_with_role = await stp_repo.employee.get_users(roles=manager_role)
+                for role_user in users_with_role:
+                    if role_user.user_id != user.user_id:
+                        manager_ids.append(role_user.user_id)
+
+            # Отправляем уведомления менеджерам
+            if manager_ids:
+                notification_text = f"""<b>🔔 Новый предмет на активацию</b>
+
+<b>🛒 Предмет:</b> {product_name}
+<b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>📋 Описание:</b> {product.description}
+{f"<b>💬 Комментарий:</b> {comment}" if comment else ""}
+
+<b>Требуется рассмотрение заявки</b>"""
+
+                result = await broadcast(
+                    bot=message.bot,
+                    users=manager_ids,
+                    text=notification_text,
+                )
+
+                logger.info(
+                    f"[Использование предмета] {user.username} ({user.user_id}) отправил на рассмотрение '{product_name}'. Уведомлено менеджеров: {result} из {len(manager_ids)}"
+                )
 
         await message.answer(
             f"✅ Предмет {product_name} отправлен на рассмотрение с комментарием!"
@@ -191,6 +281,7 @@ async def on_skip_activation_comment(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user = dialog_manager.middleware_data["user"]
     product_info = dialog_manager.dialog_data["selected_inventory_product"]
     user_product_id = product_info["user_product_id"]
     product_name = product_info["product_name"]
@@ -200,6 +291,90 @@ async def on_skip_activation_comment(
         success = await stp_repo.purchase.use_purchase(user_product_id)
 
         if success:
+            # Получаем полную информацию о предмете и покупке для отправки email
+            user_product_detail = await stp_repo.purchase.get_purchase_details(
+                user_product_id
+            )
+
+            if user_product_detail:
+                product = user_product_detail.product_info
+                purchase = user_product_detail.user_purchase
+
+                # Получаем руководителя пользователя
+                user_head = None
+                if user.head:
+                    user_head = await stp_repo.employee.get_users(fullname=user.head)
+
+                # Получаем текущего дежурного
+                current_duty_user = None
+                if user_head:
+                    duty_scheduler = DutyScheduleParser()
+                    current_duty = await duty_scheduler.get_current_senior_duty(
+                        division=str(user_head.division), stp_repo=stp_repo
+                    )
+                    if current_duty:
+                        current_duty_user = await stp_repo.employee.get_users(
+                            user_id=current_duty.user_id
+                        )
+
+                # Отправляем email уведомление
+                bot_info = await callback.bot.get_me()
+                await send_activation_product_email(
+                    user,
+                    user_head,
+                    current_duty_user,
+                    product,
+                    purchase,
+                    bot_username=bot_info.username,
+                )
+
+                # Определяем получателей уведомлений
+                manager_ids = []
+                manager_role = product.manager_role
+
+                if manager_role == 3:
+                    # Для manager_role 3 уведомляем только текущих дежурных
+                    duty_scheduler = DutyScheduleParser()
+                    current_senior = await duty_scheduler.get_current_senior_duty(
+                        user.division, stp_repo
+                    )
+                    current_helper = await duty_scheduler.get_current_helper_duty(
+                        user.division, stp_repo
+                    )
+
+                    if current_senior and current_senior.user_id != user.user_id:
+                        manager_ids.append(current_senior.user_id)
+                    if current_helper and current_helper.user_id != user.user_id:
+                        manager_ids.append(current_helper.user_id)
+                elif manager_role in [5, 6]:
+                    # Для manager_role 5 или 6 уведомляем пользователей с такой же ролью
+                    users_with_role = await stp_repo.employee.get_users(
+                        roles=manager_role
+                    )
+                    for role_user in users_with_role:
+                        if role_user.user_id != user.user_id:
+                            manager_ids.append(role_user.user_id)
+
+                # Отправляем уведомления менеджерам
+                if manager_ids:
+                    notification_text = f"""<b>🔔 Новый предмет на активацию</b>
+
+<b>🛒 Предмет:</b> {product_name}
+<b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>📋 Описание:</b> {product.description}
+
+<b>Требуется рассмотрение заявки</b>"""
+
+                    result = await broadcast(
+                        bot=callback.bot,
+                        users=manager_ids,
+                        text=notification_text,
+                    )
+
+                    logger.info(
+                        f"[Использование предмета] {user.username} ({user.user_id}) отправил на рассмотрение '{product_name}'. Уведомлено менеджеров: {result} из {len(manager_ids)}"
+                    )
+
             await callback.answer(
                 f"✅ Предмет {product_name} отправлен на рассмотрение!",
                 show_alert=True,
@@ -266,6 +441,7 @@ async def on_inventory_cancel_activation(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user = dialog_manager.middleware_data["user"]
     product_info = dialog_manager.dialog_data["selected_inventory_product"]
     user_product_id = product_info["user_product_id"]
 
@@ -276,6 +452,90 @@ async def on_inventory_cancel_activation(
         )
 
         if success:
+            # Получаем полную информацию о предмете и покупке для отправки email
+            user_product_detail = await stp_repo.purchase.get_purchase_details(
+                user_product_id
+            )
+
+            if user_product_detail:
+                product = user_product_detail.product_info
+                purchase = user_product_detail.user_purchase
+
+                # Получаем руководителя пользователя
+                user_head = None
+                if user.head:
+                    user_head = await stp_repo.employee.get_users(fullname=user.head)
+
+                # Получаем текущего дежурного
+                current_duty_user = None
+                if user_head:
+                    duty_scheduler = DutyScheduleParser()
+                    current_duty = await duty_scheduler.get_current_senior_duty(
+                        division=str(user_head.division), stp_repo=stp_repo
+                    )
+                    if current_duty:
+                        current_duty_user = await stp_repo.employee.get_users(
+                            user_id=current_duty.user_id
+                        )
+
+                # Отправляем email уведомление об отмене
+                bot_info = await callback.bot.get_me()
+                await send_cancel_product_email(
+                    user,
+                    user_head,
+                    current_duty_user,
+                    product,
+                    purchase,
+                    bot_username=bot_info.username,
+                )
+
+                # Определяем получателей уведомлений
+                manager_ids = []
+                manager_role = product.manager_role
+
+                if manager_role == 3:
+                    # Для manager_role 3 уведомляем только текущих дежурных
+                    duty_scheduler = DutyScheduleParser()
+                    current_senior = await duty_scheduler.get_current_senior_duty(
+                        user.division, stp_repo
+                    )
+                    current_helper = await duty_scheduler.get_current_helper_duty(
+                        user.division, stp_repo
+                    )
+
+                    if current_senior and current_senior.user_id != user.user_id:
+                        manager_ids.append(current_senior.user_id)
+                    if current_helper and current_helper.user_id != user.user_id:
+                        manager_ids.append(current_helper.user_id)
+                elif manager_role in [5, 6]:
+                    # Для manager_role 5 или 6 уведомляем пользователей с такой же ролью
+                    users_with_role = await stp_repo.employee.get_users(
+                        role=manager_role
+                    )
+                    for role_user in users_with_role:
+                        if role_user.user_id != user.user_id:
+                            manager_ids.append(role_user.user_id)
+
+                # Отправляем уведомления менеджерам (без клавиатуры)
+                if manager_ids:
+                    notification_text = f"""<b>🔔 Отмена активации предмета</b>
+
+<b>🛒 Предмет:</b> {product.name}
+<b>👤 Пользователь:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>📋 Описание:</b> {product.description}
+
+<b>Активация предмета отменена</b>"""
+
+                    result = await broadcast(
+                        bot=callback.bot,
+                        users=manager_ids,
+                        text=notification_text,
+                    )
+
+                    logger.info(
+                        f"[Отмена активации] {user.username} ({user.user_id}) отменил активацию '{product.name}'. Уведомлено менеджеров: {result} из {len(manager_ids)}"
+                    )
+
             await callback.answer(
                 f"✅ Активация предмета '{product_info['product_name']}' отменена!"
             )
