@@ -24,7 +24,7 @@ async def activations_getter(
     if user.role in [2, 3]:
         activations = await stp_repo.purchase.get_review_purchases_for_activation(
             manager_role=3,
-            division="НЦК" if user.division == "НЦК" else ["НТП", "НТП1"],
+            division="НЦК" if user.division == "НЦК" else ["НТП1", "НТП2"],
         )
     else:
         activations = await stp_repo.purchase.get_review_purchases_for_activation(
