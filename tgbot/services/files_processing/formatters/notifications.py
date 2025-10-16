@@ -239,7 +239,7 @@ class StudiesFormatter:
 
         for session in sorted_sessions:
             lines.append(f"📅 <b>{session.date.strftime('%d.%m.%Y')}</b>")
-            lines.append(f"⏰ {session.time} ({session.duration})")
+            lines.append(f"⏰ <b>{session.time}</b> ({session.duration})")
             lines.append(f"📖 {session.title}")
 
             if session.experience_level:
@@ -288,7 +288,7 @@ class StudiesFormatter:
 
         for session in sorted(sessions, key=lambda x: x.date):
             lines.append(f"📅 <b>{session.date.strftime('%d.%m.%Y')}</b>")
-            lines.append(f"⏰ {session.time} ({session.duration})")
+            lines.append(f"⏰ <b>{session.time}</b> ({session.duration})")
             lines.append(f"📖 {session.title}")
 
             if session.experience_level:

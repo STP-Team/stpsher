@@ -221,7 +221,7 @@ class ScheduleParser(BaseParser):
         compact: bool = False,
         stp_repo=None,
     ) -> str:
-        """Получает отформатированный график пользователя с дежурствами (оптимизировано).
+        """Получает отформатированный график пользователя с дежурствами.
 
         Для компактного вида: получает дежурство только текущего дня (быстро)
         Для детального вида: получает дежурства за весь месяц (медленнее, но полно)
@@ -506,7 +506,6 @@ class DutyScheduleParser(BaseParser):
             if not names_to_fetch:
                 return {}
 
-            # OPTIMIZATION 2: Batch fetch all employees at once
             employee_cache = {}
             for name in names_to_fetch:
                 try:
@@ -519,7 +518,6 @@ class DutyScheduleParser(BaseParser):
             if not employee_cache:
                 return {}
 
-            # OPTIMIZATION 3: Pre-compute date columns for all days
             date_column_cache = {}
             for day in range(1, days_in_month + 1):
                 day_date = datetime(date.year, date.month, day)
@@ -529,7 +527,7 @@ class DutyScheduleParser(BaseParser):
 
             # Сканим все строки и колонки
             for row_idx, name in row_name_map.items():
-                # Skip if employee not found in cache
+                # Пропускаем если сотрудник не найден в кеше
                 if name not in employee_cache:
                     continue
 
@@ -582,7 +580,7 @@ class DutyScheduleParser(BaseParser):
     async def get_duties_for_date(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> List[DutyInfo]:
-        """Получает дежурства для конкретной даты (оптимизировано).
+        """Получает дежурства для конкретной даты.
 
         Args:
             date: Дата
@@ -608,7 +606,7 @@ class DutyScheduleParser(BaseParser):
     async def get_current_senior_duty(
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
-        """Получает текущего старшего дежурного (оптимизировано).
+        """Получает текущего старшего дежурного.
 
         Args:
             division: Направление
@@ -626,7 +624,7 @@ class DutyScheduleParser(BaseParser):
             if not senior_duties:
                 return None
 
-            # Find current duty based on time
+            # Находим текущего дежурного по времени
             for duty in senior_duties:
                 if self.is_time_format(duty.schedule):
                     start_minutes, end_minutes = self.parse_time_range(duty.schedule)
@@ -635,7 +633,7 @@ class DutyScheduleParser(BaseParser):
                     if start_minutes <= current_time_minutes <= end_minutes:
                         return duty
 
-                    # Handle overnight shifts
+                    # Обрабатываем ночные смены
                     if end_minutes > 24 * 60:
                         if (
                             current_time_minutes >= start_minutes
@@ -646,13 +644,13 @@ class DutyScheduleParser(BaseParser):
             return None
 
         except Exception as e:
-            logger.error(f"Error getting current senior duty: {e}")
+            logger.error(f"[Excel] Ошибка получения текущего дежурного: {e}")
             return None
 
     async def get_current_helper_duty(
         self, division: str, stp_repo: MainRequestsRepo
     ) -> Optional[DutyInfo]:
-        """Получает текущего помощника дежурного (оптимизировано).
+        """Получает текущего помощника дежурного.
 
         Args:
             division: Направление
@@ -670,7 +668,7 @@ class DutyScheduleParser(BaseParser):
             if not helper_duties:
                 return None
 
-            # Find current duty based on time
+            # Находим текущего помощника по времени
             for duty in helper_duties:
                 if self.is_time_format(duty.schedule):
                     start_minutes, end_minutes = self.parse_time_range(duty.schedule)
@@ -679,7 +677,7 @@ class DutyScheduleParser(BaseParser):
                     if start_minutes <= current_time_minutes <= end_minutes:
                         return duty
 
-                    # Handle overnight shifts
+                    # Обрабатываем ночные смены
                     if end_minutes > 24 * 60:
                         if (
                             current_time_minutes >= start_minutes
@@ -690,7 +688,7 @@ class DutyScheduleParser(BaseParser):
             return None
 
         except Exception as e:
-            logger.error(f"Error getting current helper duty: {e}")
+            logger.error(f"[Excel] Ошибка получения текущего помощника: {e}")
             return None
 
     async def format_schedule(
@@ -701,7 +699,7 @@ class DutyScheduleParser(BaseParser):
         division: str = None,
         stp_repo=None,
     ) -> str:
-        """Форматирует дежурства для отображения (оптимизировано).
+        """Форматирует дежурства для отображения.
 
         Args:
             duties: Список дежурных
@@ -721,50 +719,14 @@ class DutyScheduleParser(BaseParser):
         current_senior = None
         current_helper = None
         if highlight_current:
-            try:
-                current_time_minutes = date.hour * 60 + date.minute
+            current_senior = await self.get_current_senior_duty(
+                division=division, stp_repo=stp_repo
+            )
+            current_helper = await self.get_current_helper_duty(
+                division=division, stp_repo=stp_repo
+            )
 
-                # Находим текущего дежурного
-                senior_duties = [duty for duty in duties if duty.shift_type == "С"]
-                for duty in senior_duties:
-                    if self.is_time_format(duty.schedule):
-                        start_minutes, end_minutes = self.parse_time_range(
-                            duty.schedule
-                        )
-                        if start_minutes <= current_time_minutes <= end_minutes:
-                            current_senior = duty
-                            break
-                        # Handle overnight shifts
-                        if end_minutes > 24 * 60:
-                            if (
-                                current_time_minutes >= start_minutes
-                                or current_time_minutes <= (end_minutes - 24 * 60)
-                            ):
-                                current_senior = duty
-                                break
-
-                # Find current helper from duties list
-                helper_duties = [duty for duty in duties if duty.shift_type == "П"]
-                for duty in helper_duties:
-                    if self.is_time_format(duty.schedule):
-                        start_minutes, end_minutes = self.parse_time_range(
-                            duty.schedule
-                        )
-                        if start_minutes <= current_time_minutes <= end_minutes:
-                            current_helper = duty
-                            break
-                        # Handle overnight shifts
-                        if end_minutes > 24 * 60:
-                            if (
-                                current_time_minutes >= start_minutes
-                                or current_time_minutes <= (end_minutes - 24 * 60)
-                            ):
-                                current_helper = duty
-                                break
-            except Exception as e:
-                logger.error(f"Error computing current duties: {e}")
-
-        # Group by time
+        # Группируем по времени
         time_groups = {}
         for duty in duties:
             time_schedule = duty.schedule
@@ -781,12 +743,12 @@ class DutyScheduleParser(BaseParser):
             else:
                 time_groups[time_schedule]["seniors"].append(duty)
 
-        # Sort by time
+        # Сортировка по времени
         sorted_times = sorted(
             time_groups.keys(), key=lambda t: self.parse_time_range(t)[0]
         )
 
-        # Identify current duty time slots
+        # Идентификация тайм слотов текущих дежурных
         current_time_slots = set()
         if highlight_current and (current_senior or current_helper):
             for time_schedule in sorted_times:
@@ -803,7 +765,7 @@ class DutyScheduleParser(BaseParser):
                     ):
                         current_time_slots.add(time_schedule)
 
-        # Build formatted output
+        # Форматируем вывод
         in_blockquote = False
         current_slots_count = len(current_time_slots)
 
@@ -811,36 +773,36 @@ class DutyScheduleParser(BaseParser):
             group = time_groups[time_schedule]
             is_current_slot = time_schedule in current_time_slots
 
-            # Start blockquote if this is first current slot
+            # Начинаем с blockquote
             if is_current_slot and not in_blockquote:
-                lines.append(f"<blockquote>⏰ {time_schedule}")
+                lines.append(f"<blockquote><b>⏰ {time_schedule}</b>")
                 in_blockquote = True
             elif not is_current_slot and in_blockquote:
                 lines.append("</blockquote>")
                 in_blockquote = False
-                lines.append(f"⏰ {time_schedule}")
+                lines.append(f"⏰ <b>{time_schedule}</b>")
             else:
-                lines.append(f"⏰ {time_schedule}")
+                lines.append(f"⏰ <b>{time_schedule}</b>")
 
-            # Add senior officers
+            # Добавляем старших дежурных
             for duty in group["seniors"]:
                 lines.append(
                     f"Дежурный - {format_fullname(duty.name, True, True, duty.username, duty.user_id)}"
                 )
 
-            # Add helpers
+            # Добавляем помощников
             for duty in group["helpers"]:
                 lines.append(
                     f"Помощник - {format_fullname(duty.name, True, True, duty.username, duty.user_id)}"
                 )
 
-            # Check if next slot is current
+            # Проверяем, является ли следующий слот текущим
             next_is_current = False
             if i + 1 < len(sorted_times):
                 next_time_schedule = sorted_times[i + 1]
                 next_is_current = next_time_schedule in current_time_slots
 
-            # Add spacing logic
+            # Добавляем отступы
             if is_current_slot and not next_is_current and in_blockquote:
                 lines.append("</blockquote>")
                 in_blockquote = False
@@ -849,10 +811,6 @@ class DutyScheduleParser(BaseParser):
             elif is_current_slot and next_is_current:
                 if current_slots_count <= 3:
                     lines.append("")
-
-        # Remove last empty line
-        if lines and lines[-1] == "":
-            lines.pop()
 
         return "\n".join(lines)
 
@@ -1217,7 +1175,7 @@ class GroupScheduleParser(BaseParser):
     async def _process_division_members(
         self, reader: ExcelReader, head_fullname: str, date_column, stp_repo
     ) -> List[GroupMemberInfo]:
-        """Обрабатывает членов группы из файла направления (оптимизировано).
+        """Обрабатывает членов группы из файла направления.
 
         Args:
             reader: Читатель Excel
@@ -1307,7 +1265,7 @@ class GroupScheduleParser(BaseParser):
     async def get_group_members_for_user(
         self, user_fullname: str, date: datetime, division: str, stp_repo
     ) -> List[GroupMemberInfo]:
-        """Получает коллег по группе для пользователя (оптимизировано).
+        """Получает коллег по группе для пользователя.
 
         Args:
             user_fullname: ФИО пользователя
@@ -1389,7 +1347,7 @@ class GroupScheduleParser(BaseParser):
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
-            lines.append(f"🕒 <b>{start_time}</b>")
+            lines.append(f"⏰ <b>{start_time}</b>")
 
             for member in members:
                 lines.append(self._format_member_with_link(member))
@@ -1465,7 +1423,7 @@ class GroupScheduleParser(BaseParser):
 
         for start_time in sorted_start_times:
             members = grouped_by_start_time[start_time]
-            lines.append(f"<b>{start_time}</b>")
+            lines.append(f"⏰ <b>{start_time}</b>")
 
             for member in members:
                 lines.append(self._format_member_with_link(member))
