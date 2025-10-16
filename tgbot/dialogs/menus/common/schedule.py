@@ -19,6 +19,7 @@ from tgbot.dialogs.events.common.schedules import (
     do_nothing,
     next_day,
     next_month,
+    on_date_selected,
     prev_day,
     prev_month,
     today,
@@ -30,6 +31,7 @@ from tgbot.dialogs.getters.common.schedules import (
     user_schedule_getter,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
+from tgbot.dialogs.widgets import RussianCalendar
 
 menu_window = Window(
     Format("""<b>📅 Меню графиков</b>
@@ -119,11 +121,18 @@ duties_window = Window(
             on_click=next_day,
         ),
     ),
-    Button(
-        Const("📍 Сегодня"),
-        id="today",
-        on_click=today,
-        when=~F["is_today"],
+    Row(
+        Button(
+            Const("📍 Сегодня"),
+            id="today",
+            on_click=today,
+            when=~F["is_today"],
+        ),
+        SwitchTo(
+            Const("📆 Выбор дня"),
+            id="calendar",
+            state=Schedules.duties_calendar,
+        ),
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu),
@@ -152,11 +161,18 @@ group_window = Window(
             on_click=next_day,
         ),
     ),
-    Button(
-        Const("📍 Сегодня"),
-        id="today",
-        on_click=today,
-        when=~F["is_today"],
+    Row(
+        Button(
+            Const("📍 Сегодня"),
+            id="today",
+            on_click=today,
+            when=~F["is_today"],
+        ),
+        SwitchTo(
+            Const("📆 Выбор дня"),
+            id="calendar",
+            state=Schedules.group_calendar,
+        ),
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
@@ -185,11 +201,18 @@ heads_window = Window(
             on_click=next_day,
         ),
     ),
-    Button(
-        Const("📍 Сегодня"),
-        id="today",
-        on_click=today,
-        when=~F["is_today"],
+    Row(
+        Button(
+            Const("📍 Сегодня"),
+            id="today",
+            on_click=today,
+            when=~F["is_today"],
+        ),
+        SwitchTo(
+            Const("📆 Выбор дня"),
+            id="calendar",
+            state=Schedules.heads_calendar,
+        ),
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
@@ -197,6 +220,37 @@ heads_window = Window(
     ),
     getter=head_schedule_getter,
     state=Schedules.heads,
+)
+
+# Calendar windows
+duties_calendar_window = Window(
+    Const("<b>📅 Выбор даты для дежурных</b>\n\nВыберите дату из календаря:"),
+    RussianCalendar(id="duties_calendar", on_click=on_date_selected),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.duties),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
+    ),
+    state=Schedules.duties_calendar,
+)
+
+group_calendar_window = Window(
+    Const("<b>📅 Выбор даты для группы</b>\n\nВыберите дату из календаря:"),
+    RussianCalendar(id="group_calendar", on_click=on_date_selected),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.group),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
+    ),
+    state=Schedules.group_calendar,
+)
+
+heads_calendar_window = Window(
+    Const("<b>📅 Выбор даты для руководителей</b>\n\nВыберите дату из календаря:"),
+    RussianCalendar(id="heads_calendar", on_click=on_date_selected),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.heads),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
+    ),
+    state=Schedules.heads_calendar,
 )
 
 
@@ -213,5 +267,13 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
 
 
 schedules_dialog = Dialog(
-    menu_window, my_window, group_window, duties_window, heads_window, on_start=on_start
+    menu_window,
+    my_window,
+    group_window,
+    duties_window,
+    heads_window,
+    duties_calendar_window,
+    group_calendar_window,
+    heads_calendar_window,
+    on_start=on_start,
 )

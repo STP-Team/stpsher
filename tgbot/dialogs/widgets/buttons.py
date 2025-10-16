@@ -1,4 +1,4 @@
-"""Кастомные виджеты для диалогов."""
+"""Кастомные кнопки для диалогов."""
 
 from aiogram_dialog.widgets.kbd import Button, Group, Url
 from aiogram_dialog.widgets.text import Const
