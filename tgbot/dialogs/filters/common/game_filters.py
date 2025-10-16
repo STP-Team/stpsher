@@ -138,7 +138,18 @@ async def product_filter_getter(
         )
     else:
         # Для обычных пользователей загружаем только их подразделение
-        base_data = await products_getter(user=user, stp_repo=stp_repo, **kwargs)
+        # Нормализуем подразделение: НТП1/НТП2 -> НТП, НЦК остается НЦК
+        normalized_division = (
+            "НТП"
+            if "НТП" in user.division
+            else "НЦК"
+            if "НЦК" in user.division
+            else user.division
+        )
+
+        base_data = await products_getter(
+            user=user, stp_repo=stp_repo, division=normalized_division, **kwargs
+        )
 
     products = base_data["products"]
     user_balance = base_data["user_balance"]
