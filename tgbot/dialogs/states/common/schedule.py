@@ -12,3 +12,8 @@ class Schedules(StatesGroup):
     duties = State()  # Расчет зарплаты
     heads = State()  # График дежурных
     group = State()  # График руководителей
+
+    # Calendar states
+    duties_calendar = State()  # Календарь для дежурных
+    group_calendar = State()  # Календарь для группы
+    heads_calendar = State()  # Календарь для руководителей

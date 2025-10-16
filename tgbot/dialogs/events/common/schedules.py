@@ -1,12 +1,14 @@
 """Обработчики для функций графиков."""
 
 import datetime
+from datetime import date
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
 from tgbot.dialogs.states.common.schedule import Schedules
+from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.misc.dicts import russian_months
 from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
@@ -180,3 +182,30 @@ def get_next_month(current_month: str) -> str:
     # Считаем номер предыдущего месяца (1-12)
     prev_num = 1 if current_num == 12 else current_num + 1
     return russian_months[prev_num]
+
+
+async def on_date_selected(
+    _callback: CallbackQuery,
+    _widget: RussianCalendar,
+    dialog_manager: DialogManager,
+    selected_date: date,
+) -> None:
+    """Обработчик выбора даты в календаре.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет календаря
+        dialog_manager: Менеджер диалога
+        selected_date: Выбранная дата
+    """
+    # Сохраняем выбранную дату в dialog_data
+    dialog_manager.dialog_data["current_date"] = selected_date.isoformat()
+
+    # Возвращаемся к соответствующему окну в зависимости от текущего состояния
+    current_state = dialog_manager.current_context().state
+    if current_state == Schedules.duties_calendar:
+        await dialog_manager.switch_to(Schedules.duties)
+    elif current_state == Schedules.group_calendar:
+        await dialog_manager.switch_to(Schedules.group)
+    elif current_state == Schedules.heads_calendar:
+        await dialog_manager.switch_to(Schedules.heads)

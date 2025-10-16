@@ -18,8 +18,8 @@ from tgbot.dialogs.getters.common.game.casino import (
     casino_result_getter,
     casino_waiting_getter,
 )
-from tgbot.dialogs.menus.widgets import CASINO_RATES
 from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.widgets.buttons import CASINO_RATES
 
 casino_window = Window(
     Const("🎲 <b>Казино</b>\n"),
