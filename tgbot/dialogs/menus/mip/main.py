@@ -8,6 +8,7 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.game.game import start_game_dialog
+from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.states.mip import MipSG
 from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
@@ -27,7 +28,7 @@ menu_window = Window(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
         ),
-        # Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
+        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     SUPPORT_BTN,
     state=MipSG.menu,

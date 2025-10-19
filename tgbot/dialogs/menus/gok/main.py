@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.game.game import start_game_dialog
+from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.states.gok import GokSG
 from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
@@ -21,7 +22,7 @@ menu_window = Window(
         Button(
             Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
         ),
-        # Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
+        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
     SUPPORT_BTN,
     state=GokSG.menu,
