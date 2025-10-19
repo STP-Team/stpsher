@@ -1,323 +1,223 @@
-"""Геттеры для групповых окон."""
+"""Геттеры для функционала управления группами."""
 
-import logging
-from typing import Any, Dict
+from typing import Any
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.utils.deep_linking import create_startgroup_link
 from aiogram_dialog import DialogManager
-from stp_database import MainRequestsRepo
+from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedMultiselect
+from stp_database import Employee, MainRequestsRepo
 
-pending_role_changes = {}
-pending_service_messages_changes = {}
-
-logger = logging.getLogger(__name__)
+from tgbot.misc.dicts import roles
 
 
-async def get_user_groups(user_id: int, stp_repo: MainRequestsRepo, bot: Bot) -> tuple:
-    """Получает список групп, где пользователь является участником.
+async def groups_getter(bot: Bot, **_kwargs: Any) -> dict:
+    """Геттер для главного меню групп.
 
     Args:
-        user_id: Идентификатор Telegram пользователя, запрашивающего список групп
-        stp_repo: Репозиторий операций с базой STP
         bot: Экземпляр бота
 
     Returns:
-        Кортеж групп пользователя, в которых он числится участником в базе данных
+        Словарь с диплинком на приглашение бота
     """
-    admin_groups = []
-    member_groups_list = []
-    admin_status = {}
+    link = await create_startgroup_link(bot, "start")
 
-    member_groups = await stp_repo.group_member.get_member_groups(user_id)
-
-    for group_member in member_groups:
-        group_id = group_member.group_id
-        try:
-            try:
-                chat_info = await bot.get_chat(chat_id=group_id)
-                group_name = chat_info.title or f"{group_id}"
-
-                is_admin = await is_user_group_admin(user_id, group_id, bot)
-                admin_status[group_id] = is_admin
-
-                if is_admin:
-                    admin_groups.append((group_id, group_name))
-                else:
-                    member_groups_list.append((group_id, group_name))
-
-            except Exception as e:
-                logger.warning(f"Failed to get chat info for group {group_id}: {e}")
-                group_name = f"{group_id}"
-                is_admin = await is_user_group_admin(user_id, group_id, bot)
-                admin_status[group_id] = is_admin
-
-                if is_admin:
-                    admin_groups.append((group_id, group_name))
-                else:
-                    member_groups_list.append((group_id, group_name))
-
-        except Exception as e:
-            logger.warning(f"Failed to check group {group_id}: {e}")
-            continue
-
-    sorted_groups = admin_groups + member_groups_list
-    return sorted_groups, admin_status
-
-
-async def is_user_group_admin(user_id: int, group_id: int, bot: Bot) -> bool:
-    """Проверяет есть ли у пользователя права администратора в группе.
-
-    Args:
-        user_id: Идентификатор Telegram пользователя
-        group_id: Идентификатор проверяемой Telegram группы
-        bot: Экземпляр бота
-
-    Returns:
-        True если пользователь является администраторов в группе, иначе False
-    """
-    try:
-        member_status = await bot.get_chat_member(chat_id=group_id, user_id=user_id)
-        return member_status.status in ["administrator", "creator"]
-    except Exception as e:
-        logger.warning(f"Failed to check admin status for group {group_id}: {e}")
-        return False
+    return {"joinchat_deeplink": link}
 
 
 async def groups_list_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, bot: Bot, **_kwargs
-) -> Dict[str, Any]:
-    """Получает информацию о списке групп для окна групп.
+    stp_repo: MainRequestsRepo,
+    user: Employee,
+    bot: Bot,
+    **_kwargs,
+) -> dict:
+    """Геттер списка групп, где пользователь является администратором.
 
     Args:
-        bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
-        dialog_manager: Менеджер диалога
+        user: Экземпляр пользователя с моделью Employee
+        bot: Экземпляр бота
 
     Returns:
-        Словарь групп пользователя, в которых он числится участником в базе данных
+        Словарь со списком групп, где пользователь является администратором,
+        количеством групп и флагом наличия групп
     """
-    user_id = dialog_manager.event.from_user.id
+    user_groups = await stp_repo.group_member.get_member_groups(member_id=user.user_id)
+    managed_groups = []
 
-    user_groups, admin_status = await get_user_groups(user_id, stp_repo, bot)
+    for group in user_groups:
+        try:
+            group_admins = await bot.get_chat_administrators(chat_id=group.group_id)
+            admin_ids = [admin.user.id for admin in group_admins]
 
-    groups_items = []
-    for group_id, group_name in user_groups:
-        is_admin = admin_status.get(group_id, False)
-        emoji = (
-            "🛡️" if is_admin else "👤"
-        )  # Отображение роли в группе: Участник или администратор
-        display_name = group_name[:30] + "..." if len(group_name) > 30 else group_name
-        groups_items.append((f"{emoji} {display_name}", group_id))
+            if user.user_id in admin_ids:
+                # Получаем информацию о чате для отображения названия
+                chat = await bot.get_chat(chat_id=group.group_id)
+                group_name = chat.title or "Без названия"
+                managed_groups.append((group_name, str(group.group_id)))
+        except TelegramBadRequest:
+            # Пропускаем группы, где бот больше не имеет доступа
+            continue
 
     return {
-        "groups_count": len(user_groups),
-        "has_groups": len(user_groups) > 0,
-        "groups": groups_items,
+        "groups": managed_groups,
+        "groups_count": len(managed_groups),
+        "has_groups": len(managed_groups) > 0,
     }
 
 
 async def groups_details_getter(
-    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, bot: Bot, **_kwargs
-) -> Dict[str, Any]:
-    """Получаем информацию о выбранной пользователем группе в списке групп.
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер получения настроек группы.
 
     Args:
-        bot: Экземпляр бота
-        dialog_manager: Менеджер диалога
         stp_repo: Репозиторий операций с базой STP
+        bot: Экземпляр бота
+        dialog_manager:
+        **_kwargs:
 
     Returns:
         Словарь с информацией о выбранной группе
     """
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data["selected_group_id"]
+    chat = await bot.get_chat(chat_id=group_id)
 
-    if not group_id:
-        return {"error": True}
+    settings = await stp_repo.group.get_groups(group_id=group_id)
 
-    group = await stp_repo.group.get_groups(group_id)
-    if not group:
-        return {"error": True}
+    # Установка флага инициализации для предотвращения обновления БД
+    dialog_manager.dialog_data["initializing_checkboxes"] = True
 
-    try:
-        chat_info = await bot.get_chat(chat_id=group_id)
-        group_name = chat_info.title or f"{group_id}"
-    except Exception:
-        group_name = f"ID: {group_id}"
+    # Установка настроек из БД
+    new_user_notify_checkbox: ManagedCheckbox = dialog_manager.find("new_user_notify")
+    await new_user_notify_checkbox.set_checked(settings.new_user_notify)
 
-    widget_data = dialog_manager.dialog_data.setdefault("__aiogd_widget_data__", {})
-    widget_data["new_user_notify"] = group.new_user_notify
-    widget_data["is_casino_allowed"] = group.is_casino_allowed
+    is_casino_allowed: ManagedCheckbox = dialog_manager.find("is_casino_allowed")
+    await is_casino_allowed.set_checked(settings.is_casino_allowed)
 
-    return {
-        "group_name": group_name,
-        "group_id": group_id,
-        "remove_unemployed": group.remove_unemployed,
-        "new_user_notify": group.new_user_notify,
-        "is_casino_allowed": group.is_casino_allowed,
-        "has_access_roles": bool(group.allowed_roles),
-        "has_service_messages": bool(getattr(group, "service_messages", [])),
-    }
+    # Сброс флага инициализации
+    dialog_manager.dialog_data["initializing_checkboxes"] = False
+
+    return {"group_name": chat.title, "group_id": chat.id}
 
 
-async def group_details_members_getter(
-    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, bot: Bot, **_kwargs
-) -> Dict[str, Any]:
-    """Получает список участников группы из базы данных для отображения.
+async def group_details_access_getter(
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна настройки уровня доступа к группе.
 
     Args:
+        stp_repo: Репозиторий операций с базой STP
         bot: Экземпляр бота
         dialog_manager: Менеджер диалога
-        stp_repo: Репозиторий операций с базой STP
 
     Returns:
-        Словарь участников группы из базы данных
+        Словарь с данными для окна
     """
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data["selected_group_id"]
+    chat = await bot.get_chat(chat_id=group_id)
+    settings = await stp_repo.group.get_groups(group_id=group_id)
 
-    if not group_id:
-        return {"error": True}
+    # Преобразуем словарь ролей в список кортежей (role_id, display_name)
+    roles_list = [
+        (
+            role_id,
+            f"{role_data['emoji']} {role_data['name']}".strip()
+            if role_data["emoji"]
+            else role_data["name"],
+        )
+        for role_id, role_data in roles.items()
+        if role_id != 0  # Исключаем роль "Не авторизован"
+    ]
 
-    group = await stp_repo.group.get_groups(group_id)
-    if not group:
-        return {"error": True}
+    # Получаем allowed_roles из БД
+    allowed_roles = settings.allowed_roles if settings.allowed_roles else []
 
-    try:
-        chat_info = await bot.get_chat(chat_id=group_id)
-        group_name = chat_info.title or f"{group_id}"
-    except Exception:
-        group_name = f"ID: {group_id}"
+    # Устанавливаем выбранные роли в мультиселект
+    access_level_select: ManagedMultiselect = dialog_manager.find("access_level_select")
+    for role_id, _ in roles_list:
+        is_allowed = role_id in allowed_roles
+        await access_level_select.set_checked(str(role_id), is_allowed)
 
-    group_members = await stp_repo.group_member.get_group_members(group_id)
-
-    employees = []
-    non_employee_users = []
-
-    for group_member in group_members:
-        employee = await stp_repo.employee.get_users(user_id=group_member.member_id)
-        if employee:
-            employees.append(employee)
-        else:
-            try:
-                chat_member = await bot.get_chat_member(
-                    chat_id=group_id, user_id=group_member.member_id
-                )
-                non_employee_users.append(chat_member.user)
-            except Exception:
-                continue
-
-    total_members = len(employees) + len(non_employee_users)
+    allow_unemployed = dialog_manager.find("only_employees")
+    await allow_unemployed.set_checked(settings.remove_unemployed)
 
     return {
-        "group_name": group_name,
-        "group_id": group_id,
-        "total_members": total_members,
-        "employees": employees,
-        "users": non_employee_users,
+        "group_name": chat.title,
+        "roles": roles_list,
+        "has_pending_changes": False,
     }
 
 
 async def group_details_services_getter(
-    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, bot: Bot, **_kwargs
-) -> Dict[str, Any]:
-    """Получает информацию для окна настройки сервисных сообщений.
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна настройки сервисных сообщений группы.
 
     Args:
+        stp_repo: Репозиторий операций с базой STP
         bot: Экземпляр бота
         dialog_manager: Менеджер диалога
-        stp_repo: Репозиторий операций с базой STP
 
     Returns:
-        Словарь настроек сервисных сообщений группы
+        Словарь с данными для окна, включая список типов сервисных сообщений
     """
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data["selected_group_id"]
+    chat = await bot.get_chat(chat_id=group_id)
+    settings = await stp_repo.group.get_groups(group_id=group_id)
 
-    if not group_id:
-        return {"error": True}
+    service_messages_items = [
+        ("join", "Вход"),
+        ("leave", "Выход"),
+        ("other", "Прочее"),
+        ("photo", "Фото"),
+        ("pin", "Закреп"),
+        ("title", "Название"),
+        ("videochat", "Видеозвонки"),
+    ]
 
-    group = await stp_repo.group.get_groups(group_id)
-    if not group:
-        return {"error": True}
+    # Получаем service_messages из БД
+    service_messages = settings.service_messages if settings.service_messages else []
 
-    try:
-        chat_info = await bot.get_chat(chat_id=group_id)
-        group_name = chat_info.title or f"{group_id}"
-    except Exception:
-        group_name = f"ID: {group_id}"
-
-    # Initialize pending changes if not exists
-    if group_id not in pending_service_messages_changes:
-        pending_service_messages_changes[group_id] = (
-            getattr(group, "service_messages", []) or []
-        ).copy()
-
-    current_pending = pending_service_messages_changes[group_id]
-
-    # Initialize checkbox states
-    widget_data = dialog_manager.dialog_data.setdefault("__aiogd_widget_data__", {})
-    widget_data["service_all"] = "all" in current_pending
-    widget_data["service_join"] = "join" in current_pending
-    widget_data["service_leave"] = "leave" in current_pending
-    widget_data["service_other"] = "other" in current_pending
-    widget_data["service_photo"] = "photo" in current_pending
-    widget_data["service_pin"] = "pin" in current_pending
-    widget_data["service_title"] = "title" in current_pending
-    widget_data["service_videochat"] = "videochat" in current_pending
+    # Устанавливаем выбранные типы сообщений в мультиселект
+    service_messages_select: ManagedMultiselect = dialog_manager.find(
+        "service_messages_select"
+    )
+    for msg_type, _ in service_messages_items:
+        is_selected = msg_type in service_messages
+        await service_messages_select.set_checked(msg_type, is_selected)
 
     return {
-        "group_name": group_name,
-        "group_id": group_id,
-        "has_pending_changes": current_pending
-        != (getattr(group, "service_messages", []) or []),
-    }
-
-
-async def groups_cmds_getter(
-    dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Получает данные для окна команд групп.
-
-    Args:
-        dialog_manager: Менеджер диалога
-
-    Returns:
-        Словарь с информацией о выбранном фильтре команд
-    """
-    filter_value = dialog_manager.find("groups_cmds_filter").get_checked()
-
-    return {
-        "is_user": filter_value == "user",
+        "service_messages": service_messages_items,
+        "group_name": chat.title,
     }
 
 
 async def group_remove_getter(
-    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, bot: Bot, **_kwargs
-) -> Dict[str, Any]:
-    """Получает данные для окна подтверждения удаления бота из группы.
+    dialog_manager: DialogManager, bot: Bot, **_kwargs
+) -> dict:
+    """Геттер для окна подтверждения удаления бота из группы.
 
     Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий операций с базой STP
         dialog_manager: Менеджер диалога
+        bot: Экземпляр бота
 
     Returns:
-        Словарь с group_name и group_id
+        Словарь с данными для окна
     """
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
-
-    if not group_id:
-        return {"error": True}
-
-    group = await stp_repo.group.get_groups(group_id)
-    if not group:
-        return {"error": True}
-
-    try:
-        chat_info = await bot.get_chat(chat_id=group_id)
-        group_name = chat_info.title or f"{group_id}"
-    except Exception:
-        group_name = f"ID: {group_id}"
+    group_id = dialog_manager.dialog_data["selected_group_id"]
+    chat = await bot.get_chat(chat_id=group_id)
 
     return {
-        "group_name": group_name,
-        "group_id": group_id,
+        "group_name": chat.title,
     }

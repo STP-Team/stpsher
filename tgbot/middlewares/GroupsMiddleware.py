@@ -676,9 +676,7 @@ class GroupsMiddleware(BaseMiddleware):
                 return False  # Не сервисное сообщение
 
             # Проверяем, нужно ли удалять этот тип сообщений
-            should_delete = (
-                "all" in service_categories or message_category in service_categories
-            )
+            should_delete = message_category in service_categories
 
             if should_delete:
                 # Удаляем сообщение
