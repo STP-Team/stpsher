@@ -5,7 +5,7 @@ import logging
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
+from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, ManagedRadio, Select
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.search import Search
@@ -267,7 +267,7 @@ async def on_trainee_change(
 
 async def on_role_change(
     callback: CallbackQuery,
-    _widget: Select,
+    _widget: ManagedRadio,
     dialog_manager: DialogManager,
     item_id: str,
     **_kwargs,
@@ -306,6 +306,10 @@ async def on_role_change(
             await callback.answer("❌ Пользователь не найден", show_alert=True)
             return
 
+        # Проверяем, изменилась ли роль
+        if searched_user.role == new_role_id:
+            return
+
         # Обновляем роль в базе данных
         await stp_repo.employee.update_user(
             user_id=searched_user.user_id, role=new_role_id
@@ -316,8 +320,8 @@ async def on_role_change(
             f"✅ Роль изменена на: {role_info['emoji']} {role_info['name']}"
         )
 
-        # Возвращаемся к деталям пользователя
-        await dialog_manager.switch_to(Search.details_window)
+        # Остаемся на том же окне, чтобы показать обновленный список
+        await dialog_manager.switch_to(Search.details_access_level_window)
 
     except Exception as e:
         logger.error(f"[Смена роли] Ошибка при изменении роли: {e}")

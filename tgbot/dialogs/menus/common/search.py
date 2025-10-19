@@ -327,16 +327,16 @@ details_window = Window(
 
 details_access_level_window = Window(
     Format("""<b>{selected_user_name}</b>
-    
+
 🛡️ <b>Уровень доступа</b>
-Текущий уровень: {current_role_name}
 
 Выбери уровень доступа из меню для назначения сотруднику"""),
     Group(
-        Select(
+        Radio(
+            Format("✓ {item[1]}"),
             Format("{item[1]}"),
             id="access_level_select",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=lambda item: str(item[0]),
             items="roles",
             on_click=on_role_change,
         ),

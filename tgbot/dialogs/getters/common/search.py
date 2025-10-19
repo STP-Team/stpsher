@@ -268,7 +268,7 @@ async def search_access_level_getter(
     is_mip = user.role == 6
     is_root = user.role == 10
 
-    # Форматируем роли для Select виджета
+    # Форматируем роли для Radio виджета
     if is_head:
         formatted_roles = [
             (role_id, f"{role_data['emoji']} {role_data['name']}")
@@ -291,6 +291,7 @@ async def search_access_level_getter(
     # Получаем информацию о выбранном пользователе
     selected_user_name = "Пользователь"
     current_role_name = ""
+    current_role_id = None
 
     if selected_user_id:
         try:
@@ -305,6 +306,12 @@ async def search_access_level_getter(
                 role_info = get_role(selected_user.role)
                 if role_info:
                     current_role_name = f"{role_info['emoji']} {role_info['name']}"
+                current_role_id = selected_user.role
+
+                # Устанавливаем текущую роль как выбранную в Radio
+                access_level_radio = dialog_manager.find("access_level_select")
+                if access_level_radio:
+                    await access_level_radio.set_checked(str(current_role_id))
         except Exception:
             pass
 
@@ -312,6 +319,7 @@ async def search_access_level_getter(
         "roles": formatted_roles,
         "selected_user_name": selected_user_name,
         "current_role_name": current_role_name,
+        "current_role_id": current_role_id,
     }
 
 
