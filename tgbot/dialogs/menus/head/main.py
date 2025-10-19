@@ -14,6 +14,7 @@ from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.events.heads.group import start_group_dialog
 from tgbot.dialogs.states.head import HeadSG
+from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ menu_window = Window(
         ),
         # Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
-    # SUPPORT_BTN,
+    SUPPORT_BTN,
     state=HeadSG.menu,
 )
 

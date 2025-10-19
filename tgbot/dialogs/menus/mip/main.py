@@ -10,6 +10,7 @@ from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.states.mip import MipSG
+from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
 
 menu_window = Window(
     Format("""👋 <b>Привет</b>!
@@ -28,7 +29,7 @@ menu_window = Window(
         ),
         # Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
-    # SUPPORT_BTN,
+    SUPPORT_BTN,
     state=MipSG.menu,
 )
 
