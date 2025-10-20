@@ -28,7 +28,14 @@ from tgbot.dialogs.getters.common.schedules import (
     duty_schedule_getter,
     group_schedule_getter,
     head_schedule_getter,
+    schedules_getter,
     user_schedule_getter,
+)
+from tgbot.dialogs.menus.common.schedules.exchanges import (
+    exchange_buy_window,
+    exchange_my_window,
+    exchange_sell_window,
+    exchanges_window,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
@@ -61,7 +68,14 @@ menu_window = Window(
             state=Schedules.heads,
         ),
     ),
+    SwitchTo(
+        Const("🎭 Биржа подмен"),
+        id="exchanges",
+        state=Schedules.exchanges,
+        when="is_user",
+    ),
     Button(Const("↩️ Назад"), id="home", on_click=close_schedules_dialog),
+    getter=schedules_getter,
     state=Schedules.menu,
 )
 
@@ -222,7 +236,7 @@ heads_window = Window(
     state=Schedules.heads,
 )
 
-# Calendar windows
+# Окна календарей
 duties_calendar_window = Window(
     Const("<b>📅 Выбор даты для дежурных</b>\n\nВыберите дату из календаря:"),
     RussianCalendar(id="duties_calendar", on_click=on_date_selected),
@@ -275,5 +289,9 @@ schedules_dialog = Dialog(
     duties_calendar_window,
     group_calendar_window,
     heads_calendar_window,
+    exchanges_window,
+    exchange_buy_window,
+    exchange_sell_window,
+    exchange_my_window,
     on_start=on_start,
 )
