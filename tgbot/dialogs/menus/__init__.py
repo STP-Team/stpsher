@@ -6,7 +6,7 @@ from tgbot.dialogs.menus.common.files import files_dialog
 from tgbot.dialogs.menus.common.game.menu import game_dialog
 from tgbot.dialogs.menus.common.groups.groups import groups_dialog
 from tgbot.dialogs.menus.common.kpi import kpi_dialog
-from tgbot.dialogs.menus.common.schedule import schedules_dialog
+from tgbot.dialogs.menus.common.schedules.schedule import schedules_dialog
 from tgbot.dialogs.menus.common.search import search_dialog
 from tgbot.dialogs.menus.gok.main import gok_dialog
 from tgbot.dialogs.menus.head.group import head_group_dialog

@@ -73,4 +73,8 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     """
 
 
-user_dialog = Dialog(menu_window, horn_window, on_start=on_start)
+user_dialog = Dialog(
+    menu_window,
+    horn_window,
+    on_start=on_start,
+)

@@ -14,6 +14,18 @@ from tgbot.services.files_processing.formatters.schedule import (
 from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 
+async def schedules_getter(user: Employee, **_kwargs: Any) -> Dict[str, Any]:
+    """Геттер для главного меню графиков.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+
+    Returns:
+        Словарь с ролью сотрудника
+    """
+    return {"is_user": user.role in [1, 3]}
+
+
 async def user_schedule_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
@@ -25,7 +37,7 @@ async def user_schedule_getter(
         dialog_manager: Менеджер диалога
 
     Returns:
-        Возвращает словарь для смены месяца графика
+        Словарь для смены месяца графика
     """
     # Get month from dialog_data or use current month as default
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
