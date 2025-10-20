@@ -7,6 +7,7 @@ from typing import Any, Dict
 from aiogram_dialog import DialogManager
 from stp_database import MainRequestsRepo
 
+from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 
@@ -525,20 +526,18 @@ async def exchange_buy_detail_getter(
 
         # Получаем информацию о продавце
         seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-        seller_name = seller.fullname if seller else "Неизвестен"
-        seller_contact = (
-            f"@{seller.username}" if seller and seller.username else "Не указан"
+        seller_name = format_fullname(
+            seller.fullname,
+            short=True,
+            gender_emoji=True,
+            username=seller.username,
+            user_id=seller.user_id,
         )
 
         # Форматируем данные
         shift_date = exchange.shift_date.strftime("%d.%m.%Y")
 
-        if exchange.is_partial and exchange.shift_end_time:
-            shift_type = "Часть смены"
-            shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
-        else:
-            shift_type = "Полная смена"
-            shift_time = f"с {exchange.shift_start_time}"
+        shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -551,11 +550,9 @@ async def exchange_buy_detail_getter(
         return {
             "shift_date": shift_date,
             "seller_name": seller_name,
-            "shift_type": shift_type,
             "shift_time": shift_time,
             "price": exchange.price,
             "payment_info": payment_info,
-            "seller_contact": seller_contact,
         }
 
     except Exception:
