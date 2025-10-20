@@ -235,6 +235,7 @@ async def search_user_info_getter(
             "is_mip": is_mip,
             "is_root": is_root,
             "is_casino_allowed": searched_user.is_casino_allowed,
+            "is_exchanges_allowed": searched_user.is_exchange_banned,
             "is_trainee": searched_user.is_trainee,
         }
 

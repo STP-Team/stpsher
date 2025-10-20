@@ -28,6 +28,7 @@ from tgbot.dialogs.events.common.search import (
     close_search_dialog,
     on_back_to_menu,
     on_casino_change,
+    on_exchanges_change,
     on_role_change,
     on_schedule_mode_select,
     on_search_query,
@@ -247,6 +248,13 @@ details_window = Window(
             width=2,
             when="searched_default_user",
         ),
+        Checkbox(
+            Const("🟢 Биржа подмен"),
+            Const("🔴 Биржа подмен"),
+            id="exchanges_access",
+            on_state_changed=on_exchanges_change,
+            when="searched_default_user",
+        ),
         SwitchTo(
             Const("🛡️ Уровень доступа"),
             id="access_level",
@@ -339,6 +347,12 @@ details_window = Window(
             ),
             width=2,
             when="searched_default_user",
+        ),
+        Checkbox(
+            Const("🟢 Биржа подмен"),
+            Const("🔴 Биржа подмен"),
+            id="exchanges_access",
+            on_state_changed=on_exchanges_change,
         ),
         SwitchTo(
             Const("🛡️ Уровень доступа"),
