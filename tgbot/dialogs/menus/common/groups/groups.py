@@ -223,6 +223,12 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
     await groups_cmds_filter.set_checked("user")
 
+    # Если передан group_id в start_data, устанавливаем его в dialog_data
+    if dialog_manager.start_data and isinstance(dialog_manager.start_data, dict):
+        group_id = dialog_manager.start_data.get("group_id")
+        if group_id:
+            dialog_manager.dialog_data["selected_group_id"] = group_id
+
 
 groups_dialog = Dialog(
     groups_window,
