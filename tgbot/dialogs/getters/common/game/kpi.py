@@ -96,7 +96,7 @@ async def kpi_getter(
         )
 
         delay_text = (
-            f"⏰ Задержка: {SalaryFormatter.format_value(premium.delay, ' сек')}"
+            f"⏰ Задержка: {SalaryFormatter.format_value(premium.delay, '%')}"
             if user.division != "НЦК"
             else ""
         )
