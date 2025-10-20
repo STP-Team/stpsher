@@ -49,8 +49,16 @@ class EventLoggingMiddleware(BaseMiddleware):
 
         # Получаем DialogManager для доступа к session_id
         aiogd_context = data.get("aiogd_context")
-        session_id = aiogd_context.id
-        prev_state = aiogd_context.state.state
+
+        try:
+            session_id = aiogd_context.id
+            prev_state = aiogd_context.state.state
+        except (AttributeError, TypeError):
+            # Если aiogd_context отсутствует или не имеет нужных атрибутов, пропускаем логирование
+            logger.warning(
+                f"[EventLoggingMiddleware] aiogd_context недоступен для пользователя {user.user_id}"
+            )
+            return await handler(event, data)
 
         dialog_manager: DialogManager = data.get("dialog_manager")
 
