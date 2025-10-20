@@ -5,7 +5,6 @@ from typing import Any, Awaitable, Callable, Dict, Union
 
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.services.event_logger import EventLogger
@@ -55,12 +54,10 @@ class EventLoggingMiddleware(BaseMiddleware):
             prev_state = aiogd_context.state.state
         except (AttributeError, TypeError):
             # Если aiogd_context отсутствует или не имеет нужных атрибутов, пропускаем логирование
-            logger.warning(
+            logger.debug(
                 f"[EventLoggingMiddleware] aiogd_context недоступен для пользователя {user.user_id}"
             )
             return await handler(event, data)
-
-        dialog_manager: DialogManager = data.get("dialog_manager")
 
         try:
             # Логируем событие в зависимости от типа
@@ -100,20 +97,4 @@ class EventLoggingMiddleware(BaseMiddleware):
             logger.error(f"[EventLoggingMiddleware] Ошибка логирования события: {e}")
 
         # Продолжаем выполнение обработчика
-        await handler(event, data)
-
-    @staticmethod
-    def _format_window_name(state: str) -> str:
-        """Форматирует имя состояния в читаемое имя окна.
-
-        Args:
-            state: Полное имя состояния (например, "Game:menu")
-
-        Returns:
-            Отформатированное имя окна
-        """
-        # Состояние имеет формат "StateGroup:state_name"
-        if ":" in state:
-            group, name = state.split(":", 1)
-            return f"{group}.{name}"
-        return state
+        return await handler(event, data)
