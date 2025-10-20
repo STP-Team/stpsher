@@ -32,10 +32,19 @@ from tgbot.dialogs.getters.common.schedules import (
     user_schedule_getter,
 )
 from tgbot.dialogs.menus.common.schedules.exchanges import (
+    exchange_buy_detail_window,
     exchange_buy_window,
     exchange_my_window,
+    exchange_sell_detail_window,
     exchange_sell_window,
     exchanges_window,
+    sell_confirmation_window,
+    sell_date_select_window,
+    sell_hours_select_window,
+    sell_payment_date_window,
+    sell_payment_timing_window,
+    sell_price_input_window,
+    sell_time_input_window,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
@@ -293,5 +302,15 @@ schedules_dialog = Dialog(
     exchange_buy_window,
     exchange_sell_window,
     exchange_my_window,
+    # Новые окна для процесса продажи смены
+    sell_date_select_window,
+    sell_hours_select_window,
+    sell_time_input_window,
+    sell_price_input_window,
+    sell_payment_timing_window,
+    sell_payment_date_window,
+    sell_confirmation_window,
+    exchange_buy_detail_window,
+    exchange_sell_detail_window,
     on_start=on_start,
 )
