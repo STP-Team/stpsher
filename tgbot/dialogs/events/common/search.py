@@ -104,6 +104,10 @@ async def on_user_select(
     if trainee_checkbox:
         await trainee_checkbox.set_checked(searched_user.is_trainee)
 
+    exchanges_checkbox: ManagedCheckbox = dialog_manager.find("exchanges_access")
+    if exchanges_checkbox:
+        await exchanges_checkbox.set_checked(not searched_user.is_exchange_banned)
+
     await dialog_manager.switch_to(Search.details_window)
 
 
@@ -259,6 +263,57 @@ async def on_trainee_change(
         # Показываем уведомление
         status_text = "включен" if is_trainee else "выключен"
         await callback.answer(f"✅ Статус стажера {status_text}")
+
+    except Exception as e:
+        logger.error(f"[Стажер] Ошибка при изменении статуса: {e}")
+        await callback.answer("❌ Ошибка при изменении статуса", show_alert=True)
+
+
+async def on_exchanges_change(
+    callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+):
+    """Обработчик изменения доступа к обменам смен.
+
+    Args:
+        callback: Callback query от Telegram
+        widget: Управляемый чекбокс
+        dialog_manager: Менеджер диалога
+    """
+    try:
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+
+        if not stp_repo or not selected_user_id:
+            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            return
+
+        # Получаем текущее состояние чекбокса
+        exchanges_access = not widget.is_checked()
+
+        # Получаем пользователя
+        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+        if not searched_user:
+            searched_user = await stp_repo.employee.get_users(
+                user_id=int(selected_user_id)
+            )
+
+        if not searched_user:
+            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            return
+
+        # Проверяем, действительно ли состояние изменилось
+        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
+        if searched_user.is_exchange_banned == exchanges_access:
+            return
+
+        # Обновляем статус стажера в базе данных
+        await stp_repo.employee.update_user(
+            user_id=searched_user.user_id, is_exchange_banned=exchanges_access
+        )
+
+        # Показываем уведомление
+        status_text = "включен" if exchanges_access else "выключен"
+        await callback.answer(f"✅ Доступ к бирже {status_text}")
 
     except Exception as e:
         logger.error(f"[Стажер] Ошибка при изменении статуса: {e}")
