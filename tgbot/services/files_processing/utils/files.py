@@ -8,7 +8,6 @@ from typing import Optional
 
 import pandas as pd
 
-from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.base import BaseParser
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
@@ -405,7 +404,7 @@ def generate_user_changes_text(fired: list, updated: list, new: list) -> str:
             has_changes = True
             text += f"\n{title} ({len(names)}):\n"
             text += "\n".join(
-                f"• {format_fullname(name)}" for name in names[:10]
+                f"• {name}" for name in names[:10]
             )  # Показывает первые 10
             if len(names) > 10:
                 text += f"\n... и ещё {len(names) - 10}"
