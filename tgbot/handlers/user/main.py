@@ -11,6 +11,7 @@ from stp_database import Employee
 
 from tgbot.dialogs.states.user import UserSG
 from tgbot.keyboards.auth import auth_kb
+from tgbot.services.event_logger import EventLogger
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,10 @@ user_router.callback_query.filter(F.message.chat.type == "private")
 
 @user_router.message(CommandStart())
 async def user_start(
-    message: Message, user: Employee, dialog_manager: DialogManager
+    message: Message,
+    user: Employee,
+    dialog_manager: DialogManager,
+    event_logger: EventLogger,
 ) -> None:
     """Запуск/сброс состояния диалога для специалистов и дежурных.
 
@@ -31,6 +35,7 @@ async def user_start(
         message: Сообщение пользователя
         user: Экземпляр пользователя с моделью Employee
         dialog_manager: Менеджер диалога
+        event_logger: Логгер событий
     """
     if not user:
         await message.answer(
@@ -42,6 +47,8 @@ async def user_start(
             reply_markup=auth_kb(),
         )
         return
+
+    await event_logger.log_bot_start(user.user_id)
 
     try:
         await dialog_manager.done()

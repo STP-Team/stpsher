@@ -30,6 +30,7 @@ from tgbot.dialogs.states.user import UserSG
 from tgbot.handlers import routers_list
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
+from tgbot.middlewares.EventLoggingMiddleware import EventLoggingMiddleware
 from tgbot.middlewares.GroupsMiddleware import GroupsMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.misc.dicts import roles
@@ -179,12 +180,14 @@ def register_middlewares(
     )
     users_middleware = UsersMiddleware()
     groups_middleware = GroupsMiddleware()
+    event_logging_middleware = EventLoggingMiddleware()
 
     for middleware in [
         config_middleware,
         database_middleware,
         users_middleware,
         groups_middleware,
+        event_logging_middleware,
     ]:
         dp.message.outer_middleware(middleware)
         dp.callback_query.outer_middleware(middleware)
