@@ -3,7 +3,7 @@
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row
+from aiogram_dialog.widgets.kbd import Button, Row, Url
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -29,6 +29,7 @@ menu_window = Window(
         ),
         Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
     ),
+    Url(Const("📈 Метрики"), url=Const("metrics.dom-stp.ru")),
     state=RootSG.menu,
 )
 
