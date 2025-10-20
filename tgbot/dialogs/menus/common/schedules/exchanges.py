@@ -11,7 +11,6 @@ from tgbot.dialogs.events.common.exchanges import (
     on_confirm_sell,
     on_date_selected,
     on_exchange_apply,
-    on_exchange_buy_cancel,
     on_exchange_buy_selected,
     on_exchange_cancel,
     on_exchange_sell_selected,
@@ -264,20 +263,16 @@ sell_confirmation_window = Window(
 exchange_buy_detail_window = Window(
     Const("🔍 <b>Детали смены для покупки</b>"),
     Format("""
-📅 <b>Дата смены:</b> {shift_date}
-👤 <b>Продавец:</b> {seller_name}
-⏰ <b>Тип смены:</b> {shift_type}
-🕘 <b>Время:</b> {shift_time}
+📅 <b>Предложение:</b> {shift_date} {shift_time}
 💰 <b>Цена:</b> {price} руб.
-💳 <b>Оплата:</b> {payment_info}
-📞 <b>Контакт:</b> {seller_contact}
 
-Хочешь купить эту смену?"""),
+👤 <b>Продавец:</b> {seller_name}
+💳 <b>Оплата:</b> {payment_info}"""),
+    Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
     Row(
-        Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_exchange_buy_cancel),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchange_buy),
+        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
     ),
-    SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchange_buy),
     getter=exchange_buy_detail_getter,
     state=Schedules.exchange_buy_detail,
 )
@@ -287,13 +282,11 @@ exchange_sell_detail_window = Window(
     Format("""
 📅 <b>Предложение:</b> {shift_date} {shift_time}
 💰 <b>Оплата:</b> {price} руб. {payment_info}
-📊 <b>Статус:</b> {status}
-📅 <b>Создано:</b> {created_at}
 
-Что хочешь сделать с этим объявлением?"""),
+📅 <b>Создано:</b> {created_at}"""),
     Row(
         Button(
-            Const("❌ Отменить объявление"),
+            Const("✋🏻 Отменить"),
             id="cancel_exchange",
             on_click=on_exchange_cancel,
         ),
