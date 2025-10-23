@@ -187,6 +187,7 @@ async def search_user_info_getter(
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
     is_head = user.role == 2
+    is_duty = user.role == 3
     is_mip = user.role == 6
     is_root = user.role == 10
 
@@ -230,6 +231,7 @@ async def search_user_info_getter(
             "user_info": user_info,
             "searched_default_user": searched_user.role in [1, 3],
             "is_head": is_head,
+            "is_duty": is_duty,
             "is_mip": is_mip,
             "is_root": is_root,
             "is_casino_allowed": searched_user.is_casino_allowed,
@@ -241,6 +243,7 @@ async def search_user_info_getter(
         return {
             "user_info": f"❌ Ошибка при получении информации: {str(e)}",
             "is_head": is_head,
+            "is_duty": is_duty,
             "is_mip": is_mip,
             "is_root": is_root,
         }
