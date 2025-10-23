@@ -23,7 +23,11 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.schedules import do_nothing, next_month, prev_month
+from tgbot.dialogs.events.common.schedules.schedules import (
+    do_nothing,
+    next_month,
+    prev_month,
+)
 from tgbot.dialogs.events.common.search import (
     close_search_dialog,
     on_back_to_menu,

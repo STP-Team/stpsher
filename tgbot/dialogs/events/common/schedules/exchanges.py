@@ -7,11 +7,29 @@ from typing import Any, Optional, Tuple
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
-from aiogram_dialog.widgets.kbd import ManagedCalendar
+from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
 from stp_database import MainRequestsRepo
 
-from tgbot.dialogs.states.common.schedule import Schedules
+from tgbot.dialogs.states.common.schedule.exchanges import Exchanges
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
+
+
+async def start_exchanges_dialog(
+    _callback: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик перехода в диалог биржи подмен.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Данные виджета Button
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.start(
+        Exchanges.menu,
+    )
 
 
 def parse_time_range(time_str: str) -> Tuple[int, int]:
@@ -126,7 +144,7 @@ async def start_sell_process(
     dialog_manager.dialog_data.clear()
 
     # Переходим к выбору даты
-    await dialog_manager.switch_to(Schedules.sell_date_select)
+    await dialog_manager.switch_to(Exchanges.sell_date_select)
 
 
 async def on_date_selected(
@@ -148,7 +166,7 @@ async def on_date_selected(
     manager.dialog_data["is_today"] = selected_date == today
 
     # Переходим к выбору часов
-    await manager.switch_to(Schedules.sell_hours_select)
+    await manager.switch_to(Exchanges.sell_hours_select)
 
 
 async def on_hours_selected(
@@ -174,14 +192,14 @@ async def on_hours_selected(
             dialog_manager.dialog_data["shift_end_time"] = "18:00"
 
         # Переходим к вводу цены
-        await dialog_manager.switch_to(Schedules.sell_price_input)
+        await dialog_manager.switch_to(Exchanges.sell_price_input)
 
     elif item_id == "partial":
         # Частичная смена - переходим к вводу времени
         dialog_manager.dialog_data["is_partial"] = True
 
         # Переходим к вводу времени
-        await dialog_manager.switch_to(Schedules.sell_time_input)
+        await dialog_manager.switch_to(Exchanges.sell_time_input)
 
     elif item_id == "remaining_today":
         # Оставшееся время сегодня
@@ -189,7 +207,7 @@ async def on_hours_selected(
         dialog_manager.dialog_data["is_remaining_today"] = True
 
         # Переходим к вводу времени
-        await dialog_manager.switch_to(Schedules.sell_time_input)
+        await dialog_manager.switch_to(Exchanges.sell_time_input)
 
 
 async def on_time_input(
@@ -263,7 +281,7 @@ async def on_time_input(
     dialog_manager.dialog_data["shift_end_time"] = end_time
 
     # Переходим к вводу цены
-    await dialog_manager.switch_to(Schedules.sell_price_input)
+    await dialog_manager.switch_to(Exchanges.sell_price_input)
 
 
 async def on_price_input(
@@ -286,7 +304,7 @@ async def on_price_input(
         dialog_manager.dialog_data["price"] = price
 
         # Переходим к выбору времени оплаты
-        await dialog_manager.switch_to(Schedules.sell_payment_timing)
+        await dialog_manager.switch_to(Exchanges.sell_payment_timing)
 
     except ValueError:
         await message.answer("❌ Введите корректную цену (например: 1000 или 1500.50)")
@@ -303,11 +321,11 @@ async def on_payment_timing_selected(
         dialog_manager.dialog_data["payment_type"] = "immediate"
         dialog_manager.dialog_data["payment_date"] = None
         # Переходим сразу к подтверждению
-        await dialog_manager.switch_to(Schedules.sell_confirmation)
+        await dialog_manager.switch_to(Exchanges.sell_confirmation)
     elif item_id == "on_date":
         dialog_manager.dialog_data["payment_type"] = "on_date"
         # Переходим к выбору даты платежа
-        await dialog_manager.switch_to(Schedules.sell_payment_date)
+        await dialog_manager.switch_to(Exchanges.sell_payment_date)
 
 
 async def on_payment_date_selected(
@@ -342,7 +360,7 @@ async def on_payment_date_selected(
     manager.dialog_data["payment_date"] = selected_date.isoformat()
 
     # Переходим к подтверждению
-    await manager.switch_to(Schedules.sell_confirmation)
+    await manager.switch_to(Exchanges.sell_confirmation)
 
 
 async def on_confirm_sell(
@@ -392,7 +410,7 @@ async def on_confirm_sell(
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             # Возвращаемся к главному меню биржи
-            await dialog_manager.switch_to(Schedules.exchanges)
+            await dialog_manager.switch_to(Exchanges.menu)
         else:
             await callback.answer(
                 "❌ Не удалось создать объявление. Попробуйте позже.", show_alert=True
@@ -413,7 +431,7 @@ async def on_cancel_sell(
     # Очищаем данные диалога
     dialog_manager.dialog_data.clear()
     # Возвращаемся к главному меню биржи
-    await dialog_manager.switch_to(Schedules.exchanges)
+    await dialog_manager.switch_to(Exchanges.menu)
 
 
 async def on_exchange_buy_selected(
@@ -426,7 +444,7 @@ async def on_exchange_buy_selected(
     try:
         exchange_id = int(item_id)
         dialog_manager.dialog_data["selected_exchange_id"] = exchange_id
-        await dialog_manager.switch_to(Schedules.exchange_buy_detail)
+        await dialog_manager.switch_to(Exchanges.buy_detail)
     except (ValueError, TypeError):
         await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
 
@@ -441,7 +459,7 @@ async def on_exchange_sell_selected(
     try:
         exchange_id = int(item_id)
         dialog_manager.dialog_data["selected_exchange_id"] = exchange_id
-        await dialog_manager.switch_to(Schedules.exchange_sell_detail)
+        await dialog_manager.switch_to(Exchanges.sell_detail)
     except (ValueError, TypeError):
         await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
 
@@ -490,7 +508,7 @@ async def on_exchange_apply(
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             # Возвращаемся к главному меню биржи
-            await dialog_manager.switch_to(Schedules.exchanges)
+            await dialog_manager.switch_to(Exchanges.menu)
         else:
             await callback.answer(
                 "❌ Не удалось купить обмен. Попробуйте позже.", show_alert=True
@@ -508,7 +526,7 @@ async def on_exchange_buy_cancel(
     """Обработчик отмены покупки обмена."""
     # Очищаем данные и возвращаемся к списку покупок
     dialog_manager.dialog_data.pop("selected_exchange_id", None)
-    await dialog_manager.switch_to(Schedules.exchange_buy)
+    await dialog_manager.switch_to(Exchanges.buy)
 
 
 async def on_exchange_cancel(
@@ -554,7 +572,7 @@ async def on_exchange_cancel(
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             # Возвращаемся к меню продажи
-            await dialog_manager.switch_to(Schedules.exchange_sell)
+            await dialog_manager.switch_to(Exchanges.sell)
         else:
             await callback.answer(
                 "❌ Не удалось отменить обмен. Попробуйте позже.", show_alert=True

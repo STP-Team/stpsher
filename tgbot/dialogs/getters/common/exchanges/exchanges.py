@@ -436,7 +436,6 @@ async def exchange_buy_getter(
         exchanges = await stp_repo.exchange.get_active_exchanges(
             exclude_user_id=user_id
         )
-        print(exchanges)
 
         # Форматируем данные для отображения
         available_exchanges = []
@@ -457,6 +456,7 @@ async def exchange_buy_getter(
 
         return {
             "available_exchanges": available_exchanges,
+            "exchanges_length": len(available_exchanges),
             "has_exchanges": len(available_exchanges) > 0,
         }
 

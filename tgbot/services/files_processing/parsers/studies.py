@@ -1,4 +1,4 @@
-"""Studies files_processing parser for processing and displaying training schedules."""
+"""Studies files_processing parser for processing and displaying training exchanges."""
 
 import logging
 from datetime import datetime
@@ -41,7 +41,7 @@ class StudySession:
 
 
 class StudiesScheduleParser(BaseParser):
-    """Parser for studies/training schedules."""
+    """Parser for studies/training exchanges."""
 
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)

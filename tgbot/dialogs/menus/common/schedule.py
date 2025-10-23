@@ -14,7 +14,8 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.schedules import (
+from tgbot.dialogs.events.common.schedules.exchanges import start_exchanges_dialog
+from tgbot.dialogs.events.common.schedules.schedules import (
     close_schedules_dialog,
     do_nothing,
     next_day,
@@ -31,22 +32,7 @@ from tgbot.dialogs.getters.common.schedules import (
     schedules_getter,
     user_schedule_getter,
 )
-from tgbot.dialogs.menus.common.schedules.exchanges import (
-    exchange_buy_detail_window,
-    exchange_buy_window,
-    exchange_my_window,
-    exchange_sell_detail_window,
-    exchange_sell_window,
-    exchanges_window,
-    sell_confirmation_window,
-    sell_date_select_window,
-    sell_hours_select_window,
-    sell_payment_date_window,
-    sell_payment_timing_window,
-    sell_price_input_window,
-    sell_time_input_window,
-)
-from tgbot.dialogs.states.common.schedule import Schedules
+from tgbot.dialogs.states.common.schedule.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
 
 menu_window = Window(
@@ -77,10 +63,10 @@ menu_window = Window(
             state=Schedules.heads,
         ),
     ),
-    SwitchTo(
+    Button(
         Const("🎭 Биржа подмен"),
         id="exchanges",
-        state=Schedules.exchanges,
+        on_click=start_exchanges_dialog,
         when="is_user",
     ),
     Button(Const("↩️ Назад"), id="home", on_click=close_schedules_dialog),
@@ -298,19 +284,5 @@ schedules_dialog = Dialog(
     duties_calendar_window,
     group_calendar_window,
     heads_calendar_window,
-    exchanges_window,
-    exchange_buy_window,
-    exchange_sell_window,
-    exchange_my_window,
-    # Новые окна для процесса продажи смены
-    sell_date_select_window,
-    sell_hours_select_window,
-    sell_time_input_window,
-    sell_price_input_window,
-    sell_payment_timing_window,
-    sell_payment_date_window,
-    sell_confirmation_window,
-    exchange_buy_detail_window,
-    exchange_sell_detail_window,
     on_start=on_start,
 )
