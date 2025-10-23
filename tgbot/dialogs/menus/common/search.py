@@ -242,6 +242,7 @@ details_window = Window(
                 Const("🔴 Стажер"),
                 id="is_trainee",
                 on_state_changed=on_trainee_change,
+                when="searched_default_user",
             ),
             width=2,
             when="searched_default_user",
@@ -253,6 +254,35 @@ details_window = Window(
             when="searched_default_user",
         ),
         when="is_head",
+    ),
+    Group(
+        SwitchTo(
+            Const("📅 График"),
+            id="files_processing",
+            state=Search.details_schedule_window,
+        ),
+        Row(
+            SwitchTo(
+                Const("🎯 Достижения"),
+                id="achievements",
+                state=Search.details_game_achievements,
+                when="searched_default_user",
+            ),
+            SwitchTo(
+                Const("🎒 Инвентарь"),
+                id="products",
+                state=Search.details_game_products,
+                when="searched_default_user",
+            ),
+        ),
+        Checkbox(
+            Const("🟢 Стажер"),
+            Const("🔴 Стажер"),
+            id="is_trainee",
+            when="searched_default_user",
+            on_state_changed=on_trainee_change,
+        ),
+        when="is_duty",
     ),
     Group(
         Row(
@@ -305,6 +335,7 @@ details_window = Window(
                 Const("🔴 Стажер"),
                 id="is_trainee",
                 on_state_changed=on_trainee_change,
+                when="searched_default_user",
             ),
             width=2,
             when="searched_default_user",
