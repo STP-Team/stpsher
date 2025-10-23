@@ -11,7 +11,7 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.kpi import start_kpi_dialog
-from tgbot.dialogs.events.common.schedules import start_schedules_dialog
+from tgbot.dialogs.events.common.schedules.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.user import UserSG
@@ -24,7 +24,7 @@ menu_window = Window(
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
     Row(
-        Button(Const("📅 Графики"), id="schedules", on_click=start_schedules_dialog),
+        Button(Const("📅 Графики"), id="exchanges", on_click=start_schedules_dialog),
         Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
     ),
     Row(

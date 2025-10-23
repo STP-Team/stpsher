@@ -1,12 +1,22 @@
 """Генерация окон для биржи подмен."""
 
+from typing import Any
+
 from aiogram import F
-from aiogram_dialog import Window
+from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Row, Select, SwitchTo
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    ManagedRadio,
+    ManagedToggle,
+    Row,
+    ScrollingGroup,
+    Select,
+    SwitchTo,
+)
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.events.common.exchanges import (
+from tgbot.dialogs.events.common.schedules.exchanges import (
     on_cancel_sell,
     on_confirm_sell,
     on_date_selected,
@@ -21,8 +31,8 @@ from tgbot.dialogs.events.common.exchanges import (
     on_time_input,
     start_sell_process,
 )
-from tgbot.dialogs.events.common.schedules import close_schedules_dialog
-from tgbot.dialogs.getters.common.exchanges import (
+from tgbot.dialogs.events.common.schedules.schedules import close_schedules_dialog
+from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
     exchange_buy_getter,
     exchange_sell_detail_getter,
@@ -35,7 +45,13 @@ from tgbot.dialogs.getters.common.exchanges import (
     sell_price_getter,
     sell_time_input_getter,
 )
-from tgbot.dialogs.states.common.schedule import Schedules
+from tgbot.dialogs.menus.common.exchanges.settings import (
+    buy_filters_day_window,
+    buy_filters_shift_window,
+    buy_settings_window,
+    sell_settings_window,
+)
+from tgbot.dialogs.states.common.schedule.exchanges import Exchanges
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
@@ -44,39 +60,54 @@ exchanges_window = Window(
     Format("""
 Здесь ты можешь обменять свои рабочие часы, либо взять чужие"""),
     Row(
-        SwitchTo(Const("📈 Купить"), id="exchange_buy", state=Schedules.exchange_buy),
-        SwitchTo(
-            Const("📉 Продать"), id="exchange_sell", state=Schedules.exchange_sell
-        ),
+        SwitchTo(Const("📈 Купить"), id="buy", state=Exchanges.buy),
+        SwitchTo(Const("📉 Продать"), id="sell", state=Exchanges.sell),
     ),
-    SwitchTo(Const("🤝 Мои подмены"), id="exchange_my", state=Schedules.exchange_my),
+    SwitchTo(Const("🤝 Мои подмены"), id="my", state=Exchanges.my),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
         SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
     ),
-    state=Schedules.exchanges,
+    state=Exchanges.menu,
 )
 
 exchange_buy_window = Window(
     Const("📈 <b>Биржа: Покупка часов</b>"),
-    Format("\n🔍 <i>Нажми на смену для просмотра деталей</i>\n", when="has_exchanges"),
+    Format(
+        """\nПредложений на бирже: {exchanges_length}
+        
+<i>🔍 Нажми на смену для просмотра деталей</i>""",
+        when="has_exchanges",
+    ),
     Format("\n📭 <i>Пока биржа пуста :(</i>", when=~F["has_exchanges"]),
-    Select(
-        Format("{item[time]}, {item[date]}"),
-        id="exchange_select",
-        items="available_exchanges",
-        item_id_getter=lambda item: item["id"],
-        on_click=on_exchange_buy_selected,
+    ScrollingGroup(
+        Select(
+            Format("{item[time]}, {item[date]} | {item[price]} р."),
+            id="exchange_select",
+            items="available_exchanges",
+            item_id_getter=lambda item: item["id"],
+            on_click=on_exchange_buy_selected,
+        ),
+        width=1,
+        height=8,
+        hide_on_single_page=True,
+        id="exchange_scrolling",
         when="has_exchanges",
     ),
     Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
+    SwitchTo(
+        Const("💡 Фильтры и сортировка"),
+        id="exchanges_buy_settings",
+        state=Exchanges.buy_settings,
+    ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchanges),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
         SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
     ),
     getter=exchange_buy_getter,
-    state=Schedules.exchange_buy,
+    state=Exchanges.buy,
 )
+
 
 exchange_sell_window = Window(
     Const("📉 <b>Биржа: Продажа часов</b>"),
@@ -97,13 +128,19 @@ exchange_sell_window = Window(
         when="has_user_exchanges",
     ),
     Button(Const("🔄 Обновить"), id="refresh_exchange_sell"),
+    SwitchTo(
+        Const("💡 Фильтры и сортировка"),
+        id="exchanges_sell_settings",
+        state=Exchanges.sell_settings,
+    ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchanges),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
         SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
     ),
     getter=exchange_sell_getter,
-    state=Schedules.exchange_sell,
+    state=Exchanges.sell,
 )
+
 
 exchange_my_window = Window(
     Const("🤝 <b>Биржа: Мои подмены</b>"),
@@ -111,10 +148,10 @@ exchange_my_window = Window(
 <tg-spoiler>Здесь пока ничего нет, но очень скоро что-то будет 🪄</tg-spoiler>"""),
     Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchanges),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
         SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
     ),
-    state=Schedules.exchange_my,
+    state=Exchanges.my,
 )
 
 # Окна процесса продажи смены
@@ -132,7 +169,7 @@ sell_date_select_window = Window(
         SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
     ),
     getter=sell_date_getter,
-    state=Schedules.sell_date_select,
+    state=Exchanges.sell_date_select,
 )
 
 sell_hours_select_window = Window(
@@ -149,11 +186,11 @@ sell_hours_select_window = Window(
         on_click=on_hours_selected,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.sell_date_select),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_date_select),
         Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     ),
     getter=sell_hours_getter,
-    state=Schedules.sell_hours_select,
+    state=Exchanges.sell_hours_select,
 )
 
 sell_time_input_window = Window(
@@ -168,11 +205,11 @@ sell_time_input_window = Window(
         on_success=on_time_input,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.sell_hours_select),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_hours_select),
         Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     ),
     getter=sell_time_input_getter,
-    state=Schedules.sell_time_input,
+    state=Exchanges.sell_time_input,
 )
 
 sell_price_input_window = Window(
@@ -188,12 +225,12 @@ sell_price_input_window = Window(
     ),
     Row(
         SwitchTo(
-            Const("↩️ Назад"), id="back_to_previous", state=Schedules.sell_hours_select
+            Const("↩️ Назад"), id="back_to_previous", state=Exchanges.sell_hours_select
         ),
         Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     ),
     getter=sell_price_getter,
-    state=Schedules.sell_price_input,
+    state=Exchanges.sell_price_input,
 )
 
 sell_payment_timing_window = Window(
@@ -213,11 +250,11 @@ sell_payment_timing_window = Window(
         on_click=on_payment_timing_selected,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.sell_price_input),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_price_input),
         Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     ),
     getter=sell_payment_timing_getter,
-    state=Schedules.sell_payment_timing,
+    state=Exchanges.sell_payment_timing,
 )
 
 sell_payment_date_window = Window(
@@ -230,11 +267,11 @@ sell_payment_date_window = Window(
         on_click=on_payment_date_selected,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.sell_payment_timing),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_payment_timing),
         Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     ),
     getter=sell_payment_date_getter,
-    state=Schedules.sell_payment_date,
+    state=Exchanges.sell_payment_date,
 )
 
 sell_confirmation_window = Window(
@@ -253,9 +290,9 @@ sell_confirmation_window = Window(
         Button(Const("✅ Опубликовать"), id="confirm", on_click=on_confirm_sell),
         Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     ),
-    SwitchTo(Const("↩️ Изменить"), id="back", state=Schedules.sell_payment_timing),
+    SwitchTo(Const("↩️ Изменить"), id="back", state=Exchanges.sell_payment_timing),
     getter=sell_confirmation_getter,
-    state=Schedules.sell_confirmation,
+    state=Exchanges.sell_confirmation,
 )
 
 # Окна детального просмотра обменов
@@ -270,11 +307,11 @@ exchange_buy_detail_window = Window(
 💳 <b>Оплата:</b> {payment_info}"""),
     Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchange_buy),
+        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy),
         Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
     ),
     getter=exchange_buy_detail_getter,
-    state=Schedules.exchange_buy_detail,
+    state=Exchanges.buy_detail,
 )
 
 exchange_sell_detail_window = Window(
@@ -292,7 +329,52 @@ exchange_sell_detail_window = Window(
         ),
         Button(Const("🔄 Обновить"), id="refresh_exchange_detail"),
     ),
-    SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.exchange_sell),
+    SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell),
     getter=exchange_sell_detail_getter,
-    state=Schedules.exchange_sell_detail,
+    state=Exchanges.sell_detail,
+)
+
+
+async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
+    """Установка параметров диалога по умолчанию при запуске.
+
+    Args:
+        _on_start: Дополнительные параметры запуска диалога
+        dialog_manager: Менеджер диалога
+    """
+    day_filter_checkbox: ManagedRadio = dialog_manager.find("day_filter")
+    await day_filter_checkbox.set_checked("all")
+
+    shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
+    await shift_filter_checkbox.set_checked("all")
+
+    date_sort_toggle: ManagedToggle = dialog_manager.find("date_sort")
+    await date_sort_toggle.set_checked("nearest")
+
+    price_sort_toggle: ManagedToggle = dialog_manager.find("price_sort")
+    await price_sort_toggle.set_checked("cheap")
+
+
+exchanges_dialog = Dialog(
+    exchanges_window,
+    exchange_buy_window,
+    exchange_sell_window,
+    exchange_my_window,
+    # Окна продажи смены
+    sell_date_select_window,
+    sell_hours_select_window,
+    sell_time_input_window,
+    sell_price_input_window,
+    sell_payment_timing_window,
+    sell_payment_date_window,
+    sell_confirmation_window,
+    exchange_buy_detail_window,
+    exchange_sell_detail_window,
+    # Настройки покупок
+    buy_settings_window,
+    buy_filters_day_window,
+    buy_filters_shift_window,
+    # Настройки продаж
+    sell_settings_window,
+    on_start=on_start,
 )
