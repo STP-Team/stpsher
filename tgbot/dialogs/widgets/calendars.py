@@ -18,12 +18,12 @@ from tgbot.misc.dicts import russian_months_nominative, russian_weekdays_short
 class RussianWeekday(Text):
     """Виджет для отображения дня недели на русском."""
 
-    async def _render_text(self, data, manager: DialogManager) -> str:
+    async def _render_text(self, data, dialog_manager: DialogManager) -> str:
         """Рендер названия дня недели на русском.
 
         Args:
             data: Данные с датой
-            manager: Менеджер диалога
+            dialog_manager: Менеджер диалога
 
         Returns:
             Русское сокращение дня недели
@@ -35,12 +35,12 @@ class RussianWeekday(Text):
 class RussianMonthNominative(Text):
     """Виджет для отображения месяца на русском в именительном падеже."""
 
-    async def _render_text(self, data, manager: DialogManager) -> str:
+    async def _render_text(self, data, dialog_manager: DialogManager) -> str:
         """Рендер названия месяца на русском в именительном падеже.
 
         Args:
             data: Данные с датой
-            manager: Менеджер диалога
+            dialog_manager: Менеджер диалога
 
         Returns:
             Русское название месяца в именительном падеже
@@ -81,7 +81,7 @@ class RussianCalendar(Calendar):
             CalendarScope.DAYS: CalendarDaysView(
                 self._item_callback_data,
                 date_text=DATE_TEXT,
-                today_text="📌 " + Format("{date:%d}"),
+                today_text="· " + Format("{date:%d}") + " ·",
                 header_text="📅 "
                 + RussianMonthNominative()
                 + " "
@@ -94,7 +94,7 @@ class RussianCalendar(Calendar):
                 self._item_callback_data,
                 month_text=RussianMonthNominative(),
                 header_text="📅 Выбор месяца " + Format("{date:%Y}"),
-                this_month_text="📌 " + RussianMonthNominative(),
+                this_month_text="· " + RussianMonthNominative() + " ·",
                 next_year_text=Format("{date:%Y}") + " ⏩",
                 prev_year_text="⏪ " + Format("{date:%Y}"),
             ),

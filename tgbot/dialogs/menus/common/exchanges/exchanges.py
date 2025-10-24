@@ -17,6 +17,7 @@ from aiogram_dialog.widgets.kbd import (
 )
 from aiogram_dialog.widgets.text import Const, Format
 
+from tgbot.dialogs.events.common.exchanges.create import start_create_process
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
     on_exchange_buy_selected,
@@ -31,13 +32,6 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
 )
 from tgbot.dialogs.menus.common.exchanges.create import (
     exchange_buy_detail_window,
-    sell_confirmation_window,
-    sell_date_select_window,
-    sell_hours_select_window,
-    sell_payment_date_window,
-    sell_payment_timing_window,
-    sell_price_input_window,
-    sell_time_input_window,
 )
 from tgbot.dialogs.menus.common.exchanges.settings import (
     buy_filters_day_window,
@@ -57,7 +51,7 @@ exchanges_window = Window(
         SwitchTo(Const("📉 Продать"), id="sell", state=Exchanges.sell),
     ),
     SwitchTo(Const("🗳 Мои сделки"), id="my", state=Exchanges.my),
-    SwitchTo(Const("💸 Создать сделку"), id="create", state=Exchanges.create),
+    Button(Const("💸 Создать предложение"), id="create", on_click=start_create_process),
     SwitchTo(Const("📊 Статистика"), id="stats", state=Exchanges.stats),
     Row(
         Button(Const("↩️ Назад"), id="back", on_click=finish_exchanges_dialog), HOME_BTN
@@ -207,14 +201,6 @@ exchanges_dialog = Dialog(
     exchange_buy_window,
     exchange_sell_window,
     exchange_my_window,
-    # Окна продажи смены
-    sell_date_select_window,
-    sell_hours_select_window,
-    sell_time_input_window,
-    sell_price_input_window,
-    sell_payment_timing_window,
-    sell_payment_date_window,
-    sell_confirmation_window,
     exchange_buy_detail_window,
     exchange_sell_detail_window,
     # Настройки покупок
