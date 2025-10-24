@@ -19,12 +19,12 @@ from tgbot.dialogs.events.common.game.activations import (
     on_skip_approve_comment,
     on_skip_reject_comment,
 )
-from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.getters.common.game.activations import (
     activation_detail_getter,
     activations_getter,
 )
 from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 activations_window = Window(
     Format("""✍️ <b>Активация предметов</b>
@@ -53,10 +53,7 @@ activations_window = Window(
         id="activations_scroll",
         on_page_changed=sync_scroll("activations_list"),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
     getter=activations_getter,
     state=Game.activations,
 )
@@ -97,10 +94,7 @@ activation_details_window = Window(
             Const("❌ Отклонить"), id="reject", state=Game.activation_reject_comment
         ),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Game.activations),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Game.activations), HOME_BTN),
     getter=activation_detail_getter,
     state=Game.activation_details,
 )
@@ -126,7 +120,7 @@ activation_approve_comment_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.activation_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+        HOME_BTN,
     ),
     getter=activation_detail_getter,
     state=Game.activation_approve_comment,
@@ -153,7 +147,7 @@ activation_reject_comment_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.activation_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+        HOME_BTN,
     ),
     getter=activation_detail_getter,
     state=Game.activation_reject_comment,

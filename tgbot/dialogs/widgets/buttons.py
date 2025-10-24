@@ -3,9 +3,11 @@
 from aiogram_dialog.widgets.kbd import Button, Group, Url
 from aiogram_dialog.widgets.text import Const
 
+from tgbot.dialogs.events.common.common import close_all_dialogs
 from tgbot.dialogs.events.common.game.casino import change_rate
 
 SUPPORT_BTN = Url(Const("🛟 Помогите"), url=Const("t.me/stp_helpbot"))
+HOME_BTN = Button(Const("🏠 Домой"), id="home", on_click=close_all_dialogs)
 CASINO_RATES = Group(
     Group(
         Button(

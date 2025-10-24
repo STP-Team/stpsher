@@ -23,18 +23,3 @@ async def start_game_dialog(
     await dialog_manager.start(
         Game.menu,
     )
-
-
-async def close_game_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога игры.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()

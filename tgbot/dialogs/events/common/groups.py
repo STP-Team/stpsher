@@ -34,55 +34,6 @@ async def start_groups_dialog(
     )
 
 
-async def close_groups_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога групп.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    from aiogram_dialog import StartMode
-    from stp_database import Employee
-
-    from tgbot.dialogs.states.admin import AdminSG
-    from tgbot.dialogs.states.gok import GokSG
-    from tgbot.dialogs.states.head import HeadSG
-    from tgbot.dialogs.states.mip import MipSG
-    from tgbot.dialogs.states.root import RootSG
-    from tgbot.dialogs.states.user import UserSG
-
-    # Получаем пользователя из middleware_data
-    user: Employee = dialog_manager.middleware_data.get("user")
-
-    # Определяем меню на основе роли пользователя
-    if user and hasattr(user, "role") and user.role:
-        role = str(user.role)
-
-        # Маппинг ролей на состояния главного меню
-        role_menu_mapping = {
-            "1": UserSG.menu,
-            "2": HeadSG.menu,
-            "3": UserSG.menu,
-            "4": AdminSG.menu,
-            "5": GokSG.menu,
-            "6": MipSG.menu,
-            "10": RootSG.menu,
-        }
-
-        menu_state = role_menu_mapping.get(role, UserSG.menu)
-    else:
-        # Если роль не определена, отправляем в меню по умолчанию
-        menu_state = UserSG.menu
-
-    await dialog_manager.done()
-    await dialog_manager.start(menu_state, mode=StartMode.RESET_STACK)
-
-
 async def on_group_selected(
     _callback: CallbackQuery,
     _widget: Select,

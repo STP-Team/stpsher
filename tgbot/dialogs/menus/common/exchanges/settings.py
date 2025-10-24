@@ -9,13 +9,13 @@ from aiogram_dialog.widgets.kbd import (
 )
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.events.common.schedules.schedules import close_schedules_dialog
 from tgbot.dialogs.getters.common.exchanges.settings import (
     buy_filters_day_getter,
     buy_filters_shift_getter,
     buy_settings_getter,
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 buy_settings_window = Window(
     Const("💡 <b>Биржа: Настройки покупок</b>"),
@@ -56,10 +56,7 @@ buy_settings_window = Window(
         ],
         item_id_getter=operator.itemgetter(0),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy), HOME_BTN),
     getter=buy_settings_getter,
     state=Exchanges.buy_settings,
 )
@@ -80,10 +77,7 @@ buy_filters_day_window = Window(
         ),
     ),
     SwitchTo(Const("🎭 К бирже"), id="to_buy_exchanges", state=Exchanges.buy),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy_settings),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy_settings), HOME_BTN),
     getter=buy_filters_day_getter,
     state=Exchanges.buy_filters_day,
 )
@@ -100,19 +94,13 @@ buy_filters_shift_window = Window(
         ),
     ),
     SwitchTo(Const("🎭 К бирже"), id="to_buy_exchanges", state=Exchanges.buy),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy_settings),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy_settings), HOME_BTN),
     getter=buy_filters_shift_getter,
     state=Exchanges.buy_filters_shift,
 )
 
 sell_settings_window = Window(
     Const("💡 <b>Биржа: Настройки продаж </b>"),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
     state=Exchanges.sell_settings,
 )

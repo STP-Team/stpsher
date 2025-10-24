@@ -12,6 +12,12 @@ class Exchanges(StatesGroup):
     sell = State()
     my = State()
 
+    # Создание сделки
+    create = State()
+
+    # Статистика
+    stats = State()
+
     # Продажа смены - пошаговый процесс
     sell_date_select = State()  # Выбор даты смены
     sell_hours_select = State()  # Выбор часов смены

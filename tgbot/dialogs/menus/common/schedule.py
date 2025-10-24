@@ -14,9 +14,9 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
+from tgbot.dialogs.events.common.common import close_all_dialogs
 from tgbot.dialogs.events.common.schedules.exchanges import start_exchanges_dialog
 from tgbot.dialogs.events.common.schedules.schedules import (
-    close_schedules_dialog,
     do_nothing,
     next_day,
     next_month,
@@ -34,6 +34,7 @@ from tgbot.dialogs.getters.common.schedules import (
 )
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 menu_window = Window(
     Format("""<b>📅 Меню графиков</b>
@@ -69,7 +70,7 @@ menu_window = Window(
         on_click=start_exchanges_dialog,
         when="is_user",
     ),
-    Button(Const("↩️ Назад"), id="home", on_click=close_schedules_dialog),
+    Button(Const("↩️ Назад"), id="home", on_click=close_all_dialogs),
     getter=schedules_getter,
     state=Schedules.menu,
 )
@@ -102,10 +103,7 @@ my_window = Window(
             items="mode_options",
         ),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu), HOME_BTN),
     getter=user_schedule_getter,
     state=Schedules.my,
 )
@@ -143,10 +141,7 @@ duties_window = Window(
             state=Schedules.duties_calendar,
         ),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="to_schedules", state=Schedules.menu), HOME_BTN),
     getter=duty_schedule_getter,
     state=Schedules.duties,
 )
@@ -183,10 +178,7 @@ group_window = Window(
             state=Schedules.group_calendar,
         ),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu), HOME_BTN),
     getter=group_schedule_getter,
     state=Schedules.group,
 )
@@ -223,10 +215,7 @@ heads_window = Window(
             state=Schedules.heads_calendar,
         ),
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu), HOME_BTN),
     getter=head_schedule_getter,
     state=Schedules.heads,
 )
@@ -235,30 +224,21 @@ heads_window = Window(
 duties_calendar_window = Window(
     Const("<b>📅 Выбор даты для дежурных</b>\n\nВыберите дату из календаря:"),
     RussianCalendar(id="duties_calendar", on_click=on_date_selected),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.duties),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.duties), HOME_BTN),
     state=Schedules.duties_calendar,
 )
 
 group_calendar_window = Window(
     Const("<b>📅 Выбор даты для группы</b>\n\nВыберите дату из календаря:"),
     RussianCalendar(id="group_calendar", on_click=on_date_selected),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.group),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.group), HOME_BTN),
     state=Schedules.group_calendar,
 )
 
 heads_calendar_window = Window(
     Const("<b>📅 Выбор даты для руководителей</b>\n\nВыберите дату из календаря:"),
     RussianCalendar(id="heads_calendar", on_click=on_date_selected),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.heads),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.heads), HOME_BTN),
     state=Schedules.heads_calendar,
 )
 

@@ -32,21 +32,6 @@ async def start_search_dialog(
     )
 
 
-async def close_search_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога поиска.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()
-
-
 async def on_back_to_menu(
     _callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:

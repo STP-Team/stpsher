@@ -31,21 +31,6 @@ async def start_group_dialog(
     )
 
 
-async def close_group_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога групп.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()
-
-
 async def on_member_select(
     _callback: CallbackQuery, _widget: Select, dialog_manager, item_id, **_kwargs
 ) -> None:

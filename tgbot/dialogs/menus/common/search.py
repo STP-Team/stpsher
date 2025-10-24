@@ -29,7 +29,6 @@ from tgbot.dialogs.events.common.schedules.schedules import (
     prev_month,
 )
 from tgbot.dialogs.events.common.search import (
-    close_search_dialog,
     on_back_to_menu,
     on_casino_change,
     on_exchanges_change,
@@ -53,6 +52,7 @@ from tgbot.dialogs.getters.common.search import (
     search_user_info_getter,
 )
 from tgbot.dialogs.states.common.search import Search
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.misc.helpers import get_status_emoji
 
 menu_window = Window(
@@ -68,7 +68,7 @@ menu_window = Window(
         SwitchTo(Const("👑 Руководители"), id="heads", state=Search.heads),
     ),
     SwitchTo(Const("🕵🏻 Поиск"), id="game", state=Search.query),
-    Button(Const("↩️ Назад"), id="menu", on_click=close_search_dialog),
+    HOME_BTN,
     state=Search.menu,
 )
 
@@ -102,7 +102,7 @@ specialists_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_specialists_getter,
     state=Search.specialists,
@@ -138,7 +138,7 @@ heads_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_heads_getter,
     state=Search.heads,
@@ -177,7 +177,7 @@ query_results_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_results_getter,
     state=Search.query_results,
@@ -196,7 +196,7 @@ query_no_results_window = Window(
     SwitchTo(Const("🔄 Новый поиск"), id="new_search", state=Search.query),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_results_getter,
     state=Search.query_no_results,
@@ -367,7 +367,7 @@ details_window = Window(
     ),
     Row(
         Button(Const("↩️ Назад"), id="back", on_click=on_back_to_menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_user_info_getter,
     state=Search.details_window,
@@ -393,7 +393,7 @@ details_access_level_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_access_level_getter,
     state=Search.details_access_level_window,
@@ -429,7 +429,7 @@ details_schedule_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_schedule_getter,
     state=Search.details_schedule_window,
@@ -453,7 +453,7 @@ details_kpi_window = Window(
     SwitchTo(Const("🔄 Обновить"), id="update", state=Search.details_kpi_window),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_kpi_getter,
     state=Search.details_kpi_window,
@@ -475,7 +475,7 @@ details_kpi_requirements_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_kpi_requirements_getter,
     state=Search.details_kpi_requirements_window,
@@ -495,7 +495,7 @@ details_kpi_salary_window = Window(
     SwitchTo(Const("🔄 Обновить"), id="update", state=Search.details_kpi_salary_window),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_salary_getter,
     state=Search.details_kpi_salary_window,
@@ -554,7 +554,7 @@ details_achievements_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_achievements_getter,
     state=Search.details_game_achievements,
@@ -601,7 +601,7 @@ details_inventory_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
-        Button(Const("🏠 Домой"), id="home", on_click=close_search_dialog),
+        HOME_BTN,
     ),
     getter=search_inventory_getter,
     state=Search.details_game_products,

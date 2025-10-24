@@ -406,19 +406,19 @@ async def on_confirm_sell(
         )
 
         if exchange:
-            await callback.answer("✅ Ваша смена добавлена на биржу!", show_alert=True)
+            await callback.answer("✅ Сделка добавлена на биржу!", show_alert=True)
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             # Возвращаемся к главному меню биржи
             await dialog_manager.switch_to(Exchanges.menu)
         else:
             await callback.answer(
-                "❌ Не удалось создать объявление. Попробуйте позже.", show_alert=True
+                "❌ Не удалось создать сделку. Попробуйте позже.", show_alert=True
             )
 
     except Exception:
         await callback.answer(
-            "❌ Произошла ошибка при создании объявления", show_alert=True
+            "❌ Произошла ошибка при создании сделки", show_alert=True
         )
 
 
@@ -565,7 +565,7 @@ async def on_exchange_cancel(
             return
 
         # Отменяем обмен
-        success = await stp_repo.exchange.cancel_exchange(exchange_id)
+        success = await stp_repo.exchange.cancel_exchange(exchange_id, user_id)
 
         if success:
             await callback.answer("✅ Обмен успешно отменен", show_alert=True)

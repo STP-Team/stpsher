@@ -30,9 +30,7 @@ from tgbot.dialogs.events.common.schedules.exchanges import (
     on_payment_timing_selected,
     on_price_input,
     on_time_input,
-    start_sell_process,
 )
-from tgbot.dialogs.events.common.schedules.schedules import close_schedules_dialog
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
     exchange_buy_getter,
@@ -54,6 +52,7 @@ from tgbot.dialogs.menus.common.exchanges.settings import (
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets import RussianCalendar
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 exchanges_window = Window(
@@ -64,11 +63,10 @@ exchanges_window = Window(
         SwitchTo(Const("📈 Купить"), id="buy", state=Exchanges.buy),
         SwitchTo(Const("📉 Продать"), id="sell", state=Exchanges.sell),
     ),
-    SwitchTo(Const("🤝 Мои подмены"), id="my", state=Exchanges.my),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    SwitchTo(Const("🗳 Мои сделки"), id="my", state=Exchanges.my),
+    SwitchTo(Const("💸 Создать сделку"), id="create", state=Exchanges.create),
+    SwitchTo(Const("📊 Статистика"), id="stats", state=Exchanges.stats),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     state=Exchanges.menu,
 )
 
@@ -101,10 +99,7 @@ exchange_buy_window = Window(
         id="exchanges_buy_settings",
         state=Exchanges.buy_settings,
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     getter=exchange_buy_getter,
     state=Exchanges.buy,
 )
@@ -114,7 +109,6 @@ exchange_sell_window = Window(
     Const("📉 <b>Биржа: Продажа часов</b>"),
     Format("""
 Здесь ты можешь выставить свою смену на продажу, а так же посмотреть список своих текущих подмен на бирже"""),
-    Button(Const("💰 Продать смену"), id="start_sell", on_click=start_sell_process),
     Format("\n📋 <b>Твои активные объявления:</b>", when="has_user_exchanges"),
     Format("🔍 <i>Нажми на объявление для управления</i>\n", when="has_user_exchanges"),
     Format(
@@ -134,10 +128,7 @@ exchange_sell_window = Window(
         id="exchanges_sell_settings",
         state=Exchanges.sell_settings,
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     getter=exchange_sell_getter,
     state=Exchanges.sell,
 )
@@ -148,10 +139,7 @@ exchange_my_window = Window(
     Format("""
 <tg-spoiler>Здесь пока ничего нет, но очень скоро что-то будет 🪄</tg-spoiler>"""),
     Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     state=Exchanges.my,
 )
 
@@ -165,10 +153,7 @@ sell_date_select_window = Window(
         id="sell_date_calendar",
         on_click=on_date_selected,
     ),
-    Row(
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
-        SwitchTo(Const("🏠 Домой"), id="home", state=close_schedules_dialog),
-    ),
+    Row(Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell), HOME_BTN),
     getter=sell_date_getter,
     state=Exchanges.sell_date_select,
 )
@@ -316,10 +301,7 @@ exchange_buy_detail_window = Window(
         allow_bot_chats=False,
         id="exchange_deeplink",
     ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy),
-        Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
-    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy), HOME_BTN),
     getter=exchange_buy_detail_getter,
     state=Exchanges.buy_detail,
 )

@@ -34,21 +34,6 @@ async def start_schedules_dialog(
     )
 
 
-async def close_schedules_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога графиков.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()
-
-
 async def prev_day(
     _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
 ) -> None:
