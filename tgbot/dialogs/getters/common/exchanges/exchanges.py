@@ -11,10 +11,12 @@ from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 
-async def sell_date_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+async def sell_date_getter(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
     """Геттер для окна выбора даты."""
     # Подготавливаем данные календаря с информацией о сменах
-    await prepare_calendar_data_for_exchange(dialog_manager)
+    await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
     return {}
 
 
@@ -113,28 +115,15 @@ async def sell_hours_getter(
 
 
 async def sell_time_input_getter(
-    dialog_manager: DialogManager, **kwargs
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна ввода времени."""
     shift_date = dialog_manager.dialog_data.get("shift_date")
-    is_remaining_today = dialog_manager.dialog_data.get("is_remaining_today", False)
 
     if not shift_date:
         return {"selected_date": "Не выбрана", "user_schedule": "Не найден"}
 
-    # Получаем данные пользователя
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    user_id = dialog_manager.event.from_user.id
-
     try:
-        employee = await stp_repo.employee.get_users(user_id=user_id)
-        if not employee:
-            return {
-                "selected_date": "Не выбрана",
-                "user_schedule": "Пользователь не найден",
-                "duty_warning": "",
-            }
-
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
 
@@ -147,9 +136,9 @@ async def sell_time_input_getter(
 
         try:
             schedule_dict = await parser.get_user_schedule_with_duties(
-                employee.fullname,
+                user.fullname,
                 month_name,
-                employee.division,
+                user.division,
                 stp_repo,
                 current_day_only=False,
             )
@@ -182,7 +171,7 @@ async def sell_time_input_getter(
         }
 
 
-async def sell_price_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
     """Геттер для окна ввода цены."""
     shift_date = dialog_manager.dialog_data.get("shift_date")
     is_partial = dialog_manager.dialog_data.get("is_partial", False)
@@ -214,7 +203,7 @@ async def sell_price_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
 
 
 async def sell_payment_timing_getter(
-    dialog_manager: DialogManager, **kwargs
+    dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна выбора времени оплаты."""
     data = dialog_manager.dialog_data
@@ -239,7 +228,7 @@ async def sell_payment_timing_getter(
 
 
 async def sell_payment_date_getter(
-    dialog_manager: DialogManager, **kwargs
+    dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна выбора даты платежа."""
     data = dialog_manager.dialog_data
@@ -253,7 +242,7 @@ async def sell_payment_date_getter(
 
 
 async def sell_confirmation_getter(
-    dialog_manager: DialogManager, **kwargs
+    dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна подтверждения."""
     data = dialog_manager.dialog_data
@@ -317,17 +306,11 @@ def get_month_name(month_number: int) -> str:
     return months[month_number] if 1 <= month_number <= 12 else "Неизвестно"
 
 
-async def prepare_calendar_data_for_exchange(dialog_manager: DialogManager) -> None:
+async def prepare_calendar_data_for_exchange(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager
+) -> None:
     """Подготавливает данные календаря с информацией о сменах пользователя."""
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-        user_id = dialog_manager.event.from_user.id
-
-        # Получаем пользователя
-        employee = await stp_repo.employee.get_users(user_id=user_id)
-        if not employee:
-            return
-
         # Получаем текущий месяц для календаря
         current_date = datetime.now().date()
 
@@ -337,9 +320,9 @@ async def prepare_calendar_data_for_exchange(dialog_manager: DialogManager) -> N
         # Получаем график пользователя на текущий месяц
         try:
             schedule_dict = await parser.get_user_schedule_with_duties(
-                employee.fullname,
+                user.fullname,
                 month_name,
-                employee.division,
+                user.division,
                 stp_repo,
                 current_day_only=False,
             )
@@ -361,8 +344,7 @@ async def prepare_calendar_data_for_exchange(dialog_manager: DialogManager) -> N
             dialog_manager.dialog_data["shift_dates"] = shift_dates
 
             # Определяем пол пользователя для правильного эмодзи
-            # Простая эвристика на основе имени (можно улучшить)
-            gender = determine_user_gender(employee.fullname)
+            gender = determine_user_gender(user.fullname)
             dialog_manager.dialog_data["user_gender"] = gender
 
         except Exception:
@@ -380,7 +362,6 @@ def determine_user_gender(fullname: str) -> str:
         return "unknown"
 
     # Простая эвристика на основе окончаний имен
-    # Можно расширить или заменить на более точную логику
     name_parts = fullname.split()
     if len(name_parts) >= 2:
         first_name = name_parts[1].lower()  # Второе слово обычно имя
@@ -415,7 +396,7 @@ def determine_user_gender(fullname: str) -> str:
 
 
 async def exchange_buy_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна покупки обменов."""
     user_id = dialog_manager.event.from_user.id
@@ -457,10 +438,9 @@ async def exchange_buy_getter(
 
 
 async def exchange_sell_getter(
-    dialog_manager: DialogManager, **kwargs
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна продажи обменов."""
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
 
     try:

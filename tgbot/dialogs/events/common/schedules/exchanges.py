@@ -135,8 +135,8 @@ async def get_user_real_shift(
 
 
 async def start_sell_process(
-    callback: CallbackQuery,
-    widget: Any,
+    _callback: CallbackQuery,
+    _widget: Any,
     dialog_manager: DialogManager,
 ):
     """Начать процесс продажи смены."""
@@ -149,7 +149,7 @@ async def start_sell_process(
 
 async def on_date_selected(
     callback: ChatEvent,
-    widget: ManagedCalendar,
+    _widget: ManagedCalendar,
     manager: DialogManager,
     selected_date: datetime.date,
 ):
@@ -170,8 +170,8 @@ async def on_date_selected(
 
 
 async def on_hours_selected(
-    callback: CallbackQuery,
-    widget: Any,
+    _callback: CallbackQuery,
+    _widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
 ):
@@ -443,7 +443,7 @@ async def on_exchange_buy_selected(
     """Обработчик выбора обмена для покупки."""
     try:
         exchange_id = int(item_id)
-        dialog_manager.dialog_data["selected_exchange_id"] = exchange_id
+        dialog_manager.dialog_data["exchange_id"] = exchange_id
         await dialog_manager.switch_to(Exchanges.buy_detail)
     except (ValueError, TypeError):
         await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
@@ -458,7 +458,7 @@ async def on_exchange_sell_selected(
     """Обработчик выбора собственного обмена."""
     try:
         exchange_id = int(item_id)
-        dialog_manager.dialog_data["selected_exchange_id"] = exchange_id
+        dialog_manager.dialog_data["exchange_id"] = exchange_id
         await dialog_manager.switch_to(Exchanges.sell_detail)
     except (ValueError, TypeError):
         await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
@@ -472,7 +472,7 @@ async def on_exchange_apply(
     """Обработчик покупки обмена."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
-    exchange_id = dialog_manager.dialog_data.get("selected_exchange_id")
+    exchange_id = dialog_manager.dialog_data.get("exchange_id")
 
     if not exchange_id:
         await callback.answer("❌ Обмен не найден", show_alert=True)
@@ -525,7 +525,7 @@ async def on_exchange_buy_cancel(
 ):
     """Обработчик отмены покупки обмена."""
     # Очищаем данные и возвращаемся к списку покупок
-    dialog_manager.dialog_data.pop("selected_exchange_id", None)
+    dialog_manager.dialog_data.pop("exchange_id", None)
     await dialog_manager.switch_to(Exchanges.buy)
 
 
@@ -537,7 +537,7 @@ async def on_exchange_cancel(
     """Обработчик отмены собственного обмена."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
-    exchange_id = dialog_manager.dialog_data.get("selected_exchange_id")
+    exchange_id = dialog_manager.dialog_data.get("exchange_id")
 
     if not exchange_id:
         await callback.answer("❌ Обмен не найден", show_alert=True)
