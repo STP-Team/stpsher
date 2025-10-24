@@ -20,27 +20,18 @@ class ShiftDateText(Text):
     def __init__(self):
         super().__init__()
 
-    async def _render_text(self, data, manager: DialogManager) -> str:
+    async def _render_text(self, data, dialog_manager: DialogManager) -> str:
         """Рендер даты с эмодзи смены если она есть."""
         selected_date: date = data["date"]
         day = selected_date.day
 
         # Получаем данные о сменах из dialog_data
-        shift_dates = manager.dialog_data.get("shift_dates", {})
-        user_gender = manager.dialog_data.get("user_gender", "unknown")
+        shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
         # Проверяем есть ли смена на эту дату
         date_key = f"{day:02d}"
         if date_key in shift_dates:
-            # Определяем эмодзи на основе пола пользователя
-            if user_gender == "male":
-                emoji = "👨🏻‍💻"
-            elif user_gender == "female":
-                emoji = "👩🏻‍💻"
-            else:
-                emoji = "💼"  # Нейтральная иконка если пол неизвестен
-
-            return f"{emoji}{day}"
+            return f"·{day}·"
 
         return str(day)
 
@@ -51,29 +42,20 @@ class TodayShiftDateText(Text):
     def __init__(self):
         super().__init__()
 
-    async def _render_text(self, data, manager: DialogManager) -> str:
+    async def _render_text(self, data, dialog_manager: DialogManager) -> str:
         """Рендер сегодняшней даты с эмодзи смены если она есть."""
         selected_date: date = data["date"]
         day = selected_date.day
 
         # Получаем данные о сменах из dialog_data
-        shift_dates = manager.dialog_data.get("shift_dates", {})
-        user_gender = manager.dialog_data.get("user_gender", "unknown")
+        shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
         # Проверяем есть ли смена на эту дату
         date_key = f"{day:02d}"
         if date_key in shift_dates:
-            # Определяем эмодзи на основе пола пользователя
-            if user_gender == "male":
-                emoji = "👨🏻‍💻"
-            elif user_gender == "female":
-                emoji = "👩🏻‍💻"
-            else:
-                emoji = "💼"
+            return f"·︎︎{day}·"
 
-            return f"📌{emoji}{day}"
-
-        return f"📌{day}"
+        return f"{day}"
 
 
 class ExchangeCalendar(Calendar):
@@ -117,7 +99,7 @@ class ExchangeCalendar(Calendar):
                 self._item_callback_data,
                 month_text=RussianMonthNominative(),
                 header_text="📅 Выбор месяца " + Format("{date:%Y}"),
-                this_month_text="📌 " + RussianMonthNominative(),
+                this_month_text="· " + RussianMonthNominative() + " ·",
                 next_year_text=Format("{date:%Y}") + " ⏩",
                 prev_year_text="⏪ " + Format("{date:%Y}"),
             ),

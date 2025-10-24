@@ -2,6 +2,7 @@
 
 from tgbot.dialogs.menus.admin.main import admin_dialog
 from tgbot.dialogs.menus.common.broadcast import broadcast_dialog
+from tgbot.dialogs.menus.common.exchanges.create import exchange_create_dialog
 from tgbot.dialogs.menus.common.exchanges.exchanges import exchanges_dialog
 from tgbot.dialogs.menus.common.files import files_dialog
 from tgbot.dialogs.menus.common.game.menu import game_dialog
@@ -29,6 +30,7 @@ dialogs_list = [
 common_dialogs_list = [
     schedules_dialog,
     exchanges_dialog,
+    exchange_create_dialog,
     kpi_dialog,
     game_dialog,
     broadcast_dialog,

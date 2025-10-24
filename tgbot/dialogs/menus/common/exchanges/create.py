@@ -1,6 +1,6 @@
 import operator
 
-from aiogram_dialog import Window
+from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -11,17 +11,21 @@ from aiogram_dialog.widgets.kbd import (
 )
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.events.common.exchanges.exchanges import (
-    on_cancel_sell,
+from tgbot.dialogs.events.common.exchanges.create import (
     on_confirm_sell,
     on_date_selected,
-    on_exchange_apply,
+    on_exchange_type_selected,
     on_hours_selected,
     on_payment_date_selected,
     on_payment_timing_selected,
     on_price_input,
     on_time_input,
 )
+from tgbot.dialogs.events.common.exchanges.exchanges import (
+    finish_exchanges_dialog,
+    on_exchange_apply,
+)
+from tgbot.dialogs.getters.common.exchanges.create import exchange_types_getter
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
     sell_confirmation_getter,
@@ -32,28 +36,55 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
     sell_price_getter,
     sell_time_input_getter,
 )
-from tgbot.dialogs.states.common.exchanges import Exchanges
+from tgbot.dialogs.states.common.exchanges import ExchangeCreate, Exchanges
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 # Окна процесса продажи смены
+type_window = Window(
+    Const("📅 <b>Шаг 1: Выбери тип предложения</b>"),
+    Const("""
+<blockquote><b>📈 Купить</b> - Предложение о покупке часов тобой
+Твои коллеги увидят предложение в разделе <b>📉 Продать</b></blockquote>
 
-sell_date_select_window = Window(
-    Const("📅 <b>Шаг 1: Выбор даты смены</b>"),
+<blockquote><b>📉 Продать</b> - Предложение о продаже твоих часов
+Твои коллеги увидят предложение в разделе <b>📈 Купить</b></blockquote>"""),
+    Select(
+        Format("{item[1]}"),
+        id="exchange_type",
+        items="exchange_types",
+        item_id_getter=operator.itemgetter(0),
+        on_click=on_exchange_type_selected,
+    ),
+    Row(
+        Button(Const("↩️ Назад"), id="cancel", on_click=finish_exchanges_dialog),
+        HOME_BTN,
+    ),
+    getter=exchange_types_getter,
+    state=ExchangeCreate.type,
+)
+
+
+date_window = Window(
+    Const("📅 <b>Шаг 2: Выбор даты смены</b>"),
     Format("Выбери дату смены, которую хочешь продать:"),
-    Format("<i>👨🏻‍💻👩🏻‍💻 — дни когда у тебя есть смена</i>"),
+    Format("\n<i>Значком · · помечены дни, когда у тебя есть смена</i>"),
     ExchangeCalendar(
         id="sell_date_calendar",
         on_click=on_date_selected,
     ),
-    Row(Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell), HOME_BTN),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.type),
+        HOME_BTN,
+    ),
     getter=sell_date_getter,
-    state=Exchanges.sell_date_select,
+    state=ExchangeCreate.date,
 )
 
-sell_hours_select_window = Window(
-    Const("⏰ <b>Шаг 2: Тип смены</b>"),
+shift_type_window = Window(
+    Const("⏰ <b>Шаг 3: Тип смены</b>"),
     Format("Дата смены: {selected_date}"),
     Format("Твоя смена: {user_schedule}"),
     Format("{duty_warning}", when="duty_warning"),
@@ -65,84 +96,83 @@ sell_hours_select_window = Window(
         item_id_getter=operator.itemgetter(0),
         on_click=on_hours_selected,
     ),
-    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_date_select),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.date),
         HOME_BTN,
     ),
     getter=sell_hours_getter,
-    state=Exchanges.sell_hours_select,
+    state=ExchangeCreate.shift_type,
 )
 
-sell_time_input_window = Window(
-    Const("🕐 <b>Шаг 3: Время продажи</b>"),
-    Format("Дата смены: {selected_date}"),
-    Format("Твоя смена: {user_schedule}"),
+hours_window = Window(
+    Const("🕐 <b>Шаг 4: Время продажи</b>"),
+    Format("Выбрана дата: <code>{selected_date}</code>"),
+    Format("Твоя смена в эту дату: <code>{user_schedule}</code>"),
     Format("{duty_warning}", when="duty_warning"),
-    Format("\nВведи время которое хочешь продать:"),
-    Format("<i>Формат: 09:00-13:00 или 14:00-18:00. Часовой пояс: Пермь (МСК+2)</i>"),
+    Format("\nВведи время, которое хочешь продать"),
+    Format(
+        "\n<blockquote>Формат: <code>09:00-13:00</code> или <code>14:00-18:00</code></blockquote>\nЧасовой пояс: <code>Пермь (МСК+2)</code>"
+    ),
     TextInput(
         id="time_input",
         on_success=on_time_input,
     ),
-    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_hours_select),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.shift_type),
         HOME_BTN,
     ),
     getter=sell_time_input_getter,
-    state=Exchanges.sell_time_input,
+    state=ExchangeCreate.hours,
 )
 
-sell_price_input_window = Window(
-    Const("💰 <b>Шаг 4: Цена</b>"),
-    Format("Дата смены: {selected_date}"),
-    Format("Тип смены: {shift_type}"),
-    Format("Время: {shift_time}", when="shift_time"),
-    Format("\nВведи цену за {shift_type} (в рублях):"),
-    Format("<i>Например: 1000</i>"),
+price_window = Window(
+    Const("💰 <b>Шаг 5: Цена</b>"),
+    Format("Дата смены: <code>{selected_date}</code>"),
+    Format("Тип смены: <code>{shift_type}</code>"),
+    Format("Продаваемое время: <code>{shift_time}</code>", when="shift_time"),
+    Format("\nВведи полную цену за предложение (в рублях)"),
     TextInput(
         id="price_input",
         on_success=on_price_input,
     ),
-    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
-        SwitchTo(
-            Const("↩️ Назад"), id="back_to_previous", state=Exchanges.sell_hours_select
-        ),
+        SwitchTo(Const("↩️ Назад"), id="back_to_previous", state=ExchangeCreate.hours),
         HOME_BTN,
     ),
     getter=sell_price_getter,
-    state=Exchanges.sell_price_input,
+    state=ExchangeCreate.price,
 )
 
-sell_payment_timing_window = Window(
-    Const("💳 <b>Шаг 5: Условия оплаты</b>"),
-    Format("Дата смены: {selected_date}"),
-    Format("Тип смены: {shift_type}"),
-    Format("Цена: {price} р."),
-    Format("\nКогда поступит оплата:"),
+payment_timing_window = Window(
+    Const("💳 <b>Шаг 6: Условия оплаты</b>"),
+    Format("Дата смены: <code>{selected_date}</code>"),
+    Format("Тип смены: <code>{shift_type}</code>"),
+    Format("Цена: <code>{price} р.</code>"),
+    Format("\nВыбери когда поступит оплата"),
     Select(
         Format("{item[1]}"),
         id="payment_timing",
         items=[
-            ("immediate", "💸 Сразу при покупке"),
-            ("on_date", "📅 До определенной даты"),
+            ("immediate", "💸 Сразу"),
+            ("on_date", "📅 Выбрать дату"),
         ],
         item_id_getter=operator.itemgetter(0),
         on_click=on_payment_timing_selected,
     ),
-    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_price_input),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.price),
         HOME_BTN,
     ),
     getter=sell_payment_timing_getter,
-    state=Exchanges.sell_payment_timing,
+    state=ExchangeCreate.payment_timing,
 )
 
-sell_payment_date_window = Window(
-    Const("📅 <b>Шаг 6: Дата платежа</b>"),
+payment_date_window = Window(
+    Const("📅 <b>Шаг 7: Дата платежа</b>"),
     Format("Дата смены: {shift_date}"),
     Format("\nВыбери крайнюю дату для оплаты:"),
     Format("<i>Дата должна быть не позже даты смены</i>"),
@@ -150,16 +180,16 @@ sell_payment_date_window = Window(
         id="payment_date_calendar",
         on_click=on_payment_date_selected,
     ),
-    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_payment_timing),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.payment_timing),
         HOME_BTN,
     ),
     getter=sell_payment_date_getter,
-    state=Exchanges.sell_payment_date,
+    state=ExchangeCreate.payment_date,
 )
 
-sell_confirmation_window = Window(
+confirmation_window = Window(
     Const("✅ <b>Подтверждение</b>"),
     Format("""
 Проверь данные перед публикацией:
@@ -173,11 +203,10 @@ sell_confirmation_window = Window(
 Всё верно?"""),
     Row(
         Button(Const("✅ Опубликовать"), id="confirm", on_click=on_confirm_sell),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+        Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     ),
-    SwitchTo(Const("↩️ Изменить"), id="back", state=Exchanges.sell_payment_timing),
     getter=sell_confirmation_getter,
-    state=Exchanges.sell_confirmation,
+    state=ExchangeCreate.confirmation,
 )
 
 # Окна детального просмотра обменов
@@ -203,4 +232,16 @@ exchange_buy_detail_window = Window(
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy), HOME_BTN),
     getter=exchange_buy_detail_getter,
     state=Exchanges.buy_detail,
+)
+
+
+exchange_create_dialog = Dialog(
+    type_window,
+    date_window,
+    shift_type_window,
+    hours_window,
+    price_window,
+    payment_timing_window,
+    payment_date_window,
+    confirmation_window,
 )

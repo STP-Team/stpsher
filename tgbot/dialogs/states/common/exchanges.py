@@ -12,20 +12,8 @@ class Exchanges(StatesGroup):
     sell = State()
     my = State()
 
-    # Создание сделки
-    create = State()
-
     # Статистика
     stats = State()
-
-    # Продажа смены - пошаговый процесс
-    sell_date_select = State()  # Выбор даты смены
-    sell_hours_select = State()  # Выбор часов смены
-    sell_time_input = State()  # Ввод времени для частичной смены
-    sell_price_input = State()  # Ввод цены
-    sell_payment_timing = State()  # Когда платить (сразу/дата)
-    sell_payment_date = State()  # Выбор даты платежа (календарь)
-    sell_confirmation = State()  # Подтверждение и создание
 
     # Детальный просмотр обменов
     buy_detail = State()  # Детали обмена для покупки
@@ -37,3 +25,16 @@ class Exchanges(StatesGroup):
     buy_filters_shift = State()
 
     sell_settings = State()
+
+
+class ExchangeCreate(StatesGroup):
+    """Группа состояний диалога для создания предложения на бирже подмен."""
+
+    type = State()
+    date = State()
+    shift_type = State()
+    hours = State()
+    price = State()
+    payment_timing = State()
+    payment_date = State()
+    confirmation = State()
