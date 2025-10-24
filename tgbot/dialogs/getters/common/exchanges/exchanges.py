@@ -241,6 +241,32 @@ async def sell_payment_date_getter(
     return {"shift_date": "Не выбрана"}
 
 
+async def sell_comment_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна ввода комментария."""
+    data = dialog_manager.dialog_data
+    shift_date = data.get("shift_date")
+    price = data.get("price", 0)
+    is_partial = data.get("is_partial", False)
+
+    shift_type = "часть смены" if is_partial else "полную смену"
+
+    if shift_date:
+        date_obj = datetime.fromisoformat(shift_date).date()
+        formatted_date = date_obj.strftime("%d.%m.%Y")
+        return {
+            "selected_date": formatted_date,
+            "shift_type": shift_type,
+            "price": price,
+        }
+    return {
+        "selected_date": "Не выбрана",
+        "shift_type": shift_type,
+        "price": price,
+    }
+
+
 async def sell_confirmation_getter(
     dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
@@ -253,6 +279,7 @@ async def sell_confirmation_getter(
     is_partial = data.get("is_partial", False)
     payment_type = data.get("payment_type", "immediate")
     payment_date = data.get("payment_date")
+    comment = data.get("comment")
 
     # Форматируем дату смены
     formatted_shift_date = "Не выбрана"
@@ -277,13 +304,19 @@ async def sell_confirmation_getter(
         formatted_payment_date = payment_date_obj.strftime("%d.%m.%Y")
         payment_info = f"До {formatted_payment_date}"
 
-    return {
+    result = {
         "shift_date": formatted_shift_date,
         "shift_type": shift_type,
         "shift_time": shift_time_info,
         "price": price,
         "payment_info": payment_info,
     }
+
+    # Добавляем комментарий если есть
+    if comment:
+        result["comment"] = comment
+
+    return result
 
 
 def get_month_name(month_number: int) -> str:

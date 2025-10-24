@@ -20,18 +20,17 @@ from aiogram_dialog.widgets.text import Const, Format
 from tgbot.dialogs.events.common.exchanges.create import start_create_process
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
+    on_exchange_apply,
     on_exchange_buy_selected,
     on_exchange_cancel,
     on_exchange_sell_selected,
     on_private_change,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    exchange_buy_detail_getter,
     exchange_buy_getter,
     exchange_sell_detail_getter,
     exchange_sell_getter,
-)
-from tgbot.dialogs.menus.common.exchanges.create import (
-    exchange_buy_detail_window,
 )
 from tgbot.dialogs.menus.common.exchanges.settings import (
     buy_filters_day_window,
@@ -164,6 +163,29 @@ exchange_sell_detail_window = Window(
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
     getter=exchange_sell_detail_getter,
     state=Exchanges.sell_detail,
+)
+
+exchange_buy_detail_window = Window(
+    Const("🔍 <b>Детали сделки</b>"),
+    Format("""
+📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
+💰 <b>Цена:</b> {price} р.
+
+👤 <b>Продавец:</b> {seller_name}
+💳 <b>Оплата:</b> {payment_info}"""),
+    Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
+    SwitchInlineQueryChosenChatButton(
+        Const("🔗 Поделиться"),
+        query=Format("{deeplink}"),
+        allow_user_chats=True,
+        allow_group_chats=True,
+        allow_channel_chats=False,
+        allow_bot_chats=False,
+        id="exchange_deeplink",
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy), HOME_BTN),
+    getter=exchange_buy_detail_getter,
+    state=Exchanges.buy_detail,
 )
 
 exchange_my_window = Window(

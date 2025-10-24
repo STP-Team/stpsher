@@ -378,8 +378,8 @@ async def on_payment_timing_selected(
     if item_id == "immediate":
         dialog_manager.dialog_data["payment_type"] = "immediate"
         dialog_manager.dialog_data["payment_date"] = None
-        # Переходим сразу к подтверждению
-        await dialog_manager.switch_to(ExchangeCreate.confirmation)
+        # Переходим к комментарию
+        await dialog_manager.switch_to(ExchangeCreate.comment)
     elif item_id == "on_date":
         dialog_manager.dialog_data["payment_type"] = "on_date"
         # Переходим к выбору даты платежа
@@ -408,8 +408,8 @@ async def on_payment_date_selected(
     # Сохраняем дату платежа
     dialog_manager.dialog_data["payment_date"] = selected_date.isoformat()
 
-    # Переходим к подтверждению
-    await dialog_manager.switch_to(ExchangeCreate.confirmation)
+    # Переходим к комментарию
+    await dialog_manager.switch_to(ExchangeCreate.comment)
 
 
 async def on_confirm_sell(
@@ -442,6 +442,9 @@ async def on_confirm_sell(
             )
             return
 
+        # Получаем комментарий
+        description = data.get("comment")
+
         # Создаем обмен
         exchange = await stp_repo.exchange.create_exchange(
             seller_id=user_id,
@@ -452,6 +455,7 @@ async def on_confirm_sell(
             shift_end_time=shift_end_time,
             payment_type=payment_type,
             payment_date=payment_date,
+            description=description,
         )
 
         if exchange:
@@ -459,7 +463,7 @@ async def on_confirm_sell(
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             # Возвращаемся к главному меню биржи
-            await dialog_manager.switch_to(Exchanges.menu)
+            await dialog_manager.done()
         else:
             await callback.answer(
                 "❌ Не удалось создать предложение. Попробуйте позже.", show_alert=True
@@ -469,3 +473,35 @@ async def on_confirm_sell(
         await callback.answer(
             "❌ Произошла ошибка при создании сделки", show_alert=True
         )
+
+
+async def on_comment_input(
+    message: Message,
+    _widget: ManagedTextInput,
+    dialog_manager: DialogManager,
+    data: str,
+):
+    """Обработчик ввода комментария."""
+    # Проверяем длину комментария
+    if len(data) > 500:
+        await message.answer("❌ Комментарий слишком длинный (максимум 500 символов)")
+        return
+
+    # Сохраняем комментарий
+    dialog_manager.dialog_data["comment"] = data.strip()
+
+    # Переходим к подтверждению
+    await dialog_manager.switch_to(ExchangeCreate.confirmation)
+
+
+async def on_skip_comment(
+    _callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик пропуска комментария."""
+    # Убираем комментарий из данных
+    dialog_manager.dialog_data.pop("comment", None)
+
+    # Переходим к подтверждению
+    await dialog_manager.switch_to(ExchangeCreate.confirmation)

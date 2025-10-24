@@ -6,12 +6,12 @@ from aiogram_dialog.widgets.kbd import (
     Button,
     Row,
     Select,
-    SwitchInlineQueryChosenChatButton,
     SwitchTo,
 )
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.create import (
+    on_comment_input,
     on_confirm_sell,
     on_date_selected,
     on_exchange_type_selected,
@@ -19,15 +19,15 @@ from tgbot.dialogs.events.common.exchanges.create import (
     on_payment_date_selected,
     on_payment_timing_selected,
     on_price_input,
+    on_skip_comment,
     on_time_input,
 )
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
-    on_exchange_apply,
 )
 from tgbot.dialogs.getters.common.exchanges.create import exchange_types_getter
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
-    exchange_buy_detail_getter,
+    sell_comment_getter,
     sell_confirmation_getter,
     sell_date_getter,
     sell_hours_getter,
@@ -36,7 +36,7 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
     sell_price_getter,
     sell_time_input_getter,
 )
-from tgbot.dialogs.states.common.exchanges import ExchangeCreate, Exchanges
+from tgbot.dialogs.states.common.exchanges import ExchangeCreate
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
@@ -189,6 +189,31 @@ payment_date_window = Window(
     state=ExchangeCreate.payment_date,
 )
 
+comment_window = Window(
+    Const("💬 <b>Шаг 8: Комментарий (необязательно)</b>"),
+    Format("Дата смены: <code>{selected_date}</code>"),
+    Format("Тип смены: <code>{shift_type}</code>"),
+    Format("Цена: <code>{price} р.</code>"),
+    Format("\nМожешь добавить комментарий к предложению или нажать 'Пропустить'"),
+    Format(
+        "\n<blockquote>Например: 'Готов обменяться', 'Срочно нужен обмен', 'Предпочитаю НТП' и т.д.</blockquote>"
+    ),
+    TextInput(
+        id="comment_input",
+        on_success=on_comment_input,
+    ),
+    Row(
+        Button(Const("➡️ Пропустить"), id="skip_comment", on_click=on_skip_comment),
+        Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.payment_timing),
+        HOME_BTN,
+    ),
+    getter=sell_comment_getter,
+    state=ExchangeCreate.comment,
+)
+
 confirmation_window = Window(
     Const("✅ <b>Подтверждение</b>"),
     Format("""
@@ -198,40 +223,19 @@ confirmation_window = Window(
 ⏰ <b>Тип смены:</b> {shift_type}
 🕘 <b>Время:</b> {shift_time}
 💰 <b>Цена:</b> {price} р.
-💳 <b>Оплата:</b> {payment_info}
-
-Всё верно?"""),
+💳 <b>Оплата:</b> {payment_info}"""),
+    Format("💬 <b>Комментарий:</b> {comment}", when="comment"),
+    Format("\nВсё верно?"),
     Row(
         Button(Const("✅ Опубликовать"), id="confirm", on_click=on_confirm_sell),
         Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreate.comment),
+        HOME_BTN,
+    ),
     getter=sell_confirmation_getter,
     state=ExchangeCreate.confirmation,
-)
-
-# Окна детального просмотра обменов
-
-exchange_buy_detail_window = Window(
-    Const("🔍 <b>Детали сделки</b>"),
-    Format("""
-📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {price} р.
-
-👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}"""),
-    Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
-    SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться"),
-        query=Format("{deeplink}"),
-        allow_user_chats=True,
-        allow_group_chats=True,
-        allow_channel_chats=False,
-        allow_bot_chats=False,
-        id="exchange_deeplink",
-    ),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy), HOME_BTN),
-    getter=exchange_buy_detail_getter,
-    state=Exchanges.buy_detail,
 )
 
 
@@ -243,5 +247,6 @@ exchange_create_dialog = Dialog(
     price_window,
     payment_timing_window,
     payment_date_window,
+    comment_window,
     confirmation_window,
 )
