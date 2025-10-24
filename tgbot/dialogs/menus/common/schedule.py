@@ -15,7 +15,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.common import close_all_dialogs
 from tgbot.dialogs.events.common.exchanges.exchanges import start_exchanges_dialog
 from tgbot.dialogs.events.common.schedules import (
     do_nothing,
@@ -71,7 +70,7 @@ menu_window = Window(
         on_click=start_exchanges_dialog,
         when="is_user",
     ),
-    Button(Const("↩️ Назад"), id="home", on_click=close_all_dialogs),
+    HOME_BTN,
     getter=schedules_getter,
     state=Schedules.menu,
 )

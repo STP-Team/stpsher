@@ -159,6 +159,6 @@ no_activations_window = Window(
     Format("""<b>✍️ Активация предметов</b>
 
 Нет предметов, ожидающих активации 😊"""),
-    SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
     state=Game.no_activations,
 )

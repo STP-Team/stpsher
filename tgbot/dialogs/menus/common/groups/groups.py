@@ -119,7 +119,7 @@ groups_cmds_window = Window(
         item_id_getter=operator.itemgetter(0),
         items=[("user", "Пользователь"), ("admin", "Администратор")],
     ),
-    SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu), HOME_BTN),
     state=Groups.cmds,
 )
 
