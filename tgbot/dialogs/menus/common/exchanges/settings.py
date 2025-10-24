@@ -15,7 +15,7 @@ from tgbot.dialogs.getters.common.exchanges.settings import (
     buy_filters_shift_getter,
     buy_settings_getter,
 )
-from tgbot.dialogs.states.common.schedule.exchanges import Exchanges
+from tgbot.dialogs.states.common.exchanges import Exchanges
 
 buy_settings_window = Window(
     Const("💡 <b>Биржа: Настройки покупок</b>"),

@@ -32,7 +32,7 @@ from tgbot.dialogs.getters.common.schedules import (
     schedules_getter,
     user_schedule_getter,
 )
-from tgbot.dialogs.states.common.schedule.schedule import Schedules
+from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
 
 menu_window = Window(

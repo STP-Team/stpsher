@@ -10,7 +10,7 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
 from stp_database import MainRequestsRepo
 
-from tgbot.dialogs.states.common.schedule.exchanges import Exchanges
+from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 

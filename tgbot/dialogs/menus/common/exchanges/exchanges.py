@@ -51,7 +51,7 @@ from tgbot.dialogs.menus.common.exchanges.settings import (
     buy_settings_window,
     sell_settings_window,
 )
-from tgbot.dialogs.states.common.schedule.exchanges import Exchanges
+from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
