@@ -576,7 +576,7 @@ async def exchange_sell_detail_getter(
             "cancelled": "❌ Отменено",
             "expired": "⏰ Истекло",
         }
-        status = status_map.get(exchange.status, "❓ Неизвестно")
+        status_text = status_map.get(exchange.status, "❓ Неизвестно")
 
         # Дата создания
         created_at = exchange.created_at.strftime("%d.%m.%Y %H:%M")
@@ -590,8 +590,11 @@ async def exchange_sell_detail_getter(
             "price": exchange.price,
             "payment_info": payment_info,
             "deeplink": deeplink,
-            "status": status,
+            "status": exchange.status,
+            "status_text": status_text,
             "created_at": created_at,
+            "private": exchange.is_private,
+            "hidden": exchange.is_hidden,
         }
 
     except Exception:

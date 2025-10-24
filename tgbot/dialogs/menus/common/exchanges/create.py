@@ -1,5 +1,6 @@
 import operator
 
+from aiogram import F
 from aiogram_dialog import Window
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
@@ -189,7 +190,7 @@ exchange_buy_detail_window = Window(
 💳 <b>Оплата:</b> {payment_info}"""),
     Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
     SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться сделкой"),
+        Const("🔗 Поделиться"),
         query=Format("{deeplink}"),
         allow_user_chats=True,
         allow_group_chats=True,
@@ -203,30 +204,34 @@ exchange_buy_detail_window = Window(
 )
 
 exchange_sell_detail_window = Window(
-    Const("🔍 <b>Детали твоего объявления</b>"),
+    Const("🔍 <b>Детали объявления</b>"),
     Format("""
 📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Оплата:</b> {price} р. {payment_info}
+💰 <b>Цена:</b> {price} р.
+💳 <b>Оплата:</b> {payment_info}
+
+Статус: {status_text}
 
 📅 <b>Создано:</b> {created_at}"""),
+    Button(
+        Const("✋🏻 Отменить"),
+        id="cancel_exchange",
+        on_click=on_exchange_cancel,
+        when=F["status"] == "active",  # type: ignore[arg-type]
+    ),
     Row(
-        Button(
-            Const("✋🏻 Отменить"),
-            id="cancel_exchange",
-            on_click=on_exchange_cancel,
-        ),
-        Button(Const("🔄 Обновить"), id="refresh_exchange_detail"),
+        Button(Const("✏️ Редактировать"), id="exchange_details_edit"),
+        Button(Const("🔄 Обновить"), id="exchange_details_update"),
     ),
     SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться сделкой"),
+        Const("🔗 Поделиться"),
         query=Format("{deeplink}"),
         allow_user_chats=True,
         allow_group_chats=True,
         allow_channel_chats=False,
         allow_bot_chats=False,
-        id="exchange_deeplink",
     ),
-    SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
     getter=exchange_sell_detail_getter,
     state=Exchanges.sell_detail,
 )
