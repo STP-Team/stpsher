@@ -25,7 +25,7 @@ async def user_start(
     message: Message,
     user: Employee,
     dialog_manager: DialogManager,
-    event_logger: EventLogger,
+    event_logger: EventLogger | None,
 ) -> None:
     """Запуск/сброс состояния диалога для специалистов и дежурных.
 
@@ -48,7 +48,8 @@ async def user_start(
         )
         return
 
-    await event_logger.log_bot_start(user.user_id)
+    if event_logger:
+        await event_logger.log_bot_start(user.user_id)
 
     try:
         await dialog_manager.done()
