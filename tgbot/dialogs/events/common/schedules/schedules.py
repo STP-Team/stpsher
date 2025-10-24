@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
-from tgbot.dialogs.states.common.schedule.schedule import Schedules
+from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.misc.dicts import russian_months
 from tgbot.services.files_processing.formatters.schedule import (
