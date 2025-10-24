@@ -199,7 +199,7 @@ sell_time_input_window = Window(
     Format("Твоя смена: {user_schedule}"),
     Format("{duty_warning}", when="duty_warning"),
     Format("\nВведи время которое хочешь продать:"),
-    Format("<i>Формат: 09:00-13:00 или 14:00-18:00</i>"),
+    Format("<i>Формат: 09:00-13:00 или 14:00-18:00. Часовой пояс: Пермь (МСК+2)</i>"),
     TextInput(
         id="time_input",
         on_success=on_time_input,
@@ -300,7 +300,7 @@ sell_confirmation_window = Window(
 exchange_buy_detail_window = Window(
     Const("🔍 <b>Детали смены для покупки</b>"),
     Format("""
-📅 <b>Предложение:</b> {shift_date} {shift_time}
+📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
 💰 <b>Цена:</b> {price} руб.
 
 👤 <b>Продавец:</b> {seller_name}
@@ -317,7 +317,7 @@ exchange_buy_detail_window = Window(
 exchange_sell_detail_window = Window(
     Const("🔍 <b>Детали твоего объявления</b>"),
     Format("""
-📅 <b>Предложение:</b> {shift_date} {shift_time}
+📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
 💰 <b>Оплата:</b> {price} руб. {payment_info}
 
 📅 <b>Создано:</b> {created_at}"""),
