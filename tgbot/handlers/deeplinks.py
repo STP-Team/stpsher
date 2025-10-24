@@ -72,6 +72,7 @@ async def start_deeplink(
             return
         elif payload.startswith("exchange_"):
             exchange_id = int(payload.split("_", 1)[1])
+
             # Запускаем диалог биржи подмен
             await dialog_manager.start(
                 Exchanges.buy_detail,
