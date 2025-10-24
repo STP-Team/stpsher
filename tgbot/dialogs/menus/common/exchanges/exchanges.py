@@ -6,7 +6,6 @@ from aiogram import F
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Button,
-    Checkbox,
     ManagedRadio,
     ManagedToggle,
     Row,
@@ -22,9 +21,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
     on_exchange_apply,
     on_exchange_buy_selected,
-    on_exchange_cancel,
     on_exchange_sell_selected,
-    on_private_change,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
@@ -60,13 +57,17 @@ exchanges_window = Window(
 
 exchange_buy_window = Window(
     Const("📈 <b>Биржа: Покупка часов</b>"),
+    Format("""
+Здесь ты можешь найти и купить смены, которые продают другие сотрудники.
+
+💰 <b>Доступно предложений:</b> {exchanges_length}"""),
     Format(
-        """\nПредложений на бирже: {exchanges_length}
-        
-<i>🔍 Нажми на смену для просмотра деталей</i>""",
-        when="has_exchanges",
+        "\n🔍 <i>Нажми на предложение для просмотра деталей</i>", when="has_exchanges"
     ),
-    Format("\n📭 <i>Пока биржа пуста :(</i>", when=~F["has_exchanges"]),
+    Format(
+        "\n📭 <i>Пока никто не продает смены</i>",
+        when=~F["has_exchanges"],
+    ),
     ScrollingGroup(
         Select(
             Format("{item[time]}, {item[date]} | {item[price]} р."),
@@ -96,22 +97,29 @@ exchange_buy_window = Window(
 exchange_sell_window = Window(
     Const("📉 <b>Биржа: Продажа часов</b>"),
     Format("""
-Здесь ты можешь выставить свою смену на продажу, а так же посмотреть список своих текущих подмен на бирже"""),
-    Format("\n📋 <b>Твои активные предложения:</b>", when="has_user_exchanges"),
+Здесь ты можешь найти людей, которые хотят купить смены, и продать им свои часы.
+
+💰 <b>Запросы на покупку:</b> {buy_requests_length}"""),
     Format(
-        "🔍 <i>Нажми на предложение для управления</i>\n", when="has_user_exchanges"
+        "\n🔍 <i>Нажми на запрос для просмотра деталей</i>", when="has_buy_requests"
     ),
     Format(
-        "\n📭 <i>У тебя пока нет активных предложений</i>",
-        when=~F["has_user_exchanges"],
+        "\n📭 <i>Пока никто не ищет смены для покупки</i>",
+        when=~F["has_buy_requests"],
     ),
-    Select(
-        Format("{item[time]}, {item[date]}"),
-        id="user_exchange_select",
-        items="user_exchanges",
-        item_id_getter=lambda item: item["id"],
-        on_click=on_exchange_sell_selected,
-        when="has_user_exchanges",
+    ScrollingGroup(
+        Select(
+            Format("{item[time]}, {item[date]} | {item[price]} р."),
+            id="buy_request_select",
+            items="available_buy_requests",
+            item_id_getter=lambda item: item["id"],
+            on_click=on_exchange_sell_selected,
+        ),
+        width=1,
+        height=10,
+        hide_on_single_page=True,
+        id="buy_request_scrolling",
+        when="has_buy_requests",
     ),
     Button(Const("🔄 Обновить"), id="refresh_exchange_sell"),
     SwitchTo(
@@ -125,33 +133,14 @@ exchange_sell_window = Window(
 )
 
 exchange_sell_detail_window = Window(
-    Const("🔍 <b>Детали предложения</b>"),
+    Const("🔍 <b>Детали запроса на покупку</b>"),
     Format("""
-📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
+📅 <b>Запрос:</b> {shift_date} {shift_time} ПРМ
 💰 <b>Цена:</b> {price} р.
-💳 <b>Оплата:</b> {payment_info}
 
-Статус: {status_text}
-
-📅 <b>Создано:</b> {created_at}"""),
-    Button(
-        Const("✋🏻 Отменить"),
-        id="cancel_exchange",
-        on_click=on_exchange_cancel,
-        when=F["status"] == "active",  # type: ignore[arg-type]
-    ),
-    Row(
-        Button(Const("✏️ Редактировать"), id="exchange_details_edit"),
-        Button(Const("🔄 Обновить"), id="exchange_details_update"),
-    ),
-    Row(
-        Checkbox(
-            Const("🫣 Приватное"),
-            Const("👀 Публичное"),
-            id="private_toggle",
-            on_state_changed=on_private_change,
-        ),
-    ),
+👤 <b>Покупатель:</b> {buyer_name}
+💳 <b>Оплата:</b> {payment_info}"""),
+    Button(Const("✅ Продать"), id="accept_buy_request", on_click=on_exchange_apply),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
         query=Format("{deeplink}"),
@@ -159,6 +148,7 @@ exchange_sell_detail_window = Window(
         allow_group_chats=True,
         allow_channel_chats=False,
         allow_bot_chats=False,
+        id="buy_request_deeplink",
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
     getter=exchange_sell_detail_getter,

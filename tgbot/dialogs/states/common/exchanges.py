@@ -30,7 +30,10 @@ class Exchanges(StatesGroup):
 class ExchangeCreate(StatesGroup):
     """Группа состояний диалога для создания предложения на бирже подмен."""
 
+    # Общие состояния
     type = State()
+
+    # Состояния для продажи (sell flow)
     date = State()
     shift_type = State()
     hours = State()
@@ -39,3 +42,10 @@ class ExchangeCreate(StatesGroup):
     payment_date = State()
     comment = State()
     confirmation = State()
+
+    # Состояния для покупки (buy flow)
+    buy_date = State()
+    buy_hours = State()
+    buy_price = State()
+    buy_comment = State()
+    buy_confirmation = State()
