@@ -88,7 +88,7 @@ exchange_buy_window = Window(
             on_click=on_exchange_buy_selected,
         ),
         width=1,
-        height=8,
+        height=10,
         hide_on_single_page=True,
         id="exchange_scrolling",
         when="has_exchanges",
@@ -223,7 +223,7 @@ sell_payment_timing_window = Window(
     Const("💳 <b>Шаг 5: Условия оплаты</b>"),
     Format("Дата смены: {selected_date}"),
     Format("Тип смены: {shift_type}"),
-    Format("Цена: {price} руб."),
+    Format("Цена: {price} р."),
     Format("\nКогда поступит оплата:"),
     Select(
         Format("{item[1]}"),
@@ -268,7 +268,7 @@ sell_confirmation_window = Window(
 📅 <b>Дата смены:</b> {shift_date}
 ⏰ <b>Тип смены:</b> {shift_type}
 🕘 <b>Время:</b> {shift_time}
-💰 <b>Цена:</b> {price} руб.
+💰 <b>Цена:</b> {price} р.
 💳 <b>Оплата:</b> {payment_info}
 
 Всё верно?"""),
@@ -287,7 +287,7 @@ exchange_buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
 📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {price} руб.
+💰 <b>Цена:</b> {price} р.
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""),
@@ -310,7 +310,7 @@ exchange_sell_detail_window = Window(
     Const("🔍 <b>Детали твоего объявления</b>"),
     Format("""
 📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Оплата:</b> {price} руб. {payment_info}
+💰 <b>Оплата:</b> {price} р. {payment_info}
 
 📅 <b>Создано:</b> {created_at}"""),
     Row(

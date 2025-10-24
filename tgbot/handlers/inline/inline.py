@@ -250,7 +250,7 @@ async def advanced_inline_handler(
             message_text = f"""🔍 <b>Детали сделки</b>
 
 📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {exchange.price} руб.
+💰 <b>Цена:</b> {exchange.price} р.
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""
@@ -262,7 +262,7 @@ async def advanced_inline_handler(
                 InlineQueryResultArticle(
                     id=f"exchange_{exchange.id}",
                     title=f"Сделка №{exchange.id}",
-                    description=f"📅 Предложение: {shift_date} {shift_time} ПРМ\n💰 Цена: {exchange.price} руб.",
+                    description=f"📅 Предложение: {shift_date} {shift_time} ПРМ\n💰 Цена: {exchange.price} р.",
                     input_message_content=InputTextMessageContent(
                         message_text=message_text, parse_mode="HTML"
                     ),
