@@ -396,15 +396,16 @@ def determine_user_gender(fullname: str) -> str:
 
 
 async def exchange_buy_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна покупки обменов."""
     user_id = dialog_manager.event.from_user.id
 
     try:
-        # Получаем доступные обмены (не пользователя)
+        # Получаем доступные обмены
         exchanges = await stp_repo.exchange.get_active_exchanges(
-            exclude_user_id=user_id
+            exclude_user_id=user_id,
+            division="НЦК" if user.division == "НЦК" else ["НТП1", "НТП2"],
         )
 
         # Форматируем данные для отображения
