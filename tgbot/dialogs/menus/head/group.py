@@ -1,5 +1,6 @@
 """Генерация диалога управления группой."""
 
+import operator
 from typing import Any
 
 from aiogram import F
@@ -145,7 +146,7 @@ members_window = Window(
             Format("{item[1]}"),
             id="group_members",
             items="members_list",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_member_select,
         ),
         width=2,
@@ -267,7 +268,7 @@ game_products_window = Window(
             Format("{item[1]}"),
             id="game_inventory_product",
             items="products",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
         ),
         width=2,
         height=3,
@@ -278,7 +279,7 @@ game_products_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="game_inventory_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[
             ("all", "📋 Все"),
             ("stored", f"{get_status_emoji('stored')}"),
@@ -361,7 +362,7 @@ game_casino_window = Window(
             Format("{item[1]}"),
             id="game_casino_members",
             items="members",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_game_casino_member_click,
         ),
         width=2,
@@ -444,7 +445,7 @@ member_access_level_window = Window(
         Select(
             Format("{item[1]}"),
             id="member_access_level_select",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items="roles",
             on_click=on_member_role_change,
         ),
@@ -480,7 +481,7 @@ member_schedule_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="schedule_mode",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="mode_options",
         on_click=on_member_schedule_mode_select,
     ),
@@ -602,7 +603,7 @@ member_achievements_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="member_achievement_period_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="period_radio_data",
     ),
     Row(
@@ -632,7 +633,7 @@ member_inventory_window = Window(
             Format("{item[1]}"),
             id="member_inventory_product",
             items="products",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
         ),
         width=2,
         height=3,
@@ -643,7 +644,7 @@ member_inventory_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="member_inventory_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[
             ("all", "📋 Все"),
             ("stored", f"{get_status_emoji('stored')}"),

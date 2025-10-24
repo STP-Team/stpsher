@@ -1,5 +1,7 @@
 """Генерация общих функций для просмотра истории баланса."""
 
+import operator
+
 from aiogram_dialog.widgets.kbd import (
     Radio,
     Row,
@@ -33,7 +35,7 @@ history_window = Window(
             Format("{pos}. {item[1]}"),
             id="history",
             items="history_products",
-            item_id_getter=lambda item: item[0],  # Идентификатор транзакции
+            item_id_getter=operator.itemgetter(0),  # Идентификатор транзакции
             on_click=on_transaction_click,
         ),
         width=2,
@@ -46,7 +48,7 @@ history_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="history_type_filter",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items=[("all", "Все"), ("earn", "Доход"), ("spend", "Расход")],
         ),
     ),
@@ -55,7 +57,7 @@ history_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="history_source_filter",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items=[
                 ("all", "📋"),
                 ("achievement", "🏆"),

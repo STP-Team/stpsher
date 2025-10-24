@@ -116,7 +116,7 @@ groups_cmds_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="groups_cmds_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[("user", "Пользователь"), ("admin", "Администратор")],
     ),
     SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu),

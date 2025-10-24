@@ -1,5 +1,7 @@
 """Генерация диалога рассылок."""
 
+import operator
+
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import (
@@ -70,7 +72,7 @@ broadcast_new_type_window = Window(
                 ("by_group", "👔 По группам"),
                 ("all", "🌎 Всем"),
             ],
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_broadcast_type_selected,
         ),
         width=2,
@@ -94,7 +96,7 @@ broadcast_new_select_window = Window(
             Format("✓ {item[1]}"),
             Format("{item[1]}"),
             id="items_multiselect",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items="items",
         ),
         width=2,
@@ -104,7 +106,7 @@ broadcast_new_select_window = Window(
         Format("⚪️ {item[1]}"),
         id="broadcast_filters",
         items="broadcast_filters",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         on_click=on_broadcast_filter_changed,
     ),
     Button(Const("✅ Продолжить"), id="confirm", on_click=on_broadcast_items_confirmed),
