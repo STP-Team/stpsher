@@ -1,5 +1,6 @@
 """Генерация диалога для графиков."""
 
+import operator
 from typing import Any
 
 from aiogram import F
@@ -99,7 +100,7 @@ my_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="schedule_mode",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items="mode_options",
         ),
     ),

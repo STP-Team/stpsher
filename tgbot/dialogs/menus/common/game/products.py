@@ -1,5 +1,7 @@
 """Генерация общих функций для просмотра списка предметов."""
 
+import operator
+
 from aiogram import F
 from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.kbd import (
@@ -53,7 +55,7 @@ products_window = Window(
             Format("{pos}. {item[1]}"),
             id="product",
             items="products",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_product_click,
         ),
         width=2,
@@ -91,7 +93,7 @@ products_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="product_filter",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items=[("available", "Доступные"), ("all", "Все предметы")],
         ),
         when="is_user",
@@ -101,7 +103,7 @@ products_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="product_division_filter",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items="division_radio_data",
         ),
         when=~F["is_user"],

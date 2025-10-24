@@ -1,5 +1,6 @@
 """Генерация диалога поиска."""
 
+import operator
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager
@@ -83,7 +84,7 @@ specialists_window = Window(
             Format("{item[1]}"),
             id="search_specialists",
             items="specialists_list",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_user_select,
         ),
         width=2,
@@ -96,7 +97,7 @@ specialists_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="search_divisions",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items="division_options",
         ),
     ),
@@ -119,7 +120,7 @@ heads_window = Window(
             Format("{item[1]}"),
             id="search_heads",
             items="heads_list",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_user_select,
         ),
         width=2,
@@ -132,7 +133,7 @@ heads_window = Window(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
             id="search_divisions",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             items="division_options",
         ),
     ),
@@ -167,7 +168,7 @@ query_results_window = Window(
             Format("{item[1]}"),
             id="search_results",
             items="search_results",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_user_select,
         ),
         width=1,
@@ -423,7 +424,7 @@ details_schedule_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="schedule_mode",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="mode_options",
         on_click=on_schedule_mode_select,
     ),
@@ -549,7 +550,7 @@ details_achievements_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="search_achievement_period_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="period_radio_data",
     ),
     Row(
@@ -580,7 +581,7 @@ details_inventory_window = Window(
             Format("{item[1]}"),
             id="search_inventory_product",
             items="products",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
         ),
         width=2,
         height=3,
@@ -591,7 +592,7 @@ details_inventory_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="search_inventory_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[
             ("all", "📋 Все"),
             ("stored", f"{get_status_emoji('stored')}"),

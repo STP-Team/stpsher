@@ -1,5 +1,7 @@
 """Генерация диалога для управления файлами."""
 
+import operator
+
 from aiogram import F
 from aiogram.enums import ContentType
 from aiogram_dialog import Dialog, Window
@@ -66,7 +68,7 @@ local_window = Window(
             Format("{pos}. {item[0]}"),
             id="file",
             items="files",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_file_selected,
         ),
         width=2,
@@ -142,7 +144,7 @@ restore_window = Window(
             Format("{pos}. {item[3]}"),
             id="history_item",
             items="history",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_restore_selected,
         ),
         width=2,
@@ -177,7 +179,7 @@ history_window = Window(
             Format("{pos}. {item[1]}"),
             id="history_file",
             items="files",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_history_file_selected,
         ),
         width=2,

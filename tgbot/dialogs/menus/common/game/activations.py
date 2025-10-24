@@ -1,5 +1,7 @@
 """Генерация общих функций для просмотра списка активаций предметов."""
 
+import operator
+
 from aiogram_dialog.widgets.common import sync_scroll
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
@@ -44,7 +46,7 @@ activations_window = Window(
             Format("{pos}. {item[1]}"),
             id="activation",
             items="activations",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_activation_click,
         ),
         width=2,

@@ -1,5 +1,7 @@
 """Генерация общих функций для просмотра инвентаря."""
 
+import operator
+
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
@@ -42,7 +44,7 @@ inventory_window = Window(
             Format("{item[1]}"),
             id="inventory_product",
             items="products",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_inventory_product_click,
         ),
         width=2,
@@ -54,7 +56,7 @@ inventory_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="inventory_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[
             ("all", "📋 Все"),
             ("stored", f"{get_status_emoji('stored')}"),

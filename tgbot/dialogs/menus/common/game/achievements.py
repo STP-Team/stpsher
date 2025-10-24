@@ -1,5 +1,7 @@
 """Обработчики меню достижений для игры."""
 
+import operator
+
 from aiogram import F
 from aiogram_dialog.widgets.kbd import (
     CurrentPage,
@@ -62,7 +64,7 @@ achievements_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="achievement_position_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="position_radio_data",
         when="is_user",
     ),
@@ -70,7 +72,7 @@ achievements_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="achievement_division_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="division_radio_data",
         when=~F["is_user"],
     ),
@@ -78,7 +80,7 @@ achievements_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="achievement_period_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items="period_radio_data",
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
