@@ -84,7 +84,9 @@ async def groups_details_getter(
     Returns:
         Словарь с информацией о выбранной группе
     """
-    group_id = dialog_manager.dialog_data["selected_group_id"]
+    group_id = (
+        dialog_manager.start_data["group_id"] or dialog_manager.dialog_data["group_id"]
+    )
     chat = await bot.get_chat(chat_id=group_id)
 
     settings = await stp_repo.group.get_groups(group_id=group_id)
@@ -121,7 +123,7 @@ async def group_details_access_getter(
     Returns:
         Словарь с данными для окна
     """
-    group_id = dialog_manager.dialog_data["selected_group_id"]
+    group_id = dialog_manager.dialog_data["group_id"]
     chat = await bot.get_chat(chat_id=group_id)
     settings = await stp_repo.group.get_groups(group_id=group_id)
 
@@ -172,7 +174,7 @@ async def group_details_services_getter(
     Returns:
         Словарь с данными для окна, включая список типов сервисных сообщений
     """
-    group_id = dialog_manager.dialog_data["selected_group_id"]
+    group_id = dialog_manager.dialog_data["group_id"]
     chat = await bot.get_chat(chat_id=group_id)
     settings = await stp_repo.group.get_groups(group_id=group_id)
 
@@ -215,7 +217,7 @@ async def group_remove_getter(
     Returns:
         Словарь с данными для окна
     """
-    group_id = dialog_manager.dialog_data["selected_group_id"]
+    group_id = dialog_manager.dialog_data["group_id"]
     chat = await bot.get_chat(chat_id=group_id)
 
     return {

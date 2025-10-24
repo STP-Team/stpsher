@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
-from stp_database import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
@@ -18,7 +18,9 @@ async def sell_date_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     return {}
 
 
-async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+async def sell_hours_getter(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **kwargs
+) -> Dict[str, Any]:
     """Геттер для окна выбора часов."""
     shift_date = dialog_manager.dialog_data.get("shift_date")
     is_today = dialog_manager.dialog_data.get("is_today", False)
@@ -30,20 +32,7 @@ async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
             "user_schedule": "Не найден",
         }
 
-    # Получаем данные о пользователе и его графике
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    user_id = dialog_manager.event.from_user.id
-
     try:
-        # Получаем пользователя
-        employee = await stp_repo.employee.get_users(user_id=user_id)
-        if not employee:
-            return {
-                "selected_date": "Не выбрана",
-                "shift_options": [],
-                "user_schedule": "Пользователь не найден",
-            }
-
         # Получаем график пользователя с дежурствами
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
@@ -54,9 +43,9 @@ async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
         # Получаем график с дежурствами
         try:
             schedule_with_duties = await parser.get_user_schedule_with_duties(
-                employee.fullname,
+                user.fullname,
                 month_name,
-                employee.division,
+                user.division,
                 stp_repo,
                 current_day_only=False,
             )
@@ -509,11 +498,13 @@ async def exchange_sell_getter(
 
 
 async def exchange_buy_detail_getter(
-    dialog_manager: DialogManager, **kwargs
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра обмена при покупке."""
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    exchange_id = dialog_manager.dialog_data.get("selected_exchange_id")
+    exchange_id = (
+        dialog_manager.start_data["exchange_id"]
+        or dialog_manager.dialog_data["exchange_id"]
+    )
 
     if not exchange_id:
         return {"error": "Обмен не найден"}
@@ -547,12 +538,15 @@ async def exchange_buy_detail_getter(
         else:
             payment_info = "По договоренности"
 
+        deeplink = f"exchange_{exchange.id}"
+
         return {
             "shift_date": shift_date,
             "seller_name": seller_name,
             "shift_time": shift_time,
             "price": exchange.price,
             "payment_info": payment_info,
+            "deeplink": deeplink,
         }
 
     except Exception:
@@ -560,11 +554,10 @@ async def exchange_buy_detail_getter(
 
 
 async def exchange_sell_detail_getter(
-    dialog_manager: DialogManager, **kwargs
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра собственного обмена."""
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    exchange_id = dialog_manager.dialog_data.get("selected_exchange_id")
+    exchange_id = dialog_manager.dialog_data.get("exchange_id")
 
     if not exchange_id:
         return {"error": "Обмен не найден"}

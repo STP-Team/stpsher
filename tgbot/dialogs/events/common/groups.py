@@ -99,7 +99,7 @@ async def on_group_selected(
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранной группы
     """
-    dialog_manager.dialog_data["selected_group_id"] = int(item_id)
+    dialog_manager.dialog_data["group_id"] = int(item_id)
     await dialog_manager.switch_to(Groups.group_details)
 
 
@@ -120,7 +120,7 @@ async def on_role_selected(
         _item_id: ID выбранной/снятой роли (роль, на которую кликнули)
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data.get("group_id")
 
     # Получаем все выбранные роли из мультиселекта
     access_level_select: ManagedMultiselect = dialog_manager.find("access_level_select")
@@ -148,7 +148,7 @@ async def on_service_message_selected(
         _item_id: ID выбранного/снятого типа сообщения
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data.get("group_id")
 
     # Получаем все выбранные типы сервисных сообщений из мультиселекта
     service_messages_select: ManagedMultiselect = dialog_manager.find(
@@ -178,7 +178,7 @@ async def _toggle_group_setting(
         success_message: Текст сообщения об успешном изменении
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data.get("group_id")
 
     group = await stp_repo.group.get_groups(group_id=group_id)
     new_value = widget.is_checked()
@@ -266,7 +266,7 @@ async def on_confirm_delete_group(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    group_id = dialog_manager.dialog_data.get("selected_group_id")
+    group_id = dialog_manager.dialog_data.get("group_id")
 
     try:
         # Удаляем всех участников группы
