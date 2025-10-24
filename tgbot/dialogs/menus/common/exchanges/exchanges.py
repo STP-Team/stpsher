@@ -150,8 +150,8 @@ exchange_sell_detail_window = Window(
     ),
     Row(
         Checkbox(
-            Const("👀 Публичное"),
             Const("🫣 Приватное"),
+            Const("👀 Публичное"),
             id="private_toggle",
             on_state_changed=on_private_change,
         ),

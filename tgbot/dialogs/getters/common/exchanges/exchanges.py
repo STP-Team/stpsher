@@ -551,7 +551,7 @@ async def exchange_sell_detail_getter(
         if not exchange:
             return {"error": "Обмен не найден"}
 
-        print(exchange)
+        await dialog_manager.find("private_toggle").set_checked(exchange.is_private)
 
         # Форматируем данные
         shift_date = exchange.shift_date.strftime("%d.%m.%Y")
