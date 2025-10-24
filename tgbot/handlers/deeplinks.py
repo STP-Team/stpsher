@@ -7,6 +7,7 @@ from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 from stp_database import Employee
 
+from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.states.user import UserSG
 from tgbot.keyboards.auth import auth_kb
 from tgbot.services.event_logger import EventLogger
@@ -67,6 +68,15 @@ async def start_deeplink(
                 Groups.group_details,
                 mode=StartMode.RESET_STACK,
                 data={"group_id": group_id},
+            )
+            return
+        elif payload.startswith("exchange_"):
+            exchange_id = int(payload.split("_", 1)[1])
+            # Запускаем диалог биржи подмен
+            await dialog_manager.start(
+                Exchanges.buy_detail,
+                mode=StartMode.RESET_STACK,
+                data={"exchange_id": exchange_id},
             )
             return
 

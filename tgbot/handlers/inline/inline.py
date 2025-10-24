@@ -1,12 +1,15 @@
 import logging
 from typing import List
 
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
     InlineQuery,
     InlineQueryResultArticle,
     InputTextMessageContent,
 )
+from aiogram.utils.deep_linking import create_start_link
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.filters.role import (
@@ -200,7 +203,7 @@ class InlineSearchFilter:
 
 @user_inline_router.inline_query()
 async def advanced_inline_handler(
-    inline_query: InlineQuery, user: Employee, stp_repo: MainRequestsRepo
+    inline_query: InlineQuery, user: Employee, stp_repo: MainRequestsRepo, bot: Bot
 ):
     """Продвинутый обработчик инлайн-запросов с поиском и фильтрами"""
     query_text = inline_query.query.strip()
@@ -219,57 +222,118 @@ async def advanced_inline_handler(
     else:
         results = []
 
-        # Обработка поискового запроса
-        if query_text and len(query_text) >= 2:
-            search_filters = InlineSearchFilter.parse_search_query(query_text)
+        if "exchange_" in query_text:
+            exchange_id = query_text.split("_")[1]
+            exchange = await stp_repo.exchange.get_exchange_by_id(int(exchange_id))
+            if not exchange:
+                return
 
-            try:
-                # Поиск пользователей с фильтрами
-                found_users = await InlineSearchFilter.search_users_with_filters(
-                    stp_repo, search_filters, limit=15
+            shift_date = exchange.shift_date.strftime("%d.%m.%Y")
+            shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+
+            seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+            seller_name = format_fullname(
+                seller.fullname,
+                short=True,
+                gender_emoji=True,
+                username=seller.username,
+                user_id=seller.user_id,
+            )
+
+            if exchange.payment_type == "immediate":
+                payment_info = "Сразу при покупке"
+            elif exchange.payment_date:
+                payment_info = f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
+            else:
+                payment_info = "По договоренности"
+
+            message_text = f"""🔍 <b>Детали сделки</b>
+
+📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
+💰 <b>Цена:</b> {exchange.price} руб.
+
+👤 <b>Продавец:</b> {seller_name}
+💳 <b>Оплата:</b> {payment_info}"""
+
+            deeplink = await create_start_link(
+                bot=bot, payload=f"exchange_{exchange.id}", encode=True
+            )
+            results.append(
+                InlineQueryResultArticle(
+                    id=f"exchange_{exchange.id}",
+                    title=f"Сделка №{exchange.id}",
+                    description=f"📅 Предложение: {shift_date} {shift_time} ПРМ\n💰 Цена: {exchange.price} руб.",
+                    input_message_content=InputTextMessageContent(
+                        message_text=message_text, parse_mode="HTML"
+                    ),
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="Открыть сделку",
+                                    url=deeplink,
+                                )
+                            ]
+                        ]
+                    ),
                 )
+            )
+        else:
+            # Обработка поискового запроса
+            if query_text and len(query_text) >= 2:
+                search_filters = InlineSearchFilter.parse_search_query(query_text)
 
-                if found_users:
-                    # Сортировка результатов
-                    sorted_users = sorted(
-                        found_users,
-                        key=lambda u: (
-                            # Приоритет для точных совпадений по имени
-                            search_filters["name"].lower() not in u.fullname.lower()
-                            if search_filters["name"]
-                            else False,
-                            # Приоритет для руководителей
-                            u.role != 2,
-                            # По алфавиту
-                            u.fullname,
-                        ),
+                try:
+                    # Поиск пользователей с фильтрами
+                    found_users = await InlineSearchFilter.search_users_with_filters(
+                        stp_repo, search_filters, limit=15
                     )
 
-                    # Добавляем результаты поиска
-                    for found_user in sorted_users[:12]:  # Максимум 12 результатов
-                        user_head = await stp_repo.employee.get_users(
-                            fullname=found_user.head
+                    if found_users:
+                        # Сортировка результатов
+                        sorted_users = sorted(
+                            found_users,
+                            key=lambda u: (
+                                # Приоритет для точных совпадений по имени
+                                search_filters["name"].lower() not in u.fullname.lower()
+                                if search_filters["name"]
+                                else False,
+                                # Приоритет для руководителей
+                                u.role != 2,
+                                # По алфавиту
+                                u.fullname,
+                            ),
                         )
-                        result_item = create_user_result_item(
-                            found_user, user_head, search_filters
+
+                        # Добавляем результаты поиска
+                        for found_user in sorted_users[:12]:  # Максимум 12 результатов
+                            user_head = await stp_repo.employee.get_users(
+                                fullname=found_user.head
+                            )
+                            result_item = create_user_result_item(
+                                found_user, user_head, search_filters
+                            )
+                            results.append(result_item)
+
+                    # Если ничего не найдено
+                    if not found_users:
+                        results.append(
+                            create_no_results_item(query_text, search_filters)
                         )
-                        results.append(result_item)
 
-                # Если ничего не найдено
-                if not found_users:
-                    results.append(create_no_results_item(query_text, search_filters))
+                    # Добавляем подсказки по фильтрам
+                    if (
+                        len(results) < 5
+                    ):  # Добавляем подсказки только если мало результатов
+                        results.extend(create_filter_hints(query_text))
 
-                # Добавляем подсказки по фильтрам
-                if len(results) < 5:  # Добавляем подсказки только если мало результатов
-                    results.extend(create_filter_hints(query_text))
+                except Exception as e:
+                    logger.error(f"Error in advanced search: {e}")
+                    results.append(create_error_item(e))
 
-            except Exception as e:
-                logger.error(f"Error in advanced search: {e}")
-                results.append(create_error_item(e))
-
-        # Дефолтные команды, если нет поискового запроса
-        else:
-            results.extend(await create_default_commands(user, stp_repo))
+            # Дефолтные команды, если нет поискового запроса
+            else:
+                results.extend(await create_default_commands(user, stp_repo))
 
     # Динамическое время кеширования
     cache_time = get_cache_time(query_text, results)
@@ -589,10 +653,12 @@ def get_cache_time(query_text: str, results: list) -> int:
     """Определение времени кеширования в зависимости от запроса"""
     if not query_text:
         # Дефолтные команды кешируем на минуту
-        return 60
+        # TODO вернуть 60 секунд перед релизом
+        return 3
     elif len(results) == 0 or any(result.id.endswith("_error") for result in results):
         # Ошибки или пустые результаты не кешируем
         return 0
     else:
         # Результаты поиска кешируем на 5 минут
-        return 300
+        # TODO вернуть 300 секунд перед релизом
+        return 3

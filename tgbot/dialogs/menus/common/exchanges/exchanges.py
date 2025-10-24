@@ -12,6 +12,7 @@ from aiogram_dialog.widgets.kbd import (
     Row,
     ScrollingGroup,
     Select,
+    SwitchInlineQueryChosenChatButton,
     SwitchTo,
 )
 from aiogram_dialog.widgets.text import Const, Format
@@ -298,7 +299,7 @@ sell_confirmation_window = Window(
 # Окна детального просмотра обменов
 
 exchange_buy_detail_window = Window(
-    Const("🔍 <b>Детали смены для покупки</b>"),
+    Const("🔍 <b>Детали сделки</b>"),
     Format("""
 📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
 💰 <b>Цена:</b> {price} руб.
@@ -306,6 +307,15 @@ exchange_buy_detail_window = Window(
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""),
     Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
+    SwitchInlineQueryChosenChatButton(
+        Const("🔗 Поделиться сделкой"),
+        query=Format("{deeplink}"),
+        allow_user_chats=True,
+        allow_group_chats=True,
+        allow_channel_chats=False,
+        allow_bot_chats=False,
+        id="exchange_deeplink",
+    ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy),
         Button(Const("🏠 Домой"), id="home", on_click=close_schedules_dialog),
