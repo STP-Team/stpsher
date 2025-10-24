@@ -297,7 +297,7 @@ async def on_price_input(
             await message.answer("❌ Цена должна быть больше 0")
             return
         if price > 50000:
-            await message.answer("❌ Слишком большая цена (максимум 50,000 руб.)")
+            await message.answer("❌ Слишком большая цена (максимум 50,000 р.)")
             return
 
         # Сохраняем цену
