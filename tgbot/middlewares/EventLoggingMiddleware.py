@@ -37,14 +37,14 @@ class EventLoggingMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo = data.get("stp_repo")
         user: Employee = data.get("user")
 
+        # Создаем EventLogger и добавляем его в data для использования в handlers
+        event_logger = EventLogger(stp_repo)
+        data["event_logger"] = event_logger
+
         # Проверяем наличие необходимых данных
         if not stp_repo or not user:
             # Если нет репозитория или пользователя, просто продолжаем
             return await handler(event, data)
-
-        # Создаем EventLogger и добавляем его в data для использования в handlers
-        event_logger = EventLogger(stp_repo)
-        data["event_logger"] = event_logger
 
         # Получаем DialogManager для доступа к session_id
         aiogd_context = data.get("aiogd_context")
