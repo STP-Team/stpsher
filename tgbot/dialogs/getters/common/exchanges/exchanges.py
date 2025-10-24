@@ -481,10 +481,10 @@ async def exchange_buy_detail_getter(
     stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра обмена при покупке."""
-    exchange_id = (
-        dialog_manager.start_data["exchange_id"]
-        or dialog_manager.dialog_data["exchange_id"]
-    )
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     if not exchange_id:
         return {"error": "Обмен не найден"}
@@ -537,10 +537,10 @@ async def exchange_sell_detail_getter(
     stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра собственного обмена."""
-    exchange_id = (
-        dialog_manager.start_data["exchange_id"]
-        or dialog_manager.dialog_data["exchange_id"]
-    )
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     if not exchange_id:
         return {"error": "Обмен не найден"}
