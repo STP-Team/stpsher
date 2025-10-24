@@ -23,7 +23,7 @@ from aiogram_dialog.widgets.kbd import (
 )
 from aiogram_dialog.widgets.text import Const, Format, List
 
-from tgbot.dialogs.events.common.schedules.schedules import (
+from tgbot.dialogs.events.common.schedules import (
     do_nothing,
     next_day,
     next_month,

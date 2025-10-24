@@ -95,9 +95,9 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
 
     await bot.send_message(
         chat_id=exchange.seller_id,
-        text=f"""⏳ <b>Сделка истекла</b>
+        text=f"""⏳ <b>Предложение стекло</b>
 
-У сделки наступило время начала смены
+У предложения наступило время начала
 
 <blockquote>📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
 💰 <b>Цена:</b> {exchange.price} р.
@@ -105,7 +105,7 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}</blockquote>
 
-<i>Ты можешь отредактировать сделку и опубликовать ее снова</i>""",
+<i>Ты можешь отредактировать его и опубликовать снова</i>""",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="Открыть сделку", url=deeplink)]

@@ -551,6 +551,8 @@ async def exchange_sell_detail_getter(
         if not exchange:
             return {"error": "Обмен не найден"}
 
+        print(exchange)
+
         # Форматируем данные
         shift_date = exchange.shift_date.strftime("%d.%m.%Y")
 
@@ -594,7 +596,6 @@ async def exchange_sell_detail_getter(
             "status_text": status_text,
             "created_at": created_at,
             "private": exchange.is_private,
-            "hidden": exchange.is_hidden,
         }
 
     except Exception:

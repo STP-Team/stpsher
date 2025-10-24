@@ -7,7 +7,7 @@ from typing import Any, Optional, Tuple
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
-from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
+from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, ManagedCheckbox
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges
@@ -60,6 +60,28 @@ def parse_time_range(time_str: str) -> Tuple[int, int]:
 
     except (ValueError, IndexError):
         return 0, 0
+
+
+async def on_private_change(
+    callback: CallbackQuery,
+    widget: ManagedCheckbox,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    exchange_id = dialog_manager.dialog_data.get("exchange_id")
+
+    is_private = widget.is_checked()
+
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
+    if exchange.is_private == is_private:
+        return
+
+    if is_private:
+        await stp_repo.exchange.set_private(exchange_id)
+    else:
+        await stp_repo.exchange.set_public(exchange_id)
 
 
 async def get_user_real_shift(
