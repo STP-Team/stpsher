@@ -6,26 +6,30 @@ from aiogram import F
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Button,
+    Checkbox,
     ManagedRadio,
     ManagedToggle,
     Row,
     ScrollingGroup,
     Select,
+    SwitchInlineQueryChosenChatButton,
     SwitchTo,
 )
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.events.common.schedules.exchanges import (
+from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_exchange_buy_selected,
+    on_exchange_cancel,
     on_exchange_sell_selected,
+    on_private_change,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_getter,
+    exchange_sell_detail_getter,
     exchange_sell_getter,
 )
 from tgbot.dialogs.menus.common.exchanges.create import (
     exchange_buy_detail_window,
-    exchange_sell_detail_window,
     sell_confirmation_window,
     sell_date_select_window,
     sell_hours_select_window,
@@ -121,6 +125,46 @@ exchange_sell_window = Window(
     state=Exchanges.sell,
 )
 
+exchange_sell_detail_window = Window(
+    Const("🔍 <b>Детали объявления</b>"),
+    Format("""
+📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
+💰 <b>Цена:</b> {price} р.
+💳 <b>Оплата:</b> {payment_info}
+
+Статус: {status_text}
+
+📅 <b>Создано:</b> {created_at}"""),
+    Button(
+        Const("✋🏻 Отменить"),
+        id="cancel_exchange",
+        on_click=on_exchange_cancel,
+        when=F["status"] == "active",  # type: ignore[arg-type]
+    ),
+    Row(
+        Button(Const("✏️ Редактировать"), id="exchange_details_edit"),
+        Button(Const("🔄 Обновить"), id="exchange_details_update"),
+    ),
+    Row(
+        Checkbox(
+            Const("👀 Публичное"),
+            Const("🫣 Приватное"),
+            id="private_toggle",
+            on_state_changed=on_private_change,
+        ),
+    ),
+    SwitchInlineQueryChosenChatButton(
+        Const("🔗 Поделиться"),
+        query=Format("{deeplink}"),
+        allow_user_chats=True,
+        allow_group_chats=True,
+        allow_channel_chats=False,
+        allow_bot_chats=False,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
+    getter=exchange_sell_detail_getter,
+    state=Exchanges.sell_detail,
+)
 
 exchange_my_window = Window(
     Const("🤝 <b>Биржа: Мои подмены</b>"),

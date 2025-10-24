@@ -11,7 +11,7 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.events.common.game.game import start_game_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
 from tgbot.dialogs.events.common.kpi import start_kpi_dialog
-from tgbot.dialogs.events.common.schedules.schedules import start_schedules_dialog
+from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.events.heads.group import start_group_dialog
 from tgbot.dialogs.states.head import HeadSG

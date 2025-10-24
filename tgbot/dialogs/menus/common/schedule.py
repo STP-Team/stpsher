@@ -16,8 +16,8 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.common import close_all_dialogs
-from tgbot.dialogs.events.common.schedules.exchanges import start_exchanges_dialog
-from tgbot.dialogs.events.common.schedules.schedules import (
+from tgbot.dialogs.events.common.exchanges.exchanges import start_exchanges_dialog
+from tgbot.dialogs.events.common.schedules import (
     do_nothing,
     next_day,
     next_month,
