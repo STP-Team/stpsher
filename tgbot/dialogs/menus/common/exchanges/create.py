@@ -65,9 +65,10 @@ sell_hours_select_window = Window(
         item_id_getter=operator.itemgetter(0),
         on_click=on_hours_selected,
     ),
+    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_date_select),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+        HOME_BTN,
     ),
     getter=sell_hours_getter,
     state=Exchanges.sell_hours_select,
@@ -84,9 +85,10 @@ sell_time_input_window = Window(
         id="time_input",
         on_success=on_time_input,
     ),
+    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_hours_select),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+        HOME_BTN,
     ),
     getter=sell_time_input_getter,
     state=Exchanges.sell_time_input,
@@ -103,11 +105,12 @@ sell_price_input_window = Window(
         id="price_input",
         on_success=on_price_input,
     ),
+    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     Row(
         SwitchTo(
             Const("↩️ Назад"), id="back_to_previous", state=Exchanges.sell_hours_select
         ),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+        HOME_BTN,
     ),
     getter=sell_price_getter,
     state=Exchanges.sell_price_input,
@@ -129,9 +132,10 @@ sell_payment_timing_window = Window(
         item_id_getter=operator.itemgetter(0),
         on_click=on_payment_timing_selected,
     ),
+    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_price_input),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+        HOME_BTN,
     ),
     getter=sell_payment_timing_getter,
     state=Exchanges.sell_payment_timing,
@@ -146,9 +150,10 @@ sell_payment_date_window = Window(
         id="payment_date_calendar",
         on_click=on_payment_date_selected,
     ),
+    Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_payment_timing),
-        Button(Const("❌ Отмена"), id="cancel", on_click=on_cancel_sell),
+        HOME_BTN,
     ),
     getter=sell_payment_date_getter,
     state=Exchanges.sell_payment_date,

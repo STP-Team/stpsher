@@ -155,7 +155,7 @@ query_window = Window(
 
 <i>Например: Иванов, 123456789, @username, username</i>"""),
     TextInput(id="search_query", on_success=on_search_query),
-    SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu), HOME_BTN),
     state=Search.query,
 )
 

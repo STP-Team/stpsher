@@ -32,6 +32,12 @@ async def start_exchanges_dialog(
     )
 
 
+async def finish_exchanges_dialog(
+    _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
+) -> None:
+    await dialog_manager.done()
+
+
 def parse_time_range(time_str: str) -> Tuple[int, int]:
     """Разбор строки временного диапазона на начальные и конечные минуты.
 
@@ -63,7 +69,7 @@ def parse_time_range(time_str: str) -> Tuple[int, int]:
 
 
 async def on_private_change(
-    callback: CallbackQuery,
+    _callback: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,

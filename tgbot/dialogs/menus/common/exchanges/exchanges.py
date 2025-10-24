@@ -18,6 +18,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import (
+    finish_exchanges_dialog,
     on_exchange_buy_selected,
     on_exchange_cancel,
     on_exchange_sell_selected,
@@ -58,7 +59,9 @@ exchanges_window = Window(
     SwitchTo(Const("🗳 Мои сделки"), id="my", state=Exchanges.my),
     SwitchTo(Const("💸 Создать сделку"), id="create", state=Exchanges.create),
     SwitchTo(Const("📊 Статистика"), id="stats", state=Exchanges.stats),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
+    Row(
+        Button(Const("↩️ Назад"), id="back", on_click=finish_exchanges_dialog), HOME_BTN
+    ),
     state=Exchanges.menu,
 )
 
