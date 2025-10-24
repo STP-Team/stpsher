@@ -91,7 +91,7 @@ async def on_exchange_apply(
     widget: Any,
     dialog_manager: DialogManager,
 ):
-    """Обработчик покупки обмена."""
+    """Обработчик покупки обмена или принятия запроса на покупку."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
     exchange_id = dialog_manager.dialog_data.get("exchange_id")
@@ -114,30 +114,66 @@ async def on_exchange_apply(
             await callback.answer("❌ Обмен недоступен", show_alert=True)
             return
 
-        # Проверяем, что это не собственный обмен
-        if exchange.seller_id == user_id:
-            await callback.answer("❌ Нельзя купить собственный обмен", show_alert=True)
-            return
+        # Определяем контекст: откуда пришли (buy_detail или sell_detail)
+        current_state = dialog_manager.current_stack().state
 
-        # Применяем обмен (покупаем)
-        success = await stp_repo.exchange.buy_exchange(exchange_id, user_id)
+        if current_state.state == "buy_detail":
+            # Контекст: покупка sell-предложения
+            # Проверяем, что это не собственное предложение
+            if exchange.seller_id == user_id:
+                await callback.answer(
+                    "❌ Нельзя купить собственное предложение", show_alert=True
+                )
+                return
 
-        if success:
-            await callback.answer(
-                "✅ Обмен успешно куплен! Свяжитесь с продавцом для деталей.",
-                show_alert=True,
-            )
-            # Очищаем данные диалога
-            dialog_manager.dialog_data.clear()
-            # Возвращаемся к главному меню биржи
-            await dialog_manager.switch_to(Exchanges.menu)
-        else:
-            await callback.answer(
-                "❌ Не удалось купить обмен. Попробуйте позже.", show_alert=True
-            )
+            # Покупаем обмен
+            success = await stp_repo.exchange.buy_exchange(exchange_id, user_id)
+
+            if success:
+                await callback.answer(
+                    "✅ Смена успешно куплена! Свяжитесь с продавцом для деталей.",
+                    show_alert=True,
+                )
+                dialog_manager.dialog_data.clear()
+                await dialog_manager.switch_to(Exchanges.buy)
+            else:
+                await callback.answer(
+                    "❌ Не удалось купить смену. Попробуйте позже.", show_alert=True
+                )
+
+        elif current_state.state == "sell_detail":
+            # Контекст: принятие buy-запроса
+            # Проверяем, что это buy-запрос
+            if exchange.type != "buy":
+                await callback.answer("❌ Неверный тип запроса", show_alert=True)
+                return
+
+            # Проверяем, что это не собственный запрос
+            if exchange.seller_id == user_id:  # В buy-запросе seller_id это buyer_id
+                await callback.answer(
+                    "❌ Нельзя принять собственный запрос", show_alert=True
+                )
+                return
+
+            # Принимаем buy-запрос (продаем нашу смену)
+            success = await stp_repo.exchange.buy_exchange(exchange_id, user_id)
+
+            if success:
+                await callback.answer(
+                    "✅ Смена успешно продана! Свяжитесь с покупателем для деталей.",
+                    show_alert=True,
+                )
+                dialog_manager.dialog_data.clear()
+                await dialog_manager.switch_to(Exchanges.sell)
+            else:
+                await callback.answer(
+                    "❌ Не удалось продать смену. Попробуйте позже.", show_alert=True
+                )
 
     except Exception:
-        await callback.answer("❌ Произошла ошибка при покупке обмена", show_alert=True)
+        await callback.answer(
+            "❌ Произошла ошибка при обработке запроса", show_alert=True
+        )
 
 
 async def on_exchange_buy_cancel(
