@@ -23,18 +23,3 @@ async def start_kpi_dialog(
     await dialog_manager.start(
         KPI.menu,
     )
-
-
-async def close_kpi_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога KPI.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()

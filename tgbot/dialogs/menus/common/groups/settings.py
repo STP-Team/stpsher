@@ -12,7 +12,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.groups import (
-    close_groups_dialog,
     on_confirm_delete_group,
     on_role_selected,
     on_service_message_selected,
@@ -24,6 +23,7 @@ from tgbot.dialogs.getters.common.groups import (
     group_remove_getter,
 )
 from tgbot.dialogs.states.common.groups import Groups
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 groups_access_window = Window(
     Format(
@@ -51,7 +51,7 @@ groups_access_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Groups.group_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
+        HOME_BTN,
     ),
     state=Groups.settings_access,
     getter=group_details_access_getter,
@@ -86,7 +86,7 @@ groups_service_messages_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back_to_list", state=Groups.group_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
+        HOME_BTN,
     ),
     state=Groups.settings_services,
     getter=group_details_services_getter,
@@ -111,7 +111,7 @@ groups_remove_bot_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Groups.group_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
+        HOME_BTN,
     ),
     state=Groups.settings_remove,
     getter=group_remove_getter,

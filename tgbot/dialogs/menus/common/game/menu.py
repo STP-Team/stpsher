@@ -5,7 +5,6 @@ from typing import Any
 from aiogram import F
 from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.kbd import (
-    Button,
     ManagedRadio,
     Row,
     SwitchTo,
@@ -13,7 +12,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.getters.common.game.game import game_getter
 from tgbot.dialogs.menus.common.game.achievements import achievements_window
 from tgbot.dialogs.menus.common.game.activations import (
@@ -47,6 +45,7 @@ from tgbot.dialogs.menus.common.game.products import (
     products_window,
 )
 from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 game_window = Window(
     Const("🏮 <b>Игра</b>"),
@@ -91,7 +90,7 @@ game_window = Window(
     SwitchTo(
         Const("📜 История баланса"), id="history", state=Game.history, when="is_user"
     ),
-    Button(Const("↩️ Назад"), id="menu", on_click=close_game_dialog),
+    HOME_BTN,
     getter=game_getter,
     state=Game.menu,
 )

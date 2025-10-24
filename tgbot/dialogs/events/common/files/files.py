@@ -33,21 +33,6 @@ async def start_files_dialog(
     )
 
 
-async def close_files_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога файлов.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()
-
-
 async def on_file_selected(
     _callback: CallbackQuery,
     _widget: Select,

@@ -31,7 +31,6 @@ from tgbot.dialogs.events.common.schedules.schedules import (
     today,
 )
 from tgbot.dialogs.events.heads.group import (
-    close_group_dialog,
     on_game_casino_member_click,
     on_game_casino_toggle_all,
     on_member_casino_change,
@@ -61,6 +60,7 @@ from tgbot.dialogs.getters.heads.group.members import (
 )
 from tgbot.dialogs.getters.heads.group.rating import get_rating_display_data
 from tgbot.dialogs.states.head import HeadGroupSG
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.misc.helpers import get_status_emoji
 
 menu_window = Window(
@@ -75,7 +75,7 @@ menu_window = Window(
         SwitchTo(Const("👥 Состав"), id="members", state=HeadGroupSG.members),
         SwitchTo(Const("🏮 Игра"), id="game", state=HeadGroupSG.game),
     ),
-    Button(Const("↩️ Назад"), id="home", on_click=close_group_dialog),
+    HOME_BTN,
     state=HeadGroupSG.menu,
 )
 
@@ -106,7 +106,7 @@ schedule_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=group_schedule_getter,
     state=HeadGroupSG.schedule,
@@ -130,7 +130,7 @@ rating_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=get_rating_display_data,
     state=HeadGroupSG.rating,
@@ -155,7 +155,7 @@ members_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=group_members_getter,
     state=HeadGroupSG.members,
@@ -196,7 +196,7 @@ game_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=game_statistics_getter,
     state=HeadGroupSG.game,
@@ -244,7 +244,7 @@ game_achievements_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=game_achievements_getter,
     state=HeadGroupSG.game_achievements,
@@ -288,7 +288,7 @@ game_products_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=game_products_getter,
     state=HeadGroupSG.game_products,
@@ -335,7 +335,7 @@ game_balance_history_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=game_balance_history_getter,
     state=HeadGroupSG.game_balance_history,
@@ -371,7 +371,7 @@ game_casino_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=game_casino_getter,
     state=HeadGroupSG.game_casino,
@@ -381,7 +381,7 @@ game_rating_window = Window(
     Format("{rating_text}"),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.game),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=game_rating_getter,
     state=HeadGroupSG.game_rating,
@@ -422,7 +422,7 @@ member_details_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.members),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_info_getter,
     state=HeadGroupSG.member_details,
@@ -451,7 +451,7 @@ member_access_level_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_access_level_getter,
     state=HeadGroupSG.member_access_level,
@@ -486,7 +486,7 @@ member_schedule_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_schedule_getter,
     state=HeadGroupSG.member_schedule,
@@ -509,7 +509,7 @@ member_kpi_window = Window(
     SwitchTo(Const("🔄 Обновить"), id="update", state=HeadGroupSG.member_kpi),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_kpi_getter,
     state=HeadGroupSG.member_kpi,
@@ -530,7 +530,7 @@ member_kpi_requirements_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_kpi_requirements_getter,
     state=HeadGroupSG.member_kpi_requirements,
@@ -549,7 +549,7 @@ member_kpi_salary_window = Window(
     SwitchTo(Const("🔄 Обновить"), id="update", state=HeadGroupSG.member_kpi_salary),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_salary_getter,
     state=HeadGroupSG.member_kpi_salary,
@@ -607,7 +607,7 @@ member_achievements_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_achievements_getter,
     state=HeadGroupSG.member_achievements,
@@ -653,7 +653,7 @@ member_inventory_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=HeadGroupSG.member_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_group_dialog),
+        HOME_BTN,
     ),
     getter=member_inventory_getter,
     state=HeadGroupSG.member_inventory,

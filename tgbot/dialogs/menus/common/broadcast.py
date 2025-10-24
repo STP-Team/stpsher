@@ -16,7 +16,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, Multi, Progress
 
 from tgbot.dialogs.events.common.broadcast import (
-    close_broadcast_dialog,
     on_broadcast_back_to_menu,
     on_broadcast_filter_changed,
     on_broadcast_history_item_selected,
@@ -36,6 +35,7 @@ from tgbot.dialogs.getters.common.broadcast import (
     broadcast_select_getter,
 )
 from tgbot.dialogs.states.common.broadcast import Broadcast
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 broadcast_window = Window(
     Const("""📢 <b>Рассылка</b>
@@ -47,7 +47,7 @@ broadcast_window = Window(
     Row(
         SwitchTo(Const("📜 История"), id="history", state=Broadcast.history),
     ),
-    Button(Const("↩️ Назад"), id="back", on_click=close_broadcast_dialog),
+    HOME_BTN,
     state=Broadcast.menu,
 )
 
@@ -77,7 +77,7 @@ broadcast_new_type_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Broadcast.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     state=Broadcast.new_broadcast,
 )
@@ -110,7 +110,7 @@ broadcast_new_select_window = Window(
     Button(Const("✅ Продолжить"), id="confirm", on_click=on_broadcast_items_confirmed),
     Row(
         Back(Const("↩️ Назад"), id="back"),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     getter=broadcast_select_getter,
     state=Broadcast.new_broadcast_select,
@@ -131,7 +131,7 @@ broadcast_new_text_window = Window(
     ),
     Row(
         Back(Const("↩️ Назад"), id="back"),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     getter=broadcast_info_getter,
     state=Broadcast.new_broadcast_text,
@@ -147,7 +147,7 @@ broadcast_new_check_window = Window(
     Button(Const("✅ Отправить"), id="send", on_click=on_broadcast_send),
     Row(
         Back(Const("↩️ Назад"), id="back"),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     getter=broadcast_info_getter,
     state=Broadcast.new_broadcast_check,
@@ -177,7 +177,7 @@ broadcast_new_result_window = Window(
             id="back_to_menu",
             on_click=on_broadcast_back_to_menu,
         ),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     getter=broadcast_result_getter,
     state=Broadcast.new_broadcast_result,
@@ -206,7 +206,7 @@ broadcast_history_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="menu", state=Broadcast.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     getter=broadcast_history_getter,
     state=Broadcast.history,
@@ -226,7 +226,7 @@ broadcast_history_detail_window = Window(
     Button(Const("🔄 Отправить снова"), id="resend", on_click=on_broadcast_resend),
     Row(
         Back(Const("↩️ Назад"), id="back"),
-        Button(Const("🏠 Домой"), id="home", on_click=close_broadcast_dialog),
+        HOME_BTN,
     ),
     getter=broadcast_detail_getter,
     state=Broadcast.history_detail,
