@@ -37,4 +37,5 @@ class ExchangeCreate(StatesGroup):
     price = State()
     payment_timing = State()
     payment_date = State()
+    comment = State()
     confirmation = State()
