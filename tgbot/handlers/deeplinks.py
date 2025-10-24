@@ -5,7 +5,7 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
-from stp_database import Employee
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.states.user import UserSG
@@ -22,6 +22,7 @@ deeplink_router = Router()
 async def start_deeplink(
     message: Message,
     user: Employee,
+    stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
     event_logger: EventLogger,
 ) -> None:
@@ -72,13 +73,21 @@ async def start_deeplink(
             return
         elif payload.startswith("exchange_"):
             exchange_id = int(payload.split("_", 1)[1])
-
-            # Запускаем диалог биржи подмен
-            await dialog_manager.start(
-                Exchanges.buy_detail,
-                mode=StartMode.RESET_STACK,
-                data={"exchange_id": exchange_id},
-            )
+            exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+            if exchange.seller_id == user.user_id:
+                # Запускаем диалог своей подмены
+                await dialog_manager.start(
+                    Exchanges.sell_detail,
+                    mode=StartMode.RESET_STACK,
+                    data={"exchange_id": exchange_id},
+                )
+            else:
+                # Запускаем диалог биржи подмен
+                await dialog_manager.start(
+                    Exchanges.buy_detail,
+                    mode=StartMode.RESET_STACK,
+                    data={"exchange_id": exchange_id},
+                )
             return
 
     # Если payload не распознан, запускаем обычное меню
