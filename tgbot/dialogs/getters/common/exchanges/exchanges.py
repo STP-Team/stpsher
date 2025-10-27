@@ -7,7 +7,7 @@ from typing import Any, Dict
 from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
-from stp_database import Employee, MainRequestsRepo
+from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
@@ -70,10 +70,6 @@ async def prepare_calendar_data_for_exchange(
             # Сохраняем данные в dialog_data для использования в календаре
             dialog_manager.dialog_data["shift_dates"] = shift_dates
 
-            # Определяем пол пользователя для правильного эмодзи
-            gender = determine_user_gender(user.fullname)
-            dialog_manager.dialog_data["user_gender"] = gender
-
         except Exception:
             # В случае ошибки просто не показываем смены
             dialog_manager.dialog_data["shift_dates"] = {}
@@ -83,56 +79,51 @@ async def prepare_calendar_data_for_exchange(
         dialog_manager.dialog_data["shift_dates"] = {}
 
 
-def determine_user_gender(fullname: str) -> str:
-    """Определяет пол пользователя на основе имени."""
-    if not fullname:
-        return "unknown"
+async def price_per_hour(exchange: Exchange):
+    """Расчет стоимости одного часа в сделке.
 
-    # Простая эвристика на основе окончаний имен
-    name_parts = fullname.split()
-    if len(name_parts) >= 2:
-        first_name = name_parts[1].lower()  # Второе слово обычно имя
+    Args:
+        exchange: Экземпляр сделки с моделью Exchange
 
-        # Мужские окончания
-        male_endings = ["ич", "ев", "ов", "ин", "ан", "ён", "он", "ий", "ей", "ай"]
-        # Женские окончания
-        female_endings = [
-            "на",
-            "ра",
-            "ла",
-            "да",
-            "га",
-            "ка",
-            "са",
-            "та",
-            "ва",
-            "ья",
-            "ия",
-            "ая",
-        ]
+    Returns:
+        Стоимость одного часа
+    """
+    price = 0
 
-        for ending in female_endings:
-            if first_name.endswith(ending):
-                return "female"
+    if exchange.start_time and exchange.end_time:
+        try:
+            # Рассчитываем продолжительность из TIMESTAMP полей
+            duration = exchange.end_time - exchange.start_time
+            shift_hours = duration.total_seconds() / 3600  # Переводим в часы
 
-        for ending in male_endings:
-            if first_name.endswith(ending):
-                return "male"
+            # Рассчитываем цену за час
+            if shift_hours > 0 and exchange.price:
+                price = round(exchange.price / shift_hours, 2)
+        except (ValueError, AttributeError):
+            price = 0
 
-    return "unknown"
+    return price
 
 
 async def exchange_buy_getter(
     stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
-    """Геттер для окна покупки обменов.
+    """Геттер для окна покупки часов.
 
-    Показывает sell-предложения (то, что мы можем купить).
+    Показывает предложения продаж (то, что мы можем купить).
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с доступными сделками
     """
     user_id = dialog_manager.event.from_user.id
 
     try:
-        # Получаем sell-предложения (то, что другие продают и мы можем купить)
+        # Получаем сделки продаж (то, что другие продают и мы можем купить)
         exchanges = await stp_repo.exchange.get_active_exchanges(
             exclude_user_id=user_id,
             division="НЦК" if user.division == "НЦК" else ["НТП1", "НТП2"],
@@ -143,10 +134,7 @@ async def exchange_buy_getter(
         available_exchanges = []
         for exchange in exchanges:
             # Форматируем время из start_time и end_time
-            if exchange.end_time:
-                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-            else:
-                time_str = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
+            time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
 
             # Форматируем дату из start_time
             date_str = exchange.start_time.strftime("%d.%m.%Y")
@@ -175,14 +163,22 @@ async def exchange_buy_getter(
 async def exchange_sell_getter(
     stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
-    """Геттер для окна продажи обменов.
+    """Геттер для окна продажи часов.
 
-    Показывает buy-запросы (то, что другие хотят купить и мы можем продать).
+    Показывает предложения покупок (то, что другие хотят купить и мы можем продать).
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с доступными сделками
     """
     user_id = dialog_manager.event.from_user.id
 
     try:
-        # Получаем buy-запросы (то, что другие хотят купить и мы можем продать)
+        # Получаем сделки покупок (то, что другие хотят купить и мы можем продать)
         buy_requests = await stp_repo.exchange.get_active_exchanges(
             exclude_user_id=user_id,
             division="НЦК" if user.division == "НЦК" else ["НТП1", "НТП2"],
@@ -193,10 +189,7 @@ async def exchange_sell_getter(
         available_buy_requests = []
         for exchange in buy_requests:
             # Форматируем время из start_time и end_time
-            if exchange.end_time:
-                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-            else:
-                time_str = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
+            time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
 
             # Форматируем дату из start_time
             date_str = exchange.start_time.strftime("%d.%m.%Y")
@@ -253,25 +246,9 @@ async def exchange_buy_detail_getter(
         # Форматируем данные
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
 
-        if exchange.end_time:
-            shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-        else:
-            shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
+        shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
 
-        price_per_hour = 0
-        if exchange.start_time and exchange.end_time:
-            try:
-                # Рассчитываем продолжительность из TIMESTAMP полей
-                duration = exchange.end_time - exchange.start_time
-                shift_hours = duration.total_seconds() / 3600  # Переводим в часы
-
-                # Рассчитываем цену за час
-                if shift_hours > 0 and exchange.price:
-                    price_per_hour = round(exchange.price / shift_hours, 2)
-            except (ValueError, AttributeError):
-                # Если не удалось рассчитать, оставляем значения по умолчанию
-                shift_hours = 0
-                price_per_hour = 0
+        hour_price = await price_per_hour(exchange)
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -289,7 +266,7 @@ async def exchange_buy_detail_getter(
             "seller_name": seller_name,
             "shift_time": shift_time,
             "price": exchange.price,
-            "price_per_hour": price_per_hour,
+            "price_per_hour": hour_price,
             "payment_info": payment_info,
             "comment": comment,
             "deeplink": deeplink,
@@ -333,25 +310,9 @@ async def exchange_sell_detail_getter(
 
         # Форматируем данные
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
-        if exchange.end_time:
-            shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-        else:
-            shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
+        shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
 
-        price_per_hour = 0
-        if exchange.start_time and exchange.end_time:
-            try:
-                # Рассчитываем продолжительность из TIMESTAMP полей
-                duration = exchange.end_time - exchange.start_time
-                shift_hours = duration.total_seconds() / 3600  # Переводим в часы
-
-                # Рассчитываем цену за час
-                if shift_hours > 0 and exchange.price:
-                    price_per_hour = round(exchange.price / shift_hours, 2)
-            except (ValueError, AttributeError):
-                # Если не удалось рассчитать, оставляем значения по умолчанию
-                shift_hours = 0
-                price_per_hour = 0
+        hour_price = await price_per_hour(exchange)
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -367,7 +328,7 @@ async def exchange_sell_detail_getter(
             "shift_date": shift_date,
             "shift_time": shift_time,
             "price": exchange.price,
-            "price_per_hour": price_per_hour,
+            "price_per_hour": hour_price,
             "buyer_name": buyer_name,
             "payment_info": payment_info,
             "deeplink": deeplink,
@@ -472,27 +433,7 @@ async def my_detail_getter(
 
         # Форматируем данные
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
-        if exchange.end_time:
-            shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-        else:
-            shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
-
-        # Рассчитываем количество часов смены и цену за час
-        shift_hours = 0
-        price_per_hour = 0
-        if exchange.start_time and exchange.end_time:
-            try:
-                # Рассчитываем продолжительность из TIMESTAMP полей
-                duration = exchange.end_time - exchange.start_time
-                shift_hours = duration.total_seconds() / 3600  # Переводим в часы
-
-                # Рассчитываем цену за час
-                if shift_hours > 0 and exchange.price:
-                    price_per_hour = round(exchange.price / shift_hours, 2)
-            except (ValueError, AttributeError):
-                # Если не удалось рассчитать, оставляем значения по умолчанию
-                shift_hours = 0
-                price_per_hour = 0
+        shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -561,6 +502,7 @@ async def my_detail_getter(
             else:  # Тот кто принял buy-запрос
                 operation_type = "Продам"
 
+        hour_price = await price_per_hour(exchange)
         deeplink = f"exchange_{exchange.id}"
         deeplink_url = await create_start_link(bot=bot, payload=deeplink, encode=True)
 
@@ -568,7 +510,7 @@ async def my_detail_getter(
             "shift_date": shift_date,
             "shift_time": shift_time,
             "price": exchange.price,
-            "price_per_hour": price_per_hour,
+            "price_per_hour": hour_price,
             "payment_info": payment_info,
             "comment": exchange.comment or "Без комментария",
             "status_text": status_text,

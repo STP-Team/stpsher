@@ -305,11 +305,8 @@ async def sell_confirmation_getter(
         start_time_str = (
             start_time.split("T")[1][:5] if "T" in start_time else start_time
         )
-        if end_time:
-            end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
-            shift_time_info = f"{start_time_str}-{end_time_str}"
-        else:
-            shift_time_info = f"с {start_time_str} (полная смена)"
+        end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+        shift_time_info = f"{start_time_str}-{end_time_str}"
 
     # Информация об оплате
     payment_info = "Сразу при покупке"
