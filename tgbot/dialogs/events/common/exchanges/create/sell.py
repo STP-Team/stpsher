@@ -189,14 +189,24 @@ async def on_hours_selected(
     """
     if item_id == "full":
         # Полная смена - используем реальное время смены
-        dialog_manager.dialog_data["is_partial"] = False
-
         # Получаем реальное время смены пользователя
         real_shift = await get_user_shift(dialog_manager)
         try:
             shift_start_time, shift_end_time = real_shift
-            dialog_manager.dialog_data["shift_start_time"] = shift_start_time
-            dialog_manager.dialog_data["shift_end_time"] = shift_end_time
+
+            # Создаем timestamp для start_time, end_time остается None для полной смены
+            shift_date_str = dialog_manager.dialog_data["shift_date"]
+            shift_date = datetime.fromisoformat(shift_date_str)
+            start_datetime = datetime.combine(
+                shift_date.date(), datetime.strptime(shift_start_time, "%H:%M").time()
+            )
+
+            end_datetime = datetime.combine(
+                shift_date.date(), datetime.strptime(shift_end_time, "%H:%M").time()
+            )
+
+            dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
+            dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
         except Exception as e:
             logger.error(f"[Биржа] Ошибка получения смены сотрудника: {e}")
 
@@ -205,14 +215,13 @@ async def on_hours_selected(
 
     elif item_id == "partial":
         # Частичная смена - переходим к вводу времени
-        dialog_manager.dialog_data["is_partial"] = True
-
+        # is_partial определяется наличием end_time
         # Переходим к вводу времени
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
 
     elif item_id == "remaining_today":
         # Оставшееся время сегодня
-        dialog_manager.dialog_data["is_partial"] = True
+        # is_partial определяется наличием end_time
         dialog_manager.dialog_data["is_remaining_today"] = True
 
         # Переходим к вводу времени
@@ -306,9 +315,19 @@ async def on_time_input(
             )
             return
 
-    # Сохраняем время
-    dialog_manager.dialog_data["shift_start_time"] = start_time
-    dialog_manager.dialog_data["shift_end_time"] = end_time
+    # Создаем timestamp для start_time и end_time
+    shift_date_str = dialog_manager.dialog_data["shift_date"]
+    shift_date = datetime.fromisoformat(shift_date_str)
+
+    start_datetime = datetime.combine(
+        shift_date.date(), datetime.strptime(start_time, "%H:%M").time()
+    )
+    end_datetime = datetime.combine(
+        shift_date.date(), datetime.strptime(end_time, "%H:%M").time()
+    )
+
+    dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
+    dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
 
     # Переходим к вводу цены
     await dialog_manager.switch_to(ExchangeCreateSell.price)
@@ -396,11 +415,11 @@ async def on_confirm_sell(
     try:
         # Получаем данные из диалога
         data = dialog_manager.dialog_data
-        shift_date = datetime.fromisoformat(data["shift_date"])
         price = data["price"]
-        is_partial = data.get("is_partial", False)
-        shift_start_time = data.get("shift_start_time", "09:00")
-        shift_end_time = data.get("shift_end_time")
+        start_time = datetime.fromisoformat(data["start_time"])
+        end_time = (
+            datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None
+        )
         payment_type = data.get("payment_type", "immediate")
         payment_date = None
 
@@ -415,33 +434,35 @@ async def on_confirm_sell(
             return
 
         # Получаем комментарий
-        description = data.get("comment")
+        comment = data.get("comment")
 
         # Создаем обмен
         exchange = await stp_repo.exchange.create_exchange(
             seller_id=user_id,
-            shift_date=shift_date,
-            shift_start_time=shift_start_time,
+            start_time=start_time,
+            end_time=end_time,
             price=price,
-            is_partial=is_partial,
-            shift_end_time=shift_end_time,
             payment_type=payment_type,
             payment_date=payment_date,
-            description=description,
+            comment=comment,
+            exchange_type="sell",  # Указываем тип обмена
+            is_private=False,  # По умолчанию создаем публичные обмены
         )
 
         if exchange:
             await callback.answer("✅ Сделка добавлена на биржу!", show_alert=True)
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
-            # Возвращаемся к главному меню биржи
-            await dialog_manager.done()
+            await dialog_manager.start(
+                Exchanges.my_detail, data={"exchange_id": exchange.id}
+            )
         else:
             await callback.answer(
                 "❌ Не удалось создать предложение. Попробуйте позже.", show_alert=True
             )
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"[Биржа - Создание сделки] Произошла ошибка при публикации: {e}")
         await callback.answer(
             "❌ Произошла ошибка при создании сделки", show_alert=True
         )

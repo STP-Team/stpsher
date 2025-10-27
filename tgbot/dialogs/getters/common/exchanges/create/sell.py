@@ -66,7 +66,7 @@ async def sell_hours_getter(
                 user_schedule = schedule or "Не указано"
                 if duty_info:
                     duty_warning = (
-                        f"⚠️ ВНИМАНИЕ: В это время у вас дежурство ({duty_info})"
+                        f"⚠️ ВНИМАНИЕ: В это время у тебя дежурство ({duty_info})"
                     )
                 break
 
@@ -175,18 +175,25 @@ async def sell_time_input_getter(
 async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
     """Геттер для окна ввода цены."""
     shift_date = dialog_manager.dialog_data.get("shift_date")
-    is_partial = dialog_manager.dialog_data.get("is_partial", False)
-    shift_start_time = dialog_manager.dialog_data.get("shift_start_time")
-    shift_end_time = dialog_manager.dialog_data.get("shift_end_time")
+    start_time = dialog_manager.dialog_data.get("start_time")
+    end_time = dialog_manager.dialog_data.get("end_time")
 
-    shift_type = "часть смены" if is_partial else "полную смену"
+    shift_type = "часть смены" if end_time else "полную смену"
     shift_time = ""
 
-    if is_partial and shift_start_time:
-        if shift_end_time:
-            shift_time = f"{shift_start_time}-{shift_end_time}"
+    if start_time:
+        if end_time:
+            # Извлекаем только время из datetime строк
+            start_time_str = (
+                start_time.split("T")[1][:5] if "T" in start_time else start_time
+            )
+            end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+            shift_time = f"{start_time_str}-{end_time_str}"
         else:
-            shift_time = f"с {shift_start_time}"
+            start_time_str = (
+                start_time.split("T")[1][:5] if "T" in start_time else start_time
+            )
+            shift_time = f"с {start_time_str}"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -210,8 +217,8 @@ async def sell_payment_timing_getter(
     data = dialog_manager.dialog_data
     shift_date = data.get("shift_date")
     price = data.get("price", 0)
-    is_partial = data.get("is_partial", False)
-    shift_type = "часть смены" if is_partial else "полную смену"
+    end_time = data.get("end_time")
+    shift_type = "часть смены" if end_time else "полную смену"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -249,9 +256,9 @@ async def sell_comment_getter(
     data = dialog_manager.dialog_data
     shift_date = data.get("shift_date")
     price = data.get("price", 0)
-    is_partial = data.get("is_partial", False)
+    end_time = data.get("end_time")
 
-    shift_type = "часть смены" if is_partial else "полную смену"
+    shift_type = "часть смены" if end_time else "полную смену"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -277,7 +284,8 @@ async def sell_confirmation_getter(
     # Базовые данные
     shift_date = data.get("shift_date")
     price = data.get("price", 0)
-    is_partial = data.get("is_partial", False)
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
     payment_type = data.get("payment_type", "immediate")
     payment_date = data.get("payment_date")
     comment = data.get("comment")
@@ -289,14 +297,19 @@ async def sell_confirmation_getter(
         formatted_shift_date = date_obj.strftime("%d.%m.%Y")
 
     # Тип смены
-    shift_type = "Часть смены" if is_partial else "Полная смена"
+    shift_type = "Часть смены" if end_time else "Полная смена"
 
     # Время смены
-    shift_start = data.get("shift_start_time")
-    shift_end = data.get("shift_end_time")
-    shift_time_info = f"с {shift_start} до {shift_end}"
-    if is_partial and data.get("shift_end_time"):
-        shift_time_info = f"{shift_start}-{data.get('shift_end_time')}"
+    shift_time_info = ""
+    if start_time:
+        start_time_str = (
+            start_time.split("T")[1][:5] if "T" in start_time else start_time
+        )
+        if end_time:
+            end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+            shift_time_info = f"{start_time_str}-{end_time_str}"
+        else:
+            shift_time_info = f"с {start_time_str} (полная смена)"
 
     # Информация об оплате
     payment_info = "Сразу при покупке"

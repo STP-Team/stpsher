@@ -283,7 +283,7 @@ async def on_private_change(
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
-    """Изменение приватности предложения.
+    """Изменение приватности сделки.
 
     Args:
         _callback: Callback query от Telegram
@@ -291,7 +291,11 @@ async def on_private_change(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    exchange_id = dialog_manager.dialog_data.get("exchange_id")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     is_private = widget.is_checked()
 
@@ -307,25 +311,70 @@ async def on_private_change(
 
 
 async def on_cancel_exchange(
-    callback: CallbackQuery,
-    widget: Any,
+    _callback: CallbackQuery,
+    _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
-):
+) -> None:
+    """Отмена сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    exchange_id = dialog_manager.dialog_data.get("exchange_id")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     await stp_repo.exchange.cancel_exchange(exchange_id)
 
 
 async def on_delete_exchange(
-    callback: CallbackQuery,
-    widget: Any,
+    _callback: CallbackQuery,
+    _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
 ):
+    """Удаление сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    exchange_id = dialog_manager.dialog_data.get("exchange_id")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     await stp_repo.exchange.delete_exchange(exchange_id)
     await dialog_manager.switch_to(Exchanges.my)
+
+
+async def on_set_paid(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Отметка сделки оплаченной.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    await stp_repo.exchange.mark_exchange_paid(exchange_id)
