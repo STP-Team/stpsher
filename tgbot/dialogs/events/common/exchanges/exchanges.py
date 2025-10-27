@@ -310,6 +310,28 @@ async def on_private_change(
         await stp_repo.exchange.set_public(exchange_id)
 
 
+async def on_restore_exchange(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+):
+    """Отмена сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    await stp_repo.exchange.activate_exchange(exchange_id)
+
+
 async def on_cancel_exchange(
     _callback: CallbackQuery,
     _widget: Any,
