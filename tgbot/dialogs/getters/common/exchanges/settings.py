@@ -1,13 +1,22 @@
+"""Геттеры для настроек раздела Покупки на бирже."""
+
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedRadio, ManagedToggle
-from stp_database import MainRequestsRepo
 
 
 async def buy_settings_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
-):
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для получения выбранных пользователем настроек биржи.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь настроек биржи
+    """
     day_filter_checkbox: ManagedRadio = dialog_manager.find("day_filter")
     day_filter_value = day_filter_checkbox.get_checked()
 
@@ -29,8 +38,17 @@ async def buy_settings_getter(
 
 
 async def buy_filters_day_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
+    """Геттер для фильтров по дню для покупок на бирже.
+
+    Args:
+        dialog_manager:
+        **_kwargs:
+
+    Returns:
+        Список фильтров по дню
+    """
     day_filter_options = [
         ("all", "Все"),
         ("today", "Сегодня"),
@@ -42,6 +60,7 @@ async def buy_filters_day_getter(
     if filter_checkbox:
         filter_value = filter_checkbox.get_checked()
 
+    filter_description = ""
     match filter_value:
         case None:
             filter_description = ""
@@ -53,8 +72,6 @@ async def buy_filters_day_getter(
             filter_description = "<i>Текущий фильтр: Только предложения на сегодня</i>"
         case "tomorrow":
             filter_description = "<i>Текущий фильтр: Только предложения на завтра</i>"
-        case _:
-            filter_description = ""
 
     return {
         "day_filter_options": day_filter_options,
@@ -62,7 +79,12 @@ async def buy_filters_day_getter(
     }
 
 
-async def buy_filters_shift_getter():
+async def buy_filters_shift_getter() -> Dict[str, Any]:
+    """Геттер для фильтров по смене для покупок на бирже.
+
+    Returns:
+        Список фильтров по смене
+    """
     shift_filter_options = [
         ("all", "Все"),
         ("no_shift", "Нет смены"),

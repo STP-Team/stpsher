@@ -1,3 +1,5 @@
+"""Геттеры для диалога продаж на бирже."""
+
 import re
 from datetime import datetime
 from typing import Any, Dict

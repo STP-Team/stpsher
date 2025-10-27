@@ -656,7 +656,7 @@ async def on_edit_payment_date_selected(
     _callback: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
-    **_kwargs,
+    selected_date: datetime,
 ) -> None:
     """Обработчик выбора даты оплаты.
 
@@ -664,15 +664,15 @@ async def on_edit_payment_date_selected(
         _callback: Callback query от Telegram
         _widget: Виджет календаря
         dialog_manager: Менеджер диалога
+        selected_date: Выбранная дата
     """
-    payment_date = dialog_manager.dialog_data.get("selected_date")
     payment_type = dialog_manager.dialog_data.get("edit_payment_type", "on_date")
 
-    await _update_payment_timing(dialog_manager, payment_type, payment_date)
+    await _update_payment_timing(dialog_manager, payment_type, selected_date)
 
 
 async def _update_payment_timing(
-    dialog_manager: DialogManager, payment_type: str, payment_date: str = None
+    dialog_manager: DialogManager, payment_type: str, payment_date: datetime = None
 ):
     """Вспомогательная функция для обновления условий оплаты."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
