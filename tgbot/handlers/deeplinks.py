@@ -74,14 +74,24 @@ async def start_deeplink(
         elif payload.startswith("exchange_"):
             exchange_id = int(payload.split("_", 1)[1])
             exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-            if exchange.seller_id == user.user_id:
-                # Запускаем диалог своей подмены
-                await dialog_manager.start(
-                    Exchanges.my_detail,
-                    mode=StartMode.RESET_STACK,
-                    data={"exchange_id": exchange_id},
-                )
+            if not exchange:
+                await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+
+                if exchange.seller_id and exchange.seller_id == user.user_id:
+                    # Запускаем диалог своей подмены
+                    await dialog_manager.start(
+                        Exchanges.my_detail,
+                        mode=StartMode.RESET_STACK,
+                        data={"exchange_id": exchange_id},
+                    )
+                    return
+                else:
+                    await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+                    return
             else:
+                if exchange.status != "active":
+                    await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+                    return
                 if exchange.type == "sell":
                     # Запускаем диалог продаж
                     await dialog_manager.start(
