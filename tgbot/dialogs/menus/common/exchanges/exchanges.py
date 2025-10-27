@@ -143,8 +143,8 @@ sell_window = Window(
 sell_detail = Window(
     Const("🔍 <b>Детали запроса на покупку</b>"),
     Format("""
-📅 <b>Запрос:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {price} р.
+📅 <b>Запрос:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р.</code>
 
 👤 <b>Покупатель:</b> {buyer_name}
 💳 <b>Оплата:</b> {payment_info}"""),
@@ -166,7 +166,7 @@ sell_detail = Window(
 buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📅 <b>Предложение:</b> <code>{shift_date} {shift_time} ПРМ</code>
+📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
 💰 <b>Цена:</b> <code>{price} р.</code>
 
 👤 <b>Продавец:</b> {seller_name}
@@ -208,7 +208,7 @@ create_window = Window(
         on_click=on_exchange_type_selected,
     ),
     Row(
-        Button(Const("↩️ Назад"), id="cancel", on_click=finish_exchanges_dialog),
+        SwitchTo(Const("↩️ Назад"), id="cancel", state=Exchanges.menu),
         HOME_BTN,
     ),
     state=Exchanges.create,
@@ -250,8 +250,8 @@ my_window = Window(
 my_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {price} р.
+📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
 
 🔧 <b>Операция:</b> {operation_type}
 📊 <b>Статус:</b> {status_text}"""),
@@ -273,8 +273,19 @@ my_detail_window = Window(
         when=F["comment"] != "Без комментария",
     ),
     Format("""
-🕐 <b>Создано:</b> {created_date}"""),
-    # Кнопки для активных обменов (отмена)
+🕐 <b>Создано:</b> {created_date}
+🔗 <b>Прямая ссылка:</b> <code>{deeplink_url}</code>"""),
+    # Кнопки для активных обменов
+    SwitchInlineQueryChosenChatButton(
+        Const("🔗 Поделиться"),
+        query=Format("{deeplink}"),
+        allow_user_chats=True,
+        allow_group_chats=True,
+        allow_channel_chats=False,
+        allow_bot_chats=False,
+        id="buy_request_deeplink",
+        when=F["is_active"],
+    ),
     Row(
         Button(
             Const("✋🏻 Отменить"),
@@ -297,8 +308,8 @@ my_detail_window = Window(
     ),
     Row(Button(Const("✏️ Редактировать"), id="edit")),
     Checkbox(
-        Const("🫣 Приватное"),
-        Const("👀 Публичное"),
+        Const("🫣 Приватная"),
+        Const("👀 Публичная"),
         id="is_casino_allowed",
         on_state_changed=on_private_change,
         when=F["is_active"],

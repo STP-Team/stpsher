@@ -4,6 +4,8 @@ import re
 from datetime import datetime
 from typing import Any, Dict
 
+from aiogram import Bot
+from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
@@ -140,11 +142,14 @@ async def exchange_buy_getter(
         # Форматируем данные для отображения
         available_exchanges = []
         for exchange in exchanges:
-            # Форматируем время
-            time_str = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+            # Форматируем время из start_time и end_time
+            if exchange.end_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            else:
+                time_str = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
 
-            # Форматируем дату
-            date_str = exchange.shift_date.strftime("%d.%m.%Y")
+            # Форматируем дату из start_time
+            date_str = exchange.start_time.strftime("%d.%m.%Y")
 
             available_exchanges.append({
                 "id": exchange.id,
@@ -187,11 +192,14 @@ async def exchange_sell_getter(
         # Форматируем данные для отображения
         available_buy_requests = []
         for exchange in buy_requests:
-            # Форматируем время
-            time_str = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+            # Форматируем время из start_time и end_time
+            if exchange.end_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            else:
+                time_str = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
 
-            # Форматируем дату
-            date_str = exchange.shift_date.strftime("%d.%m.%Y")
+            # Форматируем дату из start_time
+            date_str = exchange.start_time.strftime("%d.%m.%Y")
 
             available_buy_requests.append({
                 "id": exchange.id,
@@ -243,9 +251,12 @@ async def exchange_buy_detail_getter(
         )
 
         # Форматируем данные
-        shift_date = exchange.shift_date.strftime("%d.%m.%Y")
+        shift_date = exchange.start_time.strftime("%d.%m.%Y")
 
-        shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+        if exchange.end_time:
+            shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+        else:
+            shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -256,7 +267,7 @@ async def exchange_buy_detail_getter(
             payment_info = "По договоренности"
 
         deeplink = f"exchange_{exchange.id}"
-        comment = exchange.description
+        comment = exchange.comment
 
         return {
             "shift_date": shift_date,
@@ -305,8 +316,11 @@ async def exchange_sell_detail_getter(
         )
 
         # Форматируем данные
-        shift_date = exchange.shift_date.strftime("%d.%m.%Y")
-        shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+        shift_date = exchange.start_time.strftime("%d.%m.%Y")
+        if exchange.end_time:
+            shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+        else:
+            shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -347,8 +361,8 @@ async def my_exchanges(
         # Форматируем данные для отображения
         my_exchanges_list = []
         for exchange in exchanges:
-            # Форматируем дату
-            date_str = exchange.shift_date.strftime("%d.%m")
+            # Форматируем дату из start_time
+            date_str = exchange.start_time.strftime("%d.%m")
 
             # Определяем тип и статус обмена для пользователя
             if exchange.seller_id == user_id:
@@ -385,7 +399,7 @@ async def my_exchanges(
                 "status": exchange.status,
                 "is_seller": exchange.seller_id == user_id,
                 "date": date_str,
-                "time": f"{exchange.shift_start_time}-{exchange.shift_end_time or ''}".rstrip(
+                "time": f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M') if exchange.end_time else ''}".rstrip(
                     "-"
                 ),
                 "price": exchange.price,
@@ -405,7 +419,7 @@ async def my_exchanges(
 
 
 async def my_detail_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    bot: Bot, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра собственного обмена."""
     if dialog_manager.start_data:
@@ -425,10 +439,28 @@ async def my_detail_getter(
         user_id = dialog_manager.event.from_user.id
 
         # Форматируем данные
-        shift_date = exchange.shift_date.strftime("%d.%m.%Y")
-        shift_time = (
-            f"{exchange.shift_start_time}-{exchange.shift_end_time or ''}".rstrip("-")
-        )
+        shift_date = exchange.start_time.strftime("%d.%m.%Y")
+        if exchange.end_time:
+            shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+        else:
+            shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
+
+        # Рассчитываем количество часов смены и цену за час
+        shift_hours = 0
+        price_per_hour = 0
+        if exchange.start_time and exchange.end_time:
+            try:
+                # Рассчитываем продолжительность из TIMESTAMP полей
+                duration = exchange.end_time - exchange.start_time
+                shift_hours = duration.total_seconds() / 3600  # Переводим в часы
+
+                # Рассчитываем цену за час
+                if shift_hours > 0 and exchange.price:
+                    price_per_hour = round(exchange.price / shift_hours, 2)
+            except (ValueError, AttributeError):
+                # Если не удалось рассчитать, оставляем значения по умолчанию
+                shift_hours = 0
+                price_per_hour = 0
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -497,12 +529,16 @@ async def my_detail_getter(
             else:  # Тот кто принял buy-запрос
                 operation_type = "продажа смены"
 
+        deeplink = f"exchange_{exchange.id}"
+        deeplink_url = await create_start_link(bot=bot, payload=deeplink, encode=True)
+
         return {
             "shift_date": shift_date,
             "shift_time": shift_time,
             "price": exchange.price,
+            "price_per_hour": price_per_hour,
             "payment_info": payment_info,
-            "comment": exchange.description or "Без комментария",
+            "comment": exchange.comment or "Без комментария",
             "status_text": status_text,
             "operation_type": operation_type,
             "other_party_name": other_party_name,
@@ -512,6 +548,8 @@ async def my_detail_getter(
             "exchange_type": exchange.type,
             "created_date": exchange.created_at.strftime("%d.%m.%Y %H:%M"),
             "is_paid": exchange.is_paid,
+            "deeplink": deeplink,
+            "deeplink_url": deeplink_url,
         }
 
     except Exception:

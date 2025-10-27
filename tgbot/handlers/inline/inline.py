@@ -228,8 +228,27 @@ async def advanced_inline_handler(
             if not exchange:
                 return
 
-            shift_date = exchange.shift_date.strftime("%d.%m.%Y")
-            shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+            # Приводим время к локальной временной зоне если оно timezone-naive
+            start_time = exchange.start_time
+            if start_time.tzinfo is None:
+                from tgbot.misc.helpers import tz
+
+                start_time = tz.localize(start_time)
+
+            shift_date = start_time.strftime("%d.%m.%Y")
+            start_time_str = start_time.strftime("%H:%M")
+
+            if exchange.end_time:
+                end_time = exchange.end_time
+                if end_time.tzinfo is None:
+                    from tgbot.misc.helpers import tz
+
+                    end_time = tz.localize(end_time)
+                end_time_str = end_time.strftime("%H:%M")
+            else:
+                end_time_str = "??:??"
+
+            shift_time = f"{start_time_str}-{end_time_str}"
 
             seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
             seller_name = format_fullname(
@@ -249,8 +268,8 @@ async def advanced_inline_handler(
 
             message_text = f"""🔍 <b>Детали сделки</b>
 
-📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {exchange.price} р.
+📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{exchange.price} р.</code>
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""
@@ -262,7 +281,7 @@ async def advanced_inline_handler(
                 InlineQueryResultArticle(
                     id=f"exchange_{exchange.id}",
                     title=f"Сделка №{exchange.id}",
-                    description=f"📅 Предложение: {shift_date} {shift_time} ПРМ\n💰 Цена: {exchange.price} р.",
+                    description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {exchange.price} р.",
                     input_message_content=InputTextMessageContent(
                         message_text=message_text, parse_mode="HTML"
                     ),

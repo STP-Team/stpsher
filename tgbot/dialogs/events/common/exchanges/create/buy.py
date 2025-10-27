@@ -100,9 +100,25 @@ async def on_buy_hours_input(
         )
         return
 
-    # Сохраняем время
-    dialog_manager.dialog_data["buy_start_time"] = start_time
-    dialog_manager.dialog_data["buy_end_time"] = end_time
+    # Создаем timestamp для start_time и end_time
+    buy_date = dialog_manager.dialog_data.get("buy_date")
+
+    if buy_date:
+        # Если дата выбрана, создаем полные timestamp
+        shift_date = datetime.fromisoformat(buy_date)
+        start_datetime = datetime.combine(
+            shift_date.date(), datetime.strptime(start_time, "%H:%M").time()
+        )
+        end_datetime = datetime.combine(
+            shift_date.date(), datetime.strptime(end_time, "%H:%M").time()
+        )
+
+        dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
+        dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
+    else:
+        # Если дата не выбрана, сохраняем только время
+        dialog_manager.dialog_data["start_time"] = start_time
+        dialog_manager.dialog_data["end_time"] = end_time
 
     # Переходим к вводу цены
     await dialog_manager.switch_to(ExchangeCreateBuy.price)
@@ -115,8 +131,8 @@ async def on_buy_hours_skip(
 ) -> None:
     """Обработчик пропуска выбора времени."""
     # Убираем время из данных (любое время)
-    dialog_manager.dialog_data.pop("buy_start_time", None)
-    dialog_manager.dialog_data.pop("buy_end_time", None)
+    dialog_manager.dialog_data.pop("start_time", None)
+    dialog_manager.dialog_data.pop("end_time", None)
     dialog_manager.dialog_data["any_hours"] = True
 
     # Переходим к вводу цены
@@ -194,14 +210,31 @@ async def on_confirm_buy(
         # Получаем данные из диалога
         data = dialog_manager.dialog_data
 
-        # Дата (может быть None для любой даты)
-        buy_date = None
-        if data.get("buy_date"):
-            buy_date = datetime.fromisoformat(data["buy_date"])
+        # Определяем start_time и end_time
+        start_time = None
+        end_time = None
 
-        # Время (может быть None для любого времени)
-        buy_start_time = data.get("buy_start_time")
-        buy_end_time = data.get("buy_end_time")
+        if data.get("start_time") and data.get("end_time"):
+            # Если есть конкретное время
+            if data.get("buy_date"):
+                # Если есть конкретная дата
+                start_time = datetime.fromisoformat(data["start_time"])
+                end_time = datetime.fromisoformat(data["end_time"])
+            else:
+                # Если дата не указана, создаем timestamp с условной датой
+                today = datetime.now().date()
+                start_time_str = data["start_time"]
+                end_time_str = data["end_time"]
+                start_time = datetime.combine(
+                    today, datetime.strptime(start_time_str, "%H:%M").time()
+                )
+                end_time = datetime.combine(
+                    today, datetime.strptime(end_time_str, "%H:%M").time()
+                )
+        else:
+            # Если время не указано (любое время), используем None
+            start_time = None
+            end_time = None
 
         # Цена за час
         price_per_hour = data["buy_price_per_hour"]
@@ -214,20 +247,19 @@ async def on_confirm_buy(
             return
 
         # Получаем комментарий
-        description = data.get("buy_comment")
+        comment = data.get("buy_comment")
 
         # Создаем запрос на покупку
         exchange = await stp_repo.exchange.create_exchange(
             seller_id=user_id,  # В buy-запросе seller_id это фактически buyer_id
-            shift_date=buy_date,
-            shift_start_time=buy_start_time or "00:00",  # Значение по умолчанию
+            start_time=start_time,
+            end_time=end_time,
             price=price_per_hour,  # Цена за час
-            is_partial=True,  # Buy-запросы всегда частичные по времени
-            shift_end_time=buy_end_time or "23:59",  # Значение по умолчанию
             payment_type="immediate",  # Для buy-запросов всегда немедленная оплата
             payment_date=None,
-            description=description,
+            comment=comment,
             exchange_type="buy",  # Указываем тип как покупка
+            is_private=False,  # По умолчанию создаем публичные обмены
         )
 
         if exchange:

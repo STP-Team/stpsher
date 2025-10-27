@@ -63,29 +63,45 @@ async def check_expired_offers(session_pool, bot: Bot):
             # Определяем время истечения в зависимости от типа предложения
             if exchange.type == "sell":
                 # Предложения продажи завершаются когда начинается время предложения
-                expiration_time_str = exchange.shift_start_time
+                expiration_datetime = exchange.start_time
             elif exchange.type == "buy":
-                # Предложения продажи завершаются когда заканчивается время предложения
-                expiration_time_str = exchange.shift_end_time
+                # Предложения покупки завершаются когда заканчивается время предложения
+                expiration_datetime = exchange.end_time
             else:
                 continue
 
-            # Создаем дату истечения
-            expiration_time = datetime.strptime(expiration_time_str, "%H:%M").time()
-            expiration_datetime_local = datetime.combine(
-                exchange.shift_date.date(), expiration_time
-            )
-            expiration_datetime_local = tz.localize(expiration_datetime_local)
+            # Если время истечения не задано, пропускаем
+            if expiration_datetime is None:
+                continue
+
+            # Приводим время истечения к локальной временной зоне если оно timezone-naive
+            if expiration_datetime.tzinfo is None:
+                expiration_datetime = tz.localize(expiration_datetime)
 
             # Проверяем истечение предложения
-            if current_local_time >= expiration_datetime_local:
+            if current_local_time >= expiration_datetime:
                 await stp_repo.exchange.expire_exchange(exchange.id)
                 await notify_expire_offer(bot, stp_repo, exchange)
 
 
 async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange):
-    shift_date = exchange.shift_date.strftime("%d.%m.%Y")
-    shift_time = f"{exchange.shift_start_time}-{exchange.shift_end_time}"
+    # Приводим время к локальной временной зоне если оно timezone-naive
+    start_time = exchange.start_time
+    if start_time.tzinfo is None:
+        start_time = tz.localize(start_time)
+
+    shift_date = start_time.strftime("%d.%m.%Y")
+    start_time_str = start_time.strftime("%H:%M")
+
+    if exchange.end_time:
+        end_time = exchange.end_time
+        if end_time.tzinfo is None:
+            end_time = tz.localize(end_time)
+        end_time_str = end_time.strftime("%H:%M")
+    else:
+        end_time_str = "??:??"
+
+    shift_time = f"{start_time_str}-{end_time_str}"
 
     seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
     seller_name = format_fullname(
@@ -113,8 +129,8 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
 
 У предложения наступило время {"начала" if exchange.type == "sell" else "конца"}
 
-<blockquote>📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {exchange.price} р.
+<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{exchange.price} р.</code>
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}</blockquote>

@@ -49,7 +49,7 @@ date_window = Window(
     ),
     Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateSell.date),
+        Button(Const("↩️ Назад"), id="back", on_click=finish_exchanges_dialog),
         HOME_BTN,
     ),
     getter=sell_date_getter,
@@ -57,9 +57,9 @@ date_window = Window(
 )
 
 shift_type_window = Window(
-    Const("⏰ <b>Шаг 3: Тип смены</b>"),
-    Format("Дата смены: {selected_date}"),
-    Format("Твоя смена: {user_schedule}"),
+    Const("⏰ <b>Шаг 3: Тип сделки</b>"),
+    Format("Дата смены: <code>{selected_date}</code>"),
+    Format("Твоя смена: <code>{user_schedule}</code>"),
     Format("{duty_warning}", when="duty_warning"),
     Format("\nВыбери тип смены для продажи:"),
     Select(
@@ -148,7 +148,7 @@ payment_timing_window = Window(
 
 payment_date_window = Window(
     Const("📅 <b>Шаг 7: Дата платежа</b>"),
-    Format("Дата смены: {shift_date}"),
+    Format("Дата смены: <code>{shift_date}</code>"),
     Format("\nВыбери крайнюю дату для оплаты:"),
     Format("<i>Дата должна быть не позже даты смены</i>"),
     RussianCalendar(
@@ -192,14 +192,14 @@ comment_window = Window(
 )
 
 confirmation_window = Window(
-    Const("✅ <b>Подтверждение продажи</b>"),
+    Const("✅ <b>Подтверждение сделки</b>"),
     Format("""
-Проверь данные перед публикацией предложения о продаже:
+Проверь данные перед публикацией:
 
-📅 <b>Дата смены:</b> {shift_date}
+📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р.</code>
+
 ⏰ <b>Тип смены:</b> {shift_type}
-🕘 <b>Время:</b> {shift_time}
-💰 <b>Цена:</b> {price} р.
 💳 <b>Оплата:</b> {payment_info}"""),
     Format("💬 <b>Комментарий:</b> {comment}", when="comment"),
     Format("\nВсё верно?"),

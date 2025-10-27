@@ -32,8 +32,8 @@ async def buy_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str
 
     buy_date = data.get("buy_date")
     any_date = data.get("any_date", False)
-    buy_start_time = data.get("buy_start_time")
-    buy_end_time = data.get("buy_end_time")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
     any_hours = data.get("any_hours", False)
 
     result = {}
@@ -47,8 +47,12 @@ async def buy_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str
         result["any_date"] = True
 
     # Время
-    if buy_start_time and buy_end_time:
-        result["hours_range"] = f"{buy_start_time}-{buy_end_time}"
+    if start_time and end_time:
+        start_time_str = (
+            start_time.split("T")[1][:5] if "T" in start_time else start_time
+        )
+        end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+        result["hours_range"] = f"{start_time_str}-{end_time_str}"
     elif any_hours:
         result["any_hours"] = True
 
@@ -63,8 +67,8 @@ async def buy_comment_getter(
 
     buy_date = data.get("buy_date")
     any_date = data.get("any_date", False)
-    buy_start_time = data.get("buy_start_time")
-    buy_end_time = data.get("buy_end_time")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
     any_hours = data.get("any_hours", False)
     price_per_hour = data.get("buy_price_per_hour", 0)
 
@@ -79,8 +83,12 @@ async def buy_comment_getter(
         result["any_date"] = True
 
     # Время
-    if buy_start_time and buy_end_time:
-        result["hours_range"] = f"{buy_start_time}-{buy_end_time}"
+    if start_time and end_time:
+        start_time_str = (
+            start_time.split("T")[1][:5] if "T" in start_time else start_time
+        )
+        end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+        result["hours_range"] = f"{start_time_str}-{end_time_str}"
     elif any_hours:
         result["any_hours"] = True
 
@@ -95,8 +103,8 @@ async def buy_confirmation_getter(
 
     buy_date = data.get("buy_date")
     any_date = data.get("any_date", False)
-    buy_start_time = data.get("buy_start_time")
-    buy_end_time = data.get("buy_end_time")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
     any_hours = data.get("any_hours", False)
     price_per_hour = data.get("buy_price_per_hour", 0)
     comment = data.get("buy_comment")
@@ -109,8 +117,12 @@ async def buy_confirmation_getter(
         date_info = "Любая дата"
 
     # Информация о времени
-    if buy_start_time and buy_end_time:
-        time_info = f"{buy_start_time}-{buy_end_time}"
+    if start_time and end_time:
+        start_time_str = (
+            start_time.split("T")[1][:5] if "T" in start_time else start_time
+        )
+        end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+        time_info = f"{start_time_str}-{end_time_str}"
     else:
         time_info = "Любое время"
 
