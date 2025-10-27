@@ -19,6 +19,7 @@ class Exchanges(StatesGroup):
     # Детальный просмотр обменов
     buy_detail = State()  # Детали обмена для покупки
     sell_detail = State()  # Детали собственного обмена для отмены
+    my_detail = State()  # Детали собственных обменов из раздела "Мои сделки"
 
     # Настройки биржи
     buy_settings = State()

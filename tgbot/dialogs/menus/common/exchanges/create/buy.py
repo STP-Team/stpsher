@@ -20,7 +20,7 @@ from tgbot.dialogs.events.common.exchanges.create.buy import (
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
 )
-from tgbot.dialogs.getters.common.exchanges.exchanges import (
+from tgbot.dialogs.getters.common.exchanges.create.buy import (
     buy_comment_getter,
     buy_confirmation_getter,
     buy_date_getter,

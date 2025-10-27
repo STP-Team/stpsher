@@ -24,7 +24,7 @@ from tgbot.dialogs.events.common.exchanges.create.sell import (
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
 )
-from tgbot.dialogs.getters.common.exchanges.exchanges import (
+from tgbot.dialogs.getters.common.exchanges.create.sell import (
     sell_comment_getter,
     sell_confirmation_getter,
     sell_date_getter,

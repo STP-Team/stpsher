@@ -291,7 +291,7 @@ async def on_time_input(
         # Проверяем, что время продажи находится в пределах реальной смены
         if start_minutes < real_start_minutes or end_minutes > real_end_minutes:
             await message.answer(
-                f"❌ Время должно быть в пределах вашей смены: {real_start_time}-{real_end_time}"
+                f"❌ Время должно быть в пределах твоей смены: {real_start_time}-{real_end_time}"
             )
             return
 
