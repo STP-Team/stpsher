@@ -82,8 +82,8 @@ price_window = Window(
     Format("Любая дата", when="any_date"),
     Format("Время: <code>{hours_range}</code>", when="hours_range"),
     Format("Любое время", when="any_hours"),
-    Format("\nВведи цену за час, которую готов платить (в рублях)"),
-    Format("\n<blockquote>Например: 500 (за один час работы)</blockquote>"),
+    Format("\nВведи цену за час работы(в рублях)"),
+    Format("\n<blockquote>Например: 500</blockquote>"),
     TextInput(
         id="buy_price_input",
         on_success=on_buy_price_input,
@@ -104,10 +104,7 @@ comment_window = Window(
     Format("Время: <code>{hours_range}</code>", when="hours_range"),
     Format("Время: Любое", when="any_hours"),
     Format("Цена за час: <code>{price_per_hour} р.</code>"),
-    Format("\nМожешь добавить комментарий к запросу или нажать 'Пропустить'"),
-    Format(
-        "\n<blockquote>Например: 'Срочно нужна смена', 'Предпочитаю НТП', 'Готов доплатить' и т.д.</blockquote>"
-    ),
+    Format("\nМожешь добавить комментарий к запросу или нажать <b>➡️ Пропустить</b>"),
     TextInput(
         id="buy_comment_input",
         on_success=on_buy_comment_input,

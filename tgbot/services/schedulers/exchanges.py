@@ -7,7 +7,9 @@ from aiogram.utils.deep_linking import create_start_link
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stp_database import Exchange, MainRequestsRepo
 
-from tgbot.dialogs.getters.common.exchanges.exchanges import price_per_hour
+from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    get_exchange_text,
+)
 from tgbot.misc.helpers import format_fullname, tz
 from tgbot.services.schedulers.base import BaseScheduler
 
@@ -86,31 +88,17 @@ async def check_expired_offers(session_pool, bot: Bot):
 
 
 async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange):
-    # Приводим время к локальной временной зоне если оно timezone-naive
-    start_time = exchange.start_time
-    if start_time.tzinfo is None:
-        start_time = tz.localize(start_time)
-
-    shift_date = start_time.strftime("%d.%m.%Y")
-    start_time_str = start_time.strftime("%H:%M")
-
-    if exchange.end_time:
-        end_time = exchange.end_time
-        if end_time.tzinfo is None:
-            end_time = tz.localize(end_time)
-        end_time_str = end_time.strftime("%H:%M")
+    if exchange.type == "sell":
+        owner = await stp_repo.employee.get_users(user_id=exchange.seller_id)
     else:
-        end_time_str = "??:??"
+        owner = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
 
-    shift_time = f"{start_time_str}-{end_time_str}"
-
-    seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-    seller_name = format_fullname(
-        seller.fullname,
+    owner_name = format_fullname(
+        owner.fullname,
         short=True,
         gender_emoji=True,
-        username=seller.username,
-        user_id=seller.user_id,
+        username=owner.username,
+        user_id=owner.user_id,
     )
 
     if exchange.payment_type == "immediate":
@@ -120,8 +108,7 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
     else:
         payment_info = "По договоренности"
 
-    hour_price = await price_per_hour(exchange)
-
+    exchange_info = await get_exchange_text(exchange, user_id=owner.user_id)
     deeplink = await create_start_link(
         bot=bot, payload=f"exchange_{exchange.id}", encode=True
     )
@@ -132,11 +119,7 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
 
 У предложения наступило время {"начала" if exchange.type == "sell" else "конца"}
 
-<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{exchange.price} р. ({hour_price} р./час)</code>
-
-👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}</blockquote>
+{exchange_info}
 
 <i>Ты можешь отредактировать его и опубликовать снова</i>""",
         reply_markup=InlineKeyboardMarkup(
