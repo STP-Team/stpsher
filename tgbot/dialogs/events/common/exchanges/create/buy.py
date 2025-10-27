@@ -1,3 +1,5 @@
+"""Обработчики для диалога создания покупки на бирже."""
+
 import re
 from datetime import datetime
 from typing import Any

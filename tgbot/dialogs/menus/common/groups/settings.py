@@ -1,3 +1,5 @@
+"""Генерация диалога настроек группы."""
+
 import operator
 
 from aiogram_dialog import Window

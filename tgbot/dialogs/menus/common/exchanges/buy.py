@@ -1,0 +1,91 @@
+"""Генерация диалогов для покупок на бирже."""
+
+from aiogram import F
+from aiogram_dialog import Window
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    Row,
+    ScrollingGroup,
+    Select,
+    SwitchInlineQueryChosenChatButton,
+    SwitchTo,
+)
+from aiogram_dialog.widgets.text import Const, Format
+
+from tgbot.dialogs.events.common.exchanges.exchanges import (
+    on_exchange_buy,
+    on_exchange_buy_selected,
+)
+from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    exchange_buy_detail_getter,
+    exchange_buy_getter,
+)
+from tgbot.dialogs.states.common.exchanges import Exchanges
+from tgbot.dialogs.widgets.buttons import HOME_BTN
+
+buy_window = Window(
+    Const("📈 <b>Биржа: Покупка часов</b>"),
+    Format("""
+Здесь ты можешь найти и купить смены, которые продают другие сотрудники.
+
+💰 <b>Доступно предложений:</b> {exchanges_length}"""),
+    Format(
+        "\n🔍 <i>Нажми на предложение для просмотра деталей</i>", when="has_exchanges"
+    ),
+    Format(
+        "\n📭 <i>Пока никто не продает смены</i>",
+        when=~F["has_exchanges"],
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{item[time]}, {item[date]} | {item[price]} р."),
+            id="exchange_select",
+            items="available_exchanges",
+            item_id_getter=lambda item: item["id"],
+            on_click=on_exchange_buy_selected,
+        ),
+        width=1,
+        height=10,
+        hide_on_single_page=True,
+        id="exchange_scrolling",
+        when="has_exchanges",
+    ),
+    Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
+    SwitchTo(
+        Const("💡 Фильтры и сортировка"),
+        id="exchanges_buy_settings",
+        state=Exchanges.buy_settings,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
+    getter=exchange_buy_getter,
+    state=Exchanges.buy,
+)
+
+
+buy_detail_window = Window(
+    Const("🔍 <b>Детали сделки</b>"),
+    Format("""
+{exchange_info}
+
+👤 <b>Продавец:</b> {seller_name}
+💳 <b>Оплата:</b> {payment_info}"""),
+    Format(
+        """
+📝 <b>Комментарий:</b>
+<blockquote expandable>{comment}</blockquote>""",
+        when="comment",
+    ),
+    Button(Const("✅ Купить"), id="apply", on_click=on_exchange_buy),
+    SwitchInlineQueryChosenChatButton(
+        Const("🔗 Поделиться"),
+        query=Format("{deeplink}"),
+        allow_user_chats=True,
+        allow_group_chats=True,
+        allow_channel_chats=False,
+        allow_bot_chats=False,
+        id="exchange_deeplink",
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy), HOME_BTN),
+    getter=exchange_buy_detail_getter,
+    state=Exchanges.buy_detail,
+)

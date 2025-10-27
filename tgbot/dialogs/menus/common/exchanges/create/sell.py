@@ -1,3 +1,5 @@
+"""Генерация диалога создания продажи на бирже."""
+
 import operator
 
 from aiogram_dialog import Dialog, Window

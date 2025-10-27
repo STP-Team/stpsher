@@ -18,6 +18,7 @@ class ShiftDateText(Text):
     """Виджет для отображения даты с эмодзи смены."""
 
     def __init__(self):
+        """Инициализация виджета отображения даты."""
         super().__init__()
 
     async def _render_text(self, data, dialog_manager: DialogManager) -> str:
@@ -40,6 +41,7 @@ class TodayShiftDateText(Text):
     """Виджет для отображения сегодняшней даты с эмодзи смены."""
 
     def __init__(self):
+        """Инициализация виджета сегодняшней даты."""
         super().__init__()
 
     async def _render_text(self, data, dialog_manager: DialogManager) -> str:

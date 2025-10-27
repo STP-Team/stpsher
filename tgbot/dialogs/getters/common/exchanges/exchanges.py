@@ -115,11 +115,11 @@ async def get_exchange_status(exchange: Exchange) -> str:
     if exchange.status == "active":
         status = f"{exchange_emojis['active']} Активная"
     elif exchange.status == "sold":
-        status = f"{exchange_emojis['sold']} Сделка завершена"
+        status = f"{exchange_emojis['sold']} Завершена"
     elif exchange.status == "canceled":
-        status = f"{exchange_emojis['canceled']} Сделка отменена"
+        status = f"{exchange_emojis['canceled']} Отменена"
     elif exchange.status == "expired":
-        status = f"{exchange_emojis['expired']} Сделка истекла"
+        status = f"{exchange_emojis['expired']} Истекшая"
     else:
         status = f"ℹ️ {exchange.status.title()}"
 

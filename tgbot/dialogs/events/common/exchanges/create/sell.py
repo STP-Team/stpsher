@@ -1,3 +1,5 @@
+"""Обработчики для диалога создания продажи на бирже."""
+
 import logging
 import re
 from datetime import datetime
@@ -123,6 +125,13 @@ async def get_user_shift(
 async def finish_exchange_create_dialog(
     _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
 ) -> None:
+    """Завершает процесс создания сделки и закрывает диалог.
+
+    Args:
+        _callback: Callback query от Telegram
+        _button: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
     await dialog_manager.done()
 
 

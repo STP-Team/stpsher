@@ -1,3 +1,5 @@
+"""Геттеры для диалога покупок на бирже."""
+
 from datetime import datetime
 from typing import Any, Dict
 
@@ -102,10 +104,8 @@ async def buy_confirmation_getter(
     data = dialog_manager.dialog_data
 
     buy_date = data.get("buy_date")
-    any_date = data.get("any_date", False)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
-    any_hours = data.get("any_hours", False)
     price_per_hour = data.get("buy_price_per_hour", 0)
     comment = data.get("buy_comment")
 
