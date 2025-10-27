@@ -3,11 +3,15 @@
 from typing import Any
 
 from aiogram.types import CallbackQuery
-from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox
+from aiogram_dialog import ChatEvent, DialogManager
+from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
 from stp_database import MainRequestsRepo
 
-from tgbot.dialogs.states.common.exchanges import Exchanges
+from tgbot.dialogs.states.common.exchanges import (
+    ExchangeCreateBuy,
+    ExchangeCreateSell,
+    Exchanges,
+)
 
 
 async def start_exchanges_dialog(
@@ -238,3 +242,23 @@ async def on_exchange_cancel(
 
     except Exception:
         await callback.answer("❌ Произошла ошибка при отмене обмена", show_alert=True)
+
+
+async def on_exchange_type_selected(
+    _callback: ChatEvent, _select: Select, dialog_manager: DialogManager, item_id: str
+) -> None:
+    """Обработчик выбора типа предложения.
+
+    Args:
+        _callback: Callback query от Telegram
+        _select: Виджет селектора
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранного типа
+    """
+    dialog_manager.dialog_data["exchange_type"] = item_id
+
+    # Маршрутизация в зависимости от типа операции
+    if item_id == "buy":
+        await dialog_manager.start(ExchangeCreateBuy.date)
+    else:  # sell
+        await dialog_manager.start(ExchangeCreateSell.date)

@@ -564,6 +564,7 @@ async def exchange_buy_detail_getter(
             payment_info = "По договоренности"
 
         deeplink = f"exchange_{exchange.id}"
+        comment = exchange.description
 
         return {
             "shift_date": shift_date,
@@ -571,6 +572,7 @@ async def exchange_buy_detail_getter(
             "shift_time": shift_time,
             "price": exchange.price,
             "payment_info": payment_info,
+            "comment": comment,
             "deeplink": deeplink,
         }
 

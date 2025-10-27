@@ -123,13 +123,13 @@ inventory_activation_comment_window = Window(
 Ты можешь добавить комментарий к активации
 Этот комментарий увидит менеджер при проверке
 
-Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+Напиши комментарий или нажми <b>➡️ Пропустить</b>"""),
     TextInput(
         id="activation_comment_input",
         on_success=on_inventory_activation_comment_input,
     ),
     Button(
-        Const("⏩ Пропустить"),
+        Const("➡️ Пропустить"),
         id="skip_comment",
         on_click=on_skip_activation_comment,
     ),

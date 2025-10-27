@@ -1,5 +1,6 @@
 """Генерация окон для биржи подмен."""
 
+import operator
 from typing import Any
 
 from aiogram import F
@@ -16,13 +17,14 @@ from aiogram_dialog.widgets.kbd import (
 )
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.events.common.exchanges.create import start_create_process
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
     on_exchange_apply,
     on_exchange_buy_selected,
     on_exchange_sell_selected,
+    on_exchange_type_selected,
 )
+from tgbot.dialogs.getters.common.exchanges.create import exchange_types_getter
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
     exchange_buy_getter,
@@ -38,7 +40,7 @@ from tgbot.dialogs.menus.common.exchanges.settings import (
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
-exchanges_window = Window(
+menu_window = Window(
     Const("🎭 <b>Биржа подмен</b>"),
     Format("""
 Здесь ты можешь обменять свои рабочие часы, либо взять чужие"""),
@@ -47,7 +49,7 @@ exchanges_window = Window(
         SwitchTo(Const("📉 Продать"), id="sell", state=Exchanges.sell),
     ),
     SwitchTo(Const("🗳 Мои сделки"), id="my", state=Exchanges.my),
-    Button(Const("💸 Создать предложение"), id="create", on_click=start_create_process),
+    SwitchTo(Const("💸 Создать предложение"), id="create", state=Exchanges.create),
     SwitchTo(Const("📊 Статистика"), id="stats", state=Exchanges.stats),
     Row(
         Button(Const("↩️ Назад"), id="back", on_click=finish_exchanges_dialog), HOME_BTN
@@ -55,7 +57,7 @@ exchanges_window = Window(
     state=Exchanges.menu,
 )
 
-exchange_buy_window = Window(
+buy_window = Window(
     Const("📈 <b>Биржа: Покупка часов</b>"),
     Format("""
 Здесь ты можешь найти и купить смены, которые продают другие сотрудники.
@@ -94,7 +96,7 @@ exchange_buy_window = Window(
 )
 
 
-exchange_sell_window = Window(
+sell_window = Window(
     Const("📉 <b>Биржа: Продажа часов</b>"),
     Format("""
 Здесь ты можешь найти людей, которые хотят купить смены, и продать им свои часы.
@@ -132,7 +134,7 @@ exchange_sell_window = Window(
     state=Exchanges.sell,
 )
 
-exchange_sell_detail_window = Window(
+sell_detail = Window(
     Const("🔍 <b>Детали запроса на покупку</b>"),
     Format("""
 📅 <b>Запрос:</b> {shift_date} {shift_time} ПРМ
@@ -155,14 +157,17 @@ exchange_sell_detail_window = Window(
     state=Exchanges.sell_detail,
 )
 
-exchange_buy_detail_window = Window(
+buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
-💰 <b>Цена:</b> {price} р.
+📅 <b>Предложение:</b> <code>{shift_date} {shift_time} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р.</code>
 
 👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}"""),
+💳 <b>Оплата:</b> {payment_info}
+
+💬 <b>Комментарий:</b>
+<blockquote expandable>{comment}</blockquote>"""),
     Button(Const("✅ Купить"), id="apply", on_click=on_exchange_apply),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
@@ -178,7 +183,30 @@ exchange_buy_detail_window = Window(
     state=Exchanges.buy_detail,
 )
 
-exchange_my_window = Window(
+create_window = Window(
+    Const("<b>Выбери тип предложения</b>"),
+    Const("""
+<blockquote><b>📈 Купить</b> - Предложение о покупке часов тобой
+Твои коллеги увидят предложение в разделе <b>📉 Продать</b></blockquote>
+
+<blockquote><b>📉 Продать</b> - Предложение о продаже твоих часов
+Твои коллеги увидят предложение в разделе <b>📈 Купить</b></blockquote>"""),
+    Select(
+        Format("{item[1]}"),
+        id="exchange_type",
+        items="exchange_types",
+        item_id_getter=operator.itemgetter(0),
+        on_click=on_exchange_type_selected,
+    ),
+    Row(
+        Button(Const("↩️ Назад"), id="cancel", on_click=finish_exchanges_dialog),
+        HOME_BTN,
+    ),
+    getter=exchange_types_getter,
+    state=Exchanges.create,
+)
+
+my_window = Window(
     Const("🤝 <b>Биржа: Мои подмены</b>"),
     Format("""
 <tg-spoiler>Здесь пока ничего нет, но очень скоро что-то будет 🪄</tg-spoiler>"""),
@@ -209,12 +237,13 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
 
 
 exchanges_dialog = Dialog(
-    exchanges_window,
-    exchange_buy_window,
-    exchange_sell_window,
-    exchange_my_window,
-    exchange_buy_detail_window,
-    exchange_sell_detail_window,
+    menu_window,
+    buy_window,
+    sell_window,
+    create_window,
+    my_window,
+    buy_detail_window,
+    sell_detail,
     # Настройки покупок
     buy_settings_window,
     buy_filters_day_window,
