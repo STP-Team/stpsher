@@ -197,7 +197,7 @@ confirmation_window = Window(
 Проверь данные перед публикацией:
 
 📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code>
+💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
 
 ⏰ <b>Тип смены:</b> {shift_type}
 💳 <b>Оплата:</b> {payment_info}"""),

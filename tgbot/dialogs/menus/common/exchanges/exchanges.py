@@ -144,7 +144,7 @@ sell_detail = Window(
     Const("🔍 <b>Детали запроса на покупку</b>"),
     Format("""
 📅 <b>Запрос:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code>
+💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
 
 👤 <b>Покупатель:</b> {buyer_name}
 💳 <b>Оплата:</b> {payment_info}"""),
@@ -167,13 +167,16 @@ buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
 📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code>
+💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
 
 👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}
-
-💬 <b>Комментарий:</b>
-<blockquote expandable>{comment}</blockquote>"""),
+💳 <b>Оплата:</b> {payment_info}"""),
+    Format(
+        """
+📝 <b>Комментарий:</b>
+<blockquote expandable>{comment}</blockquote>""",
+        when=F["comment"] != "Без комментария",
+    ),
     Button(Const("✅ Купить"), id="apply", on_click=on_exchange_buy),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),

@@ -258,6 +258,21 @@ async def exchange_buy_detail_getter(
         else:
             shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
 
+        price_per_hour = 0
+        if exchange.start_time and exchange.end_time:
+            try:
+                # Рассчитываем продолжительность из TIMESTAMP полей
+                duration = exchange.end_time - exchange.start_time
+                shift_hours = duration.total_seconds() / 3600  # Переводим в часы
+
+                # Рассчитываем цену за час
+                if shift_hours > 0 and exchange.price:
+                    price_per_hour = round(exchange.price / shift_hours, 2)
+            except (ValueError, AttributeError):
+                # Если не удалось рассчитать, оставляем значения по умолчанию
+                shift_hours = 0
+                price_per_hour = 0
+
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при покупке"
@@ -274,6 +289,7 @@ async def exchange_buy_detail_getter(
             "seller_name": seller_name,
             "shift_time": shift_time,
             "price": exchange.price,
+            "price_per_hour": price_per_hour,
             "payment_info": payment_info,
             "comment": comment,
             "deeplink": deeplink,
@@ -322,6 +338,21 @@ async def exchange_sell_detail_getter(
         else:
             shift_time = f"с {exchange.start_time.strftime('%H:%M')} (полная смена)"
 
+        price_per_hour = 0
+        if exchange.start_time and exchange.end_time:
+            try:
+                # Рассчитываем продолжительность из TIMESTAMP полей
+                duration = exchange.end_time - exchange.start_time
+                shift_hours = duration.total_seconds() / 3600  # Переводим в часы
+
+                # Рассчитываем цену за час
+                if shift_hours > 0 and exchange.price:
+                    price_per_hour = round(exchange.price / shift_hours, 2)
+            except (ValueError, AttributeError):
+                # Если не удалось рассчитать, оставляем значения по умолчанию
+                shift_hours = 0
+                price_per_hour = 0
+
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при продаже"
@@ -336,6 +367,7 @@ async def exchange_sell_detail_getter(
             "shift_date": shift_date,
             "shift_time": shift_time,
             "price": exchange.price,
+            "price_per_hour": price_per_hour,
             "buyer_name": buyer_name,
             "payment_info": payment_info,
             "deeplink": deeplink,
@@ -520,14 +552,14 @@ async def my_detail_getter(
         # Определяем тип операции для заголовка
         if exchange.type == "sell":
             if is_seller:
-                operation_type = "продажа смены"
+                operation_type = "Продам"
             else:
-                operation_type = "покупка смены"
+                operation_type = "Куплю"
         else:  # buy
             if is_seller:  # Создатель buy-запроса
                 operation_type = "запрос на покупку"
             else:  # Тот кто принял buy-запрос
-                operation_type = "продажа смены"
+                operation_type = "Продам"
 
         deeplink = f"exchange_{exchange.id}"
         deeplink_url = await create_start_link(bot=bot, payload=deeplink, encode=True)

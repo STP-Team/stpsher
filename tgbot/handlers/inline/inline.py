@@ -266,10 +266,25 @@ async def advanced_inline_handler(
             else:
                 payment_info = "По договоренности"
 
+            price_per_hour = 0
+            if exchange.start_time and exchange.end_time:
+                try:
+                    # Рассчитываем продолжительность из TIMESTAMP полей
+                    duration = exchange.end_time - exchange.start_time
+                    shift_hours = duration.total_seconds() / 3600  # Переводим в часы
+
+                    # Рассчитываем цену за час
+                    if shift_hours > 0 and exchange.price:
+                        price_per_hour = round(exchange.price / shift_hours, 2)
+                except (ValueError, AttributeError):
+                    # Если не удалось рассчитать, оставляем значения по умолчанию
+                    shift_hours = 0
+                    price_per_hour = 0
+
             message_text = f"""🔍 <b>Детали сделки</b>
 
 📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{exchange.price} р.</code>
+💰 <b>Цена:</b> <code>{exchange.price} р. ({price_per_hour} р./час)</code>
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""
