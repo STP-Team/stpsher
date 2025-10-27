@@ -8,8 +8,9 @@ import datetime
 import logging
 from typing import Optional, Tuple
 
+from aiogram import Bot
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
-from stp_database import Employee
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.keyboards.auth import auth_kb
 
@@ -102,7 +103,12 @@ class ScheduleHandlerService:
             await callback.answer(error_msg, show_alert=True)
 
     async def get_user_schedule_response(
-        self, user: Employee, month: str, compact: bool = True, stp_repo=None
+        self,
+        user: Employee,
+        month: str,
+        compact: bool = True,
+        stp_repo: MainRequestsRepo = None,
+        bot: Bot = None,
     ) -> str:
         """Получает расписание пользователя.
 
@@ -111,6 +117,7 @@ class ScheduleHandlerService:
             month: Название месяца
             compact: Использовать компактный формат
             stp_repo: Репозиторий базы данных
+            bot: Экземпляр бота для создания ссылок
 
         Returns:
             Отформатированная строка с расписанием
@@ -125,6 +132,7 @@ class ScheduleHandlerService:
                         division=user.division,
                         compact=compact,
                         stp_repo=stp_repo,
+                        bot=bot,
                     )
                 )
             else:

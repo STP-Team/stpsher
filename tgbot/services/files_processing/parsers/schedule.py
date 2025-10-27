@@ -14,6 +14,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
+from aiogram import Bot
+from aiogram.utils.deep_linking import create_start_link
 from openpyxl import load_workbook
 from stp_database import Employee, MainRequestsRepo
 
@@ -77,8 +79,9 @@ class ScheduleParser(BaseParser):
         division: str,
         stp_repo=None,
         current_day_only: bool = False,
+        bot: Bot = None,
     ) -> Dict[str, Tuple[str, Optional[str]]]:
-        """Получает график пользователя с информацией о дежурствах.
+        """Получает график пользователя с информацией о дежурствах и обменах.
 
         Args:
             fullname: ФИО пользователя
@@ -86,9 +89,10 @@ class ScheduleParser(BaseParser):
             division: Направление
             stp_repo: Репозиторий базы данных
             current_day_only: Если True, получает дежурство только для текущего дня
+            bot: Экземпляр бота для создания ссылок
 
         Returns:
-            Словарь с маппингом день -> (график, информация_о_дежурстве)
+            Словарь с маппингом день -> (график, информация_о_дежурстве_и_обменах)
         """
         try:
             schedule_data = self.get_user_schedule(fullname, month, division)
@@ -145,16 +149,67 @@ class ScheduleParser(BaseParser):
                     logger.warning(f"[Excel] Ошибка получения дежурных на месяц: {e}")
                     month_duties = {}
 
+            # Получаем информацию о купленных обменах пользователя
+            user_exchanges = {}
+            if stp_repo:
+                try:
+                    user = await stp_repo.employee.get_users(fullname=fullname)
+                    if user:
+                        # Получаем купленные обмены пользователя (где он buyer)
+                        bought_exchanges = await stp_repo.exchange.get_user_exchanges(
+                            user_id=user.user_id,
+                            exchange_type="all",
+                        )
+
+                        # Фильтруем только завершенные покупки
+                        current_year = datetime.now().year
+                        month_num = MonthManager.get_month_number(month)
+
+                        for exchange in bought_exchanges:
+                            # Проверяем что пользователь покупатель и сделка завершена
+                            if (
+                                exchange.buyer_id == user.user_id
+                                and exchange.status == "sold"
+                                and exchange.start_time
+                            ):
+                                # Проверяем что обмен относится к нужному месяцу
+                                if (
+                                    exchange.start_time.year == current_year
+                                    and exchange.start_time.month == month_num
+                                ):
+                                    day_num = exchange.start_time.day
+                                    if bot:
+                                        deeplink = await create_start_link(
+                                            bot=bot,
+                                            payload=f"exchange_{exchange.id}",
+                                            encode=True,
+                                        )
+                                        exchange_info = f"🎭 <a href='{deeplink}'>{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}</a>"
+                                    else:
+                                        exchange_info = f"🎭 {exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+                                    user_exchanges[day_num] = exchange_info
+
+                        logger.debug(
+                            f"[Excel] Найдено {len(user_exchanges)} купленных обменов для {fullname}"
+                        )
+
+                except Exception as e:
+                    logger.debug(
+                        f"[Excel] Ошибка получения обменов для {fullname}: {e}"
+                    )
+
             schedule_with_duties = {}
 
             for day, schedule in schedule_data.items():
                 duty_info = None
+                exchange_info = None
 
                 try:
                     day_match = re.search(r"(\d+)", day)
                     if day_match:
                         day_num = int(day_match.group(1))
 
+                        # Проверяем дежурства
                         if month_duties and day_num in month_duties:
                             duties = month_duties[day_num]
 
@@ -164,12 +219,25 @@ class ScheduleParser(BaseParser):
                                     duty_info = f"{duty.schedule} {duty.shift_type}"
                                     break
 
+                        # Проверяем купленные обмены
+                        if day_num in user_exchanges:
+                            exchange_info = user_exchanges[day_num]
+
                 except Exception as e:
                     logger.debug(
-                        f"[Excel] Ошибка проверки дежурного для {fullname} на {day}: {e}"
+                        f"[Excel] Ошибка проверки дежурного/обмена для {fullname} на {day}: {e}"
                     )
 
-                schedule_with_duties[day] = (schedule, duty_info)
+                # Объединяем информацию о дежурствах и обменах
+                combined_info = None
+                if duty_info and exchange_info:
+                    combined_info = f"{duty_info} | {exchange_info}"
+                elif duty_info:
+                    combined_info = duty_info
+                elif exchange_info:
+                    combined_info = exchange_info
+
+                schedule_with_duties[day] = (schedule, combined_info)
 
             return schedule_with_duties
 
@@ -220,8 +288,9 @@ class ScheduleParser(BaseParser):
         division: str,
         compact: bool = False,
         stp_repo=None,
+        bot: Bot = None,
     ) -> str:
-        """Получает отформатированный график пользователя с дежурствами.
+        """Получает отформатированный график пользователя с дежурствами и обменами.
 
         Для компактного вида: получает дежурство только текущего дня (быстро)
         Для детального вида: получает дежурства за весь месяц (медленнее, но полно)
@@ -232,9 +301,10 @@ class ScheduleParser(BaseParser):
             division: Направление
             compact: Использовать компактный формат
             stp_repo: Репозиторий базы данных
+            bot: Экземпляр бота для создания ссылок
 
         Returns:
-            Отформатированная строка с графиком и дежурствами
+            Отформатированная строка с графиком, дежурствами и обменами
         """
         try:
             schedule_data_with_duties = await self.get_user_schedule_with_duties(
@@ -243,6 +313,7 @@ class ScheduleParser(BaseParser):
                 division,
                 stp_repo,
                 current_day_only=compact,
+                bot=bot,
             )
 
             if not schedule_data_with_duties:
@@ -255,22 +326,22 @@ class ScheduleParser(BaseParser):
             analysis = self.analyzer.analyze_schedule(schedule_data)
 
             if compact:
-                # Extract current day's duty info for compact view
-                current_day_duty = None
+                # Extract current day's duty and exchange info for compact view
+                current_day_info = None
                 current_day_num = datetime.now().day
-                for day_key, (_, duty_info) in schedule_data_with_duties.items():
+                for day_key, (_, combined_info) in schedule_data_with_duties.items():
                     day_match = re.search(r"(\d+)", day_key)
                     if day_match and int(day_match.group(1)) == current_day_num:
-                        current_day_duty = duty_info
+                        current_day_info = combined_info
                         break
 
                 logger.debug(
-                    f"[Excel] Компактный вид дежурного: {current_day_duty or 'None'}"
+                    f"[Excel] Компактный вид дежурных/обменов: {current_day_info or 'None'}"
                 )
 
-                # Для компактного вида отображаем только текущий день дежурств
+                # Для компактного вида отображаем только текущий день дежурств и обменов
                 return self.formatter.format_compact(
-                    month, *analysis, current_day_duty=current_day_duty
+                    month, *analysis, current_day_duty=current_day_info
                 )
             else:
                 # Для детального вида отображаем график дежурств на весь месяц

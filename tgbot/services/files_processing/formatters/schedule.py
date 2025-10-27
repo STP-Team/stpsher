@@ -112,7 +112,7 @@ class ScheduleFormatter:
             army_days: Список дней в военкомате
             sick_days: Список дней на больничном
             missing_days: Список дней отсутствия
-            current_day_duty: Информация о дежурстве на текущий день (например, "09:00-18:00 С")
+            current_day_duty: Информация о дежурстве и купленных обменах на текущий день
 
         Returns:
             Отформатированная строка расписания
@@ -325,24 +325,6 @@ class ScheduleFormatter:
                 lines.append(f"<b>{day_formatted}:</b> 🕵️‍♂️ Отсутствие")
                 missing_days_count += 1
 
-        lines.append("")
-        lines.append("<blockquote expandable>📊 <b>Статистика:</b>")
-        lines.append(f"Рабочих дней: <b>{work_days_count}</b>")
-        if total_work_hours > 0:
-            lines.append(f"Рабочих часов: <b>{round(total_work_hours)}ч</b>")
-        lines.append(f"Выходных: <b>{days_off_count}</b>")
-        if vacation_days_count > 0:
-            lines.append(f"Отпуск: <b>{vacation_days_count} дн.</b>")
-        if vacation_bs_days_count > 0:
-            lines.append(f"БС: <b>{vacation_days_count} дн.</b>")
-        if army_days_count > 0:
-            lines.append(f"Военкомат: <b>{vacation_days_count} дн.</b>")
-        if sick_days_count > 0:
-            lines.append(f"БЛ: <b>{sick_days_count} дн.</b>")
-        if missing_days_count > 0:
-            lines.append(f"Отсутствий: <b>{missing_days_count} дн.</b>")
-        lines.append("</blockquote>")
-
         return "\n".join(lines)
 
     @staticmethod
@@ -403,7 +385,7 @@ class ScheduleFormatter:
         missing_days: List[DayInfo],
         duty_info: Optional[str] = None,
     ) -> Optional[str]:
-        """Get today's schedule line with emoji (optionally with duty info)."""
+        """Get today's schedule line with emoji (optionally with duty and exchange info)."""
         # Check work days
         for day_info in work_days:
             if extract_day_number(day_info.day) == current_day:
@@ -459,8 +441,8 @@ class ScheduleFormatter:
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> Optional[str]:
-        """Get today's schedule line with emoji and duty info (wrapper for unified method)."""
-        # Find today's duty info
+        """Get today's schedule line with emoji and duty/exchange info (wrapper for unified method)."""
+        # Find today's duty and exchange info
         duty_info = None
         for day_key, (schedule, duty) in schedule_data_with_duties.items():
             if extract_day_number(day_key) == current_day:
@@ -564,7 +546,7 @@ class ScheduleFormatter:
         sick_days: List[DayInfo],
         missing_days: List[DayInfo],
     ) -> str:
-        """Detailed files_processing format with duty information"""
+        """Detailed files_processing format with duty and exchange information"""
         lines = [f"<b>👔 Мой график • {month.capitalize()}</b>"]
 
         # Check if we're viewing the current month
@@ -651,7 +633,7 @@ class ScheduleFormatter:
             day_num = extract_day_number(day_info.day)
             is_current_day_flag = viewing_current_month and day_num == current_day
 
-            # Get duty information for this day
+            # Get duty and exchange information for this day
             duty_info = None
             day_key = day_info.day
             if day_key in schedule_data_with_duties:
@@ -663,7 +645,9 @@ class ScheduleFormatter:
                 if duty_info:
                     schedule_text += f" ({duty_info})"
                 if is_current_day_flag:
-                    line_content = f"<u>{day_info.day}: {schedule_text}</u>"
+                    line_content = (
+                        f"<blockquote>{day_info.day}: {schedule_text}</blockquote>"
+                    )
                 else:
                     line_content = f"{day_info.day}: <code>{schedule_text}</code>"
                 if day_info.work_hours > 0:
@@ -713,23 +697,5 @@ class ScheduleFormatter:
 
             # Add the line to the result
             lines.append(line_content)
-
-        lines.append("")
-        lines.append("<blockquote expandable>📊 <b>Статистика:</b>")
-        lines.append(f"Рабочих дней: <b>{work_days_count}</b>")
-        if total_work_hours > 0:
-            lines.append(f"Рабочих часов: <b>{round(total_work_hours)}ч</b>")
-        lines.append(f"Выходных: <b>{days_off_count}</b>")
-        if vacation_days_count > 0:
-            lines.append(f"Отпуск: <b>{vacation_days_count} дн.</b>")
-        if vacation_bs_days_count > 0:
-            lines.append(f"БС: <b>{vacation_bs_days_count} дн.</b>")
-        if army_days_count > 0:
-            lines.append(f"Военкомат: <b>{army_days_count} дн.</b>")
-        if sick_days_count > 0:
-            lines.append(f"БЛ: <b>{sick_days_count} дн.</b>")
-        if missing_days_count > 0:
-            lines.append(f"Отсутствий: <b>{missing_days_count} дн.</b>")
-        lines.append("</blockquote>")
 
         return "\n".join(lines)

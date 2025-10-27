@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict
 
+from aiogram import Bot
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
@@ -32,7 +33,11 @@ async def schedules_getter(
 
 
 async def user_schedule_getter(
-    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    bot: Bot,
+    user: Employee,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер навигации по месяцам для расписания сотрудника.
 
@@ -58,7 +63,11 @@ async def user_schedule_getter(
     ]
 
     schedule_text = await schedule_service.get_user_schedule_response(
-        user=user, month=current_month, compact=not is_detailed_mode, stp_repo=stp_repo
+        user=user,
+        month=current_month,
+        compact=not is_detailed_mode,
+        stp_repo=stp_repo,
+        bot=bot,
     )
 
     return {
