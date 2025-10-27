@@ -85,14 +85,14 @@ async def start_deeplink(
                 if exchange.type == "sell":
                     # Запускаем диалог продаж
                     await dialog_manager.start(
-                        Exchanges.sell_detail,
+                        Exchanges.buy_detail,
                         mode=StartMode.RESET_STACK,
                         data={"exchange_id": exchange_id},
                     )
                 else:
                     # Запускаем диалог покупок
                     await dialog_manager.start(
-                        Exchanges.buy_detail,
+                        Exchanges.sell_detail,
                         mode=StartMode.RESET_STACK,
                         data={"exchange_id": exchange_id},
                     )

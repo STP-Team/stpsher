@@ -12,7 +12,9 @@ from aiogram.types import (
 from aiogram.utils.deep_linking import create_start_link
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.dialogs.getters.common.exchanges.exchanges import price_per_hour
+from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    get_exchange_text,
+)
 from tgbot.filters.role import (
     AdminFilter,
     DutyFilter,
@@ -267,12 +269,10 @@ async def advanced_inline_handler(
             else:
                 payment_info = "По договоренности"
 
-            hour_price = await price_per_hour(exchange)
-
+            exchange_info = await get_exchange_text(exchange, user.user_id)
             message_text = f"""🔍 <b>Детали сделки</b>
 
-📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{exchange.price} р. ({hour_price} р./час)</code>
+{exchange_info}
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""

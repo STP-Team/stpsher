@@ -1,5 +1,6 @@
 """Геттеры для биржи подмен."""
 
+import logging
 import re
 from datetime import datetime
 from typing import Any, Dict
@@ -11,6 +12,8 @@ from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
+
+logger = logging.getLogger(__name__)
 
 
 def get_month_name(month_number: int) -> str:
@@ -79,7 +82,85 @@ async def prepare_calendar_data_for_exchange(
         dialog_manager.dialog_data["shift_dates"] = {}
 
 
-async def price_per_hour(exchange: Exchange):
+async def get_exchange_type(exchange: Exchange, is_seller: bool) -> str:
+    """Получает тип сделки.
+
+    Args:
+        exchange:
+        is_seller:
+
+    Returns:
+        Тип сделки: "📉 Продам" или "📈 Куплю"
+    """
+    if exchange.type == "sell":
+        operation_type = "📉 Продам"
+    else:
+        operation_type = "📈 Куплю"
+
+    return operation_type
+
+
+async def get_exchange_status(exchange: Exchange) -> str:
+    """Получает статус сделки.
+
+    Args:
+        exchange: Экземпляр сделки с моделью Exchange
+
+    Returns:
+        Статус сделки
+    """
+    status = ""
+
+    if exchange.status == "active":
+        if exchange.type == "sell":
+            status = "🟢 Активная продажа"
+        else:
+            status = "🟢 Активная покупка"
+    elif exchange.status == "sold":
+        # Получаем информацию о второй стороне сделки
+        if exchange.buyer_id:
+            if exchange.type == "sell":
+                status = "✅ Сделка завершена - часы проданы"
+            else:
+                status = "✅ Сделка завершена - часы куплены"
+        elif exchange.seller_id:
+            if exchange.type == "sell":
+                status = "✅ Сделка завершена - часы куплены"
+            else:
+                status = "✅ Сделка завершена - часы проданы"
+    elif exchange.status in ["canceled", "expired"]:
+        if exchange.status == "canceled":
+            status = "❌ Сделка отменена"
+        else:
+            status = "⏰ Сделка истекла"
+    else:
+        status = f"ℹ️ {exchange.status.title()}"
+
+    return status
+
+
+async def get_exchange_hours(exchange: Exchange) -> float | None:
+    """Расчет кол-ва часов сделки.
+
+    Args:
+        exchange: Экземпляр сделки с моделью Exchange
+
+    Returns:
+        Кол-во часов или None
+    """
+    if exchange.start_time and exchange.end_time:
+        try:
+            # Рассчитываем продолжительность из TIMESTAMP полей
+            duration = exchange.end_time - exchange.start_time
+            exchange_hours = duration.total_seconds() / 3600  # Переводим в часы
+
+            return exchange_hours
+        except Exception as e:
+            logger.error(f"[Биржа] Ошибка расчета часов сделки: {e}")
+            return None
+
+
+async def get_exchange_price_per_hour(exchange: Exchange):
     """Расчет стоимости одного часа в сделке.
 
     Args:
@@ -89,20 +170,46 @@ async def price_per_hour(exchange: Exchange):
         Стоимость одного часа
     """
     price = 0
+    exchange_hours = await get_exchange_hours(exchange)
 
-    if exchange.start_time and exchange.end_time:
-        try:
-            # Рассчитываем продолжительность из TIMESTAMP полей
-            duration = exchange.end_time - exchange.start_time
-            shift_hours = duration.total_seconds() / 3600  # Переводим в часы
-
-            # Рассчитываем цену за час
-            if shift_hours > 0 and exchange.price:
-                price = round(exchange.price / shift_hours, 2)
-        except (ValueError, AttributeError):
-            price = 0
+    if exchange_hours and exchange_hours > 0 and exchange.price:
+        price = round(exchange.price / exchange_hours, 2)
 
     return price
+
+
+async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
+    """Форматирует текст для отображения базовой информации о сделке.
+
+    Args:
+        exchange: Экземпляр сделки с моделью Exchange
+        user_id: Идентификатор Telegram
+
+    Returns:
+        Форматированная строка
+    """
+    exchange_type = await get_exchange_type(
+        exchange, is_seller=exchange.seller_id == user_id
+    )
+    shift_date = exchange.start_time.strftime("%d.%m.%Y")
+    shift_time = (
+        f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+    )
+    shift_hours = await get_exchange_hours(exchange)
+    price = exchange.price
+
+    if exchange.type == "sell":
+        price_per_hour = await get_exchange_price_per_hour(exchange)
+        exchange_text = f"""<blockquote><b>{exchange_type}:</b>
+<code>{shift_time} ({shift_hours:g} ч.) {shift_date} ПРМ</code>
+💰 <b>Цена:</b>
+<code>{price:g} р. ({price_per_hour:g} р./ч.)</code></blockquote>"""
+    else:
+        exchange_text = f"""<blockquote><b>{exchange_type}:</b>
+<code>{shift_time} ({shift_hours:g} ч.) {shift_date} ПРМ</code>
+💰 <b>Цена:</b>
+<code>{price:g} р./ч.</code></blockquote>"""
+    return exchange_text
 
 
 async def exchange_buy_getter(
@@ -216,7 +323,7 @@ async def exchange_sell_getter(
 
 
 async def exchange_buy_detail_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра обмена при покупке."""
     if dialog_manager.start_data:
@@ -243,13 +350,6 @@ async def exchange_buy_detail_getter(
             user_id=seller.user_id,
         )
 
-        # Форматируем данные
-        shift_date = exchange.start_time.strftime("%d.%m.%Y")
-
-        shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-
-        hour_price = await price_per_hour(exchange)
-
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при покупке"
@@ -258,15 +358,13 @@ async def exchange_buy_detail_getter(
         else:
             payment_info = "По договоренности"
 
+        exchange_info = await get_exchange_text(exchange, user.user_id)
         deeplink = f"exchange_{exchange.id}"
-        comment = exchange.comment
+        comment = exchange.comment if exchange.comment else "Без комментария"
 
         return {
-            "shift_date": shift_date,
+            "exchange_info": exchange_info,
             "seller_name": seller_name,
-            "shift_time": shift_time,
-            "price": exchange.price,
-            "price_per_hour": hour_price,
             "payment_info": payment_info,
             "comment": comment,
             "deeplink": deeplink,
@@ -277,7 +375,7 @@ async def exchange_buy_detail_getter(
 
 
 async def exchange_sell_detail_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра запроса на покупку (buy request)."""
     if dialog_manager.start_data:
@@ -308,12 +406,6 @@ async def exchange_sell_detail_getter(
             user_id=buyer.user_id,
         )
 
-        # Форматируем данные
-        shift_date = exchange.start_time.strftime("%d.%m.%Y")
-        shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-
-        hour_price = await price_per_hour(exchange)
-
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при продаже"
@@ -322,19 +414,18 @@ async def exchange_sell_detail_getter(
         else:
             payment_info = "По договоренности"
 
+        exchange_info = await get_exchange_text(exchange, user.user_id)
         deeplink = f"buy_request_{exchange.id}"
 
         return {
-            "shift_date": shift_date,
-            "shift_time": shift_time,
-            "price": exchange.price,
-            "price_per_hour": hour_price,
+            "exchange_info": exchange_info,
             "buyer_name": buyer_name,
             "payment_info": payment_info,
             "deeplink": deeplink,
         }
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка при просмотре сделки: {e}")
         return {"error": "Ошибка загрузки данных"}
 
 
@@ -431,10 +522,6 @@ async def my_detail_getter(
 
         user_id = dialog_manager.event.from_user.id
 
-        # Форматируем данные
-        shift_date = exchange.start_time.strftime("%d.%m.%Y")
-        shift_time = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при проведении сделки"
@@ -444,40 +531,7 @@ async def my_detail_getter(
             payment_info = "По договоренности"
 
         # Определяем контекст и роль пользователя
-        is_seller = exchange.seller_id == user_id
         other_party = None
-        status_text = ""
-
-        if exchange.status == "active":
-            if exchange.type == "sell":
-                status_text = "🟢 Активное предложение продажи"
-            else:  # buy
-                status_text = "🟢 Активный запрос на покупку"
-        elif exchange.status == "sold":
-            # Получаем информацию о второй стороне сделки
-            if is_seller and exchange.buyer_id:
-                other_party = await stp_repo.employee.get_users(
-                    user_id=exchange.buyer_id
-                )
-                if exchange.type == "sell":
-                    status_text = "✅ Смена продана"
-                else:  # buy
-                    status_text = "✅ Смена куплена"
-            elif not is_seller and exchange.seller_id:
-                other_party = await stp_repo.employee.get_users(
-                    user_id=exchange.seller_id
-                )
-                if exchange.type == "sell":
-                    status_text = "✅ Смена куплена"
-                else:  # buy
-                    status_text = "✅ Смена продана"
-        elif exchange.status in ["canceled", "expired"]:
-            if exchange.status == "canceled":
-                status_text = "❌ Отменено"
-            else:
-                status_text = "⏰ Истекло"
-        else:
-            status_text = f"ℹ️ {exchange.status.title()}"
 
         # Форматируем имя второй стороны
         other_party_name = ""
@@ -490,41 +544,30 @@ async def my_detail_getter(
                 user_id=other_party.user_id,
             )
 
-        # Определяем тип операции для заголовка
-        if exchange.type == "sell":
-            if is_seller:
-                operation_type = "Продам"
-            else:
-                operation_type = "Куплю"
-        else:  # buy
-            if is_seller:  # Создатель buy-запроса
-                operation_type = "запрос на покупку"
-            else:  # Тот кто принял buy-запрос
-                operation_type = "Продам"
+        exchange_text = await get_exchange_text(exchange, user_id)
+        exchange_status = await get_exchange_status(exchange)
 
-        hour_price = await price_per_hour(exchange)
-        deeplink = f"exchange_{exchange.id}"
-        deeplink_url = await create_start_link(bot=bot, payload=deeplink, encode=True)
+        exchange_deeplink = f"exchange_{exchange.id}"
+        exchange_deeplink_url = await create_start_link(
+            bot=bot, payload=exchange_deeplink, encode=True
+        )
+        comment = exchange.comment if exchange.comment else "Без комментария"
 
         return {
-            "shift_date": shift_date,
-            "shift_time": shift_time,
-            "price": exchange.price,
-            "price_per_hour": hour_price,
+            "exchange_info": exchange_text,
             "payment_info": payment_info,
-            "comment": exchange.comment or "Без комментария",
-            "status_text": status_text,
-            "operation_type": operation_type,
+            "comment": comment,
+            "status": exchange_status,
             "other_party_name": other_party_name,
             "has_other_party": bool(other_party_name),
             "is_active": exchange.status == "active",
-            "is_seller": is_seller,
             "exchange_type": exchange.type,
             "created_date": exchange.created_at.strftime("%d.%m.%Y %H:%M"),
             "is_paid": exchange.is_paid,
-            "deeplink": deeplink,
-            "deeplink_url": deeplink_url,
+            "deeplink": exchange_deeplink,
+            "deeplink_url": exchange_deeplink_url,
         }
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка при просмотре своей сделки: {e}")
         return {"error": "Ошибка загрузки данных"}

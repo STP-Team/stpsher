@@ -141,10 +141,9 @@ sell_window = Window(
 )
 
 sell_detail = Window(
-    Const("🔍 <b>Детали запроса на покупку</b>"),
+    Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📅 <b>Запрос:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
+{exchange_info}
 
 👤 <b>Покупатель:</b> {buyer_name}
 💳 <b>Оплата:</b> {payment_info}"""),
@@ -166,8 +165,7 @@ sell_detail = Window(
 buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
+{exchange_info}
 
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""),
@@ -175,7 +173,7 @@ buy_detail_window = Window(
         """
 📝 <b>Комментарий:</b>
 <blockquote expandable>{comment}</blockquote>""",
-        when=F["comment"] != "Без комментария",
+        when="comment",
     ),
     Button(Const("✅ Купить"), id="apply", on_click=on_exchange_buy),
     SwitchInlineQueryChosenChatButton(
@@ -218,7 +216,7 @@ create_window = Window(
 )
 
 my_window = Window(
-    Const("🤝 <b>Биржа: Мои сделки</b>"),
+    Const("🗳 <b>Биржа: Мои сделки</b>"),
     Format("""
 Здесь отображаются вся твоя активность на бирже
 
@@ -253,11 +251,9 @@ my_window = Window(
 my_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р. ({price_per_hour} р./час)</code>
+📊 <b>Статус:</b> {status}
 
-🔧 <b>Операция:</b> {operation_type}
-📊 <b>Статус:</b> {status_text}"""),
+{exchange_info}"""),
     Format(
         """
 👤 <b>Вторая сторона:</b> {other_party_name}""",
@@ -273,11 +269,10 @@ my_detail_window = Window(
         """
 📝 <b>Комментарий:</b>
 <blockquote expandable>{comment}</blockquote>""",
-        when=F["comment"] != "Без комментария",
+        when="comment",
     ),
     Format("""
-🕐 <b>Создано:</b> {created_date}
-🔗 <b>Прямая ссылка:</b> <code>{deeplink_url}</code>"""),
+🔗 <b>Ссылка:</b> <code>{deeplink_url}</code>"""),
     # Кнопки для активных обменов
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),

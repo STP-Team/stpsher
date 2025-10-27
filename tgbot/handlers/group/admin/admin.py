@@ -12,6 +12,7 @@ from aiogram.types import (
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.filters.group import GroupAdminFilter
+from tgbot.misc.helpers import short_name
 
 logger = logging.getLogger(__name__)
 
