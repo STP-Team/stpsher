@@ -11,314 +11,6 @@ from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 
-async def sell_date_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна выбора даты."""
-    # Подготавливаем данные календаря с информацией о сменах
-    await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
-    return {}
-
-
-async def sell_hours_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна выбора часов."""
-    shift_date = dialog_manager.dialog_data.get("shift_date")
-    is_today = dialog_manager.dialog_data.get("is_today", False)
-
-    if not shift_date:
-        return {
-            "selected_date": "Не выбрана",
-            "shift_options": [],
-            "user_schedule": "Не найден",
-        }
-
-    try:
-        # Получаем график пользователя с дежурствами
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-
-        parser = ScheduleParser()
-        month_name = get_month_name(date_obj.month)
-
-        # Получаем график с дежурствами
-        try:
-            schedule_with_duties = await parser.get_user_schedule_with_duties(
-                user.fullname,
-                month_name,
-                user.division,
-                stp_repo,
-                current_day_only=False,
-            )
-        except Exception:
-            schedule_with_duties = {}
-
-        # Извлекаем информацию о смене на выбранную дату
-        user_schedule = "Не указано"
-        duty_warning = ""
-
-        # Ищем данные на выбранную дату
-        day_key = f"{date_obj.day:02d}"
-        for day, (schedule, duty_info) in schedule_with_duties.items():
-            if day_key in day:
-                user_schedule = schedule or "Не указано"
-                if duty_info:
-                    duty_warning = (
-                        f"⚠️ ВНИМАНИЕ: В это время у вас дежурство ({duty_info})"
-                    )
-                break
-
-        # Определяем доступные опции
-        shift_options = []
-
-        if user_schedule and user_schedule not in ["Не указано", "В", "О"]:
-            # Проверяем, есть ли время в графике
-            time_pattern = r"\d{1,2}:\d{2}-\d{1,2}:\d{2}"
-            has_time = re.search(time_pattern, user_schedule)
-
-            if has_time:
-                shift_options.append(("full", "🕘 Полная смена"))
-                shift_options.append(("partial", "⏰ Часть смены"))
-
-                # Если это сегодня и смена уже началась, добавляем опцию "оставшееся время"
-                if is_today:
-                    current_time = datetime.now()
-                    # Простая проверка - если сейчас после 9 утра, то смена могла начаться
-                    if current_time.hour >= 9:
-                        shift_options = [
-                            ("remaining_today", "⏰ Оставшееся время сегодня")
-                        ]
-            else:
-                # Если нет времени в графике, предлагаем ввести вручную
-                shift_options.append(("partial", "⏰ Введите время смены"))
-        else:
-            # Если график не найден или сотрудник не работает
-            user_schedule = "Нет смены / Выходной"
-
-        return {
-            "selected_date": formatted_date,
-            "user_schedule": user_schedule,
-            "duty_warning": duty_warning,
-            "shift_options": shift_options,
-        }
-
-    except Exception as e:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {
-            "selected_date": formatted_date,
-            "user_schedule": f"Ошибка: {str(e)}",
-            "duty_warning": "",
-            "shift_options": [],
-        }
-
-
-async def sell_time_input_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна ввода времени."""
-    shift_date = dialog_manager.dialog_data.get("shift_date")
-
-    if not shift_date:
-        return {"selected_date": "Не выбрана", "user_schedule": "Не найден"}
-
-    try:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-
-        parser = ScheduleParser()
-        month_name = get_month_name(date_obj.month)
-
-        # Получаем график пользователя
-        user_schedule = "Не указано"
-        duty_warning = ""
-
-        try:
-            schedule_dict = await parser.get_user_schedule_with_duties(
-                user.fullname,
-                month_name,
-                user.division,
-                stp_repo,
-                current_day_only=False,
-            )
-
-            day_key = f"{date_obj.day:02d}"
-            for day, (schedule, duty_info) in schedule_dict.items():
-                if day_key in day:
-                    user_schedule = schedule or "Не указано"
-                    if duty_info:
-                        duty_warning = (
-                            f"⚠️ ВНИМАНИЕ: Проверьте время дежурства ({duty_info})"
-                        )
-                    break
-        except Exception:
-            pass
-
-        return {
-            "selected_date": formatted_date,
-            "user_schedule": user_schedule,
-            "duty_warning": duty_warning,
-        }
-
-    except Exception:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {
-            "selected_date": formatted_date,
-            "user_schedule": "Ошибка получения графика",
-            "duty_warning": "",
-        }
-
-
-async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
-    """Геттер для окна ввода цены."""
-    shift_date = dialog_manager.dialog_data.get("shift_date")
-    is_partial = dialog_manager.dialog_data.get("is_partial", False)
-    shift_start_time = dialog_manager.dialog_data.get("shift_start_time")
-    shift_end_time = dialog_manager.dialog_data.get("shift_end_time")
-
-    shift_type = "часть смены" if is_partial else "полную смену"
-    shift_time = ""
-
-    if is_partial and shift_start_time:
-        if shift_end_time:
-            shift_time = f"{shift_start_time}-{shift_end_time}"
-        else:
-            shift_time = f"с {shift_start_time}"
-
-    if shift_date:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {
-            "selected_date": formatted_date,
-            "shift_type": shift_type,
-            "shift_time": shift_time if shift_time else None,
-        }
-    return {
-        "selected_date": "Не выбрана",
-        "shift_type": shift_type,
-        "shift_time": shift_time if shift_time else None,
-    }
-
-
-async def sell_payment_timing_getter(
-    dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна выбора времени оплаты."""
-    data = dialog_manager.dialog_data
-    shift_date = data.get("shift_date")
-    price = data.get("price", 0)
-    is_partial = data.get("is_partial", False)
-    shift_type = "часть смены" if is_partial else "полную смену"
-
-    if shift_date:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {
-            "selected_date": formatted_date,
-            "shift_type": shift_type,
-            "price": price,
-        }
-    return {
-        "selected_date": "Не выбрана",
-        "shift_type": shift_type,
-        "price": price,
-    }
-
-
-async def sell_payment_date_getter(
-    dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна выбора даты платежа."""
-    data = dialog_manager.dialog_data
-    shift_date = data.get("shift_date")
-
-    if shift_date:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {"shift_date": formatted_date}
-    return {"shift_date": "Не выбрана"}
-
-
-async def sell_comment_getter(
-    dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна ввода комментария."""
-    data = dialog_manager.dialog_data
-    shift_date = data.get("shift_date")
-    price = data.get("price", 0)
-    is_partial = data.get("is_partial", False)
-
-    shift_type = "часть смены" if is_partial else "полную смену"
-
-    if shift_date:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {
-            "selected_date": formatted_date,
-            "shift_type": shift_type,
-            "price": price,
-        }
-    return {
-        "selected_date": "Не выбрана",
-        "shift_type": shift_type,
-        "price": price,
-    }
-
-
-async def sell_confirmation_getter(
-    dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна подтверждения."""
-    data = dialog_manager.dialog_data
-
-    # Базовые данные
-    shift_date = data.get("shift_date")
-    price = data.get("price", 0)
-    is_partial = data.get("is_partial", False)
-    payment_type = data.get("payment_type", "immediate")
-    payment_date = data.get("payment_date")
-    comment = data.get("comment")
-
-    # Форматируем дату смены
-    formatted_shift_date = "Не выбрана"
-    if shift_date:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_shift_date = date_obj.strftime("%d.%m.%Y")
-
-    # Тип смены
-    shift_type = "Часть смены" if is_partial else "Полная смена"
-
-    # Время смены
-    shift_start = data.get("shift_start_time")
-    shift_end = data.get("shift_end_time")
-    shift_time_info = f"с {shift_start} до {shift_end}"
-    if is_partial and data.get("shift_end_time"):
-        shift_time_info = f"{shift_start}-{data.get('shift_end_time')}"
-
-    # Информация об оплате
-    payment_info = "Сразу при покупке"
-    if payment_type == "on_date" and payment_date:
-        payment_date_obj = datetime.fromisoformat(payment_date).date()
-        formatted_payment_date = payment_date_obj.strftime("%d.%m.%Y")
-        payment_info = f"До {formatted_payment_date}"
-
-    result = {
-        "shift_date": formatted_shift_date,
-        "shift_type": shift_type,
-        "shift_time": shift_time_info,
-        "price": price,
-        "payment_info": payment_info,
-    }
-
-    # Добавляем комментарий если есть
-    if comment:
-        result["comment"] = comment
-
-    return result
-
-
 def get_month_name(month_number: int) -> str:
     """Получить название месяца на русском языке."""
     months = [
@@ -639,127 +331,188 @@ async def exchange_sell_detail_getter(
         return {"error": "Ошибка загрузки данных"}
 
 
-# Buy flow getters
-
-
-async def buy_date_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
-    """Геттер для окна выбора даты покупки."""
-    return {}
-
-
-async def buy_hours_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
-    """Геттер для окна ввода времени покупки."""
-    buy_date = dialog_manager.dialog_data.get("buy_date")
-    any_date = dialog_manager.dialog_data.get("any_date", False)
-
-    result = {}
-
-    if buy_date:
-        date_obj = datetime.fromisoformat(buy_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        result["selected_date"] = formatted_date
-    elif any_date:
-        result["any_date"] = True
-
-    return result
-
-
-async def buy_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
-    """Геттер для окна ввода цены покупки."""
-    data = dialog_manager.dialog_data
-
-    buy_date = data.get("buy_date")
-    any_date = data.get("any_date", False)
-    buy_start_time = data.get("buy_start_time")
-    buy_end_time = data.get("buy_end_time")
-    any_hours = data.get("any_hours", False)
-
-    result = {}
-
-    # Дата
-    if buy_date:
-        date_obj = datetime.fromisoformat(buy_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        result["selected_date"] = formatted_date
-    elif any_date:
-        result["any_date"] = True
-
-    # Время
-    if buy_start_time and buy_end_time:
-        result["hours_range"] = f"{buy_start_time}-{buy_end_time}"
-    elif any_hours:
-        result["any_hours"] = True
-
-    return result
-
-
-async def buy_comment_getter(
-    dialog_manager: DialogManager, **_kwargs
+async def my_exchanges(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
-    """Геттер для окна ввода комментария покупки."""
-    data = dialog_manager.dialog_data
+    """Геттер для отображения всех обменов пользователя."""
+    user_id = dialog_manager.event.from_user.id
 
-    buy_date = data.get("buy_date")
-    any_date = data.get("any_date", False)
-    buy_start_time = data.get("buy_start_time")
-    buy_end_time = data.get("buy_end_time")
-    any_hours = data.get("any_hours", False)
-    price_per_hour = data.get("buy_price_per_hour", 0)
+    try:
+        # Получаем все обмены пользователя (как продажи, так и покупки)
+        exchanges = await stp_repo.exchange.get_user_exchanges(
+            user_id=user_id,
+            exchange_type="all",  # Получаем все типы обменов
+        )
 
-    result = {"price_per_hour": price_per_hour}
+        # Форматируем данные для отображения
+        my_exchanges_list = []
+        for exchange in exchanges:
+            # Форматируем дату
+            date_str = exchange.shift_date.strftime("%d.%m")
 
-    # Дата
-    if buy_date:
-        date_obj = datetime.fromisoformat(buy_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
-        result["selected_date"] = formatted_date
-    elif any_date:
-        result["any_date"] = True
+            # Определяем тип и статус обмена для пользователя
+            if exchange.seller_id == user_id:
+                # Пользователь - продавец или создатель запроса на покупку
+                if exchange.type == "sell":
+                    # Пользователь продает смену
+                    if exchange.status == "sold":
+                        button_text = f"📉 Продал {date_str}"
+                    elif exchange.status == "active":
+                        button_text = f"📉 Продаю {date_str}"
+                    else:  # cancelled, expired, inactive
+                        button_text = f"Отменил {date_str}"
+                else:  # exchange.type == "buy"
+                    # Пользователь создал запрос на покупку
+                    if exchange.status == "sold":
+                        button_text = f"📈 Купил {date_str}"
+                    elif exchange.status == "active":
+                        button_text = f"📈 Покупаю {date_str}"
+                    else:  # cancelled, expired, inactive
+                        button_text = f"Отменил {date_str}"
+            else:
+                # Пользователь - покупатель (buyer_id == user_id)
+                if exchange.type == "sell":
+                    # Пользователь купил чужое предложение продажи
+                    button_text = f"📈 Купил {date_str}"
+                else:
+                    # Пользователь принял чужой запрос на покупку (продал)
+                    button_text = f"📉 Продал {date_str}"
 
-    # Время
-    if buy_start_time and buy_end_time:
-        result["hours_range"] = f"{buy_start_time}-{buy_end_time}"
-    elif any_hours:
-        result["any_hours"] = True
+            my_exchanges_list.append({
+                "id": exchange.id,
+                "button_text": button_text,
+                "type": exchange.type,
+                "status": exchange.status,
+                "is_seller": exchange.seller_id == user_id,
+                "date": date_str,
+                "time": f"{exchange.shift_start_time}-{exchange.shift_end_time or ''}".rstrip(
+                    "-"
+                ),
+                "price": exchange.price,
+            })
 
-    return result
+        return {
+            "my_exchanges": my_exchanges_list,
+            "length": len(my_exchanges_list),
+            "has_exchanges": len(my_exchanges_list) > 0,
+        }
+
+    except Exception:
+        return {
+            "my_exchanges": [],
+            "has_exchanges": False,
+        }
 
 
-async def buy_confirmation_getter(
-    dialog_manager: DialogManager, **_kwargs
+async def my_detail_getter(
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
-    """Геттер для окна подтверждения покупки."""
-    data = dialog_manager.dialog_data
-
-    buy_date = data.get("buy_date")
-    any_date = data.get("any_date", False)
-    buy_start_time = data.get("buy_start_time")
-    buy_end_time = data.get("buy_end_time")
-    any_hours = data.get("any_hours", False)
-    price_per_hour = data.get("buy_price_per_hour", 0)
-    comment = data.get("buy_comment")
-
-    # Информация о дате
-    if buy_date:
-        date_obj = datetime.fromisoformat(buy_date).date()
-        date_info = date_obj.strftime("%d.%m.%Y")
+    """Геттер для детального просмотра собственного обмена."""
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
     else:
-        date_info = "Любая дата"
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
-    # Информация о времени
-    if buy_start_time and buy_end_time:
-        time_info = f"{buy_start_time}-{buy_end_time}"
-    else:
-        time_info = "Любое время"
+    if not exchange_id:
+        return {"error": "Обмен не найден"}
 
-    result = {
-        "date_info": date_info,
-        "time_info": time_info,
-        "price_per_hour": price_per_hour,
-    }
+    try:
+        # Получаем детали обмена
+        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+        if not exchange:
+            return {"error": "Обмен не найден"}
 
-    # Добавляем комментарий если есть
-    if comment:
-        result["comment"] = comment
+        user_id = dialog_manager.event.from_user.id
 
-    return result
+        # Форматируем данные
+        shift_date = exchange.shift_date.strftime("%d.%m.%Y")
+        shift_time = (
+            f"{exchange.shift_start_time}-{exchange.shift_end_time or ''}".rstrip("-")
+        )
+
+        # Информация об оплате
+        if exchange.payment_type == "immediate":
+            payment_info = "Сразу при проведении сделки"
+        elif exchange.payment_date:
+            payment_info = f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
+        else:
+            payment_info = "По договоренности"
+
+        # Определяем контекст и роль пользователя
+        is_seller = exchange.seller_id == user_id
+        other_party = None
+        status_text = ""
+
+        if exchange.status == "active":
+            if exchange.type == "sell":
+                status_text = "🟢 Активное предложение продажи"
+            else:  # buy
+                status_text = "🟢 Активный запрос на покупку"
+        elif exchange.status == "sold":
+            # Получаем информацию о второй стороне сделки
+            if is_seller and exchange.buyer_id:
+                other_party = await stp_repo.employee.get_users(
+                    user_id=exchange.buyer_id
+                )
+                if exchange.type == "sell":
+                    status_text = "✅ Смена продана"
+                else:  # buy
+                    status_text = "✅ Смена куплена"
+            elif not is_seller and exchange.seller_id:
+                other_party = await stp_repo.employee.get_users(
+                    user_id=exchange.seller_id
+                )
+                if exchange.type == "sell":
+                    status_text = "✅ Смена куплена"
+                else:  # buy
+                    status_text = "✅ Смена продана"
+        elif exchange.status in ["canceled", "expired"]:
+            if exchange.status == "canceled":
+                status_text = "❌ Отменено"
+            else:
+                status_text = "⏰ Истекло"
+        else:
+            status_text = f"ℹ️ {exchange.status.title()}"
+
+        # Форматируем имя второй стороны
+        other_party_name = ""
+        if other_party:
+            other_party_name = format_fullname(
+                other_party.fullname,
+                short=True,
+                gender_emoji=True,
+                username=other_party.username,
+                user_id=other_party.user_id,
+            )
+
+        # Определяем тип операции для заголовка
+        if exchange.type == "sell":
+            if is_seller:
+                operation_type = "продажа смены"
+            else:
+                operation_type = "покупка смены"
+        else:  # buy
+            if is_seller:  # Создатель buy-запроса
+                operation_type = "запрос на покупку"
+            else:  # Тот кто принял buy-запрос
+                operation_type = "продажа смены"
+
+        return {
+            "shift_date": shift_date,
+            "shift_time": shift_time,
+            "price": exchange.price,
+            "payment_info": payment_info,
+            "comment": exchange.description or "Без комментария",
+            "status_text": status_text,
+            "operation_type": operation_type,
+            "other_party_name": other_party_name,
+            "has_other_party": bool(other_party_name),
+            "is_active": exchange.status == "active",
+            "is_seller": is_seller,
+            "exchange_type": exchange.type,
+            "created_date": exchange.created_at.strftime("%d.%m.%Y %H:%M"),
+            "is_paid": exchange.is_paid,
+        }
+
+    except Exception:
+        return {"error": "Ошибка загрузки данных"}
