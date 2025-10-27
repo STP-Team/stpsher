@@ -77,17 +77,25 @@ async def start_deeplink(
             if exchange.seller_id == user.user_id:
                 # Запускаем диалог своей подмены
                 await dialog_manager.start(
-                    Exchanges.sell_detail,
+                    Exchanges.my_detail,
                     mode=StartMode.RESET_STACK,
                     data={"exchange_id": exchange_id},
                 )
             else:
-                # Запускаем диалог биржи подмен
-                await dialog_manager.start(
-                    Exchanges.buy_detail,
-                    mode=StartMode.RESET_STACK,
-                    data={"exchange_id": exchange_id},
-                )
+                if exchange.type == "sell":
+                    # Запускаем диалог продаж
+                    await dialog_manager.start(
+                        Exchanges.sell_detail,
+                        mode=StartMode.RESET_STACK,
+                        data={"exchange_id": exchange_id},
+                    )
+                else:
+                    # Запускаем диалог покупок
+                    await dialog_manager.start(
+                        Exchanges.buy_detail,
+                        mode=StartMode.RESET_STACK,
+                        data={"exchange_id": exchange_id},
+                    )
             return
 
     # Если payload не распознан, запускаем обычное меню
