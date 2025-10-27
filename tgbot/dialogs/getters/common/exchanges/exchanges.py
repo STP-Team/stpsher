@@ -199,6 +199,18 @@ async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
     return exchange_text
 
 
+async def exchanges_getter(user: Employee, **_kwargs):
+    """Геттер для главного меню подмен.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee.
+
+    Returns:
+        True если сотрудник из НЦК, иначе False
+    """
+    return {"is_nck": user.division == "НЦК"}
+
+
 async def exchange_buy_getter(
     stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:

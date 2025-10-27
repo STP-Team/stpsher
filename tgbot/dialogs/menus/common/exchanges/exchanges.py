@@ -3,14 +3,17 @@
 import operator
 from typing import Any
 
+from aiogram import F
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Button,
+    Group,
     ManagedRadio,
     ManagedToggle,
     Row,
     Select,
     SwitchTo,
+    Url,
 )
 from aiogram_dialog.widgets.text import Const, Format
 
@@ -18,6 +21,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
     on_exchange_type_selected,
 )
+from tgbot.dialogs.getters.common.exchanges.exchanges import exchanges_getter
 from tgbot.dialogs.menus.common.exchanges.buy import buy_detail_window, buy_window
 from tgbot.dialogs.menus.common.exchanges.my import (
     edit_offer_comment_window,
@@ -51,9 +55,29 @@ menu_window = Window(
     SwitchTo(Const("🗳 Мои сделки"), id="my", state=Exchanges.my),
     SwitchTo(Const("💸 Создать предложение"), id="create", state=Exchanges.create),
     SwitchTo(Const("📊 Статистика"), id="stats", state=Exchanges.stats),
+    Group(
+        Url(
+            Const("📌 Регламент"),
+            url=Const("clever.ertelecom.ru/content/space/4/article/12011/page/1"),
+        ),
+        Url(
+            Const("🤝 Чат биржи"),
+            url=Const("t.me/+iKZ3Ve6IwwozYjVi"),
+        ),
+        width=2,
+        when="is_nck",
+    ),
+    Group(
+        Url(
+            Const("📌 Регламент"),
+            url=Const("https://clever.ertelecom.ru/content/space/4/article/8795"),
+        ),
+        when=~F["is_nck"],
+    ),
     Row(
         Button(Const("↩️ Назад"), id="back", on_click=finish_exchanges_dialog), HOME_BTN
     ),
+    getter=exchanges_getter,
     state=Exchanges.menu,
 )
 
