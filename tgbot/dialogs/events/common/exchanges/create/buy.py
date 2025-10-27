@@ -201,7 +201,7 @@ async def on_buy_comment_input(
 
 async def on_confirm_buy(
     callback: CallbackQuery,
-    widget: Any,
+    _widget: Any,
     dialog_manager: DialogManager,
 ):
     """Обработчик подтверждения покупки."""
@@ -211,10 +211,6 @@ async def on_confirm_buy(
     try:
         # Получаем данные из диалога
         data = dialog_manager.dialog_data
-
-        # Определяем start_time и end_time
-        start_time = None
-        end_time = None
 
         if data.get("start_time") and data.get("end_time"):
             # Если есть конкретное время
@@ -244,7 +240,7 @@ async def on_confirm_buy(
         # Проверяем бан пользователя
         if await stp_repo.exchange.is_user_exchange_banned(user_id):
             await callback.answer(
-                "❌ Вы заблокированы от участия в бирже подмен", show_alert=True
+                "❌ Ты заблокирован от участия в бирже", show_alert=True
             )
             return
 

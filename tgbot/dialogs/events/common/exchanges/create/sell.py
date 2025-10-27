@@ -438,7 +438,7 @@ async def on_confirm_sell(
         # Проверяем бан пользователя
         if await stp_repo.exchange.is_user_exchange_banned(user_id):
             await callback.answer(
-                "❌ Вы заблокированы от участия в бирже подмен", show_alert=True
+                "❌ Ты заблокирован от участия в бирже", show_alert=True
             )
             return
 
