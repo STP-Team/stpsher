@@ -57,14 +57,28 @@ async def check_expired_offers(session_pool, bot: Bot):
             include_private=True, limit=200
         )
 
-        for exchange in active_exchanges:
-            shift_date = exchange.shift_date
-            shift_time = datetime.strptime(exchange.shift_start_time, "%H:%M").time()
-            shift_datetime_local = datetime.combine(shift_date.date(), shift_time)
-            shift_datetime_local = tz.localize(shift_datetime_local)
-            current_local_time = datetime.now(tz)
+        current_local_time = datetime.now(tz)
 
-            if current_local_time >= shift_datetime_local:
+        for exchange in active_exchanges:
+            # Определяем время истечения в зависимости от типа предложения
+            if exchange.type == "sell":
+                # Предложения продажи завершаются когда начинается время предложения
+                expiration_time_str = exchange.shift_start_time
+            elif exchange.type == "buy":
+                # Предложения продажи завершаются когда заканчивается время предложения
+                expiration_time_str = exchange.shift_end_time
+            else:
+                continue
+
+            # Создаем дату истечения
+            expiration_time = datetime.strptime(expiration_time_str, "%H:%M").time()
+            expiration_datetime_local = datetime.combine(
+                exchange.shift_date.date(), expiration_time
+            )
+            expiration_datetime_local = tz.localize(expiration_datetime_local)
+
+            # Проверяем истечение предложения
+            if current_local_time >= expiration_datetime_local:
                 await stp_repo.exchange.expire_exchange(exchange.id)
                 await notify_expire_offer(bot, stp_repo, exchange)
 
@@ -97,7 +111,7 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
         chat_id=exchange.seller_id,
         text=f"""⏳ <b>Предложение истекло</b>
 
-У предложения наступило время начала
+У предложения наступило время {"начала" if exchange.type == "sell" else "конца"}
 
 <blockquote>📅 <b>Предложение:</b> {shift_date} {shift_time} ПРМ
 💰 <b>Цена:</b> {exchange.price} р.
