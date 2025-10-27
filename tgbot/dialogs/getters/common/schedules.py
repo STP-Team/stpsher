@@ -14,16 +14,21 @@ from tgbot.services.files_processing.formatters.schedule import (
 from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 
-async def schedules_getter(user: Employee, **_kwargs: Any) -> Dict[str, Any]:
+async def schedules_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs: Any
+) -> Dict[str, Any]:
     """Геттер для главного меню графиков.
 
     Args:
         user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
 
     Returns:
-        Словарь с ролью сотрудника
+        Словарь с доступом сотрудника к бирже
     """
-    return {"is_user": user.role in [1, 3]}
+    is_banned = await stp_repo.exchange.is_user_exchange_banned(user.user_id)
+    has_access = user.role in [1, 3] and not is_banned
+    return {"has_access": has_access}
 
 
 async def user_schedule_getter(
@@ -39,7 +44,6 @@ async def user_schedule_getter(
     Returns:
         Словарь для смены месяца графика
     """
-    # Get month from dialog_data or use current month as default
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
