@@ -30,6 +30,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_my_exchange_selected,
     on_private_change,
     on_restore_exchange,
+    on_schedule_change,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     edit_offer_date_getter,
@@ -136,12 +137,21 @@ my_detail_window = Window(
         when=F["has_other_party"] & ~F["is_paid"],
     ),
     Row(SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer)),
-    Checkbox(
-        Const("🫣 Приватная"),
-        Const("👀 Публичная"),
-        id="offer_private_status",
-        on_state_changed=on_private_change,
-        when=F["is_active"],
+    Row(
+        Checkbox(
+            Const("📅 В графике"),
+            Const("Не в графике"),
+            id="exchange_in_schedule",
+            on_state_changed=on_schedule_change,
+            when=F["is_active"],
+        ),
+        Checkbox(
+            Const("🫣 Приватная"),
+            Const("Публичная"),
+            id="offer_private_status",
+            on_state_changed=on_private_change,
+            when=F["is_active"],
+        ),
     ),
     Row(
         SwitchTo(Const("🎭 К бирже"), id="to_exchanges", state=Exchanges.menu),

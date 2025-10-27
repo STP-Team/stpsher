@@ -306,9 +306,42 @@ async def on_private_change(
         return
 
     if is_private:
-        await stp_repo.exchange.set_private(exchange_id)
+        await stp_repo.exchange.update_exchange(exchange_id, is_private=True)
     else:
-        await stp_repo.exchange.set_public(exchange_id)
+        await stp_repo.exchange.update_exchange(exchange_id, is_private=False)
+
+
+async def on_schedule_change(
+    _callback: CallbackQuery,
+    widget: ManagedCheckbox,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Изменение отображения сделки в графике.
+
+    Args:
+        _callback: Callback query от Telegram
+        widget: Виджет чекбокса
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    in_schedule = widget.is_checked()
+
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
+    if exchange.in_schedule == in_schedule:
+        return
+
+    if in_schedule:
+        await stp_repo.exchange.update_exchange(exchange_id, in_schedule=True)
+    else:
+        await stp_repo.exchange.update_exchange(exchange_id, in_schedule=False)
 
 
 async def on_restore_exchange(
