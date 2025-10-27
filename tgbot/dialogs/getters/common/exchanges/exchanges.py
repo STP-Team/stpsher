@@ -8,6 +8,7 @@ from typing import Any, Dict
 from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
+from aiogram_dialog.widgets.kbd import ManagedCheckbox
 from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
@@ -518,6 +519,16 @@ async def my_detail_getter(
         exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
         if not exchange:
             return {"error": "Обмен не найден"}
+
+        private_checkbox: ManagedCheckbox = dialog_manager.find("offer_private_status")
+        if private_checkbox:
+            await private_checkbox.set_checked(exchange.is_private)
+
+        in_schedule_checkbox: ManagedCheckbox = dialog_manager.find(
+            "exchange_in_schedule"
+        )
+        if in_schedule_checkbox:
+            await in_schedule_checkbox.set_checked(exchange.in_schedule)
 
         user_id = dialog_manager.event.from_user.id
 
