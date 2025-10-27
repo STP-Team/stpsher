@@ -10,7 +10,7 @@ from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from stp_database import Employee, Exchange, MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, tz
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 logger = logging.getLogger(__name__)
@@ -553,6 +553,11 @@ async def my_detail_getter(
         )
         comment = exchange.comment if exchange.comment else "Без комментария"
 
+        could_activate = exchange.status in [
+            "inactive",
+            "canceled",
+        ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
+
         return {
             "exchange_info": exchange_text,
             "payment_info": payment_info,
@@ -566,6 +571,7 @@ async def my_detail_getter(
             "is_paid": exchange.is_paid,
             "deeplink": exchange_deeplink,
             "deeplink_url": exchange_deeplink_url,
+            "could_activate": could_activate,
         }
 
     except Exception as e:

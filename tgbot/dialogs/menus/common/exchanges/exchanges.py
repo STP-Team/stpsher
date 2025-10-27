@@ -28,6 +28,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_exchange_type_selected,
     on_my_exchange_selected,
     on_private_change,
+    on_restore_exchange,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
@@ -286,16 +287,21 @@ my_detail_window = Window(
     ),
     Row(
         Button(
-            Const("✋🏻 Отменить"),
+            Const("❤️‍🩹 Восстановить"),
+            id="restore_my_exchange",
+            on_click=on_restore_exchange,
+            when="could_activate",
+        ),
+        Button(
+            Const("💔 Деактивировать"),
             id="cancel_my_exchange",
             on_click=on_cancel_exchange,
-            when=F["is_active"] & F["is_seller"],
+            when=F["is_active"],
         ),
         Button(
             Const("🔥 Удалить"),
             id="remove_my_exchange",
             on_click=on_delete_exchange,
-            when=F["is_seller"],
         ),
     ),
     # Кнопка отметки об оплате для завершенных сделок
