@@ -1,11 +1,12 @@
 """События для биржи подмен."""
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from aiogram.types import CallbackQuery
 from aiogram_dialog import ChatEvent, DialogManager
-from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
+from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, ManagedCheckbox, Select
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import (
@@ -400,3 +401,334 @@ async def on_set_paid(
         exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     await stp_repo.exchange.mark_exchange_paid(exchange_id)
+
+
+async def on_edit_offer_date(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик редактирования даты сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.switch_to(Exchanges.edit_offer_date)
+
+
+async def on_edit_offer_price(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик редактирования цены сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.switch_to(Exchanges.edit_offer_price)
+
+
+async def on_edit_offer_payment_timing(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик редактирования условий оплаты сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.switch_to(Exchanges.edit_offer_payment_timing)
+
+
+async def on_edit_offer_comment(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик редактирования комментария сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.switch_to(Exchanges.edit_offer_comment)
+
+
+async def on_edit_date_selected(
+    _callback: CallbackQuery,
+    _calendar: ManagedCalendar,
+    dialog_manager: DialogManager,
+    selected_date: datetime,
+) -> None:
+    """Обработчик выбора новой даты для сделки.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет календаря
+        dialog_manager: Менеджер диалога
+    """
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    if not exchange_id or not selected_date:
+        await _callback.answer("❌ Ошибка при обновлении даты", show_alert=True)
+        return
+
+    # Сохраняем выбранную дату для последующего использования
+    dialog_manager.dialog_data["selected_date"] = selected_date.isoformat()
+
+    # Переходим к вводу времени
+    await dialog_manager.switch_to(Exchanges.edit_offer_date_time)
+
+
+async def on_edit_date_time_input(
+    message: Any,
+    widget: Any,
+    dialog_manager: DialogManager,
+    text: str,
+    **_kwargs,
+) -> None:
+    """Обработчик ввода нового времени для сделки после выбора даты.
+
+    Args:
+        message: Сообщение от пользователя
+        widget: Виджет ввода текста
+        dialog_manager: Менеджер диалога
+        text: Введенный текст
+    """
+    import re
+    from datetime import datetime
+
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    if not exchange_id:
+        await message.answer("❌ Ошибка: сделка не найдена")
+        return
+
+    # Валидация формата времени
+    time_pattern = r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$"
+    match = re.match(time_pattern, text.strip())
+
+    if not match:
+        await message.answer("❌ Неверный формат времени. Используй формат ЧЧ:ММ-ЧЧ:ММ")
+        return
+
+    start_hour, start_minute, end_hour, end_minute = map(int, match.groups())
+
+    # Валидация времени
+    if not (0 <= start_hour <= 23 and 0 <= end_hour <= 23):
+        await message.answer("❌ Часы должны быть от 0 до 23")
+        return
+
+    if not (0 <= start_minute <= 59 and 0 <= end_minute <= 59):
+        await message.answer("❌ Минуты должны быть от 0 до 59")
+        return
+
+    if start_minute not in [0, 30] or end_minute not in [0, 30]:
+        await message.answer("❌ Минуты могут быть только 00 или 30")
+        return
+
+    # Проверка корректности интервала
+    start_total_minutes = start_hour * 60 + start_minute
+    end_total_minutes = end_hour * 60 + end_minute
+
+    if start_total_minutes >= end_total_minutes:
+        await message.answer("❌ Время начала должно быть раньше времени окончания")
+        return
+
+    if end_total_minutes - start_total_minutes < 30:
+        await message.answer("❌ Минимальная продолжительность смены: 30 минут")
+        return
+
+    try:
+        # Получаем выбранную дату из dialog_data
+        selected_date_str = dialog_manager.dialog_data.get("selected_date")
+        if not selected_date_str:
+            await message.answer("❌ Ошибка: дата не выбрана")
+            return
+
+        # Формируем новые времена с выбранной датой
+        shift_date = datetime.fromisoformat(selected_date_str).date()
+        start_time = datetime.combine(
+            shift_date,
+            datetime.min.time().replace(hour=start_hour, minute=start_minute),
+        )
+        end_time = datetime.combine(
+            shift_date, datetime.min.time().replace(hour=end_hour, minute=end_minute)
+        )
+
+        # Обновляем и дату, и время одновременно
+        await stp_repo.exchange.update_exchange_date(exchange_id, start_time, end_time)
+        await message.answer("✅ Дата и время успешно обновлены")
+        await dialog_manager.switch_to(Exchanges.my_detail)
+    except Exception as e:
+        logger.error(f"Error updating exchange date and time: {e}")
+        await message.answer("❌ Ошибка при обновлении даты и времени")
+
+
+async def on_edit_price_input(
+    message: Any,
+    widget: Any,
+    dialog_manager: DialogManager,
+    text: str,
+    **_kwargs,
+) -> None:
+    """Обработчик ввода новой цены для сделки.
+
+    Args:
+        message: Сообщение от пользователя
+        widget: Виджет ввода текста
+        dialog_manager: Менеджер диалога
+        text: Введенный текст
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    if not exchange_id:
+        await message.answer("❌ Ошибка: сделка не найдена")
+        return
+
+    try:
+        price = int(text.strip())
+        if price < 1 or price > 50000:
+            await message.answer("❌ Цена должна быть от 1 до 50,000 рублей")
+            return
+
+        await stp_repo.exchange.update_exchange_price(exchange_id, price)
+        await message.answer("✅ Цена успешно обновлена")
+        await dialog_manager.switch_to(Exchanges.my_detail)
+    except ValueError:
+        await message.answer("❌ Цена должна быть числом")
+    except Exception as e:
+        logger.error(f"Error updating exchange price: {e}")
+        await message.answer("❌ Ошибка при обновлении цены")
+
+
+async def on_edit_payment_timing_selected(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    item_id: str,
+    **_kwargs,
+) -> None:
+    """Обработчик выбора условий оплаты.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет селектора
+        dialog_manager: Менеджер диалога
+        item_id: Выбранный тип оплаты
+    """
+    dialog_manager.dialog_data["edit_payment_type"] = item_id
+
+    if item_id == "on_date":
+        await dialog_manager.switch_to(Exchanges.edit_offer_payment_date)
+    else:  # immediate
+        # Сразу обновляем в базе
+        await _update_payment_timing(dialog_manager, item_id, None)
+
+
+async def on_edit_payment_date_selected(
+    _callback: CallbackQuery,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик выбора даты оплаты.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет календаря
+        dialog_manager: Менеджер диалога
+    """
+    payment_date = dialog_manager.dialog_data.get("selected_date")
+    payment_type = dialog_manager.dialog_data.get("edit_payment_type", "on_date")
+
+    await _update_payment_timing(dialog_manager, payment_type, payment_date)
+
+
+async def _update_payment_timing(
+    dialog_manager: DialogManager, payment_type: str, payment_date: str = None
+):
+    """Вспомогательная функция для обновления условий оплаты."""
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    if not exchange_id:
+        return
+
+    try:
+        await stp_repo.exchange.update_payment_timing(
+            exchange_id, payment_type, payment_date
+        )
+        await dialog_manager.switch_to(Exchanges.my_detail)
+    except Exception as e:
+        logger.error(f"Error updating payment timing: {e}")
+
+
+async def on_edit_comment_input(
+    message: Any,
+    widget: Any,
+    dialog_manager: DialogManager,
+    text: str,
+    **_kwargs,
+) -> None:
+    """Обработчик ввода нового комментария для сделки.
+
+    Args:
+        message: Сообщение от пользователя
+        widget: Виджет ввода текста
+        dialog_manager: Менеджер диалога
+        text: Введенный текст
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    if not exchange_id:
+        await message.answer("❌ Ошибка: сделка не найдена")
+        return
+
+    comment = text.strip()
+    if len(comment) > 500:
+        await message.answer("❌ Комментарий не может быть длиннее 500 символов")
+        return
+
+    try:
+        await stp_repo.exchange.update_exchange_comment(exchange_id, comment)
+        await message.answer("✅ Комментарий успешно обновлен")
+        await dialog_manager.switch_to(Exchanges.my_detail)
+    except Exception as e:
+        logger.error(f"Error updating exchange comment: {e}")
+        await message.answer("❌ Ошибка при обновлении комментария")

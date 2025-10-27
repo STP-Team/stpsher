@@ -78,3 +78,11 @@ months_emojis = {
     "ноябрь": "🍁",
     "декабрь": "🎄",
 }
+
+exchange_emojis = {
+    "active": "🟢",
+    "inactive": "🟡",
+    "sold": "💰",
+    "canceled": "🔴",
+    "expired": "⏳",
+}

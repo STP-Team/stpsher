@@ -5,6 +5,7 @@ from typing import Any
 
 from aiogram import F
 from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Checkbox,
@@ -22,6 +23,16 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
     on_cancel_exchange,
     on_delete_exchange,
+    on_edit_comment_input,
+    on_edit_date_selected,
+    on_edit_date_time_input,
+    on_edit_offer_comment,
+    on_edit_offer_date,
+    on_edit_offer_payment_timing,
+    on_edit_offer_price,
+    on_edit_payment_date_selected,
+    on_edit_payment_timing_selected,
+    on_edit_price_input,
     on_exchange_buy,
     on_exchange_buy_selected,
     on_exchange_sell_selected,
@@ -31,6 +42,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_restore_exchange,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    edit_offer_date_getter,
     exchange_buy_detail_getter,
     exchange_buy_getter,
     exchange_sell_detail_getter,
@@ -46,6 +58,8 @@ from tgbot.dialogs.menus.common.exchanges.settings import (
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets.buttons import HOME_BTN
+from tgbot.dialogs.widgets.calendars import RussianCalendar
+from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 menu_window = Window(
     Const("🎭 <b>Биржа подмен</b>"),
@@ -310,11 +324,11 @@ my_detail_window = Window(
         id="mark_paid",
         when=F["has_other_party"] & ~F["is_paid"],
     ),
-    Row(Button(Const("✏️ Редактировать"), id="edit")),
+    Row(SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer)),
     Checkbox(
         Const("🫣 Приватная"),
         Const("👀 Публичная"),
-        id="is_casino_allowed",
+        id="offer_private_status",
         on_state_changed=on_private_change,
         when=F["is_active"],
     ),
@@ -325,6 +339,120 @@ my_detail_window = Window(
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my), HOME_BTN),
     getter=my_detail_getter,
     state=Exchanges.my_detail,
+)
+
+offer_edit_window = Window(
+    Const("✏️ <b>Редактирование сделки</b>"),
+    Format("""
+Используй кнопки ниже для редактирования выбранной сделки"""),
+    Row(
+        Button(
+            Const("📅 Дата и время"), id="edit_offer_date", on_click=on_edit_offer_date
+        ),
+    ),
+    Row(
+        Button(Const("💰 Цена"), id="edit_offer_price", on_click=on_edit_offer_price),
+        Button(
+            Const("💳 Оплата"),
+            id="edit_offer_payment_timing",
+            on_click=on_edit_offer_payment_timing,
+        ),
+    ),
+    Button(
+        Const("💬 Комментарий"), id="edit_offer_comment", on_click=on_edit_offer_comment
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my_detail), HOME_BTN),
+    state=Exchanges.edit_offer,
+)
+
+edit_offer_date_window = Window(
+    Const("📅 <b>Редактирование даты</b>"),
+    Const("Выбери новую дату для сделки:"),
+    ExchangeCalendar(
+        id="edit_date_calendar",
+        on_click=on_edit_date_selected,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
+    getter=edit_offer_date_getter,
+    state=Exchanges.edit_offer_date,
+)
+
+edit_offer_date_time_window = Window(
+    Const("🕐 <b>Редактирование времени</b>"),
+    Format("""
+Введи новое время в формате ЧЧ:ММ-ЧЧ:ММ
+
+Например: <code>09:00-13:00</code>
+Минуты могут быть только 00 или 30
+Минимальная продолжительность: 30 минут"""),
+    TextInput(
+        id="edit_date_time_input",
+        on_success=on_edit_date_time_input,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
+    state=Exchanges.edit_offer_date_time,
+)
+
+edit_offer_price_window = Window(
+    Const("💰 <b>Редактирование цены</b>"),
+    Format("""
+Введи новую цену за сделку
+
+Цена должна быть от 1 до 50,000 рублей"""),
+    TextInput(
+        id="edit_price_input",
+        on_success=on_edit_price_input,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
+    state=Exchanges.edit_offer_price,
+)
+
+edit_offer_payment_timing_window = Window(
+    Const("💳 <b>Редактирование условий оплаты</b>"),
+    Const("Выбери когда должна произойти оплата:"),
+    Select(
+        Format("{item[1]}"),
+        id="edit_payment_timing",
+        items=[
+            ("immediate", "🚀 Сразу"),
+            ("on_date", "📅 В определенную дату"),
+        ],
+        item_id_getter=lambda item: item[0],
+        on_click=on_edit_payment_timing_selected,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
+    state=Exchanges.edit_offer_payment_timing,
+)
+
+edit_offer_payment_date_window = Window(
+    Const("📅 <b>Дата оплаты</b>"),
+    Const("Выбери дату когда должна произойти оплата:"),
+    RussianCalendar(
+        id="edit_payment_date_calendar",
+        on_click=on_edit_payment_date_selected,
+    ),
+    Row(
+        SwitchTo(
+            Const("↩️ Назад"), id="back", state=Exchanges.edit_offer_payment_timing
+        ),
+        HOME_BTN,
+    ),
+    state=Exchanges.edit_offer_payment_date,
+)
+
+edit_offer_comment_window = Window(
+    Const("💬 <b>Редактирование комментария</b>"),
+    Format("""
+Введи новый комментарий к сделке
+
+Максимальная длина: 500 символов
+Оставь пустым для удаления комментария"""),
+    TextInput(
+        id="edit_comment_input",
+        on_success=on_edit_comment_input,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
+    state=Exchanges.edit_offer_comment,
 )
 
 
@@ -363,5 +491,13 @@ exchanges_dialog = Dialog(
     buy_filters_shift_window,
     # Настройки продаж
     sell_settings_window,
+    # Редактирование сделки
+    offer_edit_window,
+    edit_offer_date_window,
+    edit_offer_date_time_window,
+    edit_offer_price_window,
+    edit_offer_payment_timing_window,
+    edit_offer_payment_date_window,
+    edit_offer_comment_window,
     on_start=on_start,
 )

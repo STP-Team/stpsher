@@ -10,6 +10,7 @@ from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from stp_database import Employee, Exchange, MainRequestsRepo
 
+from tgbot.misc.dicts import exchange_emojis
 from tgbot.misc.helpers import format_fullname, tz
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
@@ -113,26 +114,25 @@ async def get_exchange_status(exchange: Exchange) -> str:
 
     if exchange.status == "active":
         if exchange.type == "sell":
-            status = "🟢 Активная продажа"
+            status = f"{exchange_emojis['active']} Активная продажа"
         else:
-            status = "🟢 Активная покупка"
+            status = f"{exchange_emojis['active']} Активная покупка"
     elif exchange.status == "sold":
         # Получаем информацию о второй стороне сделки
         if exchange.buyer_id:
             if exchange.type == "sell":
-                status = "✅ Сделка завершена - часы проданы"
+                status = f"{exchange_emojis['sold']} Сделка завершена - часы проданы"
             else:
-                status = "✅ Сделка завершена - часы куплены"
+                status = f"{exchange_emojis['sold']} Сделка завершена - часы куплены"
         elif exchange.seller_id:
             if exchange.type == "sell":
-                status = "✅ Сделка завершена - часы куплены"
+                status = f"{exchange_emojis['sold']} Сделка завершена - часы куплены"
             else:
-                status = "✅ Сделка завершена - часы проданы"
-    elif exchange.status in ["canceled", "expired"]:
-        if exchange.status == "canceled":
-            status = "❌ Сделка отменена"
-        else:
-            status = "⏰ Сделка истекла"
+                status = f"{exchange_emojis['sold']} Сделка завершена - часы проданы"
+    elif exchange.status == "canceled":
+        status = f"{exchange_emojis['canceled']} Сделка отменена"
+    elif exchange.status == "expired":
+        status = f"{exchange_emojis['expired']} Сделка истекла"
     else:
         status = f"ℹ️ {exchange.status.title()}"
 
@@ -556,6 +556,7 @@ async def my_detail_getter(
         could_activate = exchange.status in [
             "inactive",
             "canceled",
+            "expired",
         ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
 
         return {
@@ -577,3 +578,12 @@ async def my_detail_getter(
     except Exception as e:
         logger.error(f"[Биржа] Ошибка при просмотре своей сделки: {e}")
         return {"error": "Ошибка загрузки данных"}
+
+
+async def edit_offer_date_getter(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна выбора даты."""
+    # Подготавливаем данные календаря с информацией о сменах
+    await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
+    return {}
