@@ -95,7 +95,7 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
 
     await bot.send_message(
         chat_id=exchange.seller_id,
-        text=f"""⏳ <b>Предложение стекло</b>
+        text=f"""⏳ <b>Предложение истекло</b>
 
 У предложения наступило время начала
 
