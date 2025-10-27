@@ -10,6 +10,7 @@ class Exchanges(StatesGroup):
 
     buy = State()
     sell = State()
+    create = State()
     my = State()
 
     # Статистика
@@ -27,13 +28,9 @@ class Exchanges(StatesGroup):
     sell_settings = State()
 
 
-class ExchangeCreate(StatesGroup):
-    """Группа состояний диалога для создания предложения на бирже подмен."""
+class ExchangeCreateSell(StatesGroup):
+    """Группа состояний диалога для создания продажи на бирже."""
 
-    # Общие состояния
-    type = State()
-
-    # Состояния для продажи (sell flow)
     date = State()
     shift_type = State()
     hours = State()
@@ -43,9 +40,12 @@ class ExchangeCreate(StatesGroup):
     comment = State()
     confirmation = State()
 
-    # Состояния для покупки (buy flow)
-    buy_date = State()
-    buy_hours = State()
-    buy_price = State()
-    buy_comment = State()
-    buy_confirmation = State()
+
+class ExchangeCreateBuy(StatesGroup):
+    """Группа состояний диалога для создания покупки на бирже."""
+
+    date = State()
+    hours = State()
+    price = State()
+    comment = State()
+    confirmation = State()

@@ -9,7 +9,10 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, Select
 from stp_database import MainRequestsRepo
 
-from tgbot.dialogs.states.common.exchanges import ExchangeCreate, Exchanges
+from tgbot.dialogs.states.common.exchanges import (
+    ExchangeCreateSell,
+    Exchanges,
+)
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 logger = logging.getLogger(__name__)
@@ -117,22 +120,6 @@ async def get_user_shift(
         return None
 
 
-async def start_create_process(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик запуска процесса создания предложения.
-
-    Args:
-        _callback: Callback query от Telegram
-        _button: Кнопка создания
-        dialog_manager: Менеджер диалога
-    """
-    # Переходим к выбору даты
-    await dialog_manager.start(ExchangeCreate.type)
-
-
 async def finish_exchange_create_dialog(
     _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
 ) -> None:
@@ -155,26 +142,6 @@ async def on_cancel_sell(
     dialog_manager.dialog_data.clear()
     # Возвращаемся к главному меню биржи
     await dialog_manager.switch_to(Exchanges.menu)
-
-
-async def on_exchange_type_selected(
-    _callback: ChatEvent, _select: Select, dialog_manager: DialogManager, item_id: str
-) -> None:
-    """Обработчик выбора типа предложения.
-
-    Args:
-        _callback: Callback query от Telegram
-        _select: Виджет селектора
-        dialog_manager: Менеджер диалога
-        item_id: Идентификатор выбранного типа
-    """
-    dialog_manager.dialog_data["exchange_type"] = item_id
-
-    # Маршрутизация в зависимости от типа операции
-    if item_id == "buy":
-        await dialog_manager.switch_to(ExchangeCreate.buy_date)
-    else:  # sell
-        await dialog_manager.switch_to(ExchangeCreate.date)
 
 
 async def on_date_selected(
@@ -203,7 +170,7 @@ async def on_date_selected(
     dialog_manager.dialog_data["is_today"] = selected_date == today
 
     # Переходим к выбору часов
-    await dialog_manager.switch_to(ExchangeCreate.shift_type)
+    await dialog_manager.switch_to(ExchangeCreateSell.shift_type)
 
 
 async def on_hours_selected(
@@ -234,14 +201,14 @@ async def on_hours_selected(
             logger.error(f"[Биржа] Ошибка получения смены сотрудника: {e}")
 
         # Переходим к вводу цены
-        await dialog_manager.switch_to(ExchangeCreate.price)
+        await dialog_manager.switch_to(ExchangeCreateSell.price)
 
     elif item_id == "partial":
         # Частичная смена - переходим к вводу времени
         dialog_manager.dialog_data["is_partial"] = True
 
         # Переходим к вводу времени
-        await dialog_manager.switch_to(ExchangeCreate.hours)
+        await dialog_manager.switch_to(ExchangeCreateSell.hours)
 
     elif item_id == "remaining_today":
         # Оставшееся время сегодня
@@ -249,7 +216,7 @@ async def on_hours_selected(
         dialog_manager.dialog_data["is_remaining_today"] = True
 
         # Переходим к вводу времени
-        await dialog_manager.switch_to(ExchangeCreate.hours)
+        await dialog_manager.switch_to(ExchangeCreateSell.hours)
 
 
 async def on_time_input(
@@ -344,7 +311,7 @@ async def on_time_input(
     dialog_manager.dialog_data["shift_end_time"] = end_time
 
     # Переходим к вводу цены
-    await dialog_manager.switch_to(ExchangeCreate.price)
+    await dialog_manager.switch_to(ExchangeCreateSell.price)
 
 
 async def on_price_input(
@@ -367,7 +334,7 @@ async def on_price_input(
         dialog_manager.dialog_data["price"] = price
 
         # Переходим к выбору времени оплаты
-        await dialog_manager.switch_to(ExchangeCreate.payment_timing)
+        await dialog_manager.switch_to(ExchangeCreateSell.payment_timing)
 
     except ValueError:
         await message.answer("❌ Введите корректную цену (например: 1000 или 1500)")
@@ -384,11 +351,11 @@ async def on_payment_timing_selected(
         dialog_manager.dialog_data["payment_type"] = "immediate"
         dialog_manager.dialog_data["payment_date"] = None
         # Переходим к комментарию
-        await dialog_manager.switch_to(ExchangeCreate.comment)
+        await dialog_manager.switch_to(ExchangeCreateSell.comment)
     elif item_id == "on_date":
         dialog_manager.dialog_data["payment_type"] = "on_date"
         # Переходим к выбору даты платежа
-        await dialog_manager.switch_to(ExchangeCreate.payment_date)
+        await dialog_manager.switch_to(ExchangeCreateSell.payment_date)
 
 
 async def on_payment_date_selected(
@@ -414,7 +381,7 @@ async def on_payment_date_selected(
     dialog_manager.dialog_data["payment_date"] = selected_date.isoformat()
 
     # Переходим к комментарию
-    await dialog_manager.switch_to(ExchangeCreate.comment)
+    await dialog_manager.switch_to(ExchangeCreateSell.comment)
 
 
 async def on_confirm_sell(
@@ -496,7 +463,7 @@ async def on_comment_input(
     dialog_manager.dialog_data["comment"] = data.strip()
 
     # Переходим к подтверждению
-    await dialog_manager.switch_to(ExchangeCreate.confirmation)
+    await dialog_manager.switch_to(ExchangeCreateSell.confirmation)
 
 
 async def on_skip_comment(
@@ -509,245 +476,7 @@ async def on_skip_comment(
     dialog_manager.dialog_data.pop("comment", None)
 
     # Переходим к подтверждению
-    await dialog_manager.switch_to(ExchangeCreate.confirmation)
+    await dialog_manager.switch_to(ExchangeCreateSell.confirmation)
 
 
 # Buy flow event handlers
-
-
-async def on_buy_date_selected(
-    callback: ChatEvent,
-    _calendar: ManagedCalendar,
-    dialog_manager: DialogManager,
-    selected_date: datetime,
-) -> None:
-    """Обработчик выбора даты для покупки."""
-    today = datetime.now().date()
-
-    # Проверяем, что дата не в прошлом
-    if selected_date < today:
-        await callback.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
-        return
-
-    # Сохраняем выбранную дату
-    dialog_manager.dialog_data["buy_date"] = selected_date.isoformat()
-
-    # Переходим к выбору времени
-    await dialog_manager.switch_to(ExchangeCreate.buy_hours)
-
-
-async def on_buy_date_skip(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик пропуска выбора даты."""
-    # Убираем дату из данных (любая дата)
-    dialog_manager.dialog_data.pop("buy_date", None)
-    dialog_manager.dialog_data["any_date"] = True
-
-    # Переходим к выбору времени
-    await dialog_manager.switch_to(ExchangeCreate.buy_hours)
-
-
-async def on_buy_hours_input(
-    message: Message,
-    _text_input: ManagedTextInput,
-    dialog_manager: DialogManager,
-    data: str,
-) -> None:
-    """Обработчик ввода времени для покупки."""
-    # Проверяем формат времени (09:00-13:00)
-    time_pattern = r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$"
-    match = re.match(time_pattern, data.strip())
-
-    if not match:
-        await message.answer(
-            "<b>❌ Неверный формат времени</b>\n\nИспользуй формат: 09:00-13:00"
-        )
-        return
-
-    start_hour, start_min, end_hour, end_min = map(int, match.groups())
-
-    # Проверяем валидность времени
-    if not (
-        0 <= start_hour <= 23
-        and 0 <= start_min <= 59
-        and 0 <= end_hour <= 23
-        and 0 <= end_min <= 59
-    ):
-        await message.answer("<b>❌ Неверное время</b>\n\nЧасы: 0-23, минуты: 0-59")
-        return
-
-    if (start_min not in (0, 30)) or (end_min not in (0, 30)):
-        await message.answer(
-            "<b>❌ Неверное время</b>\n\nВремя должно начинаться и заканчиваться либо на 00 минутах, либо на 30 минутах часа"
-        )
-        return
-
-    start_time = f"{start_hour:02d}:{start_min:02d}"
-    end_time = f"{end_hour:02d}:{end_min:02d}"
-
-    # Проверяем, что время начала меньше времени окончания
-    start_minutes = start_hour * 60 + start_min
-    end_minutes = end_hour * 60 + end_min
-
-    if start_minutes >= end_minutes:
-        await message.answer(
-            "<b>❌ Неверное время</b>\n\nВремя начала должно быть раньше времени окончания"
-        )
-        return
-
-    if end_minutes - start_minutes < 30:
-        await message.answer(
-            "<b>❌ Неверное время</b>\n\nМинимальная продолжительность: 30 минут"
-        )
-        return
-
-    # Сохраняем время
-    dialog_manager.dialog_data["buy_start_time"] = start_time
-    dialog_manager.dialog_data["buy_end_time"] = end_time
-
-    # Переходим к вводу цены
-    await dialog_manager.switch_to(ExchangeCreate.buy_price)
-
-
-async def on_buy_hours_skip(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик пропуска выбора времени."""
-    # Убираем время из данных (любое время)
-    dialog_manager.dialog_data.pop("buy_start_time", None)
-    dialog_manager.dialog_data.pop("buy_end_time", None)
-    dialog_manager.dialog_data["any_hours"] = True
-
-    # Переходим к вводу цены
-    await dialog_manager.switch_to(ExchangeCreate.buy_price)
-
-
-async def on_buy_price_input(
-    message: Message,
-    _widget: ManagedTextInput,
-    dialog_manager: DialogManager,
-    data: str,
-):
-    """Обработчик ввода цены за час для покупки."""
-    try:
-        price_per_hour = int(data)
-        if price_per_hour <= 0:
-            await message.answer("❌ Цена должна быть больше 0")
-            return
-        if price_per_hour > 5000:
-            await message.answer("❌ Слишком большая цена за час (максимум 5,000 р.)")
-            return
-
-        # Сохраняем цену за час
-        dialog_manager.dialog_data["buy_price_per_hour"] = price_per_hour
-
-        # Переходим к комментарию
-        await dialog_manager.switch_to(ExchangeCreate.buy_comment)
-
-    except ValueError:
-        await message.answer("❌ Введите корректную цену (например: 500 или 750)")
-
-
-async def on_buy_comment_input(
-    message: Message,
-    _widget: ManagedTextInput,
-    dialog_manager: DialogManager,
-    data: str,
-):
-    """Обработчик ввода комментария для покупки."""
-    # Проверяем длину комментария
-    if len(data) > 500:
-        await message.answer("❌ Комментарий слишком длинный (максимум 500 символов)")
-        return
-
-    # Сохраняем комментарий
-    dialog_manager.dialog_data["buy_comment"] = data.strip()
-
-    # Переходим к подтверждению
-    await dialog_manager.switch_to(ExchangeCreate.buy_confirmation)
-
-
-async def on_buy_skip_comment(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик пропуска комментария для покупки."""
-    # Убираем комментарий из данных
-    dialog_manager.dialog_data.pop("buy_comment", None)
-
-    # Переходим к подтверждению
-    await dialog_manager.switch_to(ExchangeCreate.buy_confirmation)
-
-
-async def on_confirm_buy(
-    callback: CallbackQuery,
-    widget: Any,
-    dialog_manager: DialogManager,
-):
-    """Обработчик подтверждения покупки."""
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    user_id = dialog_manager.event.from_user.id
-
-    try:
-        # Получаем данные из диалога
-        data = dialog_manager.dialog_data
-
-        # Дата (может быть None для любой даты)
-        buy_date = None
-        if data.get("buy_date"):
-            buy_date = datetime.fromisoformat(data["buy_date"])
-
-        # Время (может быть None для любого времени)
-        buy_start_time = data.get("buy_start_time")
-        buy_end_time = data.get("buy_end_time")
-
-        # Цена за час
-        price_per_hour = data["buy_price_per_hour"]
-
-        # Проверяем бан пользователя
-        if await stp_repo.exchange.is_user_exchange_banned(user_id):
-            await callback.answer(
-                "❌ Вы заблокированы от участия в бирже подмен", show_alert=True
-            )
-            return
-
-        # Получаем комментарий
-        description = data.get("buy_comment")
-
-        # Создаем запрос на покупку
-        exchange = await stp_repo.exchange.create_exchange(
-            seller_id=user_id,  # В buy-запросе seller_id это фактически buyer_id
-            shift_date=buy_date,
-            shift_start_time=buy_start_time or "00:00",  # Значение по умолчанию
-            price=price_per_hour,  # Цена за час
-            is_partial=True,  # Buy-запросы всегда частичные по времени
-            shift_end_time=buy_end_time or "23:59",  # Значение по умолчанию
-            payment_type="immediate",  # Для buy-запросов всегда немедленная оплата
-            payment_date=None,
-            description=description,
-            exchange_type="buy",  # Указываем тип как покупка
-        )
-
-        if exchange:
-            await callback.answer(
-                "✅ Запрос на покупку добавлен на биржу!", show_alert=True
-            )
-            # Очищаем данные диалога
-            dialog_manager.dialog_data.clear()
-            # Возвращаемся к главному меню биржи
-            await dialog_manager.done()
-        else:
-            await callback.answer(
-                "❌ Не удалось создать запрос. Попробуйте позже.", show_alert=True
-            )
-
-    except Exception:
-        await callback.answer(
-            "❌ Произошла ошибка при создании запроса", show_alert=True
-        )

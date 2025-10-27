@@ -110,13 +110,13 @@ activation_approve_comment_window = Window(
 Ты можешь добавить комментарий к активации
 Специалист получит уведомление с комментарием
 
-Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+Напиши комментарий или нажми <b>➡️ Пропустить</b>"""),
     TextInput(
         id="approve_comment_input",
         on_success=on_activation_approve_comment_input,
     ),
     Button(
-        Const("⏩ Пропустить"),
+        Const("➡️ Пропустить"),
         id="skip_approve_comment",
         on_click=on_skip_approve_comment,
     ),
@@ -137,13 +137,13 @@ activation_reject_comment_window = Window(
 Ты можешь добавить комментарий к активации
 Специалист получит уведомление с комментарием
 
-Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+Напиши комментарий или нажми <b>➡️ Пропустить</b>"""),
     TextInput(
         id="reject_comment_input",
         on_success=on_activation_reject_comment_input,
     ),
     Button(
-        Const("⏩ Пропустить"),
+        Const("➡️ Пропустить"),
         id="skip_reject_comment",
         on_click=on_skip_reject_comment,
     ),
