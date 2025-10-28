@@ -166,10 +166,6 @@ class ScheduleHandlerService:
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
 
-        # OPTIMIZATION: Removed redundant employee validation loop
-        # Employee validation already happens in get_duties_for_month()
-        # which only includes employees found in the database
-
         # Check if today's date is selected to highlight current duties
         today = get_current_date()
         highlight_current = (date.date() == today.date()) and stp_repo

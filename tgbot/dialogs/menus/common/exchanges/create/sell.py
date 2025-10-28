@@ -44,7 +44,7 @@ from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 date_window = Window(
     Const("📅 <b>Шаг 1: Выбор даты</b>"),
-    Format("Выбери дату смены, которую хочешь продать:"),
+    Format("\nВыбери дату смены, которую хочешь продать:"),
     Format("\n<i>Значком · · помечены дни, когда у тебя есть смена</i>"),
     ExchangeCalendar(
         id="sell_date_calendar",
@@ -61,10 +61,9 @@ date_window = Window(
 )
 
 shift_type_window = Window(
-    Const("⏰ <b>Тип сделки</b>"),
+    Const("📝 <b>Шаг 2: Тип сделки</b>"),
     Format("""
-<blockquote>Дата сделки: <code>{selected_date}</code>
-Твоя смена: <code>{user_schedule}</code></blockquote>"""),
+<blockquote>📅 <b>Предложение:</b> <code>{selected_date}</code></blockquote>"""),
     Format("{duty_warning}", when="duty_warning"),
     Format("\nВыбери тип смены для продажи:"),
     Select(
@@ -84,13 +83,14 @@ shift_type_window = Window(
 )
 
 hours_window = Window(
-    Const("🕐 <b>Время продажи</b>"),
-    Format("Выбрана дата: <code>{selected_date}</code>"),
-    Format("Твоя смена в эту дату: <code>{user_schedule}</code>"),
+    Const("🕐 <b>Шаг 3: Время продажи</b>"),
+    Format("""
+<blockquote>📅 <b>Предложение:</b> <code>{selected_date}</code></blockquote>"""),
     Format("{duty_warning}", when="duty_warning"),
-    Format("\nВведи время, которое хочешь продать"),
+    Format("{sold_hours_info}", when="sold_hours_info"),
+    Format("\nВведи время, которое хочешь продать:"),
     Format(
-        "\n<blockquote>Формат: <code>09:00-13:00</code> или <code>14:00-18:00</code></blockquote>\nЧасовой пояс: <code>Пермь (МСК+2)</code>"
+        "\n<blockquote>Формат: <code>09:00-13:00</code> или <code>14:00-18:00</code>\nЧасовой пояс: <code>Пермь (МСК+2)</code></blockquote>"
     ),
     TextInput(
         id="time_input",
@@ -106,11 +106,12 @@ hours_window = Window(
 )
 
 price_window = Window(
-    Const("💰 <b>Цена продажи</b>"),
-    Format("Дата смены: <code>{selected_date}</code>"),
-    Format("Тип смены: <code>{shift_type}</code>"),
-    Format("Продаваемое время: <code>{shift_time}</code>", when="shift_time"),
-    Format("\nВведи полную цену за продаваемую смену (в рублях)"),
+    Const("💰 <b>Шаг 4: Цена продажи</b>"),
+    Format(
+        """
+<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code></blockquote>""",
+    ),
+    Format("\nВведи полную цену за продаваемую смену (в рублях):"),
     TextInput(
         id="price_input",
         on_success=on_price_input,
@@ -127,11 +128,11 @@ price_window = Window(
 )
 
 payment_timing_window = Window(
-    Const("💳 <b>Условия оплаты</b>"),
-    Format("Дата смены: <code>{selected_date}</code>"),
-    Format("Тип смены: <code>{shift_type}</code>"),
-    Format("Цена: <code>{price} р.</code>"),
-    Format("\nВыбери когда поступит оплата"),
+    Const("💳 <b>Шаг 5: Условия оплаты</b>"),
+    Format("""
+<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р.</code></blockquote>"""),
+    Format("\nВыбери когда поступит оплата:"),
     Select(
         Format("{item[1]}"),
         id="payment_timing",
@@ -152,8 +153,10 @@ payment_timing_window = Window(
 )
 
 payment_date_window = Window(
-    Const("📅 <b>Дата платежа</b>"),
-    Format("Дата смены: <code>{shift_date}</code>"),
+    Const("📅 <b>Шаг 6: Дата платежа</b>"),
+    Format("""
+<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р.</code></blockquote>"""),
     Format("\nВыбери крайнюю дату для оплаты:"),
     Format("<i>Дата должна быть не позже даты смены</i>"),
     RussianCalendar(
@@ -170,12 +173,13 @@ payment_date_window = Window(
 )
 
 comment_window = Window(
-    Const("💬 <b>Комментарий к продаже (необязательно)</b>"),
-    Format("Дата смены: <code>{selected_date}</code>"),
-    Format("Тип смены: <code>{shift_type}</code>"),
-    Format("Цена: <code>{price} р.</code>"),
+    Const("💬 <b>Шаг 7: Комментарий (необязательно)</b>"),
+    Format("""
+<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+💰 <b>Цена:</b> <code>{price} р.</code>
+💳 <b>Условия оплаты:</b> <code>{payment_type}</code></blockquote>"""),
     Format(
-        "\nМожешь добавить комментарий к предложению продажи или нажать <b>➡️ Пропустить</b>"
+        "\nМожешь добавить комментарий к предложению продажи или нажать <b>➡️ Пропустить</b>:"
     ),
     TextInput(
         id="comment_input",
@@ -194,17 +198,13 @@ comment_window = Window(
 )
 
 confirmation_window = Window(
-    Const("✅ <b>Подтверждение сделки</b>"),
+    Const("✅ <b>Шаг 8: Подтверждение сделки</b>"),
     Format("""
-Проверь данные перед публикацией:
-
-📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
+<blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
 💰 <b>Цена:</b> <code>{price} р.</code>
-
-⏰ <b>Тип смены:</b> {shift_type}
-💳 <b>Оплата:</b> {payment_info}"""),
-    Format("💬 <b>Комментарий:</b> {comment}", when="comment"),
-    Format("\nВсё верно?"),
+💳 <b>Оплата:</b> {payment_info}</blockquote>"""),
+    Format("\n💬 <b>Комментарий:</b> {comment}", when="comment"),
+    Format("\nВсё верно? Публикуем сделку?"),
     Row(
         Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
         Button(Const("✅ Опубликовать"), id="confirm", on_click=on_confirm_sell),
