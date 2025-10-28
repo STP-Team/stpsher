@@ -14,6 +14,7 @@ from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateSell,
     Exchanges,
 )
+from tgbot.dialogs.states.common.schedule import Schedules
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,19 @@ async def finish_exchanges_dialog(
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.done()
+
+
+async def open_my_schedule(
+    _callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Открываем график пользователя.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.start(Schedules.my)
 
 
 async def on_exchange_buy_selected(
@@ -382,15 +396,21 @@ async def on_schedule_change(
 
     if in_schedule:
         if is_seller:
-            await stp_repo.exchange.update_exchange(exchange_id, in_seller_schedule=True)
+            await stp_repo.exchange.update_exchange(
+                exchange_id, in_seller_schedule=True
+            )
         else:
             await stp_repo.exchange.update_exchange(exchange_id, in_buyer_schedule=True)
         await callback.answer("🟢 Сделка отображена в графике")
     else:
         if is_seller:
-            await stp_repo.exchange.update_exchange(exchange_id, in_seller_schedule=False)
+            await stp_repo.exchange.update_exchange(
+                exchange_id, in_seller_schedule=False
+            )
         else:
-            await stp_repo.exchange.update_exchange(exchange_id, in_buyer_schedule=False)
+            await stp_repo.exchange.update_exchange(
+                exchange_id, in_buyer_schedule=False
+            )
         await callback.answer("🟡 Сделка скрыта из графика")
 
 

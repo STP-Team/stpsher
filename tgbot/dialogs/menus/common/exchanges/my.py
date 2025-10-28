@@ -33,6 +33,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_private_change,
     on_restore_exchange,
     on_schedule_change,
+    open_my_schedule,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     edit_offer_date_getter,
@@ -71,6 +72,7 @@ my_window = Window(
         id="my_exchange_scrolling",
         when="has_exchanges",
     ),
+    Button(Const("👔 Мой график"), id="my_schedule", on_click=open_my_schedule),
     Button(Const("🔄 Обновить"), id="refresh_my_exchanges"),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     getter=my_exchanges,

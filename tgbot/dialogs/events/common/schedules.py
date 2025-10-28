@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
+from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.misc.dicts import russian_months
@@ -32,6 +33,19 @@ async def start_schedules_dialog(
     await dialog_manager.start(
         Schedules.menu,
     )
+
+
+async def open_my_exchanges(
+    _callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Открываем сделки пользователя.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    await dialog_manager.start(Exchanges.my)
 
 
 async def prev_day(

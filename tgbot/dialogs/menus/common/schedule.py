@@ -21,6 +21,7 @@ from tgbot.dialogs.events.common.schedules import (
     next_day,
     next_month,
     on_date_selected,
+    open_my_exchanges,
     prev_day,
     prev_month,
     today,
@@ -94,6 +95,7 @@ my_window = Window(
             on_click=next_month,
         ),
     ),
+    Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
     Row(
         Radio(
             Format("🔘 {item[1]}"),

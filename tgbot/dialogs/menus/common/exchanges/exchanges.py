@@ -49,12 +49,14 @@ menu_window = Window(
     Format("""
 Здесь ты можешь обменять свои рабочие часы, либо взять чужие"""),
     Row(
-        SwitchTo(Const("📈 Купить"), id="buy", state=Exchanges.buy),
-        SwitchTo(Const("📉 Продать"), id="sell", state=Exchanges.sell),
+        SwitchTo(Const("📈 Купить"), id="exchanges_buy", state=Exchanges.buy),
+        SwitchTo(Const("📉 Продать"), id="exchanges_sell", state=Exchanges.sell),
     ),
-    SwitchTo(Const("🗳 Мои сделки"), id="my", state=Exchanges.my),
-    SwitchTo(Const("💸 Создать предложение"), id="create", state=Exchanges.create),
-    SwitchTo(Const("📊 Статистика"), id="stats", state=Exchanges.stats),
+    SwitchTo(Const("🗳 Мои сделки"), id="exchanges_my", state=Exchanges.my),
+    SwitchTo(
+        Const("💸 Создать предложение"), id="exchanges_create", state=Exchanges.create
+    ),
+    SwitchTo(Const("📊 Статистика"), id="exchanges_stats", state=Exchanges.stats),
     Group(
         Url(
             Const("📌 Регламент"),
