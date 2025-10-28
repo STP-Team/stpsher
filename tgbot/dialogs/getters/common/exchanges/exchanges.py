@@ -585,6 +585,11 @@ async def _setup_exchange_checkboxes(
     if exchange_is_paid:
         await exchange_is_paid.set_checked(exchange.is_paid)
 
+    # Статус сделки
+    exchange_status = dialog_manager.find("offer_status")
+    if exchange_status:
+        await exchange_status.set_checked(exchange.status == "active")
+
 
 async def my_detail_getter(
     user: Employee,
@@ -646,7 +651,8 @@ async def my_detail_getter(
             "exchange_info": exchange_text,
             "payment_info": payment_info,
             "comment": exchange.comment,
-            "status": exchange_status,
+            "status": exchange.status,
+            "status_text": exchange_status,
             "other_party_name": other_party_name,
             "other_party_type": other_party_type,
             "has_other_party": bool(other_party_name),

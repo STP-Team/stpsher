@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Checkbox,
+    Group,
     Row,
     ScrollingGroup,
     Select,
@@ -15,8 +16,8 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import (
+    on_activation_change,
     on_add_to_calendar,
-    on_cancel_exchange,
     on_delete_exchange,
     on_edit_comment_input,
     on_edit_date_selected,
@@ -31,7 +32,6 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_my_exchange_selected,
     on_paid_change,
     on_private_change,
-    on_restore_exchange,
     on_schedule_change,
     open_my_schedule,
 )
@@ -82,7 +82,7 @@ my_window = Window(
 my_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📊 <b>Статус:</b> {status}"""),
+📊 <b>Статус:</b> {status_text}"""),
     Format(
         """🙋‍♂️ <b>{other_party_type}:</b> {other_party_name}""",
         when="has_other_party",
@@ -103,68 +103,89 @@ my_detail_window = Window(
     ),
     Format("""
 🔗 <b>Ссылка:</b> <code>{deeplink_url}</code>"""),
-    # Кнопки для активных обменов
-    SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться"),
-        query=Format("{deeplink}"),
-        allow_user_chats=True,
-        allow_group_chats=True,
-        allow_channel_chats=False,
-        allow_bot_chats=False,
-        id="buy_request_deeplink",
-        when=F["is_active"],
-    ),
-    Row(
-        Button(
-            Const("❤️‍🩹 Восстановить"),
-            id="restore_my_exchange",
-            on_click=on_restore_exchange,
-            when="could_activate",
+    # Кнопки активных обменов
+    Group(
+        SwitchInlineQueryChosenChatButton(
+            Const("🔗 Поделиться"),
+            query=Format("{deeplink}"),
+            allow_user_chats=True,
+            allow_group_chats=True,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="buy_request_deeplink",
         ),
-        Button(
-            Const("💔 Деактивировать"),
-            id="cancel_my_exchange",
-            on_click=on_cancel_exchange,
-            when=F["is_active"],
+        Row(
+            Checkbox(
+                Const("🟢 Активная"),
+                Const("🟡 Выключена"),
+                id="offer_status",
+                on_click=on_activation_change,
+            ),
+            Checkbox(
+                Const("🟡 Приватная"),
+                Const("🟢 Публичная"),
+                id="offer_private_status",
+                on_state_changed=on_private_change,
+            ),
         ),
-        Button(
-            Const("🔥 Удалить"),
-            id="remove_my_exchange",
-            on_click=on_delete_exchange,
+        Row(
+            Button(
+                Const("🔥 Удалить"),
+                id="remove_my_exchange",
+                on_click=on_delete_exchange,
+            ),
         ),
+        when=F["status"] == "active",  # noqa
     ),
-    # Кнопка отметки об оплате для завершенных сделок
-    Checkbox(
-        Const("🟢 Оплачено"),
-        Const("🟡 Не оплачено"),
-        id="exchange_is_paid",
-        on_state_changed=on_paid_change,
-        when=F["has_other_party"] & ~F["is_seller"],
+    Group(
+        Row(
+            Checkbox(
+                Const("🟢 Активная"),
+                Const("🟡 Выключена"),
+                id="offer_status",
+                on_click=on_activation_change,
+            ),
+            Button(
+                Const("🔥 Удалить"),
+                id="remove_my_exchange",
+                on_click=on_delete_exchange,
+            ),
+        ),
+        when=F["status"] == "canceled",  # noqa
     ),
-    Row(SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer)),
-    Row(
+    # Кнопки завершенной сделки
+    Group(
         Checkbox(
-            Const("🟢 В графике"),
-            Const("🟡 Не в графике"),
-            id="exchange_in_schedule",
-            on_state_changed=on_schedule_change,
-            when=F["is_active"],
+            Const("🟢 Оплачено"),
+            Const("🟡 Не оплачено"),
+            id="exchange_is_paid",
+            on_state_changed=on_paid_change,
+            when=~F["is_seller"],
         ),
-        Checkbox(
-            Const("🟡 Приватная"),
-            Const("🟢 Публичная"),
-            id="offer_private_status",
-            on_state_changed=on_private_change,
-            when=F["is_active"],
+        Row(
+            Checkbox(
+                Const("🟢 В графике"),
+                Const("🟡 Не в графике"),
+                id="exchange_in_schedule",
+                on_state_changed=on_schedule_change,
+            ),
+            Button(
+                Const("✍🏼 В календарь"),
+                id="exchange_to_calendar",
+                on_click=on_add_to_calendar,
+            ),
         ),
+        when=F["status"] == "sold",  # noqa
     ),
-    Button(
-        Const("✍🏼 В календарь"), id="exchange_to_calendar", on_click=on_add_to_calendar
+    Group(
+        SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer),
+        when=F["status"] != "sold",  # noqa
     ),
     Row(
         SwitchTo(Const("🎭 К бирже"), id="to_exchanges", state=Exchanges.menu),
-        Button(Const("🔄 Обновить"), id="update"),
+        Button(Const("👔 К графику"), id="my_schedule", on_click=open_my_schedule),
     ),
+    Button(Const("🔄 Обновить"), id="update"),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my), HOME_BTN),
     getter=my_detail_getter,
     state=Exchanges.my_detail,
