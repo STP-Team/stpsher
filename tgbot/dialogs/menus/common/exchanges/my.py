@@ -114,44 +114,7 @@ my_detail_window = Window(
             allow_bot_chats=False,
             id="buy_request_deeplink",
         ),
-        Row(
-            Checkbox(
-                Const("🟢 Активная"),
-                Const("🟡 Выключена"),
-                id="offer_status",
-                on_click=on_activation_change,
-            ),
-            Checkbox(
-                Const("🟡 Приватная"),
-                Const("🟢 Публичная"),
-                id="offer_private_status",
-                on_state_changed=on_private_change,
-            ),
-        ),
-        Row(
-            Button(
-                Const("🔥 Удалить"),
-                id="remove_my_exchange",
-                on_click=on_delete_exchange,
-            ),
-        ),
         when=F["status"] == "active",  # noqa
-    ),
-    Group(
-        Row(
-            Checkbox(
-                Const("🟢 Активная"),
-                Const("🟡 Выключена"),
-                id="offer_status",
-                on_click=on_activation_change,
-            ),
-            Button(
-                Const("🔥 Удалить"),
-                id="remove_my_exchange",
-                on_click=on_delete_exchange,
-            ),
-        ),
-        when=F["status"] == "canceled",  # noqa
     ),
     # Кнопки завершенной сделки
     Group(
@@ -181,10 +144,6 @@ my_detail_window = Window(
         SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer),
         when=F["status"] != "sold",  # noqa
     ),
-    Row(
-        SwitchTo(Const("🎭 К бирже"), id="to_exchanges", state=Exchanges.menu),
-        Button(Const("👔 К графику"), id="my_schedule", on_click=open_my_schedule),
-    ),
     Button(Const("🔄 Обновить"), id="update"),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my), HOME_BTN),
     getter=my_detail_getter,
@@ -195,6 +154,20 @@ offer_edit_window = Window(
     Const("✏️ <b>Редактирование сделки</b>"),
     Format("""
 Используй кнопки ниже для редактирования выбранной сделки"""),
+    Row(
+        Checkbox(
+            Const("🟢 Активная"),
+            Const("🟡 Выключена"),
+            id="offer_status",
+            on_click=on_activation_change,
+        ),
+        Checkbox(
+            Const("🟡 Приватная"),
+            Const("🟢 Публичная"),
+            id="offer_private_status",
+            on_state_changed=on_private_change,
+        ),
+    ),
     Row(
         Button(
             Const("📅 Дата и время"), id="edit_offer_date", on_click=on_edit_offer_date
@@ -210,6 +183,11 @@ offer_edit_window = Window(
     ),
     Button(
         Const("💬 Комментарий"), id="edit_offer_comment", on_click=on_edit_offer_comment
+    ),
+    Button(
+        Const("🔥 Удалить"),
+        id="remove_my_exchange",
+        on_click=on_delete_exchange,
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my_detail), HOME_BTN),
     state=Exchanges.edit_offer,

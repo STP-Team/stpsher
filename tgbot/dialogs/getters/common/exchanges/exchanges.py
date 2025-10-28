@@ -569,12 +569,6 @@ async def _setup_exchange_checkboxes(
     exchange: Exchange, user: Employee, dialog_manager: DialogManager
 ) -> None:
     """Setup all exchange-related checkboxes."""
-    # Private status checkbox
-    private_checkbox = dialog_manager.find("offer_private_status")
-    await _safely_set_checkbox(
-        private_checkbox, exchange.is_private, "offer_private_status"
-    )
-
     # In schedule checkbox
     in_schedule_checkbox = dialog_manager.find("exchange_in_schedule")
     if in_schedule_checkbox and user.user_id is not None:
@@ -593,6 +587,12 @@ async def _setup_exchange_checkboxes(
     exchange_is_paid = dialog_manager.find("exchange_is_paid")
     if exchange_is_paid:
         await exchange_is_paid.set_checked(exchange.is_paid)
+
+    # Private status checkbox
+    private_checkbox = dialog_manager.find("offer_private_status")
+    await _safely_set_checkbox(
+        private_checkbox, exchange.is_private, "offer_private_status"
+    )
 
     # Статус сделки
     exchange_status = dialog_manager.find("offer_status")
