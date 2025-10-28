@@ -503,7 +503,11 @@ async def my_exchanges(
 
 
 async def my_detail_getter(
-    bot: Bot, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    user: Employee,
+    bot: Bot,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **kwargs,
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра собственного обмена."""
     if dialog_manager.start_data:
@@ -541,18 +545,29 @@ async def my_detail_getter(
             payment_info = "По договоренности"
 
         # Определяем контекст и роль пользователя
-        other_party = None
+        if exchange.seller_id == user.user_id:
+            other_party = exchange.buyer_id
+        else:
+            other_party = exchange.seller_id
 
-        # Форматируем имя второй стороны
-        other_party_name = ""
         if other_party:
-            other_party_name = format_fullname(
-                other_party.fullname,
-                short=True,
-                gender_emoji=True,
-                username=other_party.username,
-                user_id=other_party.user_id,
+            other_party = await stp_repo.employee.get_users(user_id=other_party)
+            other_party_type = (
+                "Покупатель" if exchange.seller_id == user.user_id else "Продавец"
             )
+            # Форматируем имя второй стороны
+            other_party_name = ""
+            if other_party:
+                other_party_name = format_fullname(
+                    other_party.fullname,
+                    short=True,
+                    gender_emoji=True,
+                    username=other_party.username,
+                    user_id=other_party.user_id,
+                )
+        else:
+            other_party_name = None
+            other_party_type = None
 
         exchange_text = await get_exchange_text(exchange, user_id)
         exchange_status = await get_exchange_status(exchange)
@@ -561,7 +576,7 @@ async def my_detail_getter(
         exchange_deeplink_url = await create_start_link(
             bot=bot, payload=exchange_deeplink, encode=True
         )
-        comment = exchange.comment if exchange.comment else "Без комментария"
+        comment = exchange.comment
 
         could_activate = exchange.status in [
             "inactive",
@@ -569,17 +584,20 @@ async def my_detail_getter(
             "expired",
         ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
 
+        is_paid = "Да" if exchange.is_paid else "Нет"
+
         return {
             "exchange_info": exchange_text,
             "payment_info": payment_info,
             "comment": comment,
             "status": exchange_status,
             "other_party_name": other_party_name,
+            "other_party_type": other_party_type,
             "has_other_party": bool(other_party_name),
             "is_active": exchange.status == "active",
             "exchange_type": exchange.type,
             "created_date": exchange.created_at.strftime("%d.%m.%Y %H:%M"),
-            "is_paid": exchange.is_paid,
+            "is_paid": is_paid,
             "deeplink": exchange_deeplink,
             "deeplink_url": exchange_deeplink_url,
             "could_activate": could_activate,
