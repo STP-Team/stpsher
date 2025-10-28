@@ -20,6 +20,7 @@ from tgbot.dialogs.events.common.exchanges.create.sell import (
     on_payment_date_selected,
     on_payment_timing_selected,
     on_price_input,
+    on_remaining_time_selected,
     on_skip_comment,
     on_time_input,
     on_today_selected,
@@ -96,6 +97,12 @@ hours_window = Window(
         id="time_input",
         on_success=on_time_input,
     ),
+    Button(
+        Const("⏰ Оставшееся время"),
+        id="remaining_time",
+        on_click=on_remaining_time_selected,
+        when="show_remaining_time_button",
+    ),
     Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateSell.date),
@@ -131,7 +138,7 @@ payment_timing_window = Window(
     Const("💳 <b>Шаг 5: Условия оплаты</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} р.</code></blockquote>"""),
     Format("\nВыбери когда поступит оплата:"),
     Select(
         Format("{item[1]}"),
@@ -156,7 +163,7 @@ payment_date_window = Window(
     Const("📅 <b>Шаг 6: Дата платежа</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} р.</code></blockquote>"""),
     Format("\nВыбери крайнюю дату для оплаты:"),
     Format("<i>Дата должна быть не позже даты смены</i>"),
     RussianCalendar(
@@ -176,8 +183,7 @@ comment_window = Window(
     Const("💬 <b>Шаг 7: Комментарий (необязательно)</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code>
-💳 <b>Условия оплаты:</b> <code>{payment_type}</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} р. {payment_type}</code></blockquote>"""),
     Format(
         "\nМожешь добавить комментарий к предложению продажи или нажать <b>➡️ Пропустить</b>:"
     ),
@@ -201,8 +207,7 @@ confirmation_window = Window(
     Const("✅ <b>Шаг 8: Подтверждение сделки</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Цена:</b> <code>{price} р.</code>
-💳 <b>Оплата:</b> {payment_info}</blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} р. {payment_info}</code></blockquote>"""),
     Format(
         "\n💬 <b>Комментарий:</b>\n<blockquote expandable>{comment}</blockquote>",
         when="comment",
