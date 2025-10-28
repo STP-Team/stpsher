@@ -92,6 +92,7 @@ async def sell_time_input_getter(
     shift_end = data.get("shift_end")
     has_duty = data.get("has_duty", False)
     sold_time_strings = data.get("sold_time_strings", [])
+    is_today = data.get("is_today", False)
 
     if not shift_date or not shift_start or not shift_end:
         return {
@@ -99,6 +100,7 @@ async def sell_time_input_getter(
             "user_schedule": "Не найден",
             "duty_warning": "",
             "sold_hours_info": "",
+            "show_remaining_time_button": False,
         }
 
     try:
@@ -141,6 +143,7 @@ async def sell_time_input_getter(
             "user_schedule": user_schedule,
             "duty_warning": duty_warning,
             "sold_hours_info": sold_hours_info,
+            "show_remaining_time_button": is_today,
         }
 
     except Exception as e:
@@ -150,6 +153,7 @@ async def sell_time_input_getter(
             "user_schedule": "Ошибка получения данных",
             "duty_warning": "",
             "sold_hours_info": "",
+            "show_remaining_time_button": False,
         }
 
 

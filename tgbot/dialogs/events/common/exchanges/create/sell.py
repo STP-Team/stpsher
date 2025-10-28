@@ -666,7 +666,10 @@ async def on_time_input(
             sold_end_minutes = time_to_minutes(sold_end)
 
             # Проверяем пересечение временных интервалов
-            if input_start_minutes < sold_end_minutes and input_end_minutes > sold_start_minutes:
+            if (
+                input_start_minutes < sold_end_minutes
+                and input_end_minutes > sold_start_minutes
+            ):
                 conflicting_times.append(f"{sold_start}-{sold_end}")
 
     if conflicting_times:
@@ -692,6 +695,143 @@ async def on_time_input(
 
     # Переходим к вводу цены
     await dialog_manager.switch_to(ExchangeCreateSell.price)
+
+
+async def on_remaining_time_selected(
+    callback: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Обработчик нажатия кнопки 'Оставшееся время'.
+
+    Автоматически рассчитывает время от текущего момента до конца смены,
+    округляя начальное время до ближайших :00 или :30 минут.
+
+    Args:
+        callback: Callback query от Telegram
+        _button: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    shift_start = dialog_manager.dialog_data["shift_start"]
+    shift_end = dialog_manager.dialog_data["shift_end"]
+    shift_date_str = dialog_manager.dialog_data["shift_date"]
+
+    try:
+        # Получаем текущее время
+        current_time = datetime.now(tz=tz)
+        current_minutes = current_time.hour * 60 + current_time.minute
+
+        # Рассчитываем ближайшее время :00 или :30
+        remainder = current_minutes % 30
+        if remainder == 0:
+            # Уже на :00 или :30, используем текущее время
+            start_minutes = current_minutes
+        elif remainder <= 15:
+            # Округляем вниз до ближайших :00 или :30
+            start_minutes = current_minutes - remainder
+        else:
+            # Округляем вверх до ближайших :00 или :30
+            start_minutes = current_minutes + (30 - remainder)
+
+        # Проверяем, чтобы время не выходило за пределы дня
+        if start_minutes >= 24 * 60:
+            start_minutes = 23 * 60 + 30  # 23:30
+
+        # Преобразуем обратно в часы и минуты
+        start_hour = start_minutes // 60
+        start_min = start_minutes % 60
+
+        # Формируем строки времени
+        start_time_str = f"{start_hour:02d}:{start_min:02d}"
+
+        # Используем время окончания смены
+        end_time_str = shift_end
+
+        # Проверяем, что начальное время не позже окончания смены
+        shift_end_minutes = time_to_minutes(shift_end)
+        if start_minutes >= shift_end_minutes:
+            await callback.answer(
+                "❌ Смена уже закончилась или заканчивается слишком скоро для создания сделки",
+                show_alert=True,
+            )
+            return
+
+        # Проверяем минимальную продолжительность (30 минут)
+        if shift_end_minutes - start_minutes < 30:
+            await callback.answer(
+                "❌ Оставшееся время смены менее 30 минут - минимальная продолжительность сделки",
+                show_alert=True,
+            )
+            return
+
+        # Создаем время в формате, который понимает система
+        time_range = f"{start_time_str}-{end_time_str}"
+
+        # Проверяем, что время в пределах смены пользователя
+        if not is_time_within_shift(time_range, shift_start, shift_end):
+            await callback.answer(
+                f"❌ Рассчитанное время не в пределах смены: {shift_start}-{shift_end}",
+                show_alert=True,
+            )
+            return
+
+        # Проверяем пересечение с уже проданным временем
+        sold_time_ranges = dialog_manager.dialog_data.get("sold_time_ranges", [])
+        conflicting_times = []
+
+        if sold_time_ranges:
+            input_start_minutes = time_to_minutes(start_time_str)
+            input_end_minutes = time_to_minutes(end_time_str)
+
+            for sold_start, sold_end in sold_time_ranges:
+                sold_start_minutes = time_to_minutes(sold_start)
+                sold_end_minutes = time_to_minutes(sold_end)
+
+                # Проверяем пересечение временных интервалов
+                if (
+                    input_start_minutes < sold_end_minutes
+                    and input_end_minutes > sold_start_minutes
+                ):
+                    conflicting_times.append(f"{sold_start}-{sold_end}")
+
+        if conflicting_times:
+            await callback.answer(
+                f"❌ Рассчитанное время пересекается с существующими сделками: {', '.join(conflicting_times)}",
+                show_alert=True,
+            )
+            return
+
+        # Создаем datetime объекты
+        shift_date = datetime.fromisoformat(shift_date_str)
+        start_datetime = datetime.combine(
+            shift_date.date(), datetime.strptime(start_time_str, "%H:%M").time()
+        )
+        end_datetime = datetime.combine(
+            shift_date.date(), datetime.strptime(end_time_str, "%H:%M").time()
+        )
+
+        # Проверяем на пересечение с другими активными обменами
+        has_overlap = await check_existing_exchanges_overlap(
+            dialog_manager, start_datetime, end_datetime
+        )
+
+        if has_overlap:
+            await callback.answer(
+                "❌ У тебя уже есть активный обмен в рассчитанное время",
+                show_alert=True,
+            )
+            return
+
+        # Сохраняем время
+        dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
+        dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
+
+        # Переходим к вводу цены
+        await dialog_manager.switch_to(ExchangeCreateSell.price)
+
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка при расчете оставшегося времени: {e}")
+        await callback.answer(
+            "❌ Произошла ошибка при расчете времени", show_alert=True
+        )
 
 
 async def on_price_input(
