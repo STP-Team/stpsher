@@ -152,10 +152,14 @@ async def sell_time_input_getter(
                 # Вычисляем следующий доступный получасовой интервал (:00 или :30)
                 if current_time.minute < 30:
                     # Округляем ВВЕРХ к :30 текущего часа
-                    next_slot_start = current_datetime.replace(minute=30, second=0, microsecond=0)
+                    next_slot_start = current_datetime.replace(
+                        minute=30, second=0, microsecond=0
+                    )
                 else:
                     # Округляем ВВЕРХ к :00 следующего часа
-                    next_slot_start = current_datetime.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+                    next_slot_start = current_datetime.replace(
+                        minute=0, second=0, microsecond=0
+                    ) + timedelta(hours=1)
 
                 # Создаем datetime объект для времени окончания смены
                 today = datetime.now().date()
@@ -171,10 +175,14 @@ async def sell_time_input_getter(
                     valid_end_datetime = shift_end_datetime
                 elif shift_end_time.minute < 30:
                     # Округляем вниз к :00 текущего часа
-                    valid_end_datetime = shift_end_datetime.replace(minute=0, second=0, microsecond=0)
+                    valid_end_datetime = shift_end_datetime.replace(
+                        minute=0, second=0, microsecond=0
+                    )
                 else:
                     # Округляем вниз к :30 текущего часа
-                    valid_end_datetime = shift_end_datetime.replace(minute=30, second=0, microsecond=0)
+                    valid_end_datetime = shift_end_datetime.replace(
+                        minute=30, second=0, microsecond=0
+                    )
 
                 # Проверяем, что от ближайшего получасового интервала до валидного времени окончания минимум 30 минут
                 time_remaining = valid_end_datetime - next_slot_start

@@ -9,7 +9,7 @@ from stp_database import Employee, MainRequestsRepo
 from stp_database.models.KPI.spec_kpi import SpecDayKPI, SpecMonthKPI, SpecWeekKPI
 from stp_database.repo.KPI.requests import KPIRequestsRepo
 
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 
 # Константы для нормативов
 NORMATIVES = {
@@ -241,7 +241,7 @@ async def get_rating_display_data(
     # Получаем время обновления
     updated_at = None
     if top_employees and top_employees[0]["kpi"].updated_at:
-        updated_at = top_employees[0]["kpi"].updated_at.strftime("%d.%m.%Y %H:%M")
+        updated_at = top_employees[0]["kpi"].updated_at.strftime(strftime_date)
 
     # Форматируем текст рейтинга
     rating_text = _format_rating_text(

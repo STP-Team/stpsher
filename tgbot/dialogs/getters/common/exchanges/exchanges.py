@@ -12,7 +12,7 @@ from aiogram_dialog.widgets.kbd import ManagedCheckbox
 from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
-from tgbot.misc.helpers import format_fullname, tz
+from tgbot.misc.helpers import format_fullname, strftime_date, tz
 from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 logger = logging.getLogger(__name__)
@@ -667,7 +667,7 @@ async def my_detail_getter(
             "has_other_party": bool(other_party_name),
             "is_active": exchange.status == "active",
             "exchange_type": exchange_type,
-            "created_date": exchange.created_at.strftime("%d.%m.%Y %H:%M"),
+            "created_date": exchange.created_at.strftime(strftime_date),
             "is_paid": "Да" if exchange.is_paid else "Нет",
             "deeplink": exchange_deeplink,
             "deeplink_url": exchange_deeplink_url,

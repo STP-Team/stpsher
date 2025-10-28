@@ -15,7 +15,12 @@ from tgbot.dialogs.getters.common.game.kpi import (
 )
 from tgbot.dialogs.getters.common.schedules import user_schedule_getter
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import format_fullname, get_role, get_status_emoji
+from tgbot.misc.helpers import (
+    format_fullname,
+    get_role,
+    get_status_emoji,
+    strftime_date,
+)
 
 
 async def search_getter(
@@ -542,7 +547,7 @@ async def search_achievements_getter(
             case "A":
                 period = "Вручную"
 
-        date_str = transaction.created_at.strftime("%d.%m.%y %H:%M")
+        date_str = transaction.created_at.strftime(strftime_date)
 
         formatted_achievements.append((
             transaction.id,

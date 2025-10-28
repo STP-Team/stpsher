@@ -10,7 +10,7 @@ from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import strftime_date, tz
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.files_processing.parsers.schedule import DutyScheduleParser
 from tgbot.services.mailing import (
@@ -67,10 +67,10 @@ async def on_inventory_product_click(
         "usage_count": user_product.usage_count,
         "current_usages": user_product_detail.current_usages,
         "max_usages": user_product_detail.max_usages,
-        "bought_at": user_product.bought_at.strftime("%d.%m.%Y в %H:%M"),
+        "bought_at": user_product.bought_at.strftime(strftime_date),
         "comment": user_product.user_comment,
         "updated_by_user_id": user_product.updated_by_user_id,
-        "updated_at": user_product.updated_at.strftime("%d.%m.%Y в %H:%M")
+        "updated_at": user_product.updated_at.strftime(strftime_date)
         if user_product.updated_at
         else None,
     }

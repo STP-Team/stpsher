@@ -9,7 +9,7 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ async def on_activation_click(
             "product_cost": product.cost,
             "product_count": product.count,
             "product_division": product.division,
-            "bought_at": purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
+            "bought_at": purchase.bought_at.strftime(strftime_date),
             "usage_count": purchase.usage_count,
             "user_name": user_info,
             "fullname": purchase_user.fullname,

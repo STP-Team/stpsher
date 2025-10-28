@@ -5,7 +5,7 @@ from sqlalchemy import distinct, select
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 
 
 async def broadcast_select_getter(
@@ -205,7 +205,7 @@ async def broadcast_history_getter(
             "id": broadcast.id,
             "target": broadcast.target or "Неизвестно",
             "recipients_length": len(broadcast.recipients or []),
-            "created_at": broadcast.created_at.strftime("%H:%M %d.%m.%Y")
+            "created_at": broadcast.created_at.strftime(strftime_date)
             if broadcast.created_at
             else "",
         }
@@ -255,7 +255,7 @@ async def broadcast_detail_getter(
 
     # Форматируем дату
     created_at_str = (
-        broadcast.created_at.strftime("%d.%m.%Y %H:%M") if broadcast.created_at else ""
+        broadcast.created_at.strftime(strftime_date) if broadcast.created_at else ""
     )
 
     # Получаем информацию о создателе рассылки

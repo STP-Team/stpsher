@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped
 from tgbot.misc.dicts import roles
 
 tz = pytz.timezone("Asia/Yekaterinburg")
+strftime_date = "%H:%M %d.%m.%Y"
 
 
 def generate_auth_code(length=6):
