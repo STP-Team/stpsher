@@ -168,8 +168,7 @@ class ScheduleParser(BaseParser):
                         for exchange in bought_exchanges:
                             # Проверяем что пользователь покупатель и сделка завершена
                             if (
-                                exchange.buyer_id == user.user_id
-                                and exchange.status == "sold"
+                                exchange.status == "sold"
                                 and exchange.start_time
                                 and exchange.in_schedule
                             ):
@@ -179,19 +178,24 @@ class ScheduleParser(BaseParser):
                                     and exchange.start_time.month == month_num
                                 ):
                                     day_num = exchange.start_time.day
+                                    emoji = (
+                                        "📈"
+                                        if exchange.buyer_id == user.user_id
+                                        else "📉"
+                                    )
                                     if bot:
                                         deeplink = await create_start_link(
                                             bot=bot,
                                             payload=f"exchange_{exchange.id}",
                                             encode=True,
                                         )
-                                        exchange_info = f"🎭 <a href='{deeplink}'>{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}</a>"
+                                        exchange_info = f"<a href='{deeplink}'>{emoji} {exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}</a>"
                                     else:
-                                        exchange_info = f"🎭 {exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+                                        exchange_info = f"{emoji} {exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
                                     user_exchanges[day_num] = exchange_info
 
                         logger.debug(
-                            f"[Excel] Найдено {len(user_exchanges)} купленных обменов для {fullname}"
+                            f"[Excel] Найдено {len(user_exchanges)} сделок для {fullname}"
                         )
 
                 except Exception as e:
@@ -220,7 +224,7 @@ class ScheduleParser(BaseParser):
                                     duty_info = f"{duty.schedule} {duty.shift_type}"
                                     break
 
-                        # Проверяем купленные обмены
+                        # Проверяем сделки
                         if day_num in user_exchanges:
                             exchange_info = user_exchanges[day_num]
 
