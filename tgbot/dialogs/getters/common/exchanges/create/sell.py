@@ -149,18 +149,12 @@ async def sell_time_input_getter(
                 current_datetime = datetime.now()
                 current_time = current_datetime.time()
 
-                # Вычисляем ближайший получасовой интервал (:00 или :30)
-                if current_time.minute == 0 and current_time.second == 0:
-                    # Если сейчас ровно час, берем текущее время
-                    next_slot_start = current_datetime.replace(minute=0, second=0, microsecond=0)
-                elif current_time.minute == 30 and current_time.second == 0:
-                    # Если сейчас ровно полчаса, берем текущее время
-                    next_slot_start = current_datetime.replace(minute=30, second=0, microsecond=0)
-                elif current_time.minute < 30:
-                    # Округляем к :30 текущего часа
+                # Вычисляем следующий доступный получасовой интервал (:00 или :30)
+                if current_time.minute < 30:
+                    # Округляем ВВЕРХ к :30 текущего часа
                     next_slot_start = current_datetime.replace(minute=30, second=0, microsecond=0)
                 else:
-                    # Округляем к :00 следующего часа
+                    # Округляем ВВЕРХ к :00 следующего часа
                     next_slot_start = current_datetime.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
                 # Создаем datetime объект для времени окончания смены
