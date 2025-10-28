@@ -414,40 +414,17 @@ async def on_schedule_change(
         await callback.answer("🟡 Сделка скрыта из графика")
 
 
-async def on_restore_exchange(
+async def on_activation_change(
     callback: CallbackQuery,
-    _widget: Any,
-    dialog_manager: DialogManager,
-):
-    """Отмена сделки.
-
-    Args:
-        callback: Callback query от Telegram
-        _widget: Виджет кнопки
-        dialog_manager: Менеджер диалога
-    """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
-
-    await stp_repo.exchange.activate_exchange(exchange_id)
-    await callback.answer("❤️‍🩹 Сделка активирована")
-
-
-async def on_cancel_exchange(
-    callback: CallbackQuery,
-    _widget: Any,
+    widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
-    """Отмена сделки.
+    """Изменение статуса сделки.
 
     Args:
         callback: Callback query от Telegram
-        _widget: Виджет кнопки
+        widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
@@ -457,8 +434,19 @@ async def on_cancel_exchange(
     else:
         exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
-    await stp_repo.exchange.cancel_exchange(exchange_id)
-    await callback.answer("💔 Сделка отменена")
+    is_active = widget.is_checked()
+
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
+    if exchange.status == "active" == is_active:
+        return
+
+    if is_active:
+        await stp_repo.exchange.update_exchange(exchange_id, status="canceled")
+        await callback.answer("🟡 Сделка выключена")
+    else:
+        await stp_repo.exchange.update_exchange(exchange_id, status="active")
+        await callback.answer("🟢 Сделка активирована")
 
 
 async def on_delete_exchange(
