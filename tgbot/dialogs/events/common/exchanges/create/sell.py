@@ -824,6 +824,7 @@ async def on_remaining_time_selected(
         dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
         dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
 
+        await callback.answer("Время выставлено на начало часа")
         # Переходим к вводу цены
         await dialog_manager.switch_to(ExchangeCreateSell.price)
 

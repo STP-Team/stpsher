@@ -1,7 +1,7 @@
 """Геттеры для диалога продаж на бирже."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from aiogram import Bot
@@ -138,12 +138,47 @@ async def sell_time_input_getter(
                 sold_hours_list
             )
 
+        # Проверяем, осталось ли минимум 1 час от начала следующего часа до конца смены
+        show_remaining_time_button = False
+        if is_today:
+            try:
+                # Парсим время окончания смены
+                shift_end_time = datetime.strptime(shift_end, "%H:%M").time()
+
+                # Получаем текущее время и вычисляем начало следующего часа
+                current_datetime = datetime.now()
+                current_time = current_datetime.time()
+
+                # Вычисляем начало следующего часа
+                if current_time.minute == 0 and current_time.second == 0:
+                    # Если сейчас ровно час, берем текущий час
+                    next_hour_start = current_datetime.replace(
+                        minute=0, second=0, microsecond=0
+                    )
+                else:
+                    # Иначе округляем до следующего часа
+                    next_hour_start = current_datetime.replace(
+                        minute=0, second=0, microsecond=0
+                    ) + timedelta(hours=1)
+
+                # Создаем datetime объект для времени окончания смены
+                today = datetime.now().date()
+                shift_end_datetime = datetime.combine(today, shift_end_time)
+
+                # Проверяем, что от начала следующего часа до конца смены минимум 30 минут
+                time_remaining = shift_end_datetime - next_hour_start
+                show_remaining_time_button = time_remaining >= timedelta(minutes=30)
+
+            except Exception as e:
+                logger.error(f"[Биржа] Ошибка при проверке оставшегося времени: {e}")
+                show_remaining_time_button = False
+
         return {
             "selected_date": formatted_date,
             "user_schedule": user_schedule,
             "duty_warning": duty_warning,
             "sold_hours_info": sold_hours_info,
-            "show_remaining_time_button": is_today,
+            "show_remaining_time_button": show_remaining_time_button,
         }
 
     except Exception as e:
