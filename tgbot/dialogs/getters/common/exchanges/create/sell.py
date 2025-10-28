@@ -34,6 +34,8 @@ async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
     shift_start = data.get("shift_start")
     shift_end = data.get("shift_end")
     has_duty = data.get("has_duty", False)
+    duty_time = data.get("duty_time")
+    duty_type = data.get("duty_type")
     is_remaining_today = data.get("is_remaining_today", False)
 
     if not shift_date or not shift_start or not shift_end:
@@ -51,8 +53,11 @@ async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
 
         # Формируем предупреждение о дежурстве
         duty_warning = ""
-        if has_duty:
-            duty_warning = "⚠️ ВНИМАНИЕ: В это время у тебя дежурство"
+        if has_duty and duty_time and duty_type:
+            duty_warning = f"🚩 Есть дежурство: {duty_time} {duty_type}"
+        elif has_duty:
+            # Fallback если по какой-то причине нет детальной информации
+            duty_warning = "🚩 Есть дежурство"
 
         if is_remaining_today:
             # Если это оставшееся время сегодня, показываем только эту опцию
@@ -91,6 +96,8 @@ async def sell_time_input_getter(
     shift_start = data.get("shift_start")
     shift_end = data.get("shift_end")
     has_duty = data.get("has_duty", False)
+    duty_time = data.get("duty_time")
+    duty_type = data.get("duty_type")
     sold_time_strings = data.get("sold_time_strings", [])
     is_today = data.get("is_today", False)
 
@@ -111,7 +118,7 @@ async def sell_time_input_getter(
         # Формируем предупреждение о дежурстве
         duty_warning = ""
         if has_duty:
-            duty_warning = "🚩 Проверь время дежурства"
+            duty_warning = f"\n🚩 <b>Есть дежурство:</b>\n{duty_time} {duty_type}"
 
         # Формируем информацию о проданных часах
         sold_hours_info = ""
@@ -134,9 +141,7 @@ async def sell_time_input_getter(
                     f"• <a href='{exchange_link}'>{time_str}</a> - {status}"
                 )
 
-            sold_hours_info = "\n🚩 На этот день есть сделки:\n" + "\n".join(
-                sold_hours_list
-            )
+            sold_hours_info = "\n🚩 <b>Есть сделки:</b>\n" + "\n".join(sold_hours_list)
 
         # Проверяем, осталось ли минимум 30 минут от ближайшего получасового интервала до конца смены
         show_remaining_time_button = False
