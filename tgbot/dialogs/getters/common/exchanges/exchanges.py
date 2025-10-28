@@ -357,7 +357,7 @@ async def exchange_buy_detail_getter(
 
         exchange_info = await get_exchange_text(exchange, user.user_id)
         deeplink = f"exchange_{exchange.id}"
-        comment = exchange.comment if exchange.comment else "Без комментария"
+        comment = exchange.comment
 
         return {
             "exchange_info": exchange_info,
