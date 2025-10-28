@@ -313,6 +313,41 @@ async def on_private_change(
         await callback.answer("🟢 Сделка отображена в листинге биржи")
 
 
+async def on_paid_change(
+    callback: CallbackQuery,
+    widget: ManagedCheckbox,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Изменение статуса оплаты сделки.
+
+    Args:
+        callback: Callback query от Telegram
+        widget: Виджет чекбокса
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    is_paid = widget.is_checked()
+
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
+    if exchange.is_paid == is_paid:
+        return
+
+    if is_paid:
+        await stp_repo.exchange.update_exchange(exchange_id, is_paid=True)
+        await callback.answer("🟢 Сделка отмечена оплаченной")
+    else:
+        await stp_repo.exchange.update_exchange(exchange_id, is_paid=False)
+        await callback.answer("🟡 Сделка отмечена неоплаченной")
+
+
 async def on_schedule_change(
     callback: CallbackQuery,
     widget: ManagedCheckbox,
