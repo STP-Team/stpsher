@@ -29,6 +29,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_edit_payment_timing_selected,
     on_edit_price_input,
     on_my_exchange_selected,
+    on_paid_change,
     on_private_change,
     on_restore_exchange,
     on_schedule_change,
@@ -131,10 +132,12 @@ my_detail_window = Window(
         ),
     ),
     # Кнопка отметки об оплате для завершенных сделок
-    Button(
-        Const("✅ Отметить как оплаченное"),
-        id="mark_paid",
-        when=F["has_other_party"] & ~F["is_paid"],
+    Checkbox(
+        Const("🟢 Оплачено"),
+        Const("🟡 Не оплачено"),
+        id="exchange_is_paid",
+        on_state_changed=on_paid_change,
+        when=F["has_other_party"] & ~F["is_seller"],
     ),
     Row(SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer)),
     Row(

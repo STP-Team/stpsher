@@ -534,6 +534,10 @@ async def my_detail_getter(
         if in_schedule_checkbox:
             await in_schedule_checkbox.set_checked(exchange.in_schedule)
 
+        exchange_is_paid: ManagedCheckbox = dialog_manager.find("exchange_is_paid")
+        if exchange_is_paid:
+            await exchange_is_paid.set_checked(exchange.is_paid)
+
         user_id = dialog_manager.event.from_user.id
 
         # Информация об оплате
@@ -569,9 +573,10 @@ async def my_detail_getter(
             other_party_name = None
             other_party_type = None
 
+        is_seller = exchange.seller_id == user.user_id
         exchange_text = await get_exchange_text(exchange, user_id)
         exchange_status = await get_exchange_status(exchange)
-
+        exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
         exchange_deeplink = f"exchange_{exchange.id}"
         exchange_deeplink_url = await create_start_link(
             bot=bot, payload=exchange_deeplink, encode=True
@@ -595,12 +600,13 @@ async def my_detail_getter(
             "other_party_type": other_party_type,
             "has_other_party": bool(other_party_name),
             "is_active": exchange.status == "active",
-            "exchange_type": exchange.type,
+            "exchange_type": exchange_type,
             "created_date": exchange.created_at.strftime("%d.%m.%Y %H:%M"),
             "is_paid": is_paid,
             "deeplink": exchange_deeplink,
             "deeplink_url": exchange_deeplink_url,
             "could_activate": could_activate,
+            "is_seller": is_seller,
         }
 
     except Exception as e:
