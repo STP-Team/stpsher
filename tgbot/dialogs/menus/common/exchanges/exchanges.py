@@ -53,9 +53,7 @@ menu_window = Window(
         SwitchTo(Const("📉 Продать"), id="exchanges_sell", state=Exchanges.sell),
     ),
     SwitchTo(Const("🗳 Мои сделки"), id="exchanges_my", state=Exchanges.my),
-    SwitchTo(
-        Const("💸 Создать предложение"), id="exchanges_create", state=Exchanges.create
-    ),
+    SwitchTo(Const("💸 Создать сделку"), id="exchanges_create", state=Exchanges.create),
     SwitchTo(Const("📊 Статистика"), id="exchanges_stats", state=Exchanges.stats),
     Group(
         Url(
@@ -85,13 +83,13 @@ menu_window = Window(
 
 
 create_window = Window(
-    Const("💸 <b>Выбери тип предложения</b>"),
+    Const("💸 <b>Выбери тип сделки</b>"),
     Const("""
 <blockquote><b>📈 Купить</b> - Предложение о покупке часов тобой
-Твои коллеги увидят предложение в разделе <b>📉 Продать</b></blockquote>
+Твои коллеги увидят сделку в разделе <b>📉 Продать</b></blockquote>
 
 <blockquote><b>📉 Продать</b> - Предложение о продаже твоих часов
-Твои коллеги увидят предложение в разделе <b>📈 Купить</b></blockquote>"""),
+Твои коллеги увидят сделку в разделе <b>📈 Купить</b></blockquote>"""),
     Select(
         Format("{item[1]}"),
         id="exchange_type",

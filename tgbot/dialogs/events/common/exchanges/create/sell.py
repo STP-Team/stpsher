@@ -467,7 +467,7 @@ async def on_confirm_sell(
             )
         else:
             await callback.answer(
-                "❌ Не удалось создать предложение. Попробуйте позже.", show_alert=True
+                "❌ Не удалось создать сделку. Попробуйте позже.", show_alert=True
             )
 
     except Exception as e:

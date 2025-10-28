@@ -118,7 +118,7 @@ async def on_exchange_buy(
         # Получаем обмен
         exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
         if not exchange or exchange.status != "active":
-            await callback.answer("❌ Предложение недоступно", show_alert=True)
+            await callback.answer("❌ Сделка недоступна", show_alert=True)
             return
 
         # Покупаем обмен
@@ -168,7 +168,7 @@ async def on_exchange_sell(
         # Получаем обмен
         exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
         if not exchange or exchange.status != "active":
-            await callback.answer("❌ Предложение недоступно", show_alert=True)
+            await callback.answer("❌ Сделка недоступна", show_alert=True)
             return
 
         # Покупаем обмен
