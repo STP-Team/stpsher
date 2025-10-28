@@ -23,6 +23,7 @@ dependencies = [
     "sqlalchemy==2.0.44",
     "pytest>=8.4.2",
     "httpx>=0.28.1",
+    "ics>=0.7.2",
 ]
 
 [tool.ruff]

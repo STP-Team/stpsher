@@ -15,6 +15,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import (
+    on_add_to_calendar,
     on_cancel_exchange,
     on_delete_exchange,
     on_edit_comment_input,
@@ -152,6 +153,9 @@ my_detail_window = Window(
             on_state_changed=on_private_change,
             when=F["is_active"],
         ),
+    ),
+    Button(
+        Const("✍🏼 В календарь"), id="exchange_to_calendar", on_click=on_add_to_calendar
     ),
     Row(
         SwitchTo(Const("🎭 К бирже"), id="to_exchanges", state=Exchanges.menu),
