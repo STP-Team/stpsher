@@ -13,7 +13,10 @@ from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
 from tgbot.misc.helpers import format_fullname, strftime_date, tz
-from tgbot.services.files_processing.parsers.schedule import ScheduleParser
+from tgbot.services.files_processing.parsers.schedule import (
+    DutyScheduleParser,
+    ScheduleParser,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -368,13 +371,37 @@ async def exchange_buy_detail_getter(
         deeplink = f"exchange_{exchange.id}"
         comment = exchange.comment
 
-        return {
+        # Проверяем дежурства продавца на дату смены
+        duty_warning = ""
+        try:
+            date_obj = exchange.start_time.date()
+            duty_parser = DutyScheduleParser()
+            duties_for_date = await duty_parser.get_duties_for_date(
+                date_obj, seller.division, stp_repo
+            )
+
+            if duties_for_date:
+                # Проверяем, есть ли продавец среди дежурных
+                for duty in duties_for_date:
+                    if duty_parser.names_match(seller.fullname, duty.name):
+                        duty_warning = f"🚩 <b>Включает дежурство:</b>\n{duty.schedule} {duty.shift_type}"
+                        break
+        except Exception as e:
+            logger.debug(f"[Биржа] Ошибка проверки дежурств продавца: {e}")
+
+        result = {
             "exchange_info": exchange_info,
             "seller_name": seller_name,
             "payment_info": payment_info,
             "comment": comment,
             "deeplink": deeplink,
         }
+
+        # Добавляем информацию о дежурстве если есть
+        if duty_warning:
+            result["duty_warning"] = duty_warning
+
+        return result
 
     except Exception:
         return {"error": "Ошибка загрузки данных"}

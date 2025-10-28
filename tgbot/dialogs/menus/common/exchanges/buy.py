@@ -68,6 +68,10 @@ buy_detail_window = Window(
 👤 <b>Продавец:</b> {seller_name}
 💳 <b>Оплата:</b> {payment_info}"""),
     Format(
+        "\n{duty_warning}",
+        when="duty_warning",
+    ),
+    Format(
         """
 📝 <b>Комментарий:</b>
 <blockquote expandable>{comment}</blockquote>""",
