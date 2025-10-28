@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 async def get_user_shift_info(
     dialog_manager: DialogManager,
     shift_date: str,
-) -> Optional[Tuple[str, str, bool]]:
+) -> Optional[Tuple[str, str, bool, Optional[str], Optional[str]]]:
     """Получает информацию о смене пользователя на выбранную дату.
 
     Args:
@@ -36,7 +36,9 @@ async def get_user_shift_info(
         shift_date: Дата смены в формате ISO
 
     Returns:
-        Кортеж (start_time, end_time, has_duty) или None если смена не найдена
+        Кортеж (start_time, end_time, has_duty, duty_time, duty_type) или None если смена не найдена
+        duty_time: время дежурства в формате "09:00-18:00" или None
+        duty_type: тип дежурства "С" или "П" или None
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
@@ -96,6 +98,8 @@ async def get_user_shift_info(
 
         # Проверяем реальные дежурства напрямую через DutyScheduleParser
         has_actual_duty = False
+        duty_time = None
+        duty_type = None
         try:
             duty_parser = DutyScheduleParser()
             duties_for_date = await duty_parser.get_duties_for_date(
@@ -107,12 +111,16 @@ async def get_user_shift_info(
                 for duty in duties_for_date:
                     if duty_parser.names_match(employee.fullname, duty.name):
                         has_actual_duty = True
+                        duty_time = duty.schedule  # Например, "09:00-18:00"
+                        duty_type = duty.shift_type  # "С" или "П"
                         break
         except Exception as e:
             logger.debug(f"[Биржа] Ошибка проверки дежурств: {e}")
             has_actual_duty = False
+            duty_time = None
+            duty_type = None
 
-        return shift_start, shift_end, has_actual_duty
+        return shift_start, shift_end, has_actual_duty, duty_time, duty_type
 
     except Exception as e:
         logger.error(f"[Биржа] Ошибка получения смены: {e}")
@@ -444,7 +452,7 @@ async def on_date_selected(
         await callback.answer("❌ В выбранную дату у тебя нет смены", show_alert=True)
         return
 
-    shift_start, shift_end, has_duty = shift_info
+    shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
 
     # Проверяем существующие продажи на эту дату
     is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
@@ -463,6 +471,8 @@ async def on_date_selected(
     dialog_manager.dialog_data["shift_start"] = shift_start
     dialog_manager.dialog_data["shift_end"] = shift_end
     dialog_manager.dialog_data["has_duty"] = has_duty
+    dialog_manager.dialog_data["duty_time"] = duty_time
+    dialog_manager.dialog_data["duty_type"] = duty_type
     dialog_manager.dialog_data["sold_time_ranges"] = sold_ranges
     dialog_manager.dialog_data["sold_time_strings"] = sold_strings
 
@@ -498,7 +508,7 @@ async def on_today_selected(
         await callback.answer("❌ Сегодня у тебя нет смены", show_alert=True)
         return
 
-    shift_start, shift_end, has_duty = shift_info
+    shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
 
     # Проверяем существующие продажи на сегодня
     is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
@@ -517,6 +527,8 @@ async def on_today_selected(
     dialog_manager.dialog_data["shift_start"] = shift_start
     dialog_manager.dialog_data["shift_end"] = shift_end
     dialog_manager.dialog_data["has_duty"] = has_duty
+    dialog_manager.dialog_data["duty_time"] = duty_time
+    dialog_manager.dialog_data["duty_type"] = duty_type
     dialog_manager.dialog_data["sold_time_ranges"] = sold_ranges
     dialog_manager.dialog_data["sold_time_strings"] = sold_strings
 

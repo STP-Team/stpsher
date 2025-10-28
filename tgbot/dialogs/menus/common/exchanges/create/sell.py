@@ -65,7 +65,7 @@ shift_type_window = Window(
     Const("📝 <b>Шаг 2: Тип сделки</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{selected_date}</code></blockquote>"""),
-    Format("{duty_warning}", when="duty_warning"),
+    Format("\n{duty_warning}", when="duty_warning"),
     Format("\nВыбери тип смены для продажи:"),
     Select(
         Format("{item[1]}"),
