@@ -376,7 +376,7 @@ async def on_schedule_change(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    user: Employee = dialog_manager.dialog_data.get("user")
+    user: Employee = dialog_manager.middleware_data.get("user")
 
     if dialog_manager.start_data:
         exchange_id = dialog_manager.start_data.get("exchange_id", None)
