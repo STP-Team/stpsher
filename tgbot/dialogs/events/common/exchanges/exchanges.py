@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from aiogram.types import CallbackQuery
+from aiogram.types import BufferedInputFile, CallbackQuery
 from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, ManagedCheckbox, Select
-from stp_database import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateBuy,
@@ -765,3 +765,60 @@ async def on_edit_comment_input(
     except Exception as e:
         logger.error(f"Error updating exchange comment: {e}")
         await message.answer("❌ Ошибка при обновлении комментария")
+
+
+async def on_add_to_calendar(
+    callback: CallbackQuery,
+    button: Button,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user: Employee = dialog_manager.middleware_data["user"]
+
+    if dialog_manager.start_data:
+        exchange_id = dialog_manager.start_data.get("exchange_id", None)
+    else:
+        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+    if not exchange:
+        return
+
+    if exchange.seller_id == user.user_id:
+        second_party = exchange.buyer_id
+    else:
+        second_party = exchange.seller_id
+
+    second_party = await stp_repo.employee.get_users(user_id=second_party)
+
+    dt_format = "%Y%m%dT%H%M%S"
+    dtstamp = datetime.now().strftime("%Y%m%dT%H%M%SZ")
+    dtstart = exchange.start_time.strftime(dt_format)
+    dtend = exchange.end_time.strftime(dt_format)
+
+    ics_text = f"""BEGIN:VCALENDAR
+VERSION:2.0
+CALSCALE:GREGORIAN
+PRODID:-//STPsher//EN
+BEGIN:VEVENT
+UID:{exchange.id}@stpsher
+DTSTAMP:{dtstamp}
+DTSTART:{dtstart}
+DTEND:{dtend}
+SUMMARY:Подмена
+DESCRIPTION:Подмена {second_party.fullname}
+LOCATION:Дом.ру
+END:VEVENT
+END:VCALENDAR
+"""
+
+    buffered_file = BufferedInputFile(ics_text.encode("utf-8"), filename="Подмена.ics")
+
+    await callback.bot.send_document(
+        chat_id=callback.from_user.id,
+        document=buffered_file,
+        caption="""<b>✍🏼 Подмена в календарь</b>
+        
+Нажми на файл для добавления подмены в календарь""",
+    )

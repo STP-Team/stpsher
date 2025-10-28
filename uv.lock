@@ -163,6 +163,19 @@ wheels = [
 ]
 
 [[package]]
+name = "arrow"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+    { name = "tzdata" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b9/33/032cdc44182491aa708d06a68b62434140d8c50820a087fac7af37703357/arrow-1.4.0.tar.gz", hash = "sha256:ed0cc050e98001b8779e84d461b0098c4ac597e88704a655582b21d116e526d7", size = 152931, upload-time = "2025-10-18T17:46:46.761Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/c9/d7977eaacb9df673210491da99e6a247e93df98c715fc43fd136ce1d3d33/arrow-1.4.0-py3-none-any.whl", hash = "sha256:749f0769958ebdc79c173ff0b0670d59051a535fa26e8eba02953dc19eb43205", size = 68797, upload-time = "2025-10-18T17:46:45.663Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -269,7 +282,7 @@ name = "cffi"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz", hash = "sha256:44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529", size = 523588, upload-time = "2025-09-08T23:24:04.541Z" }
 wheels = [
@@ -581,6 +594,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
+]
+
+[[package]]
+name = "ics"
+version = "0.7.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "arrow" },
+    { name = "attrs" },
+    { name = "python-dateutil" },
+    { name = "six" },
+    { name = "tatsu" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/fa/2cb7cbe23566140f011da4fec280d4873da4389c8b838bb3e5ce3fc39b16/ics-0.7.2.tar.gz", hash = "sha256:6743539bca10391635249b87d74fcd1094af20b82098bebf7c7521df91209f05", size = 190643, upload-time = "2022-07-06T11:25:41.666Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/95/e04dea5cf29bdf5005f5aa7ccf0a2f9724b877722d89f8286dc3785a7cdc/ics-0.7.2-py2.py3-none-any.whl", hash = "sha256:5fcf4d29ec6e7dfcb84120abd617bbba632eb77b097722b7df70e48dbcf26103", size = 40086, upload-time = "2022-07-06T11:25:36.536Z" },
 ]
 
 [[package]]
@@ -1260,6 +1289,7 @@ dependencies = [
     { name = "databases" },
     { name = "environs" },
     { name = "httpx" },
+    { name = "ics" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "pandas-stubs" },
@@ -1282,6 +1312,7 @@ requires-dist = [
     { name = "databases", specifier = ">=0.9.0" },
     { name = "environs", specifier = ">=14.3.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "ics", specifier = ">=0.7.2" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.3.2" },
     { name = "pandas-stubs", specifier = "==2.3.2.250926" },
@@ -1290,6 +1321,15 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.5" },
     { name = "sqlalchemy", specifier = "==2.0.44" },
     { name = "stp-database", git = "https://github.com/ERTG-BOTS/stp-database.git" },
+]
+
+[[package]]
+name = "tatsu"
+version = "5.13.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/69/0dd8b975d30637701fde9ff3f8ea52a15fc64317ac9642f4cdeab8a93ad1/tatsu-5.13.2.tar.gz", hash = "sha256:d55aa0bdde2ab5efec73d96f9ce41b8a4aef5cee58eb6e05d1951ad3e03151d9", size = 132236, upload-time = "2025-09-25T22:41:44.561Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/57/bb1b683d46a78cf48aa40130d4f1ef82f50a73c72a9d9836d6347a3efbef/tatsu-5.13.2-py3-none-any.whl", hash = "sha256:482c6117e92e54fa770664b758f13b1729a01d5c94d7ccbc270d5ffa1dfe2d8a", size = 80340, upload-time = "2025-09-25T22:41:42.661Z" },
 ]
 
 [[package]]
