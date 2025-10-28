@@ -880,6 +880,43 @@ END:VCALENDAR
         chat_id=callback.from_user.id,
         document=buffered_file,
         caption="""<b>✍🏼 Подмена в календарь</b>
-        
+
 Нажми на файл для добавления подмены в календарь""",
     )
+
+
+async def on_reset_filters(
+    _callback: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Обработчик сброса фильтров и сортировки к значениям по умолчанию.
+
+    Args:
+        _callback: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    from aiogram_dialog.widgets.kbd import ManagedRadio, ManagedToggle
+
+    try:
+        # Сбрасываем фильтры к значениям по умолчанию
+        day_filter_checkbox: ManagedRadio = dialog_manager.find("day_filter")
+        if day_filter_checkbox:
+            await day_filter_checkbox.set_checked("all")
+
+        shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
+        if shift_filter_checkbox:
+            await shift_filter_checkbox.set_checked("no_shift")
+
+        date_sort_toggle: ManagedToggle = dialog_manager.find("date_sort")
+        if date_sort_toggle:
+            await date_sort_toggle.set_checked("nearest")
+
+        price_sort_toggle: ManagedToggle = dialog_manager.find("price_sort")
+        if price_sort_toggle:
+            await price_sort_toggle.set_checked("cheap")
+
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка при сбросе фильтров: {e}")

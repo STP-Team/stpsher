@@ -68,7 +68,9 @@ sell_detail_window = Window(
 
 👤 <b>Покупатель:</b> {buyer_name}
 💳 <b>Оплата:</b> {payment_info}"""),
-    Button(Const("✅ Продать"), id="accept_buy_request", on_click=on_exchange_buy),
+    Button(
+        Const("✍️ Предложить сделку"), id="accept_buy_request", on_click=on_exchange_buy
+    ),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
         query=Format("{deeplink}"),

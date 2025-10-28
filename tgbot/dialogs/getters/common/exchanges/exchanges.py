@@ -236,6 +236,10 @@ async def exchange_buy_getter(
     Returns:
         Словарь с доступными сделками
     """
+    from datetime import date
+
+    from aiogram_dialog.widgets.kbd import ManagedRadio, ManagedToggle
+
     user_id = dialog_manager.event.from_user.id
 
     try:
@@ -246,9 +250,77 @@ async def exchange_buy_getter(
             exchange_type="sell",
         )
 
+        # Получаем настройки фильтрации и сортировки
+        day_filter_checkbox: ManagedRadio = dialog_manager.find("day_filter")
+        day_filter_value = (
+            day_filter_checkbox.get_checked() if day_filter_checkbox else "all"
+        )
+
+        shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
+        shift_filter_value = (
+            shift_filter_checkbox.get_checked() if shift_filter_checkbox else "no_shift"
+        )
+
+        date_sort_toggle: ManagedToggle = dialog_manager.find("date_sort")
+        date_sort_value = (
+            date_sort_toggle.get_checked() if date_sort_toggle else "nearest"
+        )
+
+        price_sort_toggle: ManagedToggle = dialog_manager.find("price_sort")
+        price_sort_value = (
+            price_sort_toggle.get_checked() if price_sort_toggle else "cheap"
+        )
+
+        # Применяем фильтры
+        from datetime import timedelta
+
+        filtered_exchanges = []
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+
+        for exchange in exchanges:
+            exchange_date = exchange.start_time.date()
+
+            # Фильтр по дням
+            if day_filter_value == "today" and exchange_date != today:
+                continue
+            elif day_filter_value == "tomorrow" and exchange_date != tomorrow:
+                continue
+
+            # Фильтр по сменам (пока не реализован функционал определения смен)
+            # Можно добавить логику определения наличия смены по времени
+            if shift_filter_value == "no_shift":
+                # Условно считаем, что смены с 8:00 до 20:00 - это дневные смены
+                start_hour = exchange.start_time.hour
+                if 8 <= start_hour <= 20:
+                    continue
+            elif shift_filter_value == "shift":
+                start_hour = exchange.start_time.hour
+                if not (8 <= start_hour <= 20):
+                    continue
+
+            filtered_exchanges.append(exchange)
+
+        # Применяем сортировку
+        # Используем составной ключ сортировки для корректной работы с несколькими критериями
+        def sort_key(exchange):
+            # Определяем направление сортировки для даты
+            date_multiplier = 1 if date_sort_value == "nearest" else -1
+            # Определяем направление сортировки для цены
+            price_multiplier = 1 if price_sort_value == "cheap" else -1
+
+            # Возвращаем кортеж (дата, цена) с учетом направления сортировки
+            # Используем timestamp для корректной обработки отрицательных значений
+            return (
+                date_multiplier * exchange.start_time.timestamp(),
+                price_multiplier * exchange.price,
+            )
+
+        filtered_exchanges.sort(key=sort_key)
+
         # Форматируем данные для отображения
         available_exchanges = []
-        for exchange in exchanges:
+        for exchange in filtered_exchanges:
             # Форматируем время из start_time и end_time
             time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
 
@@ -263,16 +335,76 @@ async def exchange_buy_getter(
                 "seller_id": exchange.seller_id,
             })
 
+        # Формируем текст активных фильтров (показываем ВСЕ активные фильтры)
+        filter_text_parts = []
+
+        # Фильтр по дням - показываем текущее значение
+        if day_filter_value == "all":
+            filter_text_parts.append("Период: 📅 Все дни")
+        elif day_filter_value == "today":
+            filter_text_parts.append("Период: 📅 Только сегодня")
+        elif day_filter_value == "tomorrow":
+            filter_text_parts.append("Период: 📅 Только завтра")
+        elif day_filter_value == "current_week":
+            filter_text_parts.append("Период: 📅 Только эта неделя")
+        elif day_filter_value == "current_month":
+            filter_text_parts.append("Период: 📅 Только этот месяц")
+
+        # Фильтр по сменам - показываем текущее значение
+        if shift_filter_value == "all":
+            filter_text_parts.append("Смена: ⭐ Все")
+        elif shift_filter_value == "no_shift":
+            filter_text_parts.append("Смена: 🌙 Без смены")
+        elif shift_filter_value == "shift":
+            filter_text_parts.append("Смена: ☀️ Со сменой")
+
+        filters_text = "\n".join(filter_text_parts) if filter_text_parts else ""
+
+        # Формируем текст активной сортировки
+        sorting_text_parts = []
+
+        # Показываем сортировку по дате всегда (это основной критерий)
+        if date_sort_value == "nearest":
+            sorting_text_parts.append("По дате: 📈 Сначала ближайшие")
+        else:
+            sorting_text_parts.append("По дате: 📉 Сначала дальние")
+
+        # Показываем сортировку по цене всегда (вторичный критерий)
+        if price_sort_value == "cheap":
+            sorting_text_parts.append("По цене: 💰 Сначала дешевые")
+        else:
+            sorting_text_parts.append("По цене: 💸 Сначала дорогие")
+
+        sorting_text = "\n".join(sorting_text_parts)
+
+        # Определяем, отличаются ли настройки от значений по умолчанию
+        is_default_settings = (
+            day_filter_value == "all"
+            and shift_filter_value == "no_shift"
+            and date_sort_value == "nearest"
+            and price_sort_value == "cheap"
+        )
+
         return {
             "available_exchanges": available_exchanges,
             "exchanges_length": len(available_exchanges),
             "has_exchanges": len(available_exchanges) > 0,
+            "active_filters": filters_text,
+            "has_active_filters": True,  # Всегда показываем фильтры
+            "active_sorting": sorting_text,
+            "has_active_sorting": True,  # Всегда показываем сортировку
+            "show_reset_button": not is_default_settings,
         }
 
     except Exception:
         return {
             "available_exchanges": [],
             "has_exchanges": False,
+            "active_filters": "Период: 📅 Все дни\nСмена: 🌙 Без смены",
+            "has_active_filters": True,
+            "active_sorting": "По дате: 📈 Сначала ближайшие\nПо цене: 💰 Сначала дешевые",
+            "has_active_sorting": True,
+            "show_reset_button": False,
         }
 
 
