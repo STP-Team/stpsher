@@ -1,6 +1,6 @@
 """Геттеры для диалога продаж на бирже."""
 
-import re
+import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -8,10 +8,10 @@ from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
-    get_month_name,
     prepare_calendar_data_for_exchange,
 )
-from tgbot.services.files_processing.parsers.schedule import ScheduleParser
+
+logger = logging.getLogger(__name__)
 
 
 async def sell_date_getter(
@@ -24,80 +24,45 @@ async def sell_date_getter(
 
 
 async def sell_hours_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **kwargs
+    dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна выбора часов."""
     shift_date = dialog_manager.dialog_data.get("shift_date")
-    is_today = dialog_manager.dialog_data.get("is_today", False)
+    shift_start = dialog_manager.dialog_data.get("shift_start")
+    shift_end = dialog_manager.dialog_data.get("shift_end")
+    has_duty = dialog_manager.dialog_data.get("has_duty", False)
+    is_remaining_today = dialog_manager.dialog_data.get("is_remaining_today", False)
 
-    if not shift_date:
+    if not shift_date or not shift_start or not shift_end:
         return {
             "selected_date": "Не выбрана",
             "shift_options": [],
             "user_schedule": "Не найден",
+            "duty_warning": "",
         }
 
     try:
-        # Получаем график пользователя с дежурствами
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
+        user_schedule = f"{shift_start}-{shift_end}"
 
-        parser = ScheduleParser()
-        month_name = get_month_name(date_obj.month)
-
-        # Получаем график с дежурствами
-        try:
-            schedule_with_duties = await parser.get_user_schedule_with_duties(
-                user.fullname,
-                month_name,
-                user.division,
-                stp_repo,
-                current_day_only=False,
-            )
-        except Exception:
-            schedule_with_duties = {}
-
-        # Извлекаем информацию о смене на выбранную дату
-        user_schedule = "Не указано"
+        # Формируем предупреждение о дежурстве
         duty_warning = ""
+        if has_duty:
+            duty_warning = "⚠️ ВНИМАНИЕ: В это время у тебя дежурство"
 
-        # Ищем данные на выбранную дату
-        day_key = f"{date_obj.day:02d}"
-        for day, (schedule, duty_info) in schedule_with_duties.items():
-            if day_key in day:
-                user_schedule = schedule or "Не указано"
-                if duty_info:
-                    duty_warning = (
-                        f"⚠️ ВНИМАНИЕ: В это время у тебя дежурство ({duty_info})"
-                    )
-                break
-
-        # Определяем доступные опции
+        # Определяем доступные опции в зависимости от контекста
         shift_options = []
 
-        if user_schedule and user_schedule not in ["Не указано", "В", "О"]:
-            # Проверяем, есть ли время в графике
-            time_pattern = r"\d{1,2}:\d{2}-\d{1,2}:\d{2}"
-            has_time = re.search(time_pattern, user_schedule)
-
-            if has_time:
-                shift_options.append(("full", "🕘 Полная смена"))
-                shift_options.append(("partial", "⏰ Часть смены"))
-
-                # Если это сегодня и смена уже началась, добавляем опцию "оставшееся время"
-                if is_today:
-                    current_time = datetime.now()
-                    # Простая проверка - если сейчас после 9 утра, то смена могла начаться
-                    if current_time.hour >= 9:
-                        shift_options = [
-                            ("remaining_today", "⏰ Оставшееся время сегодня")
-                        ]
-            else:
-                # Если нет времени в графике, предлагаем ввести вручную
-                shift_options.append(("partial", "⏰ Введите время смены"))
+        if is_remaining_today:
+            # Если это оставшееся время сегодня, показываем только эту опцию
+            shift_options = [("remaining_today", "⏰ Оставшееся время сегодня")]
         else:
-            # Если график не найден или сотрудник не работает
-            user_schedule = "Нет смены / Выходной"
+            # Обычные опции для будущих дат или сегодня до начала смены
+            shift_options = [
+                ("full", "🕘 Полная смена"),
+                ("partial", "⏰ Часть смены"),
+            ]
 
         return {
             "selected_date": formatted_date,
@@ -107,56 +72,40 @@ async def sell_hours_getter(
         }
 
     except Exception as e:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
+        logger.error(f"[Биржа] Ошибка в sell_hours_getter: {e}")
         return {
-            "selected_date": formatted_date,
-            "user_schedule": f"Ошибка: {str(e)}",
+            "selected_date": "Ошибка",
+            "user_schedule": "Ошибка получения данных",
             "duty_warning": "",
             "shift_options": [],
         }
 
 
 async def sell_time_input_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
+    dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для окна ввода времени."""
     shift_date = dialog_manager.dialog_data.get("shift_date")
+    shift_start = dialog_manager.dialog_data.get("shift_start")
+    shift_end = dialog_manager.dialog_data.get("shift_end")
+    has_duty = dialog_manager.dialog_data.get("has_duty", False)
 
-    if not shift_date:
-        return {"selected_date": "Не выбрана", "user_schedule": "Не найден"}
+    if not shift_date or not shift_start or not shift_end:
+        return {
+            "selected_date": "Не выбрана",
+            "user_schedule": "Не найден",
+            "duty_warning": "",
+        }
 
     try:
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
+        user_schedule = f"{shift_start}-{shift_end}"
 
-        parser = ScheduleParser()
-        month_name = get_month_name(date_obj.month)
-
-        # Получаем график пользователя
-        user_schedule = "Не указано"
+        # Формируем предупреждение о дежурстве
         duty_warning = ""
-
-        try:
-            schedule_dict = await parser.get_user_schedule_with_duties(
-                user.fullname,
-                month_name,
-                user.division,
-                stp_repo,
-                current_day_only=False,
-            )
-
-            day_key = f"{date_obj.day:02d}"
-            for day, (schedule, duty_info) in schedule_dict.items():
-                if day_key in day:
-                    user_schedule = schedule or "Не указано"
-                    if duty_info:
-                        duty_warning = (
-                            f"⚠️ ВНИМАНИЕ: Проверьте время дежурства ({duty_info})"
-                        )
-                    break
-        except Exception:
-            pass
+        if has_duty:
+            duty_warning = "⚠️ ВНИМАНИЕ: Проверьте время дежурства"
 
         return {
             "selected_date": formatted_date,
@@ -164,12 +113,11 @@ async def sell_time_input_getter(
             "duty_warning": duty_warning,
         }
 
-    except Exception:
-        date_obj = datetime.fromisoformat(shift_date).date()
-        formatted_date = date_obj.strftime("%d.%m.%Y")
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка в sell_time_input_getter: {e}")
         return {
-            "selected_date": formatted_date,
-            "user_schedule": "Ошибка получения графика",
+            "selected_date": "Ошибка",
+            "user_schedule": "Ошибка получения данных",
             "duty_warning": "",
         }
 
