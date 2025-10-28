@@ -279,7 +279,7 @@ async def on_exchange_type_selected(
 
 
 async def on_private_change(
-    _callback: CallbackQuery,
+    callback: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -287,7 +287,7 @@ async def on_private_change(
     """Изменение приватности сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        callback: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -307,12 +307,14 @@ async def on_private_change(
 
     if is_private:
         await stp_repo.exchange.update_exchange(exchange_id, is_private=True)
+        await callback.answer("🟡 Сделка скрыта из листинга биржи")
     else:
         await stp_repo.exchange.update_exchange(exchange_id, is_private=False)
+        await callback.answer("🟢 Сделка отображена в листинге биржи")
 
 
 async def on_schedule_change(
-    _callback: CallbackQuery,
+    callback: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -320,7 +322,7 @@ async def on_schedule_change(
     """Изменение отображения сделки в графике.
 
     Args:
-        _callback: Callback query от Telegram
+        callback: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -340,19 +342,21 @@ async def on_schedule_change(
 
     if in_schedule:
         await stp_repo.exchange.update_exchange(exchange_id, in_schedule=True)
+        await callback.answer("🟢 Сделка отображена в графике")
     else:
         await stp_repo.exchange.update_exchange(exchange_id, in_schedule=False)
+        await callback.answer("🟡 Сделка скрыта из графика")
 
 
 async def on_restore_exchange(
-    _callback: CallbackQuery,
+    callback: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
 ):
     """Отмена сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        callback: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -364,10 +368,11 @@ async def on_restore_exchange(
         exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     await stp_repo.exchange.activate_exchange(exchange_id)
+    await callback.answer("❤️‍🩹 Сделка активирована")
 
 
 async def on_cancel_exchange(
-    _callback: CallbackQuery,
+    callback: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -375,7 +380,7 @@ async def on_cancel_exchange(
     """Отмена сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        callback: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -387,10 +392,11 @@ async def on_cancel_exchange(
         exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     await stp_repo.exchange.cancel_exchange(exchange_id)
+    await callback.answer("💔 Сделка отменена")
 
 
 async def on_delete_exchange(
-    _callback: CallbackQuery,
+    callback: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -398,7 +404,7 @@ async def on_delete_exchange(
     """Удаление сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        callback: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -410,6 +416,7 @@ async def on_delete_exchange(
         exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
 
     await stp_repo.exchange.delete_exchange(exchange_id)
+    await callback.answer("🔥 Сделка удалена")
     await dialog_manager.switch_to(Exchanges.my)
 
 

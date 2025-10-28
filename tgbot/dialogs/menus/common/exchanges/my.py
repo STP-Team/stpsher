@@ -79,18 +79,17 @@ my_window = Window(
 my_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-📊 <b>Статус:</b> {status}
-
+📊 <b>Статус:</b> {status}"""),
+    Format(
+        """🙋‍♂️ <b>{other_party_type}:</b> {other_party_name}""",
+        when="has_other_party",
+    ),
+    Format("""
 {exchange_info}"""),
     Format(
         """
-👤 <b>Вторая сторона:</b> {other_party_name}""",
-        when="has_other_party",
-    ),
-    Format(
-        """
 💳 <b>Оплата:</b> {payment_info}
-💸 <b>Оплачено:</b> {'✅ Да' if is_paid else '❌ Нет'}""",
+💸 <b>Оплачено:</b> {is_paid}""",
         when="has_other_party",
     ),
     Format(
@@ -140,15 +139,15 @@ my_detail_window = Window(
     Row(SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer)),
     Row(
         Checkbox(
-            Const("📅 В графике"),
-            Const("Не в графике"),
+            Const("🟢 В графике"),
+            Const("🟡 Не в графике"),
             id="exchange_in_schedule",
             on_state_changed=on_schedule_change,
             when=F["is_active"],
         ),
         Checkbox(
-            Const("🫣 Приватная"),
-            Const("Публичная"),
+            Const("🟡 Приватная"),
+            Const("🟢 Публичная"),
             id="offer_private_status",
             on_state_changed=on_private_change,
             when=F["is_active"],
