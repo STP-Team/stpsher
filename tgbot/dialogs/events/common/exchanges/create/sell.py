@@ -11,12 +11,16 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, Select
 from stp_database import MainRequestsRepo
 
+from tgbot.dialogs.getters.common.exchanges.exchanges import get_exchange_status
 from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateSell,
     Exchanges,
 )
 from tgbot.misc.helpers import tz
-from tgbot.services.files_processing.parsers.schedule import ScheduleParser
+from tgbot.services.files_processing.parsers.schedule import (
+    DutyScheduleParser,
+    ScheduleParser,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,25 +71,48 @@ async def get_user_shift_info(
 
         month_name = get_month_name(date_obj.month)
 
-        schedule_with_duties = await parser.get_user_schedule_with_duties(
-            employee.fullname,
-            month_name,
-            employee.division,
-            stp_repo,
-            current_day_only=False,
+        # Получаем базовый график без дежурств
+        schedule_data = parser.get_user_schedule(
+            employee.fullname, month_name, employee.division
         )
 
         # Ищем смену на выбранную дату
         day_key = f"{date_obj.day:02d}"
-        for day, (schedule, duty_info) in schedule_with_duties.items():
+        shift_start = None
+        shift_end = None
+
+        for day, schedule in schedule_data.items():
             if day_key in day and schedule:
                 # Проверяем, есть ли время в графике
                 time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
                 match = re.search(time_pattern, schedule)
                 if match:
-                    return match.group(1), match.group(2), bool(duty_info)
+                    shift_start = match.group(1)
+                    shift_end = match.group(2)
+                    break
 
-        return None
+        if not shift_start or not shift_end:
+            return None
+
+        # Проверяем реальные дежурства напрямую через DutyScheduleParser
+        has_actual_duty = False
+        try:
+            duty_parser = DutyScheduleParser()
+            duties_for_date = await duty_parser.get_duties_for_date(
+                date_obj, employee.division, stp_repo
+            )
+
+            if duties_for_date:
+                # Проверяем, есть ли пользователь среди дежурных
+                for duty in duties_for_date:
+                    if duty_parser.names_match(employee.fullname, duty.name):
+                        has_actual_duty = True
+                        break
+        except Exception as e:
+            logger.debug(f"[Биржа] Ошибка проверки дежурств: {e}")
+            has_actual_duty = False
+
+        return shift_start, shift_end, has_actual_duty
 
     except Exception as e:
         logger.error(f"[Биржа] Ошибка получения смены: {e}")
@@ -126,6 +153,120 @@ async def check_existing_exchanges_overlap(
     except Exception as e:
         logger.error(f"[Биржа] Ошибка проверки пересечений: {e}")
         return False
+
+
+async def get_existing_sales_for_date(
+    dialog_manager: DialogManager,
+    shift_date: str,
+    shift_start: str,
+    shift_end: str,
+) -> tuple[bool, list[tuple[str, str]], list[str]]:
+    """Получает информацию о существующих продажах на указанную дату.
+
+    Args:
+        dialog_manager: Менеджер диалога
+        shift_date: Дата смены в формате ISO
+        shift_start: Время начала смены (HH:MM)
+        shift_end: Время окончания смены (HH:MM)
+
+    Returns:
+        Кортеж (is_full_shift_sold, sold_time_ranges, sold_time_strings)
+        - is_full_shift_sold: True если вся смена уже продана/продается
+        - sold_time_ranges: Список кортежей (start, end) проданного времени
+        - sold_time_strings: Список словарей с данными о проданных сделках
+          {"time_str": "HH:MM-HH:MM", "exchange_id": int, "status": str}
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user_id = dialog_manager.event.from_user.id
+
+    try:
+        # Получаем активные и проданные обмены пользователя только как продавец
+        user_exchanges = await stp_repo.exchange.get_user_exchanges(
+            user_id=user_id, exchange_type="sold"
+        )
+
+        # Фильтруем только активные и проданные обмены
+        relevant_exchanges = [
+            exchange
+            for exchange in user_exchanges
+            if exchange.status in ["active", "sold"]
+            and exchange.start_time
+            and exchange.end_time
+        ]
+
+        # Фильтруем по дате
+        shift_date_obj = datetime.fromisoformat(shift_date).date()
+        date_exchanges = [
+            exchange
+            for exchange in relevant_exchanges
+            if exchange.start_time.date() == shift_date_obj
+        ]
+
+        if not date_exchanges:
+            return False, [], []
+
+        # Получаем временные диапазоны проданного времени
+        sold_time_ranges = []
+        sold_time_strings = []
+
+        for exchange in date_exchanges:
+            start_str = exchange.start_time.strftime("%H:%M")
+            end_str = exchange.end_time.strftime("%H:%M")
+            sold_time_ranges.append((start_str, end_str))
+
+            # Добавляем статус для отображения
+            status_text = await get_exchange_status(exchange)
+            sold_time_strings.append({
+                "time_str": f"{start_str}-{end_str}",
+                "exchange_id": exchange.id,
+                "status": status_text,
+            })
+
+        # Проверяем, покрывают ли проданные части всю смену
+        shift_start_minutes = time_to_minutes(shift_start)
+        shift_end_minutes = time_to_minutes(shift_end)
+
+        # Сортируем интервалы по времени начала
+        sorted_ranges = sorted([
+            (time_to_minutes(start), time_to_minutes(end))
+            for start, end in sold_time_ranges
+        ])
+
+        # Проверяем покрытие всей смены
+        is_full_shift_sold = False
+        if sorted_ranges:
+            # Объединяем пересекающиеся интервалы
+            merged_ranges = [sorted_ranges[0]]
+            for current_start, current_end in sorted_ranges[1:]:
+                last_start, last_end = merged_ranges[-1]
+                if current_start <= last_end:
+                    # Интервалы пересекаются или соприкасаются
+                    merged_ranges[-1] = (last_start, max(last_end, current_end))
+                else:
+                    merged_ranges.append((current_start, current_end))
+
+            # Проверяем, покрывает ли объединенный интервал всю смену
+            if (
+                len(merged_ranges) == 1
+                and merged_ranges[0][0] <= shift_start_minutes
+                and merged_ranges[0][1] >= shift_end_minutes
+            ):
+                is_full_shift_sold = True
+
+        return is_full_shift_sold, sold_time_ranges, sold_time_strings
+
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка получения информации о продажах: {e}")
+        return False, [], []
+
+
+def time_to_minutes(time_str: str) -> int:
+    """Преобразует время в формате HH:MM в минуты от начала дня."""
+    try:
+        h, m = map(int, time_str.split(":"))
+        return h * 60 + m
+    except Exception:
+        return 0
 
 
 def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
@@ -305,12 +446,25 @@ async def on_date_selected(
 
     shift_start, shift_end, has_duty = shift_info
 
+    # Проверяем существующие продажи на эту дату
+    is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
+        dialog_manager, shift_date_iso, shift_start, shift_end
+    )
+
+    if is_full_sold:
+        await callback.answer(
+            "❌ Вся смена на эту дату уже продана или продается", show_alert=True
+        )
+        return
+
     # Сохраняем данные о выбранной дате и смене
     dialog_manager.dialog_data["shift_date"] = shift_date_iso
     dialog_manager.dialog_data["is_today"] = selected_date == today
     dialog_manager.dialog_data["shift_start"] = shift_start
     dialog_manager.dialog_data["shift_end"] = shift_end
     dialog_manager.dialog_data["has_duty"] = has_duty
+    dialog_manager.dialog_data["sold_time_ranges"] = sold_ranges
+    dialog_manager.dialog_data["sold_time_strings"] = sold_strings
 
     # Определяем следующий шаг в зависимости от статуса смены
     if selected_date == today and is_shift_started(shift_start, shift_date_iso):
@@ -343,12 +497,25 @@ async def on_today_selected(
 
     shift_start, shift_end, has_duty = shift_info
 
+    # Проверяем существующие продажи на сегодня
+    is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
+        dialog_manager, shift_date_iso, shift_start, shift_end
+    )
+
+    if is_full_sold:
+        await callback.answer(
+            "❌ Вся смена на сегодня уже продана или продается", show_alert=True
+        )
+        return
+
     # Сохраняем данные о выбранной дате и смене
     dialog_manager.dialog_data["shift_date"] = shift_date_iso
     dialog_manager.dialog_data["is_today"] = True
     dialog_manager.dialog_data["shift_start"] = shift_start
     dialog_manager.dialog_data["shift_end"] = shift_end
     dialog_manager.dialog_data["has_duty"] = has_duty
+    dialog_manager.dialog_data["sold_time_ranges"] = sold_ranges
+    dialog_manager.dialog_data["sold_time_strings"] = sold_strings
 
     # Определяем следующий шаг в зависимости от статуса смены
     if is_shift_started(shift_start, shift_date_iso):

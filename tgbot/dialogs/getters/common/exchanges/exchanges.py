@@ -84,6 +84,15 @@ async def prepare_calendar_data_for_exchange(
         dialog_manager.dialog_data["shift_dates"] = {}
 
 
+async def get_exchange_shift_time(start_time: str, end_time: str):
+    # Извлекаем только время из datetime строк
+    start_time_str = start_time.split("T")[1][:5] if "T" in start_time else start_time
+    end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+
+    shift_time = f"{start_time_str}-{end_time_str}"
+    return shift_time
+
+
 async def get_exchange_type(exchange: Exchange, is_seller: bool) -> str:
     """Получает тип сделки.
 
