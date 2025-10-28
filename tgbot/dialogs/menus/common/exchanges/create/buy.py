@@ -130,7 +130,10 @@ confirmation_window = Window(
 
 📅 <b>Предложение:</b> <code>{date_info} {time_info} ПРМ</code>
 💰 <b>Цена за час:</b> <code>{price_per_hour} р.</code>"""),
-    Format("💬 <b>Комментарий:</b> {comment}", when="comment"),
+    Format(
+        "💬 <b>Комментарий:</b>\n<blockquote expandable>{comment}</blockquote>",
+        when="comment",
+    ),
     Format("\nВсё верно?"),
     Row(
         Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
