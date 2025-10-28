@@ -138,35 +138,52 @@ async def sell_time_input_getter(
                 sold_hours_list
             )
 
-        # Проверяем, осталось ли минимум 1 час от начала следующего часа до конца смены
+        # Проверяем, осталось ли минимум 30 минут от ближайшего получасового интервала до конца смены
         show_remaining_time_button = False
         if is_today:
             try:
                 # Парсим время окончания смены
                 shift_end_time = datetime.strptime(shift_end, "%H:%M").time()
 
-                # Получаем текущее время и вычисляем начало следующего часа
+                # Получаем текущее время и вычисляем ближайший получасовой интервал
                 current_datetime = datetime.now()
                 current_time = current_datetime.time()
 
-                # Вычисляем начало следующего часа
+                # Вычисляем ближайший получасовой интервал (:00 или :30)
                 if current_time.minute == 0 and current_time.second == 0:
-                    # Если сейчас ровно час, берем текущий час
-                    next_hour_start = current_datetime.replace(
-                        minute=0, second=0, microsecond=0
-                    )
+                    # Если сейчас ровно час, берем текущее время
+                    next_slot_start = current_datetime.replace(minute=0, second=0, microsecond=0)
+                elif current_time.minute == 30 and current_time.second == 0:
+                    # Если сейчас ровно полчаса, берем текущее время
+                    next_slot_start = current_datetime.replace(minute=30, second=0, microsecond=0)
+                elif current_time.minute < 30:
+                    # Округляем к :30 текущего часа
+                    next_slot_start = current_datetime.replace(minute=30, second=0, microsecond=0)
                 else:
-                    # Иначе округляем до следующего часа
-                    next_hour_start = current_datetime.replace(
-                        minute=0, second=0, microsecond=0
-                    ) + timedelta(hours=1)
+                    # Округляем к :00 следующего часа
+                    next_slot_start = current_datetime.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
 
                 # Создаем datetime объект для времени окончания смены
                 today = datetime.now().date()
                 shift_end_datetime = datetime.combine(today, shift_end_time)
 
-                # Проверяем, что от начала следующего часа до конца смены минимум 30 минут
-                time_remaining = shift_end_datetime - next_hour_start
+                # Находим ближайший валидный получасовой интервал ДО времени окончания смены
+                # Время окончания также должно быть на границе :00 или :30
+                if shift_end_time.minute == 0:
+                    # Если смена заканчивается ровно в час, используем это время
+                    valid_end_datetime = shift_end_datetime
+                elif shift_end_time.minute == 30:
+                    # Если смена заканчивается в полчаса, используем это время
+                    valid_end_datetime = shift_end_datetime
+                elif shift_end_time.minute < 30:
+                    # Округляем вниз к :00 текущего часа
+                    valid_end_datetime = shift_end_datetime.replace(minute=0, second=0, microsecond=0)
+                else:
+                    # Округляем вниз к :30 текущего часа
+                    valid_end_datetime = shift_end_datetime.replace(minute=30, second=0, microsecond=0)
+
+                # Проверяем, что от ближайшего получасового интервала до валидного времени окончания минимум 30 минут
+                time_remaining = valid_end_datetime - next_slot_start
                 show_remaining_time_button = time_remaining >= timedelta(minutes=30)
 
             except Exception as e:
