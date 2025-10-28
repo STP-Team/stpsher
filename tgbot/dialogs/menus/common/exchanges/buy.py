@@ -15,6 +15,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_exchange_buy,
     on_exchange_buy_selected,
+    on_reset_filters,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
@@ -29,6 +30,14 @@ buy_window = Window(
 Здесь ты можешь найти и купить часы/смены, которые продают другие сотрудники
 
 💰 <b>Доступно сделок:</b> {exchanges_length}"""),
+    Format(
+        "\n<blockquote>🔍 <b>Фильтры:</b>\n{active_filters}</blockquote>",
+        when="has_active_filters",
+    ),
+    Format(
+        "\n<blockquote>🔀 <b>Сортировка:</b>\n{active_sorting}</blockquote>",
+        when="has_active_sorting",
+    ),
     Format("\n🔍 <i>Нажми на сделку для просмотра деталей</i>", when="has_exchanges"),
     Format(
         "\n📭 <i>Пока никто не продает смены</i>",
@@ -48,7 +57,15 @@ buy_window = Window(
         id="exchange_scrolling",
         when="has_exchanges",
     ),
-    Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
+    Row(
+        Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
+        Button(
+            Const("♻️ Сбросить"),
+            id="reset_filters_buy",
+            on_click=on_reset_filters,
+            when=F["show_reset_button"],
+        ),
+    ),
     SwitchTo(
         Const("💡 Фильтры и сортировка"),
         id="exchanges_buy_settings",
@@ -77,7 +94,7 @@ buy_detail_window = Window(
 <blockquote expandable>{comment}</blockquote>""",
         when="comment",
     ),
-    Button(Const("✅ Купить"), id="apply", on_click=on_exchange_buy),
+    Button(Const("✍️ Предложить сделку"), id="apply", on_click=on_exchange_buy),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
         query=Format("{deeplink}"),

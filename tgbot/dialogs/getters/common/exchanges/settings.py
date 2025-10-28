@@ -18,22 +18,60 @@ async def buy_settings_getter(
         Словарь настроек биржи
     """
     day_filter_checkbox: ManagedRadio = dialog_manager.find("day_filter")
-    day_filter_value = day_filter_checkbox.get_checked()
+    day_filter_value = (
+        day_filter_checkbox.get_checked() if day_filter_checkbox else "all"
+    )
 
     shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
-    shift_filter_value = shift_filter_checkbox.get_checked()
+    shift_filter_value = (
+        shift_filter_checkbox.get_checked() if shift_filter_checkbox else "no_shift"
+    )
 
     date_sort_toggle: ManagedToggle = dialog_manager.find("date_sort")
-    date_sort_value = date_sort_toggle.get_checked()
+    date_sort_value = date_sort_toggle.get_checked() if date_sort_toggle else "nearest"
 
     price_sort_toggle: ManagedToggle = dialog_manager.find("price_sort")
-    price_sort_value = price_sort_toggle.get_checked()
+    price_sort_value = price_sort_toggle.get_checked() if price_sort_toggle else "cheap"
+
+    # Преобразуем значения в читаемый текст
+    day_filter_text = {
+        "all": "Все дни",
+        "today": "Только сегодня",
+        "tomorrow": "Только завтра",
+        "current_week": "Текущая неделя",
+        "current_month": "Текущий месяц",
+    }.get(day_filter_value, "Все дни")
+
+    shift_filter_text = {
+        "all": "Все смены",
+        "no_shift": "Без смены",
+        "shift": "Со сменой",
+    }.get(shift_filter_value, "Без смены")
+
+    date_sort_text = {
+        "nearest": "Сначала ближайшие",
+        "far": "Сначала дальние",
+    }.get(date_sort_value, "Сначала ближайшие")
+
+    price_sort_text = {
+        "cheap": "Сначала дешевые",
+        "expensive": "Сначала дорогие",
+    }.get(price_sort_value, "Сначала дешевые")
+
+    # Определяем, отличаются ли настройки от значений по умолчанию
+    is_default_settings = (
+        day_filter_value == "all"
+        and shift_filter_value == "no_shift"
+        and date_sort_value == "nearest"
+        and price_sort_value == "cheap"
+    )
 
     return {
-        "day_filter": day_filter_value,
-        "shift_filter": shift_filter_value,
-        "date_sort": date_sort_value,
-        "price_sort": price_sort_value,
+        "day_filter": day_filter_text,
+        "shift_filter": shift_filter_text,
+        "date_sort": date_sort_text,
+        "price_sort": price_sort_text,
+        "show_reset_button": not is_default_settings,
     }
 
 
@@ -53,6 +91,8 @@ async def buy_filters_day_getter(
         ("all", "Все"),
         ("today", "Сегодня"),
         ("tomorrow", "Завтра"),
+        ("current_week", "Текущая неделя"),
+        ("current_month", "Текущий месяц"),
     ]
 
     filter_checkbox: ManagedRadio = dialog_manager.find("day_filter")
@@ -66,21 +106,36 @@ async def buy_filters_day_getter(
             filter_description = ""
         case "all":
             filter_description = ""
-        case "all":
-            filter_description = ""
         case "today":
             filter_description = "<i>Текущий фильтр: Только предложения на сегодня</i>"
         case "tomorrow":
             filter_description = "<i>Текущий фильтр: Только предложения на завтра</i>"
+        case "current_week":
+            filter_description = (
+                "<i>Текущий фильтр: Только предложения на текущей неделе</i>"
+            )
+        case "current_month":
+            filter_description = (
+                "<i>Текущий фильтр: Только предложения в текущем месяце</i>"
+            )
+
+    # Определяем, отличается ли фильтр от значения по умолчанию
+    show_reset_filters = filter_value is not None and filter_value != "all"
 
     return {
         "day_filter_options": day_filter_options,
         "filter_description": filter_description,
+        "show_reset_filters": show_reset_filters,
     }
 
 
-async def buy_filters_shift_getter() -> Dict[str, Any]:
+async def buy_filters_shift_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
     """Геттер для фильтров по смене для покупок на бирже.
+
+    Args:
+        dialog_manager: Менеджер диалога
 
     Returns:
         Список фильтров по смене
@@ -91,6 +146,16 @@ async def buy_filters_shift_getter() -> Dict[str, Any]:
         ("shift", "Есть смена"),
     ]
 
+    # Получаем текущее значение фильтра
+    filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
+    filter_value = None
+    if filter_checkbox:
+        filter_value = filter_checkbox.get_checked()
+
+    # Определяем, отличается ли фильтр от значения по умолчанию
+    show_reset_filters = filter_value is not None and filter_value != "no_shift"
+
     return {
         "shift_filter_options": shift_filter_options,
+        "show_reset_filters": show_reset_filters,
     }
