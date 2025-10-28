@@ -532,7 +532,10 @@ async def my_detail_getter(
             "exchange_in_schedule"
         )
         if in_schedule_checkbox:
-            await in_schedule_checkbox.set_checked(exchange.in_schedule)
+            if exchange.seller_id == user.user_id:
+                await in_schedule_checkbox.set_checked(exchange.in_seller_schedule)
+            else:
+                await in_schedule_checkbox.set_checked(exchange.in_buyer_schedule)
 
         exchange_is_paid: ManagedCheckbox = dialog_manager.find("exchange_is_paid")
         if exchange_is_paid:

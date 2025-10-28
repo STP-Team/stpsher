@@ -362,6 +362,7 @@ async def on_schedule_change(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    user: Employee = dialog_manager.dialog_data.get("user")
 
     if dialog_manager.start_data:
         exchange_id = dialog_manager.start_data.get("exchange_id", None)
@@ -372,14 +373,24 @@ async def on_schedule_change(
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
 
-    if exchange.in_schedule == in_schedule:
+    is_seller = exchange.seller_id == user.user_id
+
+    if (is_seller and exchange.in_seller_schedule == in_schedule) or (
+        not is_seller and exchange.in_buyer_schedule == in_schedule
+    ):
         return
 
     if in_schedule:
-        await stp_repo.exchange.update_exchange(exchange_id, in_schedule=True)
+        if is_seller:
+            await stp_repo.exchange.update_exchange(exchange_id, in_seller_schedule=True)
+        else:
+            await stp_repo.exchange.update_exchange(exchange_id, in_buyer_schedule=True)
         await callback.answer("🟢 Сделка отображена в графике")
     else:
-        await stp_repo.exchange.update_exchange(exchange_id, in_schedule=False)
+        if is_seller:
+            await stp_repo.exchange.update_exchange(exchange_id, in_seller_schedule=False)
+        else:
+            await stp_repo.exchange.update_exchange(exchange_id, in_buyer_schedule=False)
         await callback.answer("🟡 Сделка скрыта из графика")
 
 
