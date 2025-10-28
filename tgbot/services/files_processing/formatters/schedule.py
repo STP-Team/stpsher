@@ -389,10 +389,8 @@ class ScheduleFormatter:
         # Check work days
         for day_info in work_days:
             if extract_day_number(day_info.day) == current_day:
-                schedule_text = f"<code>{day_info.schedule}</code>"
-                if duty_info:
-                    schedule_text += f" ({duty_info})"
-                return f"<blockquote>📍 <b>Сегодня:</b> {schedule_text}</blockquote>"
+                duty_text = f" ({duty_info})" if duty_info else ""
+                return f"<blockquote>📍 <b>Сегодня:</b> <code>{day_info.schedule}</code>{duty_text}</blockquote>"
 
         # Check days off
         for day_info in days_off:
@@ -642,14 +640,13 @@ class ScheduleFormatter:
             # Build the full line content first
             if day_type == "work":
                 schedule_text = day_info.schedule
-                if duty_info:
-                    schedule_text += f" ({duty_info})"
+                duty_text = f" ({duty_info})" if duty_info else ""
                 if is_current_day_flag:
-                    line_content = (
-                        f"<blockquote>{day_info.day}: {schedule_text}</blockquote>"
-                    )
+                    line_content = f"<blockquote>{day_info.day}: {schedule_text}{duty_text}</blockquote>"
                 else:
-                    line_content = f"{day_info.day}: <code>{schedule_text}</code>"
+                    line_content = (
+                        f"{day_info.day}: <code>{schedule_text}</code>{duty_text}"
+                    )
                 if day_info.work_hours > 0:
                     total_work_hours += day_info.work_hours
                 work_days_count += 1
