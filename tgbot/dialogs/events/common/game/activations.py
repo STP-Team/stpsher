@@ -138,7 +138,7 @@ async def on_activation_approve_comment_input(
 Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
 
 💬 <b>Комментарий менеджера:</b>
-<blockquote>{comment}</blockquote>
+<blockquote expandable>{comment}</blockquote>
 
 У <b>{activation_info["product_name"]}</b> не осталось использований
 
@@ -152,7 +152,7 @@ async def on_activation_approve_comment_input(
 Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
 
 💬 <b>Комментарий менеджера:</b>
-<blockquote>{comment}</blockquote>
+<blockquote expandable>{comment}</blockquote>
 
 📍 Осталось активаций: {remaining_uses} из {activation_info["product_count"]}"""
 
@@ -272,7 +272,7 @@ async def on_activation_reject_comment_input(
 Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} отменил активацию <b>{activation_info["product_name"]}</b>
 
 💬 <b>Комментарий менеджера:</b>
-<blockquote>{comment}</blockquote>
+<blockquote expandable>{comment}</blockquote>
 
 <i>Использование предмета не будет засчитано</i>"""
 

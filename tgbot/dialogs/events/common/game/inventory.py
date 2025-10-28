@@ -246,7 +246,7 @@ async def on_inventory_activation_comment_input(
 <b>🛒 Предмет:</b> {product_name}
 <b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
 <b>📋 Описание:</b> {product.description}
-{f"<b>💬 Комментарий:</b> {comment}" if comment else ""}
+{f"<b>💬 Комментарий:</b>\n<blockquote expandable{comment}</blockquote>" if comment else ""}
 
 <b>Требуется рассмотрение заявки</b>"""
 

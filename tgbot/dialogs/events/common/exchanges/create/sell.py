@@ -471,8 +471,11 @@ async def on_date_selected(
         # Смена уже началась, сразу переходим к вводу времени
         dialog_manager.dialog_data["is_remaining_today"] = True
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
+    elif sold_strings:
+        # У пользователя уже есть сделки на эту дату, пропускаем выбор типа смены
+        await dialog_manager.switch_to(ExchangeCreateSell.hours)
     else:
-        # Смена еще не началась, показываем варианты
+        # Смена еще не началась и нет существующих сделок, показываем варианты
         await dialog_manager.switch_to(ExchangeCreateSell.shift_type)
 
 
@@ -522,8 +525,11 @@ async def on_today_selected(
         # Смена уже началась, сразу переходим к вводу времени
         dialog_manager.dialog_data["is_remaining_today"] = True
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
+    elif sold_strings:
+        # У пользователя уже есть сделки на эту дату, пропускаем выбор типа смены
+        await dialog_manager.switch_to(ExchangeCreateSell.hours)
     else:
-        # Смена еще не началась, показываем варианты
+        # Смена еще не началась и нет существующих сделок, показываем варианты
         await dialog_manager.switch_to(ExchangeCreateSell.shift_type)
 
 
@@ -647,7 +653,31 @@ async def on_time_input(
         shift_date.date(), datetime.strptime(end_time_str, "%H:%M").time()
     )
 
-    # Проверяем на пересечение с существующими обменами
+    # Проверяем пересечение с уже проданным временем на эту дату
+    sold_time_ranges = dialog_manager.dialog_data.get("sold_time_ranges", [])
+    conflicting_times = []
+
+    if sold_time_ranges:
+        input_start_minutes = time_to_minutes(start_time_str)
+        input_end_minutes = time_to_minutes(end_time_str)
+
+        for sold_start, sold_end in sold_time_ranges:
+            sold_start_minutes = time_to_minutes(sold_start)
+            sold_end_minutes = time_to_minutes(sold_end)
+
+            # Проверяем пересечение временных интервалов
+            if input_start_minutes < sold_end_minutes and input_end_minutes > sold_start_minutes:
+                conflicting_times.append(f"{sold_start}-{sold_end}")
+
+    if conflicting_times:
+        await message.answer(
+            f"❌ Введенное время пересекается с уже существующими сделками:\n"
+            f"📍 Занятое время: {', '.join(conflicting_times)}\n"
+            f"💡 Выбери другое время, которое не пересекается с указанными интервалами"
+        )
+        return
+
+    # Проверяем на пересечение с другими активными обменами (дополнительная проверка)
     has_overlap = await check_existing_exchanges_overlap(
         dialog_manager, start_datetime, end_datetime
     )
