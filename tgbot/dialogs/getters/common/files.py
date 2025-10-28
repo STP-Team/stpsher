@@ -6,7 +6,7 @@ from pathlib import Path
 from aiogram_dialog import DialogManager
 from stp_database import MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 from tgbot.services.files_processing.utils.files import (
     FileTypeDetector,
     generate_detailed_stats_text,
@@ -27,7 +27,7 @@ async def get_local_files(**kwargs) -> dict:
         if file_path.is_file():
             file_stat = file_path.stat()
             modified_date = datetime.fromtimestamp(file_stat.st_mtime).strftime(
-                "%d.%m.%Y %H:%M"
+                strftime_date
             )
             files.append((
                 file_path.name,  # item[0] - имя файла
@@ -65,7 +65,7 @@ async def get_local_file_details(
         "name": file_name,
         "size": f"{file_stat.st_size / 1024:.2f} KB",
         "type": file_path.suffix or "Неизвестно",
-        "modified": modified_date.strftime("%d.%m.%Y %H:%M"),
+        "modified": modified_date.strftime(strftime_date),
         "db_count": len(db_records) if db_records else 0,
     }
 
@@ -86,7 +86,7 @@ async def get_local_file_details(
             uploaded_by_user.user_id,
         )
         file_info["uploaded_by_fullname"] = uploaded_by_text
-        file_info["uploaded_at"] = latest.uploaded_at.strftime("%d.%m.%Y %H:%M")
+        file_info["uploaded_at"] = latest.uploaded_at.strftime(strftime_date)
 
     return {
         "file_info": file_info,
@@ -129,7 +129,7 @@ async def get_file_history(
             f"{record.file_size / 1024:.2f} KB"
             if record.file_size
             else "Н/Д",  # item[2] - размер
-            record.uploaded_at.strftime("%d.%m.%Y %H:%M"),  # item[3] - дата загрузки
+            record.uploaded_at.strftime(strftime_date),  # item[3] - дата загрузки
             record.uploaded_by_user_id,  # item[4] - кто загрузил
             record.file_id,  # item[5] - Telegram file_id
             fullname,  # item[6]
@@ -169,7 +169,7 @@ async def get_all_files_history(stp_repo: MainRequestsRepo, **_kwargs) -> dict:
             f"{record.file_size / 1024:.2f} KB"
             if record.file_size
             else "Н/Д",  # item[2] - размер
-            record.uploaded_at.strftime("%d.%m.%Y %H:%M"),  # item[3] - дата загрузки
+            record.uploaded_at.strftime(strftime_date),  # item[3] - дата загрузки
             record.uploaded_by_user_id,  # item[4] - кто загрузил
             record.file_id,  # item[5] - Telegram file_id
             uploaded_by_text,  # item[6] - имя пользователя
@@ -207,7 +207,7 @@ async def get_history_file_details(
         "id": record.id,
         "name": record.file_name,
         "size": f"{record.file_size / 1024:.2f} KB" if record.file_size else "Н/Д",
-        "uploaded_at": record.uploaded_at.strftime("%d.%m.%Y %H:%M"),
+        "uploaded_at": record.uploaded_at.strftime(strftime_date),
         "uploaded_by_fullname": uploaded_by_text,
         "file_id": record.file_id,
     }

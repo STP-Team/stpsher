@@ -5,6 +5,8 @@ from typing import Any, Dict
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
+from tgbot.misc.helpers import strftime_date
+
 
 async def history_getter(
     user: Employee, stp_repo: MainRequestsRepo, **_kwargs
@@ -52,7 +54,7 @@ async def history_getter(
             transaction.type,  # Тип операции (earn/spend)
             transaction.source_type,  # Тип источника
             transaction.comment or "",  # Комментарий
-            transaction.created_at.strftime("%d.%m.%Y в %H:%M"),  # Полная дата
+            transaction.created_at.strftime(strftime_date),  # Полная дата
         ))
 
     return {

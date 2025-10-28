@@ -6,7 +6,7 @@ from typing import Any
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname, get_status_emoji
+from tgbot.misc.helpers import format_fullname, get_status_emoji, strftime_date
 from tgbot.services.leveling import LevelingSystem
 
 # Словарь для русских названий месяцев
@@ -197,7 +197,7 @@ async def game_achievements_getter(
             case "A":
                 period = "Вручную"
 
-        date_str = transaction.created_at.strftime("%d.%m.%y %H:%M")
+        date_str = transaction.created_at.strftime(strftime_date)
         member_name = format_fullname(
             member.fullname, True, True, member.username, member.user_id
         )
@@ -339,7 +339,7 @@ async def game_balance_history_getter(
     # Форматируем транзакции для отображения (последние 100)
     formatted_history = []
     for member, transaction in all_transactions[:100]:
-        date_str = transaction.created_at.strftime("%d.%m.%y %H:%M")
+        date_str = transaction.created_at.strftime(strftime_date)
         member_name = format_fullname(member.fullname, True, True)
 
         # Определяем тип транзакции

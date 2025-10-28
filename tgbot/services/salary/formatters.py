@@ -1,5 +1,6 @@
 import datetime
 
+from ...misc.helpers import strftime_date
 from .salary_calculator import SalaryCalculationResult
 
 
@@ -192,11 +193,11 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 Ночными часами считается локальное время 22:00 - 6:00
 Праздничные дни считаются по производственному <a href='https://www.consultant.ru/law/ref/calendar/proizvodstvennye/'>календарю</a></blockquote>
 
-<i>Расчет от: {result.calculation_time.strftime("%d.%m.%y %H:%M")}</i>
+<i>Расчет от: {result.calculation_time.strftime(strftime_date)}</i>
 <i>Данные премии от: {
             result.premium_updated_at.replace(tzinfo=datetime.timezone.utc)
             .astimezone(datetime.timezone(datetime.timedelta(hours=5)))
-            .strftime("%d.%m.%y %H:%M")
+            .strftime(strftime_date)
             if result.premium_updated_at
             else "—"
         }</i>"""

@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.kbd import Select
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
+from tgbot.misc.helpers import strftime_date
 
 
 async def on_transaction_click(
@@ -46,7 +47,7 @@ async def on_transaction_click(
         "source_type": transaction.source_type,
         "source_id": transaction.source_id,
         "comment": transaction.comment or "",
-        "created_at": transaction.created_at.strftime("%d.%m.%Y в %H:%M"),
+        "created_at": transaction.created_at.strftime(strftime_date),
     }
 
     # Переходим к окну детального просмотра транзакции

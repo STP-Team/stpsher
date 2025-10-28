@@ -5,7 +5,7 @@ from typing import Dict
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 
 
 async def activations_getter(
@@ -50,7 +50,7 @@ async def activations_getter(
             purchase.id,  # ID для обработчика клика
             product.name,
             product.description,
-            purchase.bought_at.strftime("%d.%m.%Y в %H:%M"),
+            purchase.bought_at.strftime(strftime_date),
             purchase_user_text,
             purchase_user.division if purchase_user else "Неизвестно",
             purchase_user.username if purchase_user else None,
