@@ -170,7 +170,16 @@ class ScheduleParser(BaseParser):
                             if (
                                 exchange.status == "sold"
                                 and exchange.start_time
-                                and exchange.in_schedule
+                                and (
+                                    (
+                                        exchange.buyer_id == user.user_id
+                                        and exchange.in_buyer_schedule
+                                    )
+                                    or (
+                                        exchange.seller_id == user.user_id
+                                        and exchange.in_seller_schedule
+                                    )
+                                )
                             ):
                                 # Проверяем что обмен относится к нужному месяцу
                                 if (
