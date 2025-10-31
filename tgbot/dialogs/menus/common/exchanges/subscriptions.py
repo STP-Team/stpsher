@@ -122,9 +122,7 @@ subscription_create_criteria_window = Window(
     Format("""
 <blockquote>📈 <b>Тип:</b> {selected_exchange_type}
 
-{current_criteria_display}</blockquote>
-
-Выбери критерии для фильтрации сделок"""),
+{current_criteria_display}</blockquote>"""),
     Group(
         Multiselect(
             Format("✅ {item[1]}"),
@@ -152,26 +150,13 @@ subscription_create_criteria_window = Window(
 
 # Настройка цены (если выбрана)
 create_price_window = Window(
-    Const("💰 <b>Шаг 2: Настройка ценового диапазона</b>"),
+    Const("💰 <b>Шаг 2: Настройка минимальной цены</b>"),
     Format("""
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
 {price_settings_display}</blockquote>"""),
     Format(
-        "\n💰 <b>Минимальная цена:</b> {min_price} р.",
-        when="min_price",
-    ),
-    Format(
-        "\n💰 <b>Максимальная цена:</b> {max_price} р.",
-        when="max_price",
-    ),
-    Format(
-        "\n💡 Введи <b>минимальную цену</b> в рублях (или 0 для пропуска)",
-        when="input_step_min",
-    ),
-    Format(
-        "\n💡 Введи <b>максимальную цену</b> в рублях (или 0 для пропуска)",
-        when="input_step_max",
+        "\n💡 Введи <b>минимальную цену в час</b> в рублях (или 0 для пропуска)",
     ),
     TextInput(
         id="price_input",
@@ -194,8 +179,6 @@ create_price_window = Window(
 create_time_window = Window(
     Const("⏰ <b>Шаг 3: Выбор времени суток</b>"),
     Format("""
-Выбери подходящее время суток для подписки:
-
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
 {current_settings_display}</blockquote>"""),
@@ -228,8 +211,6 @@ create_time_window = Window(
 create_date_window = Window(
     Const("📅 <b>Шаг 4: Выбор дней недели</b>"),
     Format("""
-Выбери дни недели для получения уведомлений:
-
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
 {current_settings_display}</blockquote>"""),

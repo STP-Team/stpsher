@@ -237,7 +237,6 @@ async def get_exchange_text(
 <code>{price:g} р./ч.</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
 👤 <b>Продавец:</b>
 {buyer_name}</blockquote>"""
-    print(exchange_text)
     return exchange_text
 
 

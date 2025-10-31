@@ -364,7 +364,6 @@ async def subscription_create_time_getter(
             "evening": "вечер (18:00-24:00)",
             "night": "ночь (00:00-06:00)",
             "work_hours": "рабочие часы (08:00-20:00)",
-            "all_day": "круглосуточно",
         }
         settings_parts.append(
             f"⏰ <b>Время:</b> {time_names.get(selected_time, selected_time)}"
@@ -382,7 +381,6 @@ async def subscription_create_time_getter(
         ("evening", "🌆 Вечер (18:00-24:00)"),
         ("night", "🌙 Ночь (00:00-06:00)"),
         ("work_hours", "🕘 Рабочие часы (08:00-20:00)"),
-        ("all_day", "🌍 Круглосуточно"),
     ]
 
     return {

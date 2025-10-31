@@ -289,47 +289,32 @@ async def on_price_input(
     dialog_manager: DialogManager,
     data: int,
 ) -> None:
-    """Обработчик ввода цены для подписки.
+    """Обработчик ввода минимальной цены в час для подписки.
 
     Args:
         message: Сообщение от пользователя
         _widget: Данные виджета ManagedTextInput
         dialog_manager: Менеджер диалога
-        data: Введенная цена
+        data: Введенная минимальная цена в час
     """
-    price_data = dialog_manager.dialog_data.setdefault("price_data", {})
-    current_step = price_data.get("step", "min")
-
     if data < 0:
         await message.answer("❌ Цена не может быть отрицательной")
         return
 
-    if current_step == "min":
-        if data == 0:
-            price_data["min_price"] = None
-        else:
-            price_data["min_price"] = data
-        price_data["step"] = "max"
-        await message.answer(
-            f"✅ Минимальная цена: {data if data > 0 else 'не ограничена'}"
-        )
-    elif current_step == "max":
-        if data == 0:
-            price_data["max_price"] = None
-        else:
-            # Проверяем что максимальная цена больше минимальной
-            min_price = price_data.get("min_price")
-            if min_price and data <= min_price:
-                await message.answer(
-                    f"❌ Максимальная цена должна быть больше {min_price} р."
-                )
-                return
-            price_data["max_price"] = data
+    # Сохраняем только минимальную цену
+    price_data = dialog_manager.dialog_data.setdefault("price_data", {})
 
-        price_data["completed"] = True
-        await message.answer(
-            f"✅ Максимальная цена: {data if data > 0 else 'не ограничена'}"
-        )
+    if data == 0:
+        price_data["min_price"] = None
+        await message.answer("✅ Минимальная цена: не ограничена")
+    else:
+        price_data["min_price"] = data
+        await message.answer(f"✅ Минимальная цена: {data} р./час")
+
+    price_data["completed"] = True
+
+    # Автоматически переходим к следующему шагу
+    await _navigate_forward(dialog_manager.current_context().state, dialog_manager)
 
 
 async def on_seller_selected(
@@ -422,7 +407,6 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     price_data = dialog_manager.dialog_data.get("price_data", {})
     if "price" in selected_criteria:
         data["min_price"] = price_data.get("min_price")
-        data["max_price"] = price_data.get("max_price")
 
     # Время
     if "time" in selected_criteria:
