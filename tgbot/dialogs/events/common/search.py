@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_search_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -23,7 +23,7 @@ async def start_search_dialog(
     """Обработчик перехода в диалог групп.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -33,12 +33,12 @@ async def start_search_dialog(
 
 
 async def on_back_to_menu(
-    _callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик возврата в меню поиска из детального просмотра пользователя.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -61,12 +61,12 @@ async def on_back_to_menu(
 
 
 async def on_user_select(
-    _callback: CallbackQuery, _widget: Select, dialog_manager, item_id, **_kwargs
+    _event: CallbackQuery, _widget: Select, dialog_manager, item_id, **_kwargs
 ) -> None:
     """Обработчик выбора пользователя из списка результатов поиска.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного пользователя
@@ -78,7 +78,7 @@ async def on_user_select(
     dialog_manager.dialog_data["previous_state"] = str(current_state)
 
     # Получаем информацию о пользователе и устанавливаем состояние чекбоксов
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     searched_user = await stp_repo.employee.get_users(main_id=int(item_id))
 
     casino_checkbox: ManagedCheckbox = dialog_manager.find("casino_access")
@@ -113,7 +113,7 @@ async def on_search_query(
         return  # TextInput сам валидирует ввод
 
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         if not stp_repo:
             return
 
@@ -152,161 +152,62 @@ async def on_search_query(
         logger.error(f"[Поиск] Ошибка при попытке поиска: {e}")
 
 
-async def on_casino_change(
-    callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_casino_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
     """Обработчик изменения доступа к казино.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
-        if not stp_repo or not selected_user_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        is_casino_allowed = widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
-
-        if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
-        if searched_user.is_casino_allowed == is_casino_allowed:
-            return
-
-        # Обновляем доступ к казино в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_casino_allowed=is_casino_allowed
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if is_casino_allowed else "выключен"
-        await callback.answer(f"✅ Доступ к казино {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Казино] Ошибка при изменении доступа: {e}")
-        await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, is_casino_allowed=not widget.is_checked()
+    )
 
 
-async def on_trainee_change(
-    callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_trainee_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
     """Обработчик изменения статуса стажера.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
-        if not stp_repo or not selected_user_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        is_trainee = widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
-
-        if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
-        if searched_user.is_trainee == is_trainee:
-            return
-
-        # Обновляем статус стажера в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_trainee=is_trainee
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if is_trainee else "выключен"
-        await callback.answer(f"✅ Статус стажера {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Стажер] Ошибка при изменении статуса: {e}")
-        await callback.answer("❌ Ошибка при изменении статуса", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, is_trainee=not widget.is_checked()
+    )
 
 
-async def on_exchanges_change(
-    callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_exchanges_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
-    """Обработчик изменения доступа к обменам смен.
+    """Обработчик изменения доступа к бирже подмен.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
-        if not stp_repo or not selected_user_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        exchanges_access = not widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
-
-        if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
-        if searched_user.is_exchange_banned == exchanges_access:
-            return
-
-        # Обновляем статус стажера в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_exchange_banned=exchanges_access
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if exchanges_access else "выключен"
-        await callback.answer(f"✅ Доступ к бирже {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Стажер] Ошибка при изменении статуса: {e}")
-        await callback.answer("❌ Ошибка при изменении статуса", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, is_exchange_banned=not widget.is_checked()
+    )
 
 
 async def on_role_change(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: ManagedRadio,
     dialog_manager: DialogManager,
     item_id: str,
@@ -315,24 +216,24 @@ async def on_role_change(
     """Обработчик изменения роли пользователя.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: ID выбранной роли
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
         if not stp_repo or not selected_user_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
             return
 
         new_role_id = int(item_id)
         role_info = roles.get(new_role_id)
 
         if not role_info:
-            await callback.answer("❌ Ошибка: роль не найдена", show_alert=True)
+            await event.answer("❌ Ошибка: роль не найдена", show_alert=True)
             return
 
         # Обновляем роль пользователя
@@ -343,7 +244,7 @@ async def on_role_change(
             )
 
         if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            await event.answer("❌ Пользователь не найден", show_alert=True)
             return
 
         # Проверяем, изменилась ли роль
@@ -356,7 +257,7 @@ async def on_role_change(
         )
 
         # Показываем уведомление о смене роли
-        await callback.answer(
+        await event.answer(
             f"✅ Роль изменена на: {role_info['emoji']} {role_info['name']}"
         )
 
@@ -365,11 +266,11 @@ async def on_role_change(
 
     except Exception as e:
         logger.error(f"[Смена роли] Ошибка при изменении роли: {e}")
-        await callback.answer("❌ Ошибка при изменении роли", show_alert=True)
+        await event.answer("❌ Ошибка при изменении роли", show_alert=True)
 
 
 async def on_schedule_mode_select(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget,
     dialog_manager: DialogManager,
     item_id: str,
@@ -378,7 +279,7 @@ async def on_schedule_mode_select(
     """Изменение режима отображения графика в поиске.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные от виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного режима

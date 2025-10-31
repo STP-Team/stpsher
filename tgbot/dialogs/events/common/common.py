@@ -14,7 +14,7 @@ from tgbot.dialogs.states.user import UserSG
 
 
 async def close_all_dialogs(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -22,7 +22,7 @@ async def close_all_dialogs(
     """Обработчик перехода в главное меню.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """

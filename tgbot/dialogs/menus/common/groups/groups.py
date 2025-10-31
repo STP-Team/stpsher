@@ -19,8 +19,8 @@ from magic_filter import F
 
 from tgbot.dialogs.events.common.groups import (
     on_group_selected,
-    on_toggle_is_casino_allowed,
-    on_toggle_new_user_notify,
+    on_is_casino_allowed_click,
+    on_new_user_notify_click,
 )
 from tgbot.dialogs.getters.common.groups import (
     groups_details_getter,
@@ -185,13 +185,13 @@ groups_list_detail_window = Window(
             Const("🟢 Приветствие"),
             Const("🔴 Приветствие"),
             id="new_user_notify",
-            on_state_changed=on_toggle_new_user_notify,
+            on_click=on_new_user_notify_click,
         ),
         Checkbox(
             Const("🟢 Казино"),
             Const("🔴 Казино"),
             id="is_casino_allowed",
-            on_state_changed=on_toggle_is_casino_allowed,
+            on_click=on_is_casino_allowed_click,
         ),
     ),
     Row(

@@ -175,7 +175,9 @@ async def get_exchange_price_per_hour(exchange: Exchange):
     return price
 
 
-async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
+async def get_exchange_text(
+    stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
+) -> str:
     """Форматирует текст для отображения базовой информации о сделке.
 
     Args:
@@ -188,24 +190,53 @@ async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
     exchange_type = await get_exchange_type(
         exchange, is_seller=exchange.seller_id == user_id
     )
-    shift_date = exchange.start_time.strftime("%d.%m.%Y")
-    shift_time = (
-        f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-    )
+
+    # Защита от None значений в датах/времени
+    if exchange.start_time:
+        shift_date = exchange.start_time.strftime("%d.%m.%Y")
+        start_time_str = exchange.start_time.strftime("%H:%M")
+    else:
+        shift_date = "Не указано"
+        start_time_str = "Не указано"
+
+    if exchange.end_time:
+        end_time_str = exchange.end_time.strftime("%H:%M")
+    else:
+        end_time_str = "Не указано"
+
+    shift_time = f"{start_time_str}-{end_time_str}"
     shift_hours = await get_exchange_hours(exchange)
     price = exchange.price
 
+    # Защита от None значений в часах
+    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
+
     if exchange.type == "sell":
+        seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+        seller_name = format_fullname(
+            seller.fullname, True, True, seller.username, seller.username
+        )
         price_per_hour = await get_exchange_price_per_hour(exchange)
+        price_per_hour_text = (
+            f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
+        )
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
-<code>{shift_time} ({shift_hours:g} ч.) {shift_date} ПРМ</code>
+<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
-<code>{price:g} р. ({price_per_hour:g} р./ч.)</code></blockquote>"""
+<code>{price:g} р. ({price_per_hour_text})</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+👤 <b>Продавец:</b> 
+{seller_name}</blockquote>"""
     else:
+        buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
+        buyer_name = format_fullname(
+            buyer.fullname, True, True, buyer.username, buyer.username
+        )
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
-<code>{shift_time} ({shift_hours:g} ч.) {shift_date} ПРМ</code>
+<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
-<code>{price:g} р./ч.</code></blockquote>"""
+<code>{price:g} р./ч.</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+👤 <b>Продавец:</b>
+{buyer_name}</blockquote>"""
     return exchange_text
 
 
@@ -321,11 +352,19 @@ async def exchange_buy_getter(
         # Форматируем данные для отображения
         available_exchanges = []
         for exchange in filtered_exchanges:
-            # Форматируем время из start_time и end_time
-            time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            # Форматируем время из start_time и end_time с защитой от None
+            if exchange.start_time and exchange.end_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            elif exchange.start_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-Не указано"
+            else:
+                time_str = "Не указано"
 
-            # Форматируем дату из start_time
-            date_str = exchange.start_time.strftime("%d.%m.%Y")
+            # Форматируем дату из start_time с защитой от None
+            if exchange.start_time:
+                date_str = exchange.start_time.strftime("%d.%m.%Y")
+            else:
+                date_str = "Не указано"
 
             available_exchanges.append({
                 "id": exchange.id,
@@ -436,11 +475,19 @@ async def exchange_sell_getter(
         # Форматируем данные для отображения
         available_buy_requests = []
         for exchange in buy_requests:
-            # Форматируем время из start_time и end_time
-            time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            # Форматируем время из start_time и end_time с защитой от None
+            if exchange.start_time and exchange.end_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            elif exchange.start_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-Не указано"
+            else:
+                time_str = "Не указано"
 
-            # Форматируем дату из start_time
-            date_str = exchange.start_time.strftime("%d.%m.%Y")
+            # Форматируем дату из start_time с защитой от None
+            if exchange.start_time:
+                date_str = exchange.start_time.strftime("%d.%m.%Y")
+            else:
+                date_str = "Не указано"
 
             available_buy_requests.append({
                 "id": exchange.id,
@@ -467,10 +514,10 @@ async def exchange_buy_detail_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра обмена при покупке."""
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return {"error": "Обмен не найден"}
@@ -483,13 +530,6 @@ async def exchange_buy_detail_getter(
 
         # Получаем информацию о продавце
         seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-        seller_name = format_fullname(
-            seller.fullname,
-            short=True,
-            gender_emoji=True,
-            username=seller.username,
-            user_id=seller.user_id,
-        )
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -499,7 +539,7 @@ async def exchange_buy_detail_getter(
         else:
             payment_info = "По договоренности"
 
-        exchange_info = await get_exchange_text(exchange, user.user_id)
+        exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
         deeplink = f"exchange_{exchange.id}"
         comment = exchange.comment
 
@@ -523,7 +563,6 @@ async def exchange_buy_detail_getter(
 
         result = {
             "exchange_info": exchange_info,
-            "seller_name": seller_name,
             "payment_info": payment_info,
             "comment": comment,
             "deeplink": deeplink,
@@ -543,10 +582,10 @@ async def exchange_sell_detail_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра запроса на покупку (buy request)."""
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return {"error": "Запрос не найден"}
@@ -561,16 +600,6 @@ async def exchange_sell_detail_getter(
         if exchange.type != "buy":
             return {"error": "Неверный тип запроса"}
 
-        # Получаем информацию о покупателе (в buy-запросе seller_id это фактически buyer_id)
-        buyer = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-        buyer_name = format_fullname(
-            buyer.fullname,
-            short=True,
-            gender_emoji=True,
-            username=buyer.username,
-            user_id=buyer.user_id,
-        )
-
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при продаже"
@@ -579,12 +608,11 @@ async def exchange_sell_detail_getter(
         else:
             payment_info = "По договоренности"
 
-        exchange_info = await get_exchange_text(exchange, user.user_id)
+        exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
         deeplink = f"buy_request_{exchange.id}"
 
         return {
             "exchange_info": exchange_info,
-            "buyer_name": buyer_name,
             "payment_info": payment_info,
             "deeplink": deeplink,
         }
@@ -610,8 +638,11 @@ async def my_exchanges(
         # Форматируем данные для отображения
         my_exchanges_list = []
         for exchange in exchanges:
-            # Форматируем дату из start_time
-            date_str = exchange.start_time.strftime("%d.%m")
+            # Форматируем дату из start_time с защитой от None
+            if exchange.start_time:
+                date_str = exchange.start_time.strftime("%d.%m")
+            else:
+                date_str = "Не указано"
 
             # Определяем тип и статус обмена для пользователя
             if exchange.seller_id == user_id:
@@ -648,7 +679,7 @@ async def my_exchanges(
                 "status": exchange.status,
                 "is_seller": exchange.seller_id == user_id,
                 "date": date_str,
-                "time": f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M') if exchange.end_time else ''}".rstrip(
+                "time": f"{exchange.start_time.strftime('%H:%M') if exchange.start_time else 'Не указано'}-{exchange.end_time.strftime('%H:%M') if exchange.end_time else 'Не указано'}".rstrip(
                     "-"
                 ),
                 "price": exchange.price,
@@ -665,32 +696,6 @@ async def my_exchanges(
             "my_exchanges": [],
             "has_exchanges": False,
         }
-
-
-async def _safely_set_checkbox(
-    checkbox: ManagedCheckbox, value: bool, checkbox_name: str
-) -> None:
-    """Safely set checkbox value with error handling."""
-    if checkbox:
-        try:
-            await checkbox.set_checked(value)
-        except AttributeError as e:
-            if "'NoneType' object has no attribute 'user_id'" in str(e):
-                logger.warning(
-                    f"[Биржа] Пропуск установки {checkbox_name} из-за проблемы контекста: {e}"
-                )
-            else:
-                raise
-
-
-async def _get_payment_info(exchange: Exchange) -> str:
-    """Get formatted payment information for exchange."""
-    if exchange.payment_type == "immediate":
-        return "Сразу при проведении сделки"
-    elif exchange.payment_date:
-        return f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
-    else:
-        return "По договоренности"
 
 
 async def _get_other_party_info(
@@ -724,41 +729,6 @@ async def _get_other_party_info(
     return None, None
 
 
-async def _setup_exchange_checkboxes(
-    exchange: Exchange, user: Employee, dialog_manager: DialogManager
-) -> None:
-    """Setup all exchange-related checkboxes."""
-    # In schedule checkbox
-    in_schedule_checkbox = dialog_manager.find("exchange_in_schedule")
-    if in_schedule_checkbox and user.user_id is not None:
-        if exchange.seller_id == user.user_id:
-            await _safely_set_checkbox(
-                in_schedule_checkbox,
-                exchange.in_seller_schedule,
-                "exchange_in_schedule",
-            )
-        else:
-            await _safely_set_checkbox(
-                in_schedule_checkbox, exchange.in_buyer_schedule, "exchange_in_schedule"
-            )
-
-    # Payment status checkbox
-    exchange_is_paid = dialog_manager.find("exchange_is_paid")
-    if exchange_is_paid:
-        await exchange_is_paid.set_checked(exchange.is_paid)
-
-    # Private status checkbox
-    private_checkbox = dialog_manager.find("offer_private_status")
-    await _safely_set_checkbox(
-        private_checkbox, exchange.is_private, "offer_private_status"
-    )
-
-    # Статус сделки
-    exchange_status = dialog_manager.find("offer_status")
-    if exchange_status:
-        await exchange_status.set_checked(exchange.status == "active")
-
-
 async def my_detail_getter(
     user: Employee,
     bot: Bot,
@@ -767,76 +737,78 @@ async def my_detail_getter(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра собственного обмена."""
-    # Get exchange ID from dialog data
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id")
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id")
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
-    if not exchange_id:
-        return {"error": "Обмен не найден"}
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+    is_seller = exchange.seller_id == dialog_manager.event.from_user.id
 
-    if not user.user_id:
-        return {"error": "Пользователь не найден"}
+    # Установка чекбоксов
+    in_schedule: ManagedCheckbox = dialog_manager.find(
+        "exchange_in_schedule"
+    )  # В графике
+    await in_schedule.set_checked(
+        exchange.in_seller_schedule if is_seller else exchange.in_buyer_schedule
+    )
 
-    try:
-        # Get exchange details
-        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-        if not exchange:
-            return {"error": "Обмен не найден"}
+    exchange_is_paid: ManagedCheckbox = dialog_manager.find(
+        "exchange_is_paid"
+    )  # Статус оплаты
+    await exchange_is_paid.set_checked(exchange.is_paid)
 
-        # Setup UI checkboxes
-        await _setup_exchange_checkboxes(exchange, user, dialog_manager)
+    private_checkbox: ManagedCheckbox = dialog_manager.find(
+        "offer_private_status"
+    )  # Статус приватности
+    await private_checkbox.set_checked(exchange.is_private)
 
-        # Get payment information
-        payment_info = await _get_payment_info(exchange)
+    # Статус сделки
+    exchange_status = dialog_manager.find("offer_status")
+    if exchange_status:
+        await exchange_status.set_checked(exchange.status == "active")
 
-        # Get other party information
-        other_party_name, other_party_type = await _get_other_party_info(
-            exchange, user.user_id, stp_repo
-        )
+    # Get other party information
+    other_party_name, other_party_type = await _get_other_party_info(
+        exchange, user.user_id, stp_repo
+    )
 
-        # Determine user role and prepare exchange info
-        is_seller = user.user_id and exchange.seller_id == user.user_id
-        exchange_text = await get_exchange_text(exchange, user.user_id or 0)
-        exchange_status = await get_exchange_status(exchange)
-        exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
+    exchange_text = await get_exchange_text(stp_repo, exchange, user.user_id)
+    exchange_status = await get_exchange_status(exchange)
+    exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
 
-        # Generate deeplink
-        exchange_deeplink = f"exchange_{exchange.id}"
-        exchange_deeplink_url = await create_start_link(
-            bot=bot, payload=exchange_deeplink, encode=True
-        )
+    # Generate deeplink
+    exchange_deeplink = f"exchange_{exchange.id}"
+    exchange_deeplink_url = await create_start_link(
+        bot=bot, payload=exchange_deeplink, encode=True
+    )
 
-        # Check if exchange can be reactivated
-        could_activate = exchange.status in [
-            "inactive",
-            "canceled",
-            "expired",
-        ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
+    # Check if exchange can be reactivated
+    could_activate = exchange.status in [
+        "inactive",
+        "canceled",
+        "expired",
+    ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
 
-        return {
-            "exchange_info": exchange_text,
-            "payment_info": payment_info,
-            "comment": exchange.comment,
-            "status": exchange.status,
-            "status_text": exchange_status,
-            "other_party_name": other_party_name,
-            "other_party_type": other_party_type,
-            "has_other_party": bool(other_party_name),
-            "is_active": exchange.status == "active",
-            "exchange_type": exchange_type,
-            "created_date": exchange.created_at.strftime(strftime_date),
-            "is_paid": "Да" if exchange.is_paid else "Нет",
-            "deeplink": exchange_deeplink,
-            "deeplink_url": exchange_deeplink_url,
-            "could_activate": could_activate,
-            "is_seller": is_seller,
-        }
-
-    except Exception as e:
-        logger.error(f"[Биржа] Ошибка при просмотре своей сделки: {e}")
-        return {"error": "Ошибка загрузки данных"}
+    return {
+        "exchange_info": exchange_text,
+        "comment": exchange.comment,
+        "status": exchange.status,
+        "status_text": exchange_status,
+        "other_party_name": other_party_name,
+        "other_party_type": other_party_type,
+        "has_other_party": bool(other_party_name),
+        "is_active": exchange.status == "active",
+        "exchange_type": exchange_type,
+        "created_date": exchange.created_at.strftime(strftime_date)
+        if exchange.created_at
+        else "Не указано",
+        "is_paid": "Да" if exchange.is_paid else "Нет",
+        "deeplink": exchange_deeplink,
+        "deeplink_url": exchange_deeplink_url,
+        "could_activate": could_activate,
+        "is_seller": is_seller,
+    }
 
 
 async def edit_offer_date_getter(

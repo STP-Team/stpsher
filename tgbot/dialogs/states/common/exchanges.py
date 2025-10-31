@@ -61,3 +61,19 @@ class ExchangeCreateBuy(StatesGroup):
     price = State()
     comment = State()
     confirmation = State()
+
+
+class ExchangesSub(StatesGroup):
+    """Группа состояний диалога для управления подписками на обмены."""
+
+    menu = State()  # Список подписок пользователя
+    sub_detail = State()  # Детали конкретной подписки
+
+    create_criteria = State()  # Настройка критериев
+    create_price = State()  # Настройка цены
+    create_time = State()  # Настройка времени
+    create_date = State()  # Настройка дат
+    create_seller = State()  # Поиск продавца
+    create_seller_results = State()  # Результаты поиска продавца
+    create_name = State()  # Название подписки
+    create_confirmation = State()  # Подтверждение создания

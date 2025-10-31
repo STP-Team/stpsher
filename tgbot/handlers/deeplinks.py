@@ -7,7 +7,7 @@ from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.dialogs.states.common.exchanges import Exchanges
+from tgbot.dialogs.states.common.exchanges import Exchanges, ExchangesSub
 from tgbot.dialogs.states.user import UserSG
 from tgbot.keyboards.auth import auth_kb
 from tgbot.services.event_logger import EventLogger
@@ -72,8 +72,8 @@ async def start_deeplink(
             )
             return
         elif payload.startswith("exchange_"):
-            exchange_id = int(payload.split("_", 1)[1])
-            exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+            subscription_id = int(payload.split("_", 1)[1])
+            exchange = await stp_repo.exchange.get_exchange_by_id(subscription_id)
 
             if not exchange:
                 await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
@@ -86,7 +86,7 @@ async def start_deeplink(
                     await dialog_manager.start(
                         Exchanges.my_detail,
                         mode=StartMode.RESET_STACK,
-                        data={"exchange_id": exchange_id},
+                        data={"exchange_id": subscription_id},
                     )
                     return
                 if exchange.status != "active":
@@ -97,15 +97,32 @@ async def start_deeplink(
                     await dialog_manager.start(
                         Exchanges.buy_detail,
                         mode=StartMode.RESET_STACK,
-                        data={"exchange_id": exchange_id},
+                        data={"exchange_id": subscription_id},
                     )
                 else:
                     # Запускаем диалог покупок
                     await dialog_manager.start(
                         Exchanges.sell_detail,
                         mode=StartMode.RESET_STACK,
-                        data={"exchange_id": exchange_id},
+                        data={"exchange_id": subscription_id},
                     )
+            return
+        elif payload.startswith("subscription_"):
+            subscription_id = int(payload.split("_", 1)[1])
+            subscription = await stp_repo.exchange.get_subscription_by_id(
+                subscription_id
+            )
+
+            if not subscription:
+                await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+                return
+
+            # Запускаем диалог подписки
+            await dialog_manager.start(
+                ExchangesSub.sub_detail,
+                mode=StartMode.RESET_STACK,
+                data={"subscription_id": subscription_id},
+            )
             return
 
     # Если payload не распознан, запускаем обычное меню

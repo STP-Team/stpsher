@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import ChatEvent, DialogManager
+from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
 from stp_database import MainRequestsRepo
@@ -14,7 +14,7 @@ from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy
 
 
 async def on_buy_date_selected(
-    callback: ChatEvent,
+    event: CallbackQuery,
     _calendar: ManagedCalendar,
     dialog_manager: DialogManager,
     selected_date: datetime,
@@ -24,7 +24,7 @@ async def on_buy_date_selected(
 
     # Проверяем, что дата не в прошлом
     if selected_date < today:
-        await callback.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
+        await event.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
         return
 
     # Сохраняем выбранную дату
@@ -35,7 +35,7 @@ async def on_buy_date_selected(
 
 
 async def on_buy_date_skip(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -127,7 +127,7 @@ async def on_buy_hours_input(
 
 
 async def on_buy_hours_skip(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -168,7 +168,7 @@ async def on_buy_price_input(
 
 
 async def on_buy_skip_comment(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -200,7 +200,7 @@ async def on_buy_comment_input(
 
 
 async def on_confirm_buy(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
 ):
@@ -239,9 +239,7 @@ async def on_confirm_buy(
 
         # Проверяем бан пользователя
         if await stp_repo.exchange.is_user_exchange_banned(user_id):
-            await callback.answer(
-                "❌ Ты заблокирован от участия в бирже", show_alert=True
-            )
+            await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
             return
 
         # Получаем комментарий
@@ -261,7 +259,7 @@ async def on_confirm_buy(
         )
 
         if exchange:
-            await callback.answer(
+            await event.answer(
                 "✅ Запрос на покупку добавлен на биржу!", show_alert=True
             )
             # Очищаем данные диалога
@@ -269,11 +267,9 @@ async def on_confirm_buy(
             # Возвращаемся к главному меню биржи
             await dialog_manager.done()
         else:
-            await callback.answer(
+            await event.answer(
                 "❌ Не удалось создать запрос. Попробуйте позже.", show_alert=True
             )
 
     except Exception:
-        await callback.answer(
-            "❌ Произошла ошибка при создании запроса", show_alert=True
-        )
+        await event.answer("❌ Произошла ошибка при создании запроса", show_alert=True)

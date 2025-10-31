@@ -10,7 +10,7 @@ from tgbot.misc.helpers import strftime_date
 
 
 async def on_transaction_click(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id,
@@ -19,7 +19,7 @@ async def on_transaction_click(
     """Переход к детальному просмотру информации о выбранной транзакции.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранной транзакции
@@ -30,13 +30,13 @@ async def on_transaction_click(
         transaction = await stp_repo.transaction.get_transaction(item_id)
     except Exception as e:
         print(e)
-        await callback.answer(
+        await event.answer(
             "❌ Ошибка получения информации о транзакции", show_alert=True
         )
         return
 
     if not transaction:
-        await callback.answer("❌ Транзакция не найдена", show_alert=True)
+        await event.answer("❌ Транзакция не найдена", show_alert=True)
         return
 
     # Сохраняем информацию о выбранной транзакции в dialog_data

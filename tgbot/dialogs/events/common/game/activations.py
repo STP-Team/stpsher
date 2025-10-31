@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 async def on_activation_click(
-    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, item_id
+    event: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, item_id
 ) -> None:
     """Обработчик нажатия на предмет в меню активации предмета.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного варианта
@@ -32,7 +32,7 @@ async def on_activation_click(
         purchase_details = await stp_repo.purchase.get_purchase_details(item_id)
 
         if not purchase_details:
-            await callback.answer("❌ Покупка не найдена", show_alert=True)
+            await event.answer("❌ Покупка не найдена", show_alert=True)
             return
 
         purchase = purchase_details.user_purchase
@@ -91,7 +91,7 @@ async def on_activation_click(
         logger.error(
             f"[Активация предметов] Ошибка при просмотре подробностей об активации предмета: {e}"
         )
-        await callback.answer(
+        await event.answer(
             "❌ Ошибка получения информации об активации", show_alert=True
         )
 
@@ -172,12 +172,12 @@ async def on_activation_approve_comment_input(
 
 
 async def on_skip_approve_comment(
-    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик пропуска комментария при одобрении активации.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -192,7 +192,7 @@ async def on_skip_approve_comment(
             updated_by_user_id=user.user_id,
         )
 
-        await callback.answer(
+        await event.answer(
             f"✅ Предмет '{activation_info['product_name']}' активирован!\n\nСпециалист {activation_info['fullname']} был уведомлен",
             show_alert=True,
         )
@@ -216,7 +216,7 @@ async def on_skip_approve_comment(
 
 📍 Осталось активаций: {remaining_uses} из {activation_info["product_count"]}"""
 
-        await callback.bot.send_message(
+        await event.bot.send_message(
             chat_id=activation_info["user_id"],
             text=employee_notify_message,
         )
@@ -228,7 +228,7 @@ async def on_skip_approve_comment(
         logger.error(
             f"[Активация предметов] Ошибка при подтверждении активации предмета: {e}"
         )
-        await callback.answer("❌ Ошибка при подтверждении активации", show_alert=True)
+        await event.answer("❌ Ошибка при подтверждении активации", show_alert=True)
 
 
 async def on_activation_reject_comment_input(
@@ -290,12 +290,12 @@ async def on_activation_reject_comment_input(
 
 
 async def on_skip_reject_comment(
-    callback: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик пропуска комментария при отклонении активации.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -310,7 +310,7 @@ async def on_skip_reject_comment(
             updated_by_user_id=user.user_id,
         )
 
-        await callback.answer(
+        await event.answer(
             f"❌ Активация предмета '{activation_info['product_name']}' отклонена\n\nСпециалист {activation_info['fullname']} был уведомлен",
             show_alert=True,
         )
@@ -322,7 +322,7 @@ async def on_skip_reject_comment(
 
 <i>Использование предмета не будет засчитано</i>"""
 
-        await callback.bot.send_message(
+        await event.bot.send_message(
             chat_id=activation_info["user_id"],
             text=employee_notify_message,
         )
@@ -332,4 +332,4 @@ async def on_skip_reject_comment(
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
-        await callback.answer("❌ Ошибка при отклонении активации", show_alert=True)
+        await event.answer("❌ Ошибка при отклонении активации", show_alert=True)

@@ -84,10 +84,11 @@ async def groups_details_getter(
     Returns:
         Словарь с информацией о выбранной группе
     """
-    if dialog_manager.start_data:
-        group_id = dialog_manager.start_data.get("group_id", None)
-    else:
-        group_id = dialog_manager.dialog_data.get("group_id", None)
+    group_id = (
+        dialog_manager.dialog_data.get("group_id", None)
+        or dialog_manager.start_data["group_id"]
+    )
+
     chat = await bot.get_chat(chat_id=group_id)
 
     settings = await stp_repo.group.get_groups(group_id=group_id)

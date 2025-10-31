@@ -142,7 +142,7 @@ async def broadcast_copy(
     message_id: int = None,
     text: str = None,
     disable_notification: bool = False,
-    progress_callback: Callable[[int, int], Awaitable[None]] = None,
+    progress_event: Callable[[int, int], Awaitable[None]] = None,
 ) -> tuple[int, int]:
     """Рассылка, использующая copy_message или send_message с отслеживанием прогресса.
 
@@ -153,7 +153,7 @@ async def broadcast_copy(
         message_id: Идентификатор сообщения, которое необходимо скопировать.
         text: Текст сообщения. (опционально если указаны from_chat_id и message_id).
         disable_notification: text: Текст сообщения.
-        progress_callback: Callback для отслеживания прогресса рассылки (текущее, общее).
+        progress_event: Callback для отслеживания прогресса рассылки (текущее, общее).
 
     Returns:
         :return: Кортеж с кол-вом успешных сообщений и ошибок
@@ -184,7 +184,7 @@ async def broadcast_copy(
                 error_count += 1
 
             # Call progress callback if provided
-            if progress_callback:
+            if progress_event:
                 await progress_callback(idx, total)
 
             await asyncio.sleep(

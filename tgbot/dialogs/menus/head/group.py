@@ -31,10 +31,11 @@ from tgbot.dialogs.events.common.schedules import (
     prev_month,
     today,
 )
+from tgbot.dialogs.events.common.search import on_trainee_click
 from tgbot.dialogs.events.heads.group import (
+    on_casino_click,
     on_game_casino_member_click,
     on_game_casino_toggle_all,
-    on_member_casino_change,
     on_member_role_change,
     on_member_schedule_mode_select,
     on_member_select,
@@ -413,7 +414,7 @@ member_details_window = Window(
             Const("🟢 Казино"),
             Const("🔴 Казино"),
             id="member_casino_access",
-            on_state_changed=on_member_casino_change,
+            on_click=on_casino_click,
         ),
         SwitchTo(
             Const("🛡️ Уровень доступа"),
@@ -441,6 +442,7 @@ member_access_level_window = Window(
             Const("✅ Стажер"),
             Const("❌ Стажер"),
             id="is_trainee",
+            on_click=on_trainee_click,
         ),
         Select(
             Format("{item[1]}"),
