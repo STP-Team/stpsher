@@ -981,11 +981,6 @@ async def on_payment_date_selected(
     selected_date: datetime,
 ):
     """Обработчик выбора даты платежа."""
-    shift_date_str = dialog_manager.dialog_data.get("shift_date")
-    if not shift_date_str:
-        await event.answer("❌ Ошибка: дата смены не найдена", show_alert=True)
-        return
-
     # Проверяем, что дата платежа не в прошлом
     if selected_date < datetime.now().date():
         await event.answer("❌ Дата платежа не может быть в прошлом", show_alert=True)

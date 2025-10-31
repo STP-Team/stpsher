@@ -165,7 +165,7 @@ payment_date_window = Window(
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
 💰 <b>Оплата:</b> <code>{price} р.</code></blockquote>"""),
     Format("\nВыбери крайнюю дату для оплаты:"),
-    Format("<i>Дата должна быть не позже даты смены</i>"),
+    Format("<i>Можно выбрать любую дату, начиная с сегодня</i>"),
     RussianCalendar(
         id="payment_date_calendar",
         on_click=on_payment_date_selected,
