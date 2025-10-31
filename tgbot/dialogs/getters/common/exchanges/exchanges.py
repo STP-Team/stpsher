@@ -514,10 +514,10 @@ async def exchange_buy_detail_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра обмена при покупке."""
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return {"error": "Обмен не найден"}
@@ -582,10 +582,10 @@ async def exchange_sell_detail_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра запроса на покупку (buy request)."""
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return {"error": "Запрос не найден"}
@@ -798,11 +798,10 @@ async def my_detail_getter(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра собственного обмена."""
-    # Get exchange ID from dialog data
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id")
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id")
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return {"error": "Обмен не найден"}

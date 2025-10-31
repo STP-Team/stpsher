@@ -307,10 +307,10 @@ async def on_private_change(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     is_private = widget.is_checked()
 
@@ -342,10 +342,10 @@ async def on_paid_change(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     is_paid = widget.is_checked()
 
@@ -378,10 +378,10 @@ async def on_schedule_change(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
     user: Employee = dialog_manager.middleware_data.get("user")
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     in_schedule = widget.is_checked()
 
@@ -429,10 +429,10 @@ async def on_activation_change(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     is_active = widget.is_checked()
 
@@ -464,10 +464,10 @@ async def on_delete_exchange(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     await stp_repo.exchange.delete_exchange(exchange_id)
     await callback.answer("🔥 Сделка удалена")
@@ -489,10 +489,10 @@ async def on_set_paid(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     await stp_repo.exchange.mark_exchange_paid(exchange_id)
 
@@ -574,10 +574,10 @@ async def on_edit_date_selected(
         _widget: Виджет календаря
         dialog_manager: Менеджер диалога
     """
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id or not selected_date:
         await _callback.answer("❌ Ошибка при обновлении даты", show_alert=True)
@@ -610,10 +610,10 @@ async def on_edit_date_time_input(
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -697,10 +697,10 @@ async def on_edit_price_input(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -771,10 +771,10 @@ async def _update_payment_timing(
     """Вспомогательная функция для обновления условий оплаты."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return
@@ -805,10 +805,10 @@ async def on_edit_comment_input(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -837,10 +837,10 @@ async def on_add_to_calendar(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
     if not exchange:

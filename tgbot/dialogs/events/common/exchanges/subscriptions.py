@@ -99,10 +99,7 @@ async def on_create_subscription(
     # Очищаем данные диалога для новой подписки
     dialog_manager.dialog_data.clear()
 
-    # Проверяем есть ли автоматический тип из стартовых данных
-    start_data = dialog_manager.start_data or {}
-    auto_type = start_data.get("auto_type")
-
+    auto_type = dialog_manager.start_data["auto_type"]
     dialog_manager.dialog_data["auto_exchange_type"] = auto_type
     await dialog_manager.switch_to(ExchangesSub.create_criteria)
 

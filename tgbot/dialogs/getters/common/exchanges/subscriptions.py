@@ -73,10 +73,10 @@ async def subscription_detail_getter(
         Словарь с деталями подписки
     """
     try:
-        if dialog_manager.start_data:
-            subscription_id = dialog_manager.start_data.get("subscription_id")
-        else:
-            subscription_id = dialog_manager.dialog_data.get("subscription_id")
+        subscription_id = (
+            dialog_manager.dialog_data.get("subscription_id", None)
+            or dialog_manager.start_data["subscription_id"]
+        )
 
         if not subscription_id:
             raise ValueError("Не указан ID подписки")
