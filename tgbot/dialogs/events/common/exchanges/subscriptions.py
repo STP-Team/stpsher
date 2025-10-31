@@ -7,8 +7,14 @@ from typing import Any
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
-from aiogram_dialog.widgets.kbd import Button, ManagedRadio, ManagedToggle, Select
-from stp_database import Employee, MainRequestsRepo
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    ManagedCheckbox,
+    ManagedRadio,
+    ManagedToggle,
+    Select,
+)
+from stp_database import Employee, ExchangeSubscription, MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import ExchangesSub
 
@@ -84,6 +90,32 @@ async def on_subscription_selected(
         await callback.answer("❌ Ошибка выбора подписки", show_alert=True)
 
 
+async def on_sub_status_click(
+    _callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+) -> None:
+    """Изменение статуса подписки.
+
+    Args:
+        _callback: Callback query от Telegram
+        widget: Виджет чекбокса
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    subscription_id = (
+        dialog_manager.dialog_data.get("subscription_id", None)
+        or dialog_manager.start_data["subscription_id"]
+    )
+
+    subscription: ExchangeSubscription = await stp_repo.exchange.get_subscription_by_id(
+        subscription_id
+    )
+
+    if subscription:
+        success = await stp_repo.exchange.update_subscription(
+            subscription_id, is_active=not widget.is_checked()
+        )
+
+
 async def on_create_subscription(
     _callback: CallbackQuery,
     _widget: Button,
@@ -106,22 +138,21 @@ async def on_create_subscription(
 
 async def on_delete_subscription(
     callback: CallbackQuery,
-    widget: Any,
+    _widget: Any,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик удаления подписки.
 
     Args:
         callback: Callback query от Telegram
-        widget: Данные виджета Button
+        _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    subscription_id = dialog_manager.dialog_data.get("subscription_id")
-
-    if not subscription_id:
-        await callback.answer("❌ Подписка не найдена", show_alert=True)
-        return
+    subscription_id = (
+        dialog_manager.dialog_data.get("subscription_id", None)
+        or dialog_manager.start_data["subscription_id"]
+    )
 
     try:
         # Удаляем подписку
@@ -139,55 +170,15 @@ async def on_delete_subscription(
         await callback.answer("❌ Ошибка удаления подписки", show_alert=True)
 
 
-async def on_toggle_subscription(
-    callback: CallbackQuery,
-    _widget: Any,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик включения/отключения подписки.
-
-    Args:
-        callback: Callback query от Telegram
-        _widget: Данные виджета Button
-        dialog_manager: Менеджер диалога
-    """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    subscription_id = dialog_manager.dialog_data.get("subscription_id")
-
-    if not subscription_id:
-        await callback.answer("❌ Подписка не найдена", show_alert=True)
-        return
-
-    try:
-        # Получаем текущий статус и переключаем (пока заглушка)
-        subscription = await stp_repo.exchange.get_subscription_by_id(subscription_id)
-        new_status = not subscription.is_active
-
-        # Обновляем статус
-        success = await stp_repo.exchange.update_subscription(
-            subscription_id, is_active=new_status
-        )
-
-        if success:
-            status_text = "включена" if new_status else "отключена"
-            await callback.answer(f"✅ Подписка {status_text}", show_alert=True)
-        else:
-            await callback.answer("❌ Ошибка изменения статуса", show_alert=True)
-
-    except Exception as e:
-        logger.error(f"Ошибка переключения статуса подписки {subscription_id}: {e}")
-        await callback.answer("❌ Ошибка изменения статуса", show_alert=True)
-
-
 async def on_criteria_next(
-    callback: CallbackQuery,
+    _callback: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик перехода к следующему или предыдущему шагу настройки критериев.
 
     Args:
-        callback: Callback query от Telegram
+        _callback: Callback query от Telegram
         widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """

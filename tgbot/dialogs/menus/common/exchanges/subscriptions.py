@@ -5,6 +5,7 @@ from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
+    Cancel,
     Checkbox,
     Group,
     Multiselect,
@@ -17,14 +18,13 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
-    finish_subscriptions_dialog,
     on_confirm_subscription,
     on_create_subscription,
     on_criteria_next,
     on_delete_subscription,
     on_price_input,
+    on_sub_status_click,
     on_subscription_selected,
-    on_toggle_subscription,
 )
 from tgbot.dialogs.getters.common.exchanges.subscriptions import (
     subscription_create_confirmation_getter,
@@ -76,7 +76,7 @@ menu_window = Window(
         Button(Const("🔄 Обновить"), id="refresh_subscriptions"),
     ),
     Row(
-        Button(Const("↩️ Назад"), id="back", on_click=finish_subscriptions_dialog),
+        Cancel(Const("↩️ Назад"), id="close_sub"),
         HOME_BTN,
     ),
     getter=subscriptions_getter,
@@ -95,13 +95,9 @@ sub_detail_window = Window(
         Const("🟢 Активная"),
         Const("🟡 Выключена"),
         id="sub_status",
+        on_click=on_sub_status_click,
     ),
     Row(
-        Button(
-            Format("{toggle_text}"),
-            id="toggle_subscription",
-            on_click=on_toggle_subscription,
-        ),
         Button(
             Const("🗑️ Удалить"),
             id="delete_subscription",
@@ -137,7 +133,7 @@ subscription_create_criteria_window = Window(
         "\n💡 <i>Выберите критерии или оставь пустым для подписки на любые условия</i>",
     ),
     Row(
-        Button(Const("⬅️ Отмена"), id="back", on_click=finish_subscriptions_dialog),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.create_criteria),
         Button(
             Const("➡️ Далее"),
             id="next_step",

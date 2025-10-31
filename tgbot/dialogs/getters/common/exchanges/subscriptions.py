@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.kbd import ManagedRadio, ManagedToggle
+from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio, ManagedToggle
 from stp_database import Employee, MainRequestsRepo
 
 logger = logging.getLogger(__name__)
@@ -88,6 +88,10 @@ async def subscription_detail_getter(
         if not subscription:
             raise ValueError("Подписка не найдена")
 
+        # Установка чекбоксов
+        sub_status_checkbox: ManagedCheckbox = dialog_manager.find("sub_status")
+        await sub_status_checkbox.set_checked(subscription.is_active)
+
         # Форматируем критерии
         criteria_parts = []
         if subscription.min_price:
@@ -117,14 +121,10 @@ async def subscription_detail_getter(
             subscription.exchange_type, subscription.exchange_type
         )
 
-        toggle_text = "🔴 Отключить" if subscription.is_active else "🟢 Включить"
-
         return {
             "subscription_name": subscription.name or "Без названия",
             "exchange_type": exchange_type,
             "criteria_text": criteria_text,
-            "is_active": subscription.is_active,
-            "toggle_text": toggle_text,
         }
 
     except Exception as e:
