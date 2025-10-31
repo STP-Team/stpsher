@@ -282,8 +282,8 @@ async def on_exchange_type_selected(
         await dialog_manager.start(ExchangeCreateSell.date)
 
 
-async def on_private_change(
-    event: CallbackQuery,
+async def on_private_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -291,7 +291,7 @@ async def on_private_change(
     """Изменение приватности сделки.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -302,23 +302,13 @@ async def on_private_change(
         or dialog_manager.start_data["exchange_id"]
     )
 
-    is_private = widget.is_checked()
-
-    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-
-    if exchange.is_private == is_private:
-        return
-
-    if is_private:
-        await stp_repo.exchange.update_exchange(exchange_id, is_private=True)
-        await event.answer("🟡 Сделка скрыта из листинга биржи")
-    else:
-        await stp_repo.exchange.update_exchange(exchange_id, is_private=False)
-        await event.answer("🟢 Сделка отображена в листинге биржи")
+    await stp_repo.exchange.update_exchange(
+        exchange_id, is_private=not widget.is_checked()
+    )
 
 
 async def on_paid_click(
-    event: CallbackQuery,
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -326,7 +316,7 @@ async def on_paid_click(
     """Изменение статуса оплаты сделки.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -337,23 +327,13 @@ async def on_paid_click(
         or dialog_manager.start_data["exchange_id"]
     )
 
-    is_paid = widget.is_checked()
-
-    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-
-    if exchange.is_paid == is_paid:
-        return
-
-    if is_paid:
-        await stp_repo.exchange.update_exchange(exchange_id, is_paid=True)
-        await event.answer("🟢 Сделка отмечена оплаченной")
-    else:
-        await stp_repo.exchange.update_exchange(exchange_id, is_paid=False)
-        await event.answer("🟡 Сделка отмечена неоплаченной")
+    await stp_repo.exchange.update_exchange(
+        exchange_id, is_paid=not widget.is_checked()
+    )
 
 
-async def on_schedule_change(
-    event: CallbackQuery,
+async def on_in_schedule_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -361,7 +341,7 @@ async def on_schedule_change(
     """Изменение отображения сделки в графике.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -373,39 +353,22 @@ async def on_schedule_change(
         or dialog_manager.start_data["exchange_id"]
     )
 
-    in_schedule = widget.is_checked()
-
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
 
     is_seller = exchange.seller_id == user.user_id
 
-    if (is_seller and exchange.in_seller_schedule == in_schedule) or (
-        not is_seller and exchange.in_buyer_schedule == in_schedule
-    ):
-        return
-
-    if in_schedule:
-        if is_seller:
-            await stp_repo.exchange.update_exchange(
-                exchange_id, in_seller_schedule=True
-            )
-        else:
-            await stp_repo.exchange.update_exchange(exchange_id, in_buyer_schedule=True)
-        await event.answer("🟢 Сделка отображена в графике")
+    if is_seller:
+        await stp_repo.exchange.update_exchange(
+            exchange_id, in_seller_schedule=not widget.is_checked()
+        )
     else:
-        if is_seller:
-            await stp_repo.exchange.update_exchange(
-                exchange_id, in_seller_schedule=False
-            )
-        else:
-            await stp_repo.exchange.update_exchange(
-                exchange_id, in_buyer_schedule=False
-            )
-        await event.answer("🟡 Сделка скрыта из графика")
+        await stp_repo.exchange.update_exchange(
+            exchange_id, in_buyer_schedule=not widget.is_checked()
+        )
 
 
-async def on_activation_change(
-    event: CallbackQuery,
+async def on_activation_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -413,7 +376,7 @@ async def on_activation_change(
     """Изменение статуса сделки.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -424,19 +387,9 @@ async def on_activation_change(
         or dialog_manager.start_data["exchange_id"]
     )
 
-    is_active = widget.is_checked()
-
-    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-
-    if exchange.status == "active" == is_active:
-        return
-
-    if is_active:
-        await stp_repo.exchange.update_exchange(exchange_id, status="canceled")
-        await event.answer("🟡 Сделка выключена")
-    else:
-        await stp_repo.exchange.update_exchange(exchange_id, status="active")
-        await event.answer("🟢 Сделка активирована")
+    await stp_repo.exchange.update_exchange(
+        exchange_id, status="canceled" if not widget.is_checked() else "active"
+    )
 
 
 async def on_delete_exchange(

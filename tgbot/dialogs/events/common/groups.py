@@ -112,92 +112,63 @@ async def on_service_message_selected(
     )
 
 
-async def _toggle_group_setting(
-    event: CallbackQuery,
-    dialog_manager: DialogManager,
-    widget: ManagedCheckbox,
-    field_name: str,
-    success_message: str,
-) -> None:
-    """Общий обработчик переключаемых настроек группы.
-
-    Args:
-        event: Событие клика на кнопку меню настроек
-        dialog_manager: Менеджер диалога
-        widget: Виджет чекбокса
-        field_name: Название настройки
-        success_message: Текст сообщения об успешном изменении
-    """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    group_id = dialog_manager.dialog_data.get("group_id")
-
-    group = await stp_repo.group.get_groups(group_id=group_id)
-    new_value = widget.is_checked()
-    current_value = getattr(group, field_name, None)
-
-    if current_value != new_value:
-        await stp_repo.group.update_group(group_id=group_id, **{field_name: new_value})
-        await event.answer(
-            f"✅ {success_message}: {'включено' if new_value else 'выключено'}"
-        )
-
-
 async def on_only_employees_click(
-    event: CallbackQuery,
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения настройки удаления не сотрудников.
 
     Args:
-        event: Событие клика на кнопку настройки
+        _event: Событие клика на кнопку настройки
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    await _toggle_group_setting(
-        event,
-        dialog_manager,
-        widget,
-        "remove_unemployed",
-        "Удаление не сотрудников",
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, remove_unemployed=not widget.is_checked()
     )
 
 
-async def on_toggle_new_user_notify(
-    event: CallbackQuery,
+async def on_new_user_notify_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения настройки уведомления о новых пользователях в группе.
 
     Args:
-        event: Событие клика на кнопку настройки
+        _event: Событие клика на кнопку настройки
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    await _toggle_group_setting(
-        event,
-        dialog_manager,
-        widget,
-        "new_user_notify",
-        "Приветствие новых участников",
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, new_user_notify=not widget.is_checked()
     )
 
 
-async def on_toggle_is_casino_allowed(
-    event: CallbackQuery,
+async def on_is_casino_allowed_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения настройки доступа к казино.
 
     Args:
-        event: Событие клика на кнопку настройки
+        _event: Событие клика на кнопку настройки
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    await _toggle_group_setting(
-        event, dialog_manager, widget, "is_casino_allowed", "Казино"
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, is_casino_allowed=not widget.is_checked()
     )
 
 

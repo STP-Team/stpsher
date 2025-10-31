@@ -55,56 +55,22 @@ async def on_member_select(
     await dialog_manager.switch_to(HeadGroupSG.member_details)
 
 
-async def on_member_casino_change(
-    event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_casino_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
     """Обработчик изменения доступа к казино для члена группы.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-        selected_member_id = dialog_manager.dialog_data.get("selected_member_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_member_id = dialog_manager.dialog_data.get("selected_member_id")
 
-        if not stp_repo or not selected_member_id:
-            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        is_casino_allowed = widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(
-            main_id=int(selected_member_id)
-        )
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_member_id)
-            )
-
-        if not searched_user:
-            await event.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        if searched_user.is_casino_allowed == is_casino_allowed:
-            return
-
-        # Обновляем доступ к казино в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_casino_allowed=is_casino_allowed
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if is_casino_allowed else "выключен"
-        await event.answer(f"✅ Доступ к казино {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Казино] Ошибка при изменении доступа: {e}")
-        await event.answer("❌ Ошибка при изменении доступа", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_member_id, is_casino_allowed=not widget.is_checked()
+    )
 
 
 async def on_member_role_change(

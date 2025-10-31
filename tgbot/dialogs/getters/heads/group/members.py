@@ -67,9 +67,6 @@ async def member_info_getter(
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_member_id")
 
-    if not selected_user_id:
-        return {"user_info": "❌ Пользователь не выбран"}
-
     try:
         # Получаем информацию о пользователе
         searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))

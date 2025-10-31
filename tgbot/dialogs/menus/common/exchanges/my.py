@@ -16,7 +16,7 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import (
-    on_activation_change,
+    on_activation_click,
     on_add_to_calendar,
     on_delete_exchange,
     on_edit_comment_input,
@@ -29,10 +29,10 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_edit_payment_date_selected,
     on_edit_payment_timing_selected,
     on_edit_price_input,
+    on_in_schedule_click,
     on_my_exchange_selected,
     on_paid_click,
-    on_private_change,
-    on_schedule_change,
+    on_private_click,
     open_my_schedule,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
@@ -129,7 +129,7 @@ my_detail_window = Window(
                 Const("🟢 В графике"),
                 Const("🟡 Не в графике"),
                 id="exchange_in_schedule",
-                on_state_changed=on_schedule_change,
+                on_click=on_in_schedule_click,
             ),
             Button(
                 Const("✍🏼 В календарь"),
@@ -158,13 +158,13 @@ offer_edit_window = Window(
             Const("🟢 Активная"),
             Const("🟡 Выключена"),
             id="offer_status",
-            on_click=on_activation_change,
+            on_click=on_activation_click,
         ),
         Checkbox(
             Const("🟡 Приватная"),
             Const("🟢 Публичная"),
             id="offer_private_status",
-            on_state_changed=on_private_change,
+            on_click=on_private_click,
         ),
     ),
     Row(

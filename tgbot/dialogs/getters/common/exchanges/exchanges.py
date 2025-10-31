@@ -698,32 +698,6 @@ async def my_exchanges(
         }
 
 
-async def _safely_set_checkbox(
-    checkbox: ManagedCheckbox, value: bool, checkbox_name: str
-) -> None:
-    """Safely set checkbox value with error handling."""
-    if checkbox:
-        try:
-            await checkbox.set_checked(value)
-        except AttributeError as e:
-            if "'NoneType' object has no attribute 'user_id'" in str(e):
-                logger.warning(
-                    f"[Биржа] Пропуск установки {checkbox_name} из-за проблемы контекста: {e}"
-                )
-            else:
-                raise
-
-
-async def _get_payment_info(exchange: Exchange) -> str:
-    """Get formatted payment information for exchange."""
-    if exchange.payment_type == "immediate":
-        return "Сразу при проведении сделки"
-    elif exchange.payment_date:
-        return f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
-    else:
-        return "По договоренности"
-
-
 async def _get_other_party_info(
     exchange: Exchange, user_id: int, stp_repo: MainRequestsRepo
 ) -> tuple[str | None, str | None]:
@@ -755,41 +729,6 @@ async def _get_other_party_info(
     return None, None
 
 
-async def _setup_exchange_checkboxes(
-    exchange: Exchange, user: Employee, dialog_manager: DialogManager
-) -> None:
-    """Setup all exchange-related checkboxes."""
-    # In schedule checkbox
-    in_schedule_checkbox = dialog_manager.find("exchange_in_schedule")
-    if in_schedule_checkbox and user.user_id is not None:
-        if exchange.seller_id == user.user_id:
-            await _safely_set_checkbox(
-                in_schedule_checkbox,
-                exchange.in_seller_schedule,
-                "exchange_in_schedule",
-            )
-        else:
-            await _safely_set_checkbox(
-                in_schedule_checkbox, exchange.in_buyer_schedule, "exchange_in_schedule"
-            )
-
-    # Payment status checkbox
-    exchange_is_paid = dialog_manager.find("exchange_is_paid")
-    if exchange_is_paid:
-        await exchange_is_paid.set_checked(exchange.is_paid)
-
-    # Private status checkbox
-    private_checkbox = dialog_manager.find("offer_private_status")
-    await _safely_set_checkbox(
-        private_checkbox, exchange.is_private, "offer_private_status"
-    )
-
-    # Статус сделки
-    exchange_status = dialog_manager.find("offer_status")
-    if exchange_status:
-        await exchange_status.set_checked(exchange.status == "active")
-
-
 async def my_detail_getter(
     user: Employee,
     bot: Bot,
@@ -803,72 +742,73 @@ async def my_detail_getter(
         or dialog_manager.start_data["exchange_id"]
     )
 
-    if not exchange_id:
-        return {"error": "Обмен не найден"}
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+    is_seller = exchange.seller_id == dialog_manager.event.from_user.id
 
-    if not user.user_id:
-        return {"error": "Пользователь не найден"}
+    # Установка чекбоксов
+    in_schedule: ManagedCheckbox = dialog_manager.find(
+        "exchange_in_schedule"
+    )  # В графике
+    await in_schedule.set_checked(
+        exchange.in_seller_schedule if is_seller else exchange.in_buyer_schedule
+    )
 
-    try:
-        # Get exchange details
-        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-        if not exchange:
-            return {"error": "Обмен не найден"}
+    exchange_is_paid: ManagedCheckbox = dialog_manager.find(
+        "exchange_is_paid"
+    )  # Статус оплаты
+    await exchange_is_paid.set_checked(exchange.is_paid)
 
-        # Setup UI checkboxes
-        await _setup_exchange_checkboxes(exchange, user, dialog_manager)
+    private_checkbox: ManagedCheckbox = dialog_manager.find(
+        "offer_private_status"
+    )  # Статус приватности
+    await private_checkbox.set_checked(exchange.is_private)
 
-        # Get payment information
-        payment_info = await _get_payment_info(exchange)
+    # Статус сделки
+    exchange_status = dialog_manager.find("offer_status")
+    if exchange_status:
+        await exchange_status.set_checked(exchange.status == "active")
 
-        # Get other party information
-        other_party_name, other_party_type = await _get_other_party_info(
-            exchange, user.user_id, stp_repo
-        )
+    # Get other party information
+    other_party_name, other_party_type = await _get_other_party_info(
+        exchange, user.user_id, stp_repo
+    )
 
-        # Determine user role and prepare exchange info
-        is_seller = user.user_id and exchange.seller_id == user.user_id
-        exchange_text = await get_exchange_text(stp_repo, exchange, user.user_id)
-        exchange_status = await get_exchange_status(exchange)
-        exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
+    exchange_text = await get_exchange_text(stp_repo, exchange, user.user_id)
+    exchange_status = await get_exchange_status(exchange)
+    exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
 
-        # Generate deeplink
-        exchange_deeplink = f"exchange_{exchange.id}"
-        exchange_deeplink_url = await create_start_link(
-            bot=bot, payload=exchange_deeplink, encode=True
-        )
+    # Generate deeplink
+    exchange_deeplink = f"exchange_{exchange.id}"
+    exchange_deeplink_url = await create_start_link(
+        bot=bot, payload=exchange_deeplink, encode=True
+    )
 
-        # Check if exchange can be reactivated
-        could_activate = exchange.status in [
-            "inactive",
-            "canceled",
-            "expired",
-        ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
+    # Check if exchange can be reactivated
+    could_activate = exchange.status in [
+        "inactive",
+        "canceled",
+        "expired",
+    ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
 
-        return {
-            "exchange_info": exchange_text,
-            "payment_info": payment_info,
-            "comment": exchange.comment,
-            "status": exchange.status,
-            "status_text": exchange_status,
-            "other_party_name": other_party_name,
-            "other_party_type": other_party_type,
-            "has_other_party": bool(other_party_name),
-            "is_active": exchange.status == "active",
-            "exchange_type": exchange_type,
-            "created_date": exchange.created_at.strftime(strftime_date)
-            if exchange.created_at
-            else "Не указано",
-            "is_paid": "Да" if exchange.is_paid else "Нет",
-            "deeplink": exchange_deeplink,
-            "deeplink_url": exchange_deeplink_url,
-            "could_activate": could_activate,
-            "is_seller": is_seller,
-        }
-
-    except Exception as e:
-        logger.error(f"[Биржа] Ошибка при просмотре своей сделки: {e}")
-        return {"error": "Ошибка загрузки данных"}
+    return {
+        "exchange_info": exchange_text,
+        "comment": exchange.comment,
+        "status": exchange.status,
+        "status_text": exchange_status,
+        "other_party_name": other_party_name,
+        "other_party_type": other_party_type,
+        "has_other_party": bool(other_party_name),
+        "is_active": exchange.status == "active",
+        "exchange_type": exchange_type,
+        "created_date": exchange.created_at.strftime(strftime_date)
+        if exchange.created_at
+        else "Не указано",
+        "is_paid": "Да" if exchange.is_paid else "Нет",
+        "deeplink": exchange_deeplink,
+        "deeplink_url": exchange_deeplink_url,
+        "could_activate": could_activate,
+        "is_seller": is_seller,
+    }
 
 
 async def edit_offer_date_getter(

@@ -152,157 +152,58 @@ async def on_search_query(
         logger.error(f"[Поиск] Ошибка при попытке поиска: {e}")
 
 
-async def on_casino_change(
-    event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_casino_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
     """Обработчик изменения доступа к казино.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
-        if not stp_repo or not selected_user_id:
-            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        is_casino_allowed = widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
-
-        if not searched_user:
-            await event.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
-        if searched_user.is_casino_allowed == is_casino_allowed:
-            return
-
-        # Обновляем доступ к казино в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_casino_allowed=is_casino_allowed
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if is_casino_allowed else "выключен"
-        await event.answer(f"✅ Доступ к казино {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Казино] Ошибка при изменении доступа: {e}")
-        await event.answer("❌ Ошибка при изменении доступа", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, is_casino_allowed=not widget.is_checked()
+    )
 
 
-async def on_trainee_change(
-    event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_trainee_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
     """Обработчик изменения статуса стажера.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
-        if not stp_repo or not selected_user_id:
-            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        is_trainee = widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
-
-        if not searched_user:
-            await event.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
-        if searched_user.is_trainee == is_trainee:
-            return
-
-        # Обновляем статус стажера в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_trainee=is_trainee
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if is_trainee else "выключен"
-        await event.answer(f"✅ Статус стажера {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Стажер] Ошибка при изменении статуса: {e}")
-        await event.answer("❌ Ошибка при изменении статуса", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, is_trainee=not widget.is_checked()
+    )
 
 
-async def on_exchanges_change(
-    event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+async def on_exchanges_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
-    """Обработчик изменения доступа к обменам смен.
+    """Обработчик изменения доступа к бирже подмен.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
-    try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-        selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
-        if not stp_repo or not selected_user_id:
-            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
-            return
-
-        # Получаем текущее состояние чекбокса
-        exchanges_access = not widget.is_checked()
-
-        # Получаем пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
-
-        if not searched_user:
-            await event.answer("❌ Пользователь не найден", show_alert=True)
-            return
-
-        # Проверяем, действительно ли состояние изменилось
-        # Если состояние совпадает с текущим в БД, это просто инициализация - игнорируем
-        if searched_user.is_exchange_banned == exchanges_access:
-            return
-
-        # Обновляем статус стажера в базе данных
-        await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, is_exchange_banned=exchanges_access
-        )
-
-        # Показываем уведомление
-        status_text = "включен" if exchanges_access else "выключен"
-        await event.answer(f"✅ Доступ к бирже {status_text}")
-
-    except Exception as e:
-        logger.error(f"[Стажер] Ошибка при изменении статуса: {e}")
-        await event.answer("❌ Ошибка при изменении статуса", show_alert=True)
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, is_exchange_banned=not widget.is_checked()
+    )
 
 
 async def on_role_change(
