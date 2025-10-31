@@ -17,11 +17,11 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
+    finish_subscriptions_dialog,
     on_confirm_subscription,
     on_create_subscription,
     on_criteria_next,
     on_delete_subscription,
-    on_name_input,
     on_price_input,
     on_subscription_selected,
     on_toggle_subscription,
@@ -30,17 +30,14 @@ from tgbot.dialogs.getters.common.exchanges.subscriptions import (
     subscription_create_confirmation_getter,
     subscription_create_criteria_getter,
     subscription_create_date_getter,
-    subscription_create_name_getter,
     subscription_create_price_getter,
     subscription_create_time_getter,
-    subscription_create_type_getter,
     subscription_detail_getter,
     subscriptions_getter,
 )
 from tgbot.dialogs.states.common.exchanges import ExchangesSub
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
-# Главное меню подписок
 menu_window = Window(
     Const("🔔 <b>Подписки</b>"),
     Format("""
@@ -70,15 +67,18 @@ menu_window = Window(
         id="subscription_scrolling",
         when="has_subscriptions",
     ),
+    Button(
+        Const("➕ Новая подписка"),
+        id="add_subscription",
+        on_click=on_create_subscription,
+    ),
     Row(
-        Button(
-            Const("➕ Новая подписка"),
-            id="add_subscription",
-            on_click=on_create_subscription,
-        ),
         Button(Const("🔄 Обновить"), id="refresh_subscriptions"),
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.menu), HOME_BTN),
+    Row(
+        Button(Const("↩️ Назад"), id="back", on_click=finish_subscriptions_dialog),
+        HOME_BTN,
+    ),
     getter=subscriptions_getter,
     state=ExchangesSub.menu,
 )
@@ -116,39 +116,15 @@ sub_detail_window = Window(
     state=ExchangesSub.sub_detail,
 )
 
-# Выбор типа подписки
-create_type_window = Window(
-    Const("➕ <b>Новая подписка</b>"),
-    Const("""
-Выберите тип обменов, на которые хотите подписаться:"""),
-    Radio(
-        Format("🔘 {item[1]}"),
-        Format("⚪ {item[1]}"),
-        id="exchange_type",
-        item_id_getter=lambda item: item[0],
-        items="exchange_types",
-    ),
-    Button(
-        Const("➡️ Далее"),
-        id="next_criteria",
-        on_click=on_criteria_next,
-        when="exchange_type_selected",
-    ),
-    Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.menu),
-        HOME_BTN,
-    ),
-    getter=subscription_create_type_getter,
-    state=ExchangesSub.create_type,
-)
-
 # Выбор критериев подписки
 subscription_create_criteria_window = Window(
-    Const("🎯 <b>Критерии подписки</b>"),
+    Const("🎯 <b>Шаг 1: Условия сделок</b>"),
     Format("""
-Выбери критерии для фильтрации обменов:
+<blockquote>📈 <b>Тип:</b> {selected_exchange_type}
 
-<b>Тип обменов:</b> {selected_exchange_type}"""),
+{current_criteria_display}</blockquote>
+
+Выбери критерии для фильтрации сделок"""),
     Group(
         Multiselect(
             Format("✅ {item[1]}"),
@@ -159,13 +135,15 @@ subscription_create_criteria_window = Window(
         ),
         width=2,
     ),
+    Format(
+        "\n💡 <i>Выберите критерии или оставь пустым для подписки на любые условия</i>",
+    ),
     Row(
-        SwitchTo(Const("⬅️ Назад"), id="back", state=ExchangesSub.create_type),
+        Button(Const("⬅️ Отмена"), id="back", on_click=finish_subscriptions_dialog),
         Button(
             Const("➡️ Далее"),
-            id="next_price",
+            id="next_step",
             on_click=on_criteria_next,
-            when="criteria_selected",
         ),
     ),
     getter=subscription_create_criteria_getter,
@@ -174,12 +152,11 @@ subscription_create_criteria_window = Window(
 
 # Настройка цены (если выбрана)
 create_price_window = Window(
-    Const("💰 <b>Настройка цены</b>"),
+    Const("💰 <b>Шаг 2: Настройка ценового диапазона</b>"),
     Format("""
-Укажите диапазон цен для подписки:
-
-<b>Выбранные критерии:</b>
-{selected_criteria}"""),
+<blockquote>📈 <b>Тип:</b> {exchange_type_display}
+🎯 <b>Критерии:</b> {criteria_display}
+{price_settings_display}</blockquote>"""),
     Format(
         "\n💰 <b>Минимальная цена:</b> {min_price} р.",
         when="min_price",
@@ -189,11 +166,11 @@ create_price_window = Window(
         when="max_price",
     ),
     Format(
-        "\n💡 <i>Введите минимальную цену (или 0 для пропуска):</i>",
+        "\n💡 Введи <b>минимальную цену</b> в рублях (или 0 для пропуска)",
         when="input_step_min",
     ),
     Format(
-        "\n💡 <i>Введите максимальную цену (или 0 для пропуска):</i>",
+        "\n💡 Введи <b>максимальную цену</b> в рублях (или 0 для пропуска)",
         when="input_step_max",
     ),
     TextInput(
@@ -205,9 +182,8 @@ create_price_window = Window(
         SwitchTo(Const("⬅️ Назад"), id="back", state=ExchangesSub.create_criteria),
         Button(
             Const("➡️ Далее"),
-            id="next_time",
+            id="next_step",
             on_click=on_criteria_next,
-            when="price_completed",
         ),
     ),
     getter=subscription_create_price_getter,
@@ -216,26 +192,32 @@ create_price_window = Window(
 
 # Настройка времени (если выбрана)
 create_time_window = Window(
-    Const("⏰ <b>Настройка времени</b>"),
+    Const("⏰ <b>Шаг 3: Выбор времени суток</b>"),
     Format("""
-Выберите время суток для подписки:
+Выбери подходящее время суток для подписки:
 
-<b>Выбранные критерии:</b>
-{selected_criteria}"""),
-    Radio(
-        Format("🔘 {item[1]}"),
-        Format("⚪ {item[1]}"),
-        id="time_range",
-        item_id_getter=lambda item: item[0],
-        items="time_ranges",
+<blockquote>📈 <b>Тип:</b> {exchange_type_display}
+🎯 <b>Критерии:</b> {criteria_display}
+{current_settings_display}</blockquote>"""),
+    Group(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪ {item[1]}"),
+            id="time_range",
+            item_id_getter=lambda item: item[0],
+            items="time_ranges",
+        ),
+        width=2,
+    ),
+    Format(
+        "\n💡 Выбери временной диапазон",
     ),
     Row(
-        SwitchTo(Const("⬅️ Назад"), id="back", state=ExchangesSub.create_price),
+        Button(Const("⬅️ Назад"), id="back_step", on_click=on_criteria_next),
         Button(
             Const("➡️ Далее"),
-            id="next_date",
+            id="next_step",
             on_click=on_criteria_next,
-            when="time_selected",
         ),
     ),
     getter=subscription_create_time_getter,
@@ -244,26 +226,32 @@ create_time_window = Window(
 
 # Настройка дат (если выбрана)
 create_date_window = Window(
-    Const("📅 <b>Настройка дат</b>"),
+    Const("📅 <b>Шаг 4: Выбор дней недели</b>"),
     Format("""
-Выберите дни недели для подписки:
+Выбери дни недели для получения уведомлений:
 
-<b>Выбранные критерии:</b>
-{selected_criteria}"""),
-    Multiselect(
-        Format("✅ {item[1]}"),
-        Format("☑️ {item[1]}"),
-        id="days_of_week",
-        item_id_getter=lambda item: item[0],
-        items="weekdays",
+<blockquote>📈 <b>Тип:</b> {exchange_type_display}
+🎯 <b>Критерии:</b> {criteria_display}
+{current_settings_display}</blockquote>"""),
+    Group(
+        Multiselect(
+            Format("✅ {item[1]}"),
+            Format("☑️ {item[1]}"),
+            id="days_of_week",
+            item_id_getter=lambda item: item[0],
+            items="weekdays",
+        ),
+        width=2,
+    ),
+    Format(
+        "\n💡 Выбери подходящие дни недели",
     ),
     Row(
-        SwitchTo(Const("⬅️ Назад"), id="back", state=ExchangesSub.create_time),
+        Button(Const("⬅️ Назад"), id="back_step", on_click=on_criteria_next),
         Button(
             Const("➡️ Далее"),
-            id="next_notifications",
+            id="next_step",
             on_click=on_criteria_next,
-            when="days_selected",
         ),
     ),
     getter=subscription_create_date_getter,
@@ -271,70 +259,21 @@ create_date_window = Window(
 )
 
 
-# Название подписки
-create_name_window = Window(
-    Const("📝 <b>Название подписки</b>"),
-    Format("""
-Дайте название вашей подписке для удобства:
-
-<b>Краткое описание:</b>
-{subscription_summary}"""),
-    Format(
-        "\n📝 <b>Текущее название:</b> {current_name}",
-        when="current_name",
-    ),
-    Format("\n💡 <i>Введите название подписки:</i>"),
-    TextInput(
-        id="name_input",
-        on_success=on_name_input,
-    ),
-    Button(
-        Const("✨ Автоназвание"),
-        id="auto_name",
-        on_click=on_name_input,
-    ),
-    Row(
-        SwitchTo(
-            Const("⬅️ Назад"),
-            id="back",
-            state=ExchangesSub.create_date,
-        ),
-        Button(
-            Const("➡️ К подтверждению"),
-            id="next_confirmation",
-            on_click=on_criteria_next,
-            when="name_entered",
-        ),
-    ),
-    getter=subscription_create_name_getter,
-    state=ExchangesSub.create_name,
-)
-
 # Подтверждение создания
 create_confirmation_window = Window(
-    Const("✅ <b>Подтверждение создания</b>"),
+    Const("✅ <b>Шаг 5: Подтверждение создания</b>"),
     Format("""
-Проверьте настройки подписки:
+Проверь настройки подписки:
 
-📝 <b>Название:</b> {subscription_name}
-📈 <b>Тип обменов:</b> {exchange_type}
+<blockquote>📈 <b>Тип:</b> {exchange_type}
 🎯 <b>Критерии:</b>
-{criteria_summary}
-
-🔔 <b>Уведомления:</b>
-{notification_summary}"""),
+{criteria_summary}</blockquote>"""),
     Row(
-        Button(
-            Const("✅ Создать подписку"), id="confirm", on_click=on_confirm_subscription
-        ),
-        SwitchTo(
-            Const("✏️ Редактировать"),
-            id="edit",
-            state=ExchangesSub.create_name,
-        ),
+        Button(Const("✅ Создать"), id="confirm", on_click=on_confirm_subscription),
     ),
+    Button(Const("⬅️ К настройкам"), id="back_step", on_click=on_criteria_next),
     Row(
-        SwitchTo(Const("↩️ К подпискам"), id="cancel", state=ExchangesSub.menu),
+        SwitchTo(Const("↩️ Назад"), id="cancel", state=ExchangesSub.menu),
         HOME_BTN,
     ),
     getter=subscription_create_confirmation_getter,
@@ -345,11 +284,9 @@ create_confirmation_window = Window(
 exchanges_subscriptions_dialog = Dialog(
     menu_window,
     sub_detail_window,
-    create_type_window,
     subscription_create_criteria_window,
     create_price_window,
     create_time_window,
     create_date_window,
-    create_name_window,
     create_confirmation_window,
 )

@@ -103,13 +103,8 @@ async def on_create_subscription(
     start_data = dialog_manager.start_data or {}
     auto_type = start_data.get("auto_type")
 
-    if auto_type:
-        # Устанавливаем тип автоматически и переходим к критериям
-        dialog_manager.dialog_data["auto_exchange_type"] = auto_type
-        await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    else:
-        # Обычный поток - показываем выбор типа
-        await dialog_manager.switch_to(ExchangesSub.create_type)
+    dialog_manager.dialog_data["auto_exchange_type"] = auto_type
+    await dialog_manager.switch_to(ExchangesSub.create_criteria)
 
 
 async def on_delete_subscription(
@@ -192,7 +187,7 @@ async def on_criteria_next(
     widget: Any,
     dialog_manager: DialogManager,
 ) -> None:
-    """Обработчик перехода к следующему шагу настройки критериев.
+    """Обработчик перехода к следующему или предыдущему шагу настройки критериев.
 
     Args:
         callback: Callback query от Telegram
@@ -200,15 +195,26 @@ async def on_criteria_next(
         dialog_manager: Менеджер диалога
     """
     current_state = dialog_manager.current_context().state
+    widget_id = widget.widget_id if hasattr(widget, "widget_id") else None
 
-    # Определяем следующий шаг в зависимости от текущего состояния
-    if current_state == ExchangesSub.create_type:
-        await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    elif current_state == ExchangesSub.create_criteria:
-        # Проверяем нужно ли настраивать цену
-        criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
-        selected_criteria = criteria_widget.get_checked() if criteria_widget else []
+    # Определяем направление навигации по ID виджета
+    is_back = widget_id == "back_step"
 
+    if is_back:
+        # Логика для возврата назад
+        await _navigate_back(current_state, dialog_manager)
+    else:
+        # Логика для движения вперед
+        await _navigate_forward(current_state, dialog_manager)
+
+
+async def _navigate_forward(current_state, dialog_manager: DialogManager) -> None:
+    """Навигация вперед по шагам создания подписки."""
+    # Получаем выбранные критерии
+    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
+    selected_criteria = criteria_widget.get_checked() if criteria_widget else []
+
+    if current_state == ExchangesSub.create_criteria:
         if "price" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_price)
         elif "time" in selected_criteria:
@@ -216,31 +222,65 @@ async def on_criteria_next(
         elif "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
         else:
-            await dialog_manager.switch_to(ExchangesSub.create_name)
+            await dialog_manager.switch_to(ExchangesSub.create_confirmation)
     elif current_state == ExchangesSub.create_price:
-        # Переходим к времени или следующему критерию
-        criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
-        selected_criteria = criteria_widget.get_checked() if criteria_widget else []
-
         if "time" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_time)
         elif "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
         else:
-            await dialog_manager.switch_to(ExchangesSub.create_name)
+            await dialog_manager.switch_to(ExchangesSub.create_confirmation)
     elif current_state == ExchangesSub.create_time:
-        # Переходим к датам или уведомлениям
+        if "days" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_date)
+        else:
+            await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+    elif current_state == ExchangesSub.create_date:
+        await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+    elif current_state == ExchangesSub.create_confirmation:
+        # Возврат из подтверждения к последнему шагу настройки
         criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
         selected_criteria = criteria_widget.get_checked() if criteria_widget else []
 
         if "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
+        elif "time" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_time)
+        elif "price" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_price)
         else:
-            await dialog_manager.switch_to(ExchangesSub.create_name)
+            await dialog_manager.switch_to(ExchangesSub.create_criteria)
+
+
+async def _navigate_back(current_state, dialog_manager: DialogManager) -> None:
+    """Навигация назад по шагам создания подписки."""
+    # Получаем выбранные критерии
+    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
+    selected_criteria = criteria_widget.get_checked() if criteria_widget else []
+
+    if current_state == ExchangesSub.create_price:
+        await dialog_manager.switch_to(ExchangesSub.create_criteria)
+    elif current_state == ExchangesSub.create_time:
+        if "price" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_price)
+        else:
+            await dialog_manager.switch_to(ExchangesSub.create_criteria)
     elif current_state == ExchangesSub.create_date:
-        await dialog_manager.switch_to(ExchangesSub.create_name)
-    elif current_state == ExchangesSub.create_name:
-        await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+        if "time" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_time)
+        elif "price" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_price)
+        else:
+            await dialog_manager.switch_to(ExchangesSub.create_criteria)
+    elif current_state == ExchangesSub.create_confirmation:
+        if "days" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_date)
+        elif "time" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_time)
+        elif "price" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_price)
+        else:
+            await dialog_manager.switch_to(ExchangesSub.create_criteria)
 
 
 async def on_price_input(
@@ -313,38 +353,6 @@ async def on_seller_selected(
         logger.error(f"Ошибка выбора продавца: неверный ID {item_id}")
 
 
-async def on_name_input(
-    message: Message | CallbackQuery,
-    widget: ManagedTextInput | Button,
-    dialog_manager: DialogManager,
-    data: str = None,
-) -> None:
-    """Обработчик ввода названия подписки или автогенерации.
-
-    Args:
-        message: Сообщение или callback от пользователя
-        widget: Данные виджета
-        dialog_manager: Менеджер диалога
-        data: Введенное название (если есть)
-    """
-    if isinstance(widget, Button):
-        # Автогенерация названия
-        name = _generate_subscription_name(dialog_manager)
-        dialog_manager.dialog_data["subscription_name"] = name
-        if isinstance(message, CallbackQuery):
-            await message.answer(f"✅ Автоматическое название: {name}")
-    else:
-        # Ввод пользователем
-        if not data or len(data.strip()) < 3:
-            if isinstance(message, Message):
-                await message.answer("❌ Название должно содержать минимум 3 символа")
-            return
-
-        dialog_manager.dialog_data["subscription_name"] = data.strip()
-        if isinstance(message, Message):
-            await message.answer(f"✅ Название установлено: {data.strip()}")
-
-
 async def on_confirm_subscription(
     callback: CallbackQuery,
     widget: Any,
@@ -378,62 +386,6 @@ async def on_confirm_subscription(
     except Exception as e:
         logger.error(f"Ошибка создания подписки для пользователя {user.user_id}: {e}")
         await callback.answer("❌ Ошибка создания подписки", show_alert=True)
-
-
-def _generate_subscription_name(dialog_manager: DialogManager) -> str:
-    """Генерирует автоматическое название для подписки.
-
-    Args:
-        dialog_manager: Менеджер диалога
-
-    Returns:
-        Сгенерированное название
-    """
-    parts = []
-
-    # Тип обмена
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
-
-    type_names = {"buy": "Покупка", "sell": "Продажа", "both": "Все обмены"}
-    parts.append(type_names.get(selected_type, "Обмены"))
-
-    # Цена
-    price_data = dialog_manager.dialog_data.get("price_data", {})
-    if price_data.get("max_price"):
-        parts.append(f"до {price_data['max_price']}р")
-    elif price_data.get("min_price"):
-        parts.append(f"от {price_data['min_price']}р")
-
-    # Время
-    time_widget: ManagedRadio = dialog_manager.find("time_range")
-    selected_time = time_widget.get_checked() if time_widget else None
-    if selected_time:
-        time_names = {
-            "morning": "утром",
-            "afternoon": "днем",
-            "evening": "вечером",
-            "work_hours": "в раб.часы",
-        }
-        if selected_time in time_names:
-            parts.append(time_names[selected_time])
-
-    # Дни недели
-    days_widget: ManagedToggle = dialog_manager.find("days_of_week")
-    selected_days = days_widget.get_checked() if days_widget else []
-    if selected_days and len(selected_days) < 7:
-        if set(selected_days) == {"6", "7"}:
-            parts.append("в выходные")
-        elif set(selected_days) == {"1", "2", "3", "4", "5"}:
-            parts.append("в будни")
-
-    return " ".join(parts) if parts else "Моя подписка"
 
 
 def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) -> dict:

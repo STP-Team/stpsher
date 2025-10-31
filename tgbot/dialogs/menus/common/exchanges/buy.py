@@ -88,10 +88,7 @@ buy_window = Window(
 buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-{exchange_info}
-
-👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}"""),
+{exchange_info}"""),
     Format(
         "\n{duty_warning}",
         when="duty_warning",

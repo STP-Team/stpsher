@@ -91,7 +91,6 @@ my_detail_window = Window(
 {exchange_info}"""),
     Format(
         """
-💳 <b>Оплата:</b> {payment_info}
 💸 <b>Оплачено:</b> {is_paid}""",
         when="has_other_party",
     ),

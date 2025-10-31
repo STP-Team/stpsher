@@ -10,7 +10,7 @@ from stp_database import Exchange, MainRequestsRepo
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     get_exchange_text,
 )
-from tgbot.misc.helpers import format_fullname, tz
+from tgbot.misc.helpers import tz
 from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class ExchangesScheduler(BaseScheduler):
             replace_existing=True,
         )
 
-        # Проверка совпадений подписок
+        # Проверка совпадений для подписок
         scheduler.add_job(
             func=self._check_subscription_matches,
             args=[session_pool, bot],
@@ -54,12 +54,22 @@ class ExchangesScheduler(BaseScheduler):
             replace_existing=True,
         )
 
-    async def _check_expired_offers(self, session_pool, bot: Bot):
-        """Проверка истекших сделок"""
+    async def _check_expired_offers(self, session_pool, bot: Bot) -> None:
+        """Проверка истекших сделок.
+
+        Args:
+            session_pool: Сессия с БД
+            bot: Экземпляр бота
+        """
         await check_expired_offers(session_pool, bot)
 
-    async def _check_subscription_matches(self, session_pool, bot: Bot):
-        """Проверка совпадений подписок с новыми обменами"""
+    async def _check_subscription_matches(self, session_pool, bot: Bot) -> None:
+        """Проверка совпадений подписок с новыми обменами.
+
+        Args:
+            session_pool: Сессия с БД
+            bot: Экземпляр бота
+        """
         await check_subscription_matches(session_pool, bot)
 
 
@@ -104,28 +114,22 @@ async def check_expired_offers(session_pool, bot: Bot):
                 await notify_expire_offer(bot, stp_repo, exchange)
 
 
-async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange):
+async def notify_expire_offer(
+    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange
+) -> None:
+    """Уведомление об истекшей по времени сделке.
+
+    Args:
+        bot: Экземпляр бота
+        stp_repo: Репозиторий операций с базой STP
+        exchange: Экземпляр сделки с моделью Exchange
+    """
     if exchange.type == "sell":
         owner = await stp_repo.employee.get_users(user_id=exchange.seller_id)
     else:
         owner = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
 
-    owner_name = format_fullname(
-        owner.fullname,
-        short=True,
-        gender_emoji=True,
-        username=owner.username,
-        user_id=owner.user_id,
-    )
-
-    if exchange.payment_type == "immediate":
-        payment_info = "Сразу при покупке"
-    elif exchange.payment_date:
-        payment_info = f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
-    else:
-        payment_info = "По договоренности"
-
-    exchange_info = await get_exchange_text(exchange, user_id=owner.user_id)
+    exchange_info = await get_exchange_text(stp_repo, exchange, user_id=owner.user_id)
     deeplink = await create_start_link(
         bot=bot, payload=f"exchange_{exchange.id}", encode=True
     )
@@ -141,7 +145,7 @@ async def notify_expire_offer(bot: Bot, stp_repo: MainRequestsRepo, exchange: Ex
 <i>Ты можешь отредактировать его и опубликовать снова</i>""",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Открыть сделку", url=deeplink)]
+                [InlineKeyboardButton(text="🎭 Открыть сделку", url=deeplink)]
             ]
         ),
     )
@@ -213,24 +217,33 @@ async def notify_subscription_match(
             return
 
         # Формируем текст уведомления
-        exchange_info = await get_exchange_text(exchange, user_id=user.user_id)
+        exchange_info = await get_exchange_text(
+            stp_repo, exchange, user_id=user.user_id
+        )
 
         # Создаем deeplink
-        deeplink = await create_start_link(
+        exchange_deeplink = await create_start_link(
             bot=bot, payload=f"exchange_{exchange.id}", encode=True
+        )
+        subscription_deeplink = await create_start_link(
+            bot=bot, payload=f"subscription_{subscription.id}", encode=True
         )
 
         message_text = f"""🔔 <b>Новый обмен</b>
 
-Найден обмен, соответствующий вашей подписке "{subscription.name}":
+Найден обмен, соответствующий подписке <b>{subscription.name}</b>:
 
-{exchange_info}
-
-💰 <b>Цена:</b> {exchange.price} р.
-💳 <b>Оплата:</b> {"Сразу" if exchange.payment_type == "immediate" else "По договоренности"}"""
+{exchange_info}"""
 
         reply_markup = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="Открыть обмен", url=deeplink)]]
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🎭 Открыть сделку", url=exchange_deeplink)],
+                [
+                    InlineKeyboardButton(
+                        text="🔔 Настроить подписку", url=subscription_deeplink
+                    )
+                ],
+            ]
         )
 
         await bot.send_message(

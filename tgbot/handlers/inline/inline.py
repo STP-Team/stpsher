@@ -253,29 +253,10 @@ async def advanced_inline_handler(
 
             shift_time = f"{start_time_str}-{end_time_str}"
 
-            seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-            seller_name = format_fullname(
-                seller.fullname,
-                short=True,
-                gender_emoji=True,
-                username=seller.username,
-                user_id=seller.user_id,
-            )
-
-            if exchange.payment_type == "immediate":
-                payment_info = "Сразу при покупке"
-            elif exchange.payment_date:
-                payment_info = f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
-            else:
-                payment_info = "По договоренности"
-
-            exchange_info = await get_exchange_text(exchange, user.user_id)
+            exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
             message_text = f"""🔍 <b>Детали сделки</b>
 
-{exchange_info}
-
-👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}"""
+{exchange_info}"""
 
             deeplink = await create_start_link(
                 bot=bot, payload=f"exchange_{exchange.id}", encode=True
@@ -292,7 +273,7 @@ async def advanced_inline_handler(
                         inline_keyboard=[
                             [
                                 InlineKeyboardButton(
-                                    text="Открыть сделку",
+                                    text="🎭 Открыть сделку",
                                     url=deeplink,
                                 )
                             ]

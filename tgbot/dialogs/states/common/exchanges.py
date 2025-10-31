@@ -69,7 +69,6 @@ class ExchangesSub(StatesGroup):
     menu = State()  # Список подписок пользователя
     sub_detail = State()  # Детали конкретной подписки
 
-    create_type = State()  # Выбор типа подписки
     create_criteria = State()  # Настройка критериев
     create_price = State()  # Настройка цены
     create_time = State()  # Настройка времени

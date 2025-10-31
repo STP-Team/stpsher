@@ -175,7 +175,9 @@ async def get_exchange_price_per_hour(exchange: Exchange):
     return price
 
 
-async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
+async def get_exchange_text(
+    stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
+) -> str:
     """Форматирует текст для отображения базовой информации о сделке.
 
     Args:
@@ -210,6 +212,10 @@ async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
 
     if exchange.type == "sell":
+        seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+        seller_name = format_fullname(
+            seller.fullname, True, True, seller.username, seller.username
+        )
         price_per_hour = await get_exchange_price_per_hour(exchange)
         price_per_hour_text = (
             f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
@@ -217,12 +223,21 @@ async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
-<code>{price:g} р. ({price_per_hour_text})</code></blockquote>"""
+<code>{price:g} р. ({price_per_hour_text})</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+👤 <b>Продавец:</b> 
+{seller_name}</blockquote>"""
     else:
+        buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
+        buyer_name = format_fullname(
+            buyer.fullname, True, True, buyer.username, buyer.username
+        )
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
-<code>{price:g} р./ч.</code></blockquote>"""
+<code>{price:g} р./ч.</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+👤 <b>Продавец:</b>
+{buyer_name}</blockquote>"""
+    print(exchange_text)
     return exchange_text
 
 
@@ -516,13 +531,6 @@ async def exchange_buy_detail_getter(
 
         # Получаем информацию о продавце
         seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-        seller_name = format_fullname(
-            seller.fullname,
-            short=True,
-            gender_emoji=True,
-            username=seller.username,
-            user_id=seller.user_id,
-        )
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -532,7 +540,7 @@ async def exchange_buy_detail_getter(
         else:
             payment_info = "По договоренности"
 
-        exchange_info = await get_exchange_text(exchange, user.user_id)
+        exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
         deeplink = f"exchange_{exchange.id}"
         comment = exchange.comment
 
@@ -556,7 +564,6 @@ async def exchange_buy_detail_getter(
 
         result = {
             "exchange_info": exchange_info,
-            "seller_name": seller_name,
             "payment_info": payment_info,
             "comment": comment,
             "deeplink": deeplink,
@@ -594,16 +601,6 @@ async def exchange_sell_detail_getter(
         if exchange.type != "buy":
             return {"error": "Неверный тип запроса"}
 
-        # Получаем информацию о покупателе (в buy-запросе seller_id это фактически buyer_id)
-        buyer = await stp_repo.employee.get_users(user_id=exchange.seller_id)
-        buyer_name = format_fullname(
-            buyer.fullname,
-            short=True,
-            gender_emoji=True,
-            username=buyer.username,
-            user_id=buyer.user_id,
-        )
-
         # Информация об оплате
         if exchange.payment_type == "immediate":
             payment_info = "Сразу при продаже"
@@ -612,12 +609,11 @@ async def exchange_sell_detail_getter(
         else:
             payment_info = "По договоренности"
 
-        exchange_info = await get_exchange_text(exchange, user.user_id)
+        exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
         deeplink = f"buy_request_{exchange.id}"
 
         return {
             "exchange_info": exchange_info,
-            "buyer_name": buyer_name,
             "payment_info": payment_info,
             "deeplink": deeplink,
         }
@@ -834,7 +830,7 @@ async def my_detail_getter(
 
         # Determine user role and prepare exchange info
         is_seller = user.user_id and exchange.seller_id == user.user_id
-        exchange_text = await get_exchange_text(exchange, user.user_id or 0)
+        exchange_text = await get_exchange_text(stp_repo, exchange, user.user_id)
         exchange_status = await get_exchange_status(exchange)
         exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
 

@@ -72,10 +72,7 @@ sell_window = Window(
 sell_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-{exchange_info}
-
-👤 <b>Покупатель:</b> {buyer_name}
-💳 <b>Оплата:</b> {payment_info}"""),
+{exchange_info}"""),
     Button(
         Const("✍️ Предложить сделку"), id="accept_buy_request", on_click=on_exchange_buy
     ),

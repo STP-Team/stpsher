@@ -204,10 +204,26 @@ async def subscription_create_criteria_getter(
     criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
     selected_criteria = criteria_widget.get_checked() if criteria_widget else []
 
+    # Формируем отображение выбранных критериев для блокквота
+    criteria_names = {
+        "price": "💰 По цене",
+        "time": "⏰ По времени",
+        "days": "📅 По дням недели",
+        "seller": "👤 Конкретный продавец",
+    }
+
+    if selected_criteria:
+        current_criteria_display = "🎯 <b>Критерии:</b>\n" + "\n".join([
+            criteria_names.get(c, c) for c in selected_criteria
+        ])
+    else:
+        current_criteria_display = "🎯 <b>Критерии:</b> не выбраны"
+
     return {
         "selected_exchange_type": type_names.get(selected_type, "Не выбрано"),
         "criteria_options": criteria_options,
         "criteria_selected": len(selected_criteria) > 0,
+        "current_criteria_display": current_criteria_display,
     }
 
 
@@ -222,14 +238,30 @@ async def subscription_create_price_getter(
     Returns:
         Словарь с настройками цены
     """
+    # Получаем тип обмена для отображения
+    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
+    if auto_type:
+        selected_type = auto_type
+    else:
+        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
+        selected_type = (
+            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
+        )
+
+    type_names = {
+        "buy": "📈 Покупка часов",
+        "sell": "📉 Продажа часов",
+        "both": "🔄 Оба типа",
+    }
+
     # Получаем выбранные критерии
     criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
     selected_criteria = criteria_widget.get_checked() if criteria_widget else []
 
     criteria_names = {
-        "price": "💰 Фильтр по цене",
-        "time": "⏰ Фильтр по времени",
-        "days": "📅 Фильтр по дням недели",
+        "price": "💰 По цене",
+        "time": "⏰ По времени",
+        "days": "📅 По дням недели",
         "seller": "👤 Конкретный продавец",
     }
 
@@ -241,7 +273,22 @@ async def subscription_create_price_getter(
     price_data = dialog_manager.dialog_data.get("price_data", {})
     input_step = price_data.get("step", "min")  # "min" или "max"
 
+    # Формируем отображение настроек цены
+    price_settings = []
+    if price_data.get("min_price"):
+        price_settings.append(f"от {price_data['min_price']} р.")
+    if price_data.get("max_price"):
+        price_settings.append(f"до {price_data['max_price']} р.")
+
+    if price_settings:
+        price_settings_display = "\n💰 <b>Цена:</b> " + " ".join(price_settings)
+    else:
+        price_settings_display = "\n💰 <b>Цена:</b> настраиваем сейчас"
+
     return {
+        "exchange_type_display": type_names.get(selected_type, "Не выбрано"),
+        "criteria_display": selected_criteria_text or "все обмены",
+        "price_settings_display": price_settings_display,
         "selected_criteria": selected_criteria_text,
         "min_price": price_data.get("min_price"),
         "max_price": price_data.get("max_price"),
@@ -263,29 +310,71 @@ async def subscription_create_time_getter(
     Returns:
         Словарь с временными диапазонами
     """
+    # Получаем тип обмена для отображения
+    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
+    if auto_type:
+        selected_type = auto_type
+    else:
+        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
+        selected_type = (
+            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
+        )
+
+    type_names = {
+        "buy": "📈 Покупка часов",
+        "sell": "📉 Продажа часов",
+        "both": "🔄 Оба типа",
+    }
+
     # Получаем выбранные критерии для отображения
     criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
     selected_criteria = criteria_widget.get_checked() if criteria_widget else []
 
     criteria_names = {
-        "price": "💰 Фильтр по цене",
-        "time": "⏰ Фильтр по времени",
-        "days": "📅 Фильтр по дням недели",
+        "price": "💰 По цене",
+        "time": "⏰ По времени",
+        "days": "📅 По дням недели",
         "seller": "👤 Конкретный продавец",
     }
 
-    # Добавляем уже настроенную цену
-    criteria_parts = []
-    for c in selected_criteria:
-        criteria_parts.append(criteria_names.get(c, c))
+    criteria_display = (
+        ", ".join([criteria_names.get(c, c) for c in selected_criteria]) or "все обмены"
+    )
 
+    # Формируем отображение уже настроенных параметров
+    settings_parts = []
+
+    # Цена
     price_data = dialog_manager.dialog_data.get("price_data", {})
-    if price_data.get("min_price"):
-        criteria_parts.append(f"от {price_data['min_price']} р.")
-    if price_data.get("max_price"):
-        criteria_parts.append(f"до {price_data['max_price']} р.")
+    if price_data.get("min_price") or price_data.get("max_price"):
+        price_parts = []
+        if price_data.get("min_price"):
+            price_parts.append(f"от {price_data['min_price']} р.")
+        if price_data.get("max_price"):
+            price_parts.append(f"до {price_data['max_price']} р.")
+        settings_parts.append("💰 Цена: " + " ".join(price_parts))
 
-    selected_criteria_text = ", ".join(criteria_parts)
+    # Время (текущий этап)
+    time_widget: ManagedRadio = dialog_manager.find("time_range")
+    selected_time = time_widget.get_checked() if time_widget else None
+    if selected_time:
+        time_names = {
+            "morning": "утро (06:00-12:00)",
+            "afternoon": "день (12:00-18:00)",
+            "evening": "вечер (18:00-24:00)",
+            "night": "ночь (00:00-06:00)",
+            "work_hours": "рабочие часы (08:00-20:00)",
+            "all_day": "круглосуточно",
+        }
+        settings_parts.append(
+            f"⏰ <b>Время:</b> {time_names.get(selected_time, selected_time)}"
+        )
+    else:
+        settings_parts.append("⏰ <b>Время:</b> настраиваем сейчас")
+
+    current_settings_display = (
+        "\n" + "\n".join(settings_parts) if settings_parts else ""
+    )
 
     time_ranges = [
         ("morning", "🌅 Утро (06:00-12:00)"),
@@ -296,12 +385,13 @@ async def subscription_create_time_getter(
         ("all_day", "🌍 Круглосуточно"),
     ]
 
-    # Проверяем выбранный диапазон
-    time_widget: ManagedRadio = dialog_manager.find("time_range")
-    selected_time = time_widget.get_checked() if time_widget else None
-
     return {
-        "selected_criteria": selected_criteria_text,
+        "exchange_type_display": type_names.get(selected_type, "Не выбрано"),
+        "criteria_display": criteria_display,
+        "current_settings_display": current_settings_display,
+        "selected_criteria": ", ".join([
+            criteria_names.get(c, c) for c in selected_criteria
+        ]),
         "time_ranges": time_ranges,
         "time_selected": selected_time is not None,
     }
@@ -318,8 +408,87 @@ async def subscription_create_date_getter(
     Returns:
         Словарь с днями недели
     """
-    # Получаем сводку выбранных критериев
-    criteria_summary = _get_criteria_summary(dialog_manager)
+    # Получаем тип обмена для отображения
+    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
+    if auto_type:
+        selected_type = auto_type
+    else:
+        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
+        selected_type = (
+            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
+        )
+
+    type_names = {
+        "buy": "📈 Покупка часов",
+        "sell": "📉 Продажа часов",
+        "both": "🔄 Оба типа",
+    }
+
+    # Получаем выбранные критерии
+    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
+    selected_criteria = criteria_widget.get_checked() if criteria_widget else []
+
+    criteria_names = {
+        "price": "💰 По цене",
+        "time": "⏰ По времени",
+        "days": "📅 По дням недели",
+        "seller": "👤 Конкретный продавец",
+    }
+
+    criteria_display = (
+        ", ".join([criteria_names.get(c, c) for c in selected_criteria]) or "все обмены"
+    )
+
+    # Формируем отображение уже настроенных параметров
+    settings_parts = []
+
+    # Цена
+    price_data = dialog_manager.dialog_data.get("price_data", {})
+    if price_data.get("min_price") or price_data.get("max_price"):
+        price_parts = []
+        if price_data.get("min_price"):
+            price_parts.append(f"от {price_data['min_price']} р.")
+        if price_data.get("max_price"):
+            price_parts.append(f"до {price_data['max_price']} р.")
+        settings_parts.append("💰 Цена: " + " ".join(price_parts))
+
+    # Время
+    time_widget: ManagedRadio = dialog_manager.find("time_range")
+    selected_time = time_widget.get_checked() if time_widget else None
+    if selected_time:
+        time_names = {
+            "morning": "утро (06:00-12:00)",
+            "afternoon": "день (12:00-18:00)",
+            "evening": "вечер (18:00-24:00)",
+            "night": "ночь (00:00-06:00)",
+            "work_hours": "рабочие часы (08:00-20:00)",
+            "all_day": "круглосуточно",
+        }
+        settings_parts.append(
+            f"⏰ Время: {time_names.get(selected_time, selected_time)}"
+        )
+
+    # Дни недели (текущий этап)
+    days_widget: ManagedToggle = dialog_manager.find("days_of_week")
+    selected_days = days_widget.get_checked() if days_widget else []
+    if selected_days:
+        day_names = {
+            "1": "Пн",
+            "2": "Вт",
+            "3": "Ср",
+            "4": "Чт",
+            "5": "Пт",
+            "6": "Сб",
+            "7": "Вс",
+        }
+        days_text = ", ".join([day_names.get(d, d) for d in selected_days])
+        settings_parts.append(f"📅 <b>Дни:</b> {days_text}")
+    else:
+        settings_parts.append("📅 <b>Дни:</b> настраиваем сейчас")
+
+    current_settings_display = (
+        "\n" + "\n".join(settings_parts) if settings_parts else ""
+    )
 
     weekdays = [
         ("1", "Понедельник"),
@@ -331,37 +500,13 @@ async def subscription_create_date_getter(
         ("7", "Воскресенье"),
     ]
 
-    # Проверяем выбранные дни
-    days_widget: ManagedToggle = dialog_manager.find("days_of_week")
-    selected_days = days_widget.get_checked() if days_widget else []
-
     return {
-        "selected_criteria": criteria_summary,
+        "exchange_type_display": type_names.get(selected_type, "Не выбрано"),
+        "criteria_display": criteria_display,
+        "current_settings_display": current_settings_display,
+        "selected_criteria": _get_criteria_summary(dialog_manager),
         "weekdays": weekdays,
         "days_selected": len(selected_days) > 0,
-    }
-
-
-async def subscription_create_name_getter(
-    dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для ввода названия подписки.
-
-    Args:
-        dialog_manager: Менеджер диалога
-
-    Returns:
-        Словарь с описанием подписки
-    """
-    # Генерируем краткое описание подписки
-    subscription_summary = _get_subscription_summary(dialog_manager)
-
-    current_name = dialog_manager.dialog_data.get("subscription_name")
-
-    return {
-        "subscription_summary": subscription_summary,
-        "current_name": current_name,
-        "name_entered": current_name is not None,
     }
 
 
@@ -376,9 +521,13 @@ async def subscription_create_confirmation_getter(
     Returns:
         Словарь с финальной информацией о подписке
     """
-    # Получаем все данные подписки
+    # Автоматически генерируем название подписки если его нет
+    if not dialog_manager.dialog_data.get("subscription_name"):
+        auto_name = _generate_subscription_name(dialog_manager)
+        dialog_manager.dialog_data["subscription_name"] = auto_name
+
     subscription_name = dialog_manager.dialog_data.get(
-        "subscription_name", "Без названия"
+        "subscription_name", "Моя подписка"
     )
 
     # Тип обменов
@@ -409,6 +558,62 @@ async def subscription_create_confirmation_getter(
         "criteria_summary": criteria_summary,
         "notification_summary": notification_summary,
     }
+
+
+def _generate_subscription_name(dialog_manager: DialogManager) -> str:
+    """Генерирует автоматическое название для подписки.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Сгенерированное название
+    """
+    parts = []
+
+    # Тип обмена
+    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
+    if auto_type:
+        selected_type = auto_type
+    else:
+        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
+        selected_type = (
+            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
+        )
+
+    type_names = {"buy": "Покупка", "sell": "Продажа", "both": "Все обмены"}
+    parts.append(type_names.get(selected_type, "Обмены"))
+
+    # Цена
+    price_data = dialog_manager.dialog_data.get("price_data", {})
+    if price_data.get("max_price"):
+        parts.append(f"до {price_data['max_price']}р")
+    elif price_data.get("min_price"):
+        parts.append(f"от {price_data['min_price']}р")
+
+    # Время
+    time_widget: ManagedRadio = dialog_manager.find("time_range")
+    selected_time = time_widget.get_checked() if time_widget else None
+    if selected_time:
+        time_names = {
+            "morning": "утром",
+            "afternoon": "днем",
+            "evening": "вечером",
+            "work_hours": "в раб.часы",
+        }
+        if selected_time in time_names:
+            parts.append(time_names[selected_time])
+
+    # Дни недели
+    days_widget: ManagedToggle = dialog_manager.find("days_of_week")
+    selected_days = days_widget.get_checked() if days_widget else []
+    if selected_days and len(selected_days) < 7:
+        if set(selected_days) == {"6", "7"}:
+            parts.append("в выходные")
+        elif set(selected_days) == {"1", "2", "3", "4", "5"}:
+            parts.append("в будни")
+
+    return " ".join(parts) if parts else "Моя подписка"
 
 
 def _get_criteria_summary(dialog_manager: DialogManager) -> str:
