@@ -188,22 +188,39 @@ async def get_exchange_text(exchange: Exchange, user_id: int) -> str:
     exchange_type = await get_exchange_type(
         exchange, is_seller=exchange.seller_id == user_id
     )
-    shift_date = exchange.start_time.strftime("%d.%m.%Y")
-    shift_time = (
-        f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-    )
+
+    # Защита от None значений в датах/времени
+    if exchange.start_time:
+        shift_date = exchange.start_time.strftime("%d.%m.%Y")
+        start_time_str = exchange.start_time.strftime("%H:%M")
+    else:
+        shift_date = "Не указано"
+        start_time_str = "Не указано"
+
+    if exchange.end_time:
+        end_time_str = exchange.end_time.strftime("%H:%M")
+    else:
+        end_time_str = "Не указано"
+
+    shift_time = f"{start_time_str}-{end_time_str}"
     shift_hours = await get_exchange_hours(exchange)
     price = exchange.price
 
+    # Защита от None значений в часах
+    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
+
     if exchange.type == "sell":
         price_per_hour = await get_exchange_price_per_hour(exchange)
+        price_per_hour_text = (
+            f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
+        )
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
-<code>{shift_time} ({shift_hours:g} ч.) {shift_date} ПРМ</code>
+<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
-<code>{price:g} р. ({price_per_hour:g} р./ч.)</code></blockquote>"""
+<code>{price:g} р. ({price_per_hour_text})</code></blockquote>"""
     else:
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
-<code>{shift_time} ({shift_hours:g} ч.) {shift_date} ПРМ</code>
+<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
 <code>{price:g} р./ч.</code></blockquote>"""
     return exchange_text
@@ -321,11 +338,19 @@ async def exchange_buy_getter(
         # Форматируем данные для отображения
         available_exchanges = []
         for exchange in filtered_exchanges:
-            # Форматируем время из start_time и end_time
-            time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            # Форматируем время из start_time и end_time с защитой от None
+            if exchange.start_time and exchange.end_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            elif exchange.start_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-Не указано"
+            else:
+                time_str = "Не указано"
 
-            # Форматируем дату из start_time
-            date_str = exchange.start_time.strftime("%d.%m.%Y")
+            # Форматируем дату из start_time с защитой от None
+            if exchange.start_time:
+                date_str = exchange.start_time.strftime("%d.%m.%Y")
+            else:
+                date_str = "Не указано"
 
             available_exchanges.append({
                 "id": exchange.id,
@@ -436,11 +461,19 @@ async def exchange_sell_getter(
         # Форматируем данные для отображения
         available_buy_requests = []
         for exchange in buy_requests:
-            # Форматируем время из start_time и end_time
-            time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            # Форматируем время из start_time и end_time с защитой от None
+            if exchange.start_time and exchange.end_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
+            elif exchange.start_time:
+                time_str = f"{exchange.start_time.strftime('%H:%M')}-Не указано"
+            else:
+                time_str = "Не указано"
 
-            # Форматируем дату из start_time
-            date_str = exchange.start_time.strftime("%d.%m.%Y")
+            # Форматируем дату из start_time с защитой от None
+            if exchange.start_time:
+                date_str = exchange.start_time.strftime("%d.%m.%Y")
+            else:
+                date_str = "Не указано"
 
             available_buy_requests.append({
                 "id": exchange.id,
@@ -610,8 +643,11 @@ async def my_exchanges(
         # Форматируем данные для отображения
         my_exchanges_list = []
         for exchange in exchanges:
-            # Форматируем дату из start_time
-            date_str = exchange.start_time.strftime("%d.%m")
+            # Форматируем дату из start_time с защитой от None
+            if exchange.start_time:
+                date_str = exchange.start_time.strftime("%d.%m")
+            else:
+                date_str = "Не указано"
 
             # Определяем тип и статус обмена для пользователя
             if exchange.seller_id == user_id:
@@ -648,7 +684,7 @@ async def my_exchanges(
                 "status": exchange.status,
                 "is_seller": exchange.seller_id == user_id,
                 "date": date_str,
-                "time": f"{exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M') if exchange.end_time else ''}".rstrip(
+                "time": f"{exchange.start_time.strftime('%H:%M') if exchange.start_time else 'Не указано'}-{exchange.end_time.strftime('%H:%M') if exchange.end_time else 'Не указано'}".rstrip(
                     "-"
                 ),
                 "price": exchange.price,
@@ -826,7 +862,9 @@ async def my_detail_getter(
             "has_other_party": bool(other_party_name),
             "is_active": exchange.status == "active",
             "exchange_type": exchange_type,
-            "created_date": exchange.created_at.strftime(strftime_date),
+            "created_date": exchange.created_at.strftime(strftime_date)
+            if exchange.created_at
+            else "Не указано",
             "is_paid": "Да" if exchange.is_paid else "Нет",
             "deeplink": exchange_deeplink,
             "deeplink_url": exchange_deeplink_url,

@@ -855,8 +855,17 @@ async def on_add_to_calendar(
 
     dt_format = "%Y%m%dT%H%M%S"
     dtstamp = datetime.now().strftime("%Y%m%dT%H%M%SZ")
-    dtstart = exchange.start_time.strftime(dt_format)
-    dtend = exchange.end_time.strftime(dt_format)
+
+    # Защита от None значений в датах
+    if exchange.start_time:
+        dtstart = exchange.start_time.strftime(dt_format)
+    else:
+        dtstart = datetime.now().strftime(dt_format)
+
+    if exchange.end_time:
+        dtend = exchange.end_time.strftime(dt_format)
+    else:
+        dtend = datetime.now().strftime(dt_format)
 
     ics_text = f"""BEGIN:VCALENDAR
 VERSION:2.0
