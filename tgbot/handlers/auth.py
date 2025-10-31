@@ -22,16 +22,16 @@ async def user_auth(event: CallbackQuery, state: FSMContext) -> None:
     """Обработчик запуска диалога авторизации.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         state: Машина состояний
     """
     await event.answer()
 
     logger.info(
-        f"[Авторизация] Пользователь {callback.from_user.username} ({callback.from_user.id}) запустил авторизацию"
+        f"[Авторизация] Пользователь {event.from_user.username} ({event.from_user.id}) запустил авторизацию"
     )
 
-    bot_message = await callback.message.edit_text("""<b>🔑 Авторизация</b>
+    bot_message = await event.message.edit_text("""<b>🔑 Авторизация</b>
 
 Отлично, теперь введи свою рабочую почту
 

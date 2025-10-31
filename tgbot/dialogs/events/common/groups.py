@@ -212,7 +212,7 @@ async def on_confirm_delete_group(
     бот покидает группу и возвращает пользователя к списку групп.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """

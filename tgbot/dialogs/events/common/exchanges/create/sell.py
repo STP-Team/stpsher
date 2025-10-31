@@ -424,7 +424,7 @@ async def on_cancel_sell(
 
 
 async def on_date_selected(
-    callback: ChatEvent,
+    event: ChatEvent,
     _calendar: ManagedCalendar,
     dialog_manager: DialogManager,
     selected_date: datetime,
@@ -432,7 +432,7 @@ async def on_date_selected(
     """Обработчик выбора даты для предложения.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _calendar: Виджет календаря
         dialog_manager: Менеджер диалога
         selected_date: Выбранная дата
@@ -495,7 +495,7 @@ async def on_today_selected(
     """Выбор текущей даты для сделки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _button: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -554,7 +554,7 @@ async def on_hours_selected(
     """Обработчик выбора типа смены (полная/частичная).
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _select: Виджет селектора
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного предмета
@@ -718,7 +718,7 @@ async def on_remaining_time_selected(
     округляя начальное время до ближайших :00 или :30 минут.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _button: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -890,7 +890,7 @@ async def on_payment_timing_selected(
 
 
 async def on_payment_date_selected(
-    callback: ChatEvent,
+    event: ChatEvent,
     _widget: ManagedCalendar,
     dialog_manager: DialogManager,
     selected_date: datetime,

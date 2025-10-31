@@ -291,7 +291,7 @@ async def on_private_change(
     """Изменение приватности сделки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -317,7 +317,7 @@ async def on_private_change(
         await event.answer("🟢 Сделка отображена в листинге биржи")
 
 
-async def on_paid_change(
+async def on_paid_click(
     event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
@@ -326,7 +326,7 @@ async def on_paid_change(
     """Изменение статуса оплаты сделки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -361,7 +361,7 @@ async def on_schedule_change(
     """Изменение отображения сделки в графике.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -413,7 +413,7 @@ async def on_activation_change(
     """Изменение статуса сделки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -448,7 +448,7 @@ async def on_delete_exchange(
     """Удаление сделки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """

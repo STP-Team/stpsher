@@ -61,7 +61,7 @@ async def on_member_casino_change(
     """Обработчик изменения доступа к казино для члена группы.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
@@ -117,7 +117,7 @@ async def on_member_role_change(
     """Обработчик изменения роли члена группы.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: ID выбранной роли
@@ -197,7 +197,7 @@ async def on_game_casino_member_click(
     """Обработчик переключения доступа к казино для члена группы в игровом меню.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: ID пользователя
@@ -243,7 +243,7 @@ async def on_game_casino_toggle_all(
     """Обработчик включения/выключения казино для всей группы.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """

@@ -20,7 +20,7 @@ async def on_activation_click(
     """Обработчик нажатия на предмет в меню активации предмета.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного варианта
@@ -177,7 +177,7 @@ async def on_skip_approve_comment(
     """Обработчик пропуска комментария при одобрении активации.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -295,7 +295,7 @@ async def on_skip_reject_comment(
     """Обработчик пропуска комментария при отклонении активации.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """

@@ -19,7 +19,7 @@ async def check_casino_access(
     """Проверить доступ пользователя к казино.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -120,7 +120,7 @@ async def play_casino_game(
     Args:
         user: Экземпляр пользователя с моделью Employee.
         stp_repo: Репозиторий операций с базой STP
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         dialog_manager: Менеджер диалога
         game_type: Тип игры (slots, dice, darts, bowling)
         dice_emoji: Emoji для dice API
@@ -267,7 +267,7 @@ async def start_slots(
     """Обработчик запуска игры в слоты.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -290,7 +290,7 @@ async def start_dice(
     """Обработчик запуска игры в кости.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -313,7 +313,7 @@ async def start_darts(
     """Обработчик запуска игры в дартс.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -336,7 +336,7 @@ async def start_bowling(
     """Обработчик запуска игры в боулинг.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -359,7 +359,7 @@ async def play_again(
     """Обработчик повторной игры - сразу запускает ту же игру.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """

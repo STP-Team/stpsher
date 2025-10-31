@@ -22,7 +22,7 @@ async def on_product_click(
     """Переход к подтверждению покупки при нажатии на предмет из магазина.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор предмета для покупки
@@ -71,7 +71,7 @@ async def on_confirm_purchase(
     """Обработчик приобретения предмета из магазина.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -123,7 +123,7 @@ async def on_sell_product(
     """Обработчик продажи предмета из магазина.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """

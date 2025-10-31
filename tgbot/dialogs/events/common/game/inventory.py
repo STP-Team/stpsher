@@ -31,7 +31,7 @@ async def on_inventory_product_click(
     """Обработчик перехода к детальному просмотру информации о предмете из инвентаря.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор предмета в инвентаре
@@ -85,7 +85,7 @@ async def use_product(
     Обработчик поддерживает использование как из инвентаря, так и из магазина сразу после приобретения предмета
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -274,7 +274,7 @@ async def on_skip_activation_comment(
     """Обработчик пропуска комментария при активации предмета.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -394,7 +394,7 @@ async def on_inventory_sell_product(
     """Обработчик продажи предмета из инвентаря.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -434,7 +434,7 @@ async def on_inventory_cancel_activation(
     """Обработчик отмены активации предмета из инвентаря.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """

@@ -48,7 +48,7 @@ class ScheduleHandlerService:
         """Проверяет авторизацию пользователя.
 
         Args:
-            callback: Callback query от Telegram
+            event: Callback query от Telegram
             user: Экземпляр пользователя с моделью Employee
 
         Returns:
@@ -75,7 +75,7 @@ class ScheduleHandlerService:
         """Обработка ошибок расписания.
 
         Args:
-            callback: Callback query от Telegram
+            event: Callback query от Telegram
             error: Ошибка от Python
             fallback_markup: Клавиатура для отображения при ошибке
 

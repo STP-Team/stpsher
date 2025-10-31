@@ -19,7 +19,7 @@ async def on_transaction_click(
     """Переход к детальному просмотру информации о выбранной транзакции.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранной транзакции

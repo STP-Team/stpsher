@@ -158,7 +158,7 @@ async def on_casino_change(
     """Обработчик изменения доступа к казино.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
@@ -209,7 +209,7 @@ async def on_trainee_change(
     """Обработчик изменения статуса стажера.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
@@ -260,7 +260,7 @@ async def on_exchanges_change(
     """Обработчик изменения доступа к обменам смен.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Управляемый чекбокс
         dialog_manager: Менеджер диалога
     """
@@ -315,7 +315,7 @@ async def on_role_change(
     """Обработчик изменения роли пользователя.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: ID выбранной роли

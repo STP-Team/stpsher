@@ -77,7 +77,7 @@ async def on_subscription_selected(
     """Обработчик выбора подписки для просмотра деталей.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета Select
         dialog_manager: Менеджер диалога
         item_id: ID выбранной подписки
@@ -144,7 +144,7 @@ async def on_delete_subscription(
     """Обработчик удаления подписки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -334,7 +334,7 @@ async def on_confirm_subscription(
     """Обработчик подтверждения создания подписки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """

@@ -30,7 +30,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_edit_payment_timing_selected,
     on_edit_price_input,
     on_my_exchange_selected,
-    on_paid_change,
+    on_paid_click,
     on_private_change,
     on_schedule_change,
     open_my_schedule,
@@ -121,7 +121,7 @@ my_detail_window = Window(
             Const("🟢 Оплачено"),
             Const("🟡 Не оплачено"),
             id="exchange_is_paid",
-            on_state_changed=on_paid_change,
+            on_click=on_paid_click,
             when=~F["is_seller"],
         ),
         Row(

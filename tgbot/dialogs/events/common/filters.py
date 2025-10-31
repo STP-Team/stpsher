@@ -15,7 +15,7 @@ async def on_filter_change(
     """Универсальных обработчик фильтров для различных меню.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         widget: Данные виджета Radio
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного фильтра
