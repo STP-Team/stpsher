@@ -736,11 +736,9 @@ async def on_remaining_time_selected(
         if remainder == 0:
             # Уже на :00 или :30, используем текущее время
             start_minutes = current_minutes
-        elif remainder <= 15:
-            # Округляем вниз до ближайших :00 или :30
-            start_minutes = current_minutes - remainder
         else:
-            # Округляем вверх до ближайших :00 или :30
+            # Всегда округляем ВВЕРХ до ближайших :00 или :30
+            # (так как предыдущий слот уже начался и время прошло)
             start_minutes = current_minutes + (30 - remainder)
 
         # Проверяем, чтобы время не выходило за пределы дня
