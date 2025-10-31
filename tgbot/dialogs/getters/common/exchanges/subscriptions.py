@@ -161,13 +161,11 @@ async def subscription_create_type_getter(
         ("both", "🔄 Оба типа"),
     ]
 
-    # Проверяем выбранный тип
-    exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-    selected_type = exchange_type_widget.get_checked() if exchange_type_widget else None
+    sub_type = dialog_manager.dialog_data.get("type")
 
     return {
         "exchange_types": exchange_types,
-        "exchange_type_selected": selected_type is not None,
+        "exchange_type_selected": sub_type is not None,
     }
 
 
@@ -183,14 +181,7 @@ async def subscription_create_criteria_getter(
         Словарь с критериями
     """
     # Получаем выбранный тип обменов (автоматический или из виджета)
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
+    sub_type = dialog_manager.dialog_data.get("type")
 
     type_names = {
         "buy": "📈 Покупка часов",
@@ -225,7 +216,7 @@ async def subscription_create_criteria_getter(
         current_criteria_display = "🎯 <b>Критерии:</b> не выбраны"
 
     return {
-        "selected_exchange_type": type_names.get(selected_type, "Не выбрано"),
+        "selected_exchange_type": type_names.get(sub_type, "Не выбрано"),
         "criteria_options": criteria_options,
         "criteria_selected": len(selected_criteria) > 0,
         "current_criteria_display": current_criteria_display,
@@ -243,15 +234,7 @@ async def subscription_create_price_getter(
     Returns:
         Словарь с настройками цены
     """
-    # Получаем тип обмена для отображения
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
+    sub_type = dialog_manager.dialog_data.get("type")
 
     type_names = {
         "buy": "📈 Покупка часов",
@@ -291,7 +274,7 @@ async def subscription_create_price_getter(
         price_settings_display = "\n💰 <b>Цена:</b> настраиваем сейчас"
 
     return {
-        "exchange_type_display": type_names.get(selected_type, "Не выбрано"),
+        "exchange_type_display": type_names.get(sub_type, "Не выбрано"),
         "criteria_display": selected_criteria_text or "все обмены",
         "price_settings_display": price_settings_display,
         "selected_criteria": selected_criteria_text,
@@ -315,15 +298,7 @@ async def subscription_create_time_getter(
     Returns:
         Словарь с временными диапазонами
     """
-    # Получаем тип обмена для отображения
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
+    sub_type = dialog_manager.dialog_data.get("type")
 
     type_names = {
         "buy": "📈 Покупка часов",
@@ -389,7 +364,7 @@ async def subscription_create_time_getter(
     ]
 
     return {
-        "exchange_type_display": type_names.get(selected_type, "Не выбрано"),
+        "exchange_type_display": type_names.get(sub_type, "Не выбрано"),
         "criteria_display": criteria_display,
         "current_settings_display": current_settings_display,
         "selected_criteria": ", ".join([
@@ -411,15 +386,7 @@ async def subscription_create_date_getter(
     Returns:
         Словарь с днями недели
     """
-    # Получаем тип обмена для отображения
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
+    sub_type = dialog_manager.dialog_data.get("type")
 
     type_names = {
         "buy": "📈 Покупка часов",
@@ -504,7 +471,7 @@ async def subscription_create_date_getter(
     ]
 
     return {
-        "exchange_type_display": type_names.get(selected_type, "Не выбрано"),
+        "exchange_type_display": type_names.get(sub_type, "Не выбрано"),
         "criteria_display": criteria_display,
         "current_settings_display": current_settings_display,
         "selected_criteria": _get_criteria_summary(dialog_manager),
@@ -525,29 +492,20 @@ async def subscription_create_confirmation_getter(
         Словарь с финальной информацией о подписке
     """
     # Автоматически генерируем название подписки если его нет
-    if not dialog_manager.dialog_data.get("subscription_name"):
-        auto_name = _generate_subscription_name(dialog_manager)
-        dialog_manager.dialog_data["subscription_name"] = auto_name
+    auto_name = _generate_subscription_name(dialog_manager)
+    dialog_manager.dialog_data["subscription_name"] = auto_name
 
     subscription_name = dialog_manager.dialog_data.get(
         "subscription_name", "Моя подписка"
     )
 
-    # Тип обменов
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
+    sub_type = dialog_manager.dialog_data.get("type")
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
         "both": "🔄 Оба типа",
     }
-    exchange_type = type_names.get(selected_type, "Не выбрано")
+    exchange_type = type_names.get(sub_type, "Не выбрано")
 
     # Детальная сводка критериев
     criteria_summary = _get_detailed_criteria_summary(dialog_manager)
@@ -574,18 +532,9 @@ def _generate_subscription_name(dialog_manager: DialogManager) -> str:
     """
     parts = []
 
-    # Тип обмена
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
-
+    sub_type = dialog_manager.dialog_data.get("type")
     type_names = {"buy": "Покупка", "sell": "Продажа", "both": "Все обмены"}
-    parts.append(type_names.get(selected_type, "Обмены"))
+    parts.append(type_names.get(sub_type, "Обмены"))
 
     # Цена
     price_data = dialog_manager.dialog_data.get("price_data", {})
@@ -645,20 +594,12 @@ def _get_criteria_summary(dialog_manager: DialogManager) -> str:
 
 def _get_subscription_summary(dialog_manager: DialogManager) -> str:
     """Получить краткое описание подписки для названия."""
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        selected_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        selected_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
-
+    sub_type = dialog_manager.dialog_data.get("type")
     type_short = {"buy": "покупка", "sell": "продажа", "both": "все обмены"}
 
     criteria_summary = _get_criteria_summary(dialog_manager)
 
-    return f"{type_short.get(selected_type, 'обмены')}: {criteria_summary}"
+    return f"{type_short.get(sub_type, 'обмены')}: {criteria_summary}"
 
 
 def _get_detailed_criteria_summary(dialog_manager: DialogManager) -> str:

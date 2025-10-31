@@ -51,7 +51,7 @@ async def start_subscriptions_dialog(
 
     await dialog_manager.start(
         ExchangesSub.menu,
-        data={"auto_type": sub_type} if sub_type else None,
+        data={"type": sub_type} if sub_type else None,
     )
 
 
@@ -131,8 +131,7 @@ async def on_create_subscription(
     # Очищаем данные диалога для новой подписки
     dialog_manager.dialog_data.clear()
 
-    auto_type = dialog_manager.start_data["auto_type"]
-    dialog_manager.dialog_data["auto_exchange_type"] = auto_type
+    dialog_manager.dialog_data["type"] = dialog_manager.start_data["type"]
     await dialog_manager.switch_to(ExchangesSub.create_criteria)
 
 
@@ -371,15 +370,7 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     Returns:
         Словарь с данными подписки
     """
-    # Основные данные
-    auto_type = dialog_manager.dialog_data.get("auto_exchange_type")
-    if auto_type:
-        exchange_type = auto_type
-    else:
-        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
-        exchange_type = (
-            exchange_type_widget.get_checked() if exchange_type_widget else "buy"
-        )
+    exchange_type: ManagedRadio = dialog_manager.dialog_data.get("type")
 
     criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
     selected_criteria = criteria_widget.get_checked() if criteria_widget else []
