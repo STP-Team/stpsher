@@ -17,7 +17,7 @@ from tgbot.dialogs.states.common.groups import Groups
 
 
 async def start_groups_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -25,7 +25,7 @@ async def start_groups_dialog(
     """Обработчик перехода в диалог групп.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -35,7 +35,7 @@ async def start_groups_dialog(
 
 
 async def on_group_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -45,7 +45,7 @@ async def on_group_selected(
     Меняет окно на настройки выбранной группы
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранной группы
@@ -55,7 +55,7 @@ async def on_group_selected(
 
 
 async def on_role_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Multiselect,
     dialog_manager: DialogManager,
     _item_id: str,
@@ -65,7 +65,7 @@ async def on_role_selected(
     Сохраняет выбранные роли в БД в формате JSON.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет Multiselect
         dialog_manager: Менеджер диалога
         _item_id: ID выбранной/снятой роли (роль, на которую кликнули)
@@ -82,7 +82,7 @@ async def on_role_selected(
 
 
 async def on_service_message_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     _item_id: str,
@@ -93,7 +93,7 @@ async def on_service_message_selected(
     Сохраняет выбранные типы сообщений в БД.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет Multiselect
         dialog_manager: Менеджер диалога
         _item_id: ID выбранного/снятого типа сообщения
@@ -112,97 +112,68 @@ async def on_service_message_selected(
     )
 
 
-async def _toggle_group_setting(
-    event: CallbackQuery,
-    dialog_manager: DialogManager,
-    widget: ManagedCheckbox,
-    field_name: str,
-    success_message: str,
-) -> None:
-    """Общий обработчик переключаемых настроек группы.
-
-    Args:
-        event: Событие клика на кнопку меню настроек
-        dialog_manager: Менеджер диалога
-        widget: Виджет чекбокса
-        field_name: Название настройки
-        success_message: Текст сообщения об успешном изменении
-    """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    group_id = dialog_manager.dialog_data.get("group_id")
-
-    group = await stp_repo.group.get_groups(group_id=group_id)
-    new_value = widget.is_checked()
-    current_value = getattr(group, field_name, None)
-
-    if current_value != new_value:
-        await stp_repo.group.update_group(group_id=group_id, **{field_name: new_value})
-        await event.answer(
-            f"✅ {success_message}: {'включено' if new_value else 'выключено'}"
-        )
-
-
-async def on_toggle_only_employees(
-    event: CallbackQuery,
+async def on_only_employees_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения настройки удаления не сотрудников.
 
     Args:
-        event: Событие клика на кнопку настройки
+        _event: Событие клика на кнопку настройки
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    await _toggle_group_setting(
-        event,
-        dialog_manager,
-        widget,
-        "remove_unemployed",
-        "Удаление не сотрудников",
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, remove_unemployed=not widget.is_checked()
     )
 
 
-async def on_toggle_new_user_notify(
-    event: CallbackQuery,
+async def on_new_user_notify_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения настройки уведомления о новых пользователях в группе.
 
     Args:
-        event: Событие клика на кнопку настройки
+        _event: Событие клика на кнопку настройки
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    await _toggle_group_setting(
-        event,
-        dialog_manager,
-        widget,
-        "new_user_notify",
-        "Приветствие новых участников",
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, new_user_notify=not widget.is_checked()
     )
 
 
-async def on_toggle_is_casino_allowed(
-    event: CallbackQuery,
+async def on_is_casino_allowed_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения настройки доступа к казино.
 
     Args:
-        event: Событие клика на кнопку настройки
+        _event: Событие клика на кнопку настройки
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    await _toggle_group_setting(
-        event, dialog_manager, widget, "is_casino_allowed", "Казино"
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, is_casino_allowed=not widget.is_checked()
     )
 
 
 async def on_confirm_delete_group(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -212,7 +183,7 @@ async def on_confirm_delete_group(
     бот покидает группу и возвращает пользователя к списку групп.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -227,9 +198,9 @@ async def on_confirm_delete_group(
         await stp_repo.group.delete_group(group_id)
 
         # Бот покидает группу
-        await callback.bot.leave_chat(chat_id=group_id)
+        await event.bot.leave_chat(chat_id=group_id)
 
-        await callback.answer(
+        await event.answer(
             "✅ Бот успешно удален из группы, все данные очищены", show_alert=True
         )
 
@@ -237,6 +208,6 @@ async def on_confirm_delete_group(
         await dialog_manager.switch_to(Groups.menu)
 
     except Exception as e:
-        await callback.answer(
+        await event.answer(
             f"❌ Ошибка при удалении бота из группы: {str(e)}", show_alert=True
         )

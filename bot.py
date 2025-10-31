@@ -83,8 +83,8 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         return
 
     # Получаем пулы сессий из middleware_data
-    main_db = dialog_manager.middleware_data.get("main_db")
-    kpi_db = dialog_manager.middleware_data.get("kpi_db")
+    main_db = dialog_manager.middleware_data["main_db"]
+    kpi_db = dialog_manager.middleware_data["kpi_db"]
 
     if not main_db or not kpi_db:
         logger.error("Session pools not available in middleware_data")

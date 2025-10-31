@@ -17,6 +17,9 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_exchange_buy_selected,
     on_reset_filters,
 )
+from tgbot.dialogs.events.common.exchanges.subscriptions import (
+    start_subscriptions_dialog,
+)
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_buy_detail_getter,
     exchange_buy_getter,
@@ -71,6 +74,11 @@ buy_window = Window(
         id="exchanges_buy_settings",
         state=Exchanges.buy_settings,
     ),
+    Button(
+        Const("🔔 Подписки"),
+        id="buy_subscriptions",
+        on_click=start_subscriptions_dialog,
+    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     getter=exchange_buy_getter,
     state=Exchanges.buy,
@@ -80,10 +88,7 @@ buy_window = Window(
 buy_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
-{exchange_info}
-
-👤 <b>Продавец:</b> {seller_name}
-💳 <b>Оплата:</b> {payment_info}"""),
+{exchange_info}"""),
     Format(
         "\n{duty_warning}",
         when="duty_warning",

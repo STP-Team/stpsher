@@ -51,9 +51,9 @@ async def on_document_uploaded(
         return
 
     document: Document = message.document
-    bot: Bot = dialog_manager.middleware_data.get("bot")
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    main_db: Session = dialog_manager.middleware_data.get("main_db")
+    bot: Bot = dialog_manager.middleware_data["bot"]
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    main_db: Session = dialog_manager.middleware_data["main_db"]
 
     if not bot or not stp_repo:
         await message.answer("❌ Ошибка инициализации")
@@ -421,14 +421,14 @@ async def on_document_uploaded(
 
 
 async def on_upload_retry(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной попытки загрузки файла.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -443,14 +443,14 @@ async def on_upload_retry(
 
 
 async def on_upload_complete(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик завершения процесса загрузки (возврат в меню).
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -465,14 +465,14 @@ async def on_upload_complete(
 
 
 async def on_view_uploaded_file(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик просмотра загруженного файла.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -481,5 +481,5 @@ async def on_view_uploaded_file(
         dialog_manager.dialog_data["selected_file"] = file_name
         await dialog_manager.switch_to(Files.local_details)
     else:
-        await _callback.answer("Файл не найден", show_alert=True)
+        await _event.answer("Файл не найден", show_alert=True)
         await dialog_manager.switch_to(Files.menu)

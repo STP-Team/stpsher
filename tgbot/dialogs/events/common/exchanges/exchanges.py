@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_exchanges_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -28,7 +28,7 @@ async def start_exchanges_dialog(
     """Обработчик перехода в диалог биржи подмен.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -38,12 +38,12 @@ async def start_exchanges_dialog(
 
 
 async def finish_exchanges_dialog(
-    _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
 ) -> None:
     """Завершение диалога биржи.
 
     Args:
-        _callback: Callback query от Telegrma
+        _event: Callback query от Telegrma
         _button: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -51,12 +51,12 @@ async def finish_exchanges_dialog(
 
 
 async def open_my_schedule(
-    _callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Открываем график пользователя.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -64,7 +64,7 @@ async def open_my_schedule(
 
 
 async def on_exchange_buy_selected(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
@@ -75,11 +75,11 @@ async def on_exchange_buy_selected(
         dialog_manager.dialog_data["exchange_id"] = exchange_id
         await dialog_manager.switch_to(Exchanges.buy_detail)
     except (ValueError, TypeError):
-        await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
+        await event.answer("❌ Ошибка выбора обмена", show_alert=True)
 
 
 async def on_exchange_sell_selected(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
@@ -90,11 +90,11 @@ async def on_exchange_sell_selected(
         dialog_manager.dialog_data["exchange_id"] = exchange_id
         await dialog_manager.switch_to(Exchanges.sell_detail)
     except (ValueError, TypeError):
-        await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
+        await event.answer("❌ Ошибка выбора обмена", show_alert=True)
 
 
 async def on_exchange_buy(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ):
@@ -104,47 +104,43 @@ async def on_exchange_buy(
     exchange_id = dialog_manager.dialog_data.get("exchange_id")
 
     if not exchange_id:
-        await callback.answer("❌ Обмен не найден", show_alert=True)
+        await event.answer("❌ Обмен не найден", show_alert=True)
         return
 
     try:
         # Проверяем бан пользователя
         if await stp_repo.exchange.is_user_exchange_banned(user_id):
-            await callback.answer(
-                "❌ Ты заблокирован от участия в бирже", show_alert=True
-            )
+            await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
             return
 
         # Получаем обмен
         exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
         if not exchange or exchange.status != "active":
-            await callback.answer("❌ Сделка недоступна", show_alert=True)
+            await event.answer("❌ Сделка недоступна", show_alert=True)
             return
 
         # Покупаем обмен
         success = await stp_repo.exchange.buy_exchange(exchange_id, user_id)
 
         if success:
-            await callback.answer(
+            await event.answer(
                 "✅ Смена успешно куплена! Свяжись с продавцом для уточнения деталей",
                 show_alert=True,
             )
             dialog_manager.dialog_data.clear()
             await dialog_manager.switch_to(Exchanges.buy)
         else:
-            await callback.answer(
+            await event.answer(
                 "❌ Не удалось купить смену. Попробуй позже.", show_alert=True
             )
 
     except Exception as e:
         logger.error(e)
-        await callback.answer(
-            "❌ Произошла ошибка при обработке запроса", show_alert=True
-        )
+        await event.answer("❌ Произошла ошибка при обработке запроса", show_alert=True)
 
 
 async def on_exchange_sell(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ):
@@ -154,47 +150,43 @@ async def on_exchange_sell(
     exchange_id = dialog_manager.dialog_data.get("exchange_id")
 
     if not exchange_id:
-        await callback.answer("❌ Обмен не найден", show_alert=True)
+        await event.answer("❌ Обмен не найден", show_alert=True)
         return
 
     try:
         # Проверяем бан пользователя
         if await stp_repo.exchange.is_user_exchange_banned(user_id):
-            await callback.answer(
-                "❌ Ты заблокирован от участия в бирже", show_alert=True
-            )
+            await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
             return
 
         # Получаем обмен
         exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
         if not exchange or exchange.status != "active":
-            await callback.answer("❌ Сделка недоступна", show_alert=True)
+            await event.answer("❌ Сделка недоступна", show_alert=True)
             return
 
         # Покупаем обмен
         success = await stp_repo.exchange.buy_exchange(exchange_id, user_id)
 
         if success:
-            await callback.answer(
+            await event.answer(
                 "✅ Смена успешно куплена! Свяжись с продавцом для уточнения деталей",
                 show_alert=True,
             )
             dialog_manager.dialog_data.clear()
             await dialog_manager.switch_to(Exchanges.buy)
         else:
-            await callback.answer(
+            await event.answer(
                 "❌ Не удалось купить смену. Попробуй позже.", show_alert=True
             )
 
     except Exception as e:
         logger.error(e)
-        await callback.answer(
-            "❌ Произошла ошибка при обработке запроса", show_alert=True
-        )
+        await event.answer("❌ Произошла ошибка при обработке запроса", show_alert=True)
 
 
 async def on_exchange_buy_cancel(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ):
@@ -205,7 +197,7 @@ async def on_exchange_buy_cancel(
 
 
 async def on_exchange_cancel(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ):
@@ -215,26 +207,24 @@ async def on_exchange_cancel(
     exchange_id = dialog_manager.dialog_data.get("exchange_id")
 
     if not exchange_id:
-        await callback.answer("❌ Обмен не найден", show_alert=True)
+        await event.answer("❌ Обмен не найден", show_alert=True)
         return
 
     try:
         # Получаем обмен
         exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
         if not exchange:
-            await callback.answer("❌ Обмен не найден", show_alert=True)
+            await event.answer("❌ Обмен не найден", show_alert=True)
             return
 
         # Проверяем, что это обмен пользователя
         if exchange.seller_id != user_id:
-            await callback.answer(
-                "❌ Можно отменять только свои обмены", show_alert=True
-            )
+            await event.answer("❌ Можно отменять только свои обмены", show_alert=True)
             return
 
         # Проверяем статус обмена
         if exchange.status != "active":
-            await callback.answer(
+            await event.answer(
                 "❌ Можно отменять только активные обмены", show_alert=True
             )
             return
@@ -243,22 +233,22 @@ async def on_exchange_cancel(
         success = await stp_repo.exchange.cancel_exchange(exchange_id, user_id)
 
         if success:
-            await callback.answer("✅ Обмен успешно отменен", show_alert=True)
+            await event.answer("✅ Обмен успешно отменен", show_alert=True)
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             # Возвращаемся к меню продажи
             await dialog_manager.switch_to(Exchanges.sell)
         else:
-            await callback.answer(
+            await event.answer(
                 "❌ Не удалось отменить обмен. Попробуйте позже.", show_alert=True
             )
 
     except Exception:
-        await callback.answer("❌ Произошла ошибка при отмене обмена", show_alert=True)
+        await event.answer("❌ Произошла ошибка при отмене обмена", show_alert=True)
 
 
 async def on_my_exchange_selected(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
@@ -269,16 +259,16 @@ async def on_my_exchange_selected(
         dialog_manager.dialog_data["exchange_id"] = exchange_id
         await dialog_manager.switch_to(Exchanges.my_detail)
     except (ValueError, TypeError):
-        await callback.answer("❌ Ошибка выбора обмена", show_alert=True)
+        await event.answer("❌ Ошибка выбора обмена", show_alert=True)
 
 
 async def on_exchange_type_selected(
-    _callback: ChatEvent, _select: Select, dialog_manager: DialogManager, item_id: str
+    _event: ChatEvent, _select: Select, dialog_manager: DialogManager, item_id: str
 ) -> None:
     """Обработчик выбора типа предложения.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _select: Виджет селектора
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного типа
@@ -292,8 +282,8 @@ async def on_exchange_type_selected(
         await dialog_manager.start(ExchangeCreateSell.date)
 
 
-async def on_private_change(
-    callback: CallbackQuery,
+async def on_private_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -301,34 +291,24 @@ async def on_private_change(
     """Изменение приватности сделки.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
-    is_private = widget.is_checked()
-
-    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-
-    if exchange.is_private == is_private:
-        return
-
-    if is_private:
-        await stp_repo.exchange.update_exchange(exchange_id, is_private=True)
-        await callback.answer("🟡 Сделка скрыта из листинга биржи")
-    else:
-        await stp_repo.exchange.update_exchange(exchange_id, is_private=False)
-        await callback.answer("🟢 Сделка отображена в листинге биржи")
+    await stp_repo.exchange.update_exchange(
+        exchange_id, is_private=not widget.is_checked()
+    )
 
 
-async def on_paid_change(
-    callback: CallbackQuery,
+async def on_paid_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -336,34 +316,24 @@ async def on_paid_change(
     """Изменение статуса оплаты сделки.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
-    is_paid = widget.is_checked()
-
-    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-
-    if exchange.is_paid == is_paid:
-        return
-
-    if is_paid:
-        await stp_repo.exchange.update_exchange(exchange_id, is_paid=True)
-        await callback.answer("🟢 Сделка отмечена оплаченной")
-    else:
-        await stp_repo.exchange.update_exchange(exchange_id, is_paid=False)
-        await callback.answer("🟡 Сделка отмечена неоплаченной")
+    await stp_repo.exchange.update_exchange(
+        exchange_id, is_paid=not widget.is_checked()
+    )
 
 
-async def on_schedule_change(
-    callback: CallbackQuery,
+async def on_in_schedule_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -371,51 +341,34 @@ async def on_schedule_change(
     """Изменение отображения сделки в графике.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    user: Employee = dialog_manager.middleware_data.get("user")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user: Employee = dialog_manager.middleware_data["user"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
-
-    in_schedule = widget.is_checked()
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
 
     is_seller = exchange.seller_id == user.user_id
 
-    if (is_seller and exchange.in_seller_schedule == in_schedule) or (
-        not is_seller and exchange.in_buyer_schedule == in_schedule
-    ):
-        return
-
-    if in_schedule:
-        if is_seller:
-            await stp_repo.exchange.update_exchange(
-                exchange_id, in_seller_schedule=True
-            )
-        else:
-            await stp_repo.exchange.update_exchange(exchange_id, in_buyer_schedule=True)
-        await callback.answer("🟢 Сделка отображена в графике")
+    if is_seller:
+        await stp_repo.exchange.update_exchange(
+            exchange_id, in_seller_schedule=not widget.is_checked()
+        )
     else:
-        if is_seller:
-            await stp_repo.exchange.update_exchange(
-                exchange_id, in_seller_schedule=False
-            )
-        else:
-            await stp_repo.exchange.update_exchange(
-                exchange_id, in_buyer_schedule=False
-            )
-        await callback.answer("🟡 Сделка скрыта из графика")
+        await stp_repo.exchange.update_exchange(
+            exchange_id, in_buyer_schedule=not widget.is_checked()
+        )
 
 
-async def on_activation_change(
-    callback: CallbackQuery,
+async def on_activation_click(
+    _event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -423,34 +376,24 @@ async def on_activation_change(
     """Изменение статуса сделки.
 
     Args:
-        callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
-    is_active = widget.is_checked()
-
-    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-
-    if exchange.status == "active" == is_active:
-        return
-
-    if is_active:
-        await stp_repo.exchange.update_exchange(exchange_id, status="canceled")
-        await callback.answer("🟡 Сделка выключена")
-    else:
-        await stp_repo.exchange.update_exchange(exchange_id, status="active")
-        await callback.answer("🟢 Сделка активирована")
+    await stp_repo.exchange.update_exchange(
+        exchange_id, status="canceled" if not widget.is_checked() else "active"
+    )
 
 
 async def on_delete_exchange(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -458,24 +401,24 @@ async def on_delete_exchange(
     """Удаление сделки.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     await stp_repo.exchange.delete_exchange(exchange_id)
-    await callback.answer("🔥 Сделка удалена")
+    await event.answer("🔥 Сделка удалена")
     await dialog_manager.switch_to(Exchanges.my)
 
 
 async def on_set_paid(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -483,22 +426,22 @@ async def on_set_paid(
     """Отметка сделки оплаченной.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     await stp_repo.exchange.mark_exchange_paid(exchange_id)
 
 
 async def on_edit_offer_date(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -506,7 +449,7 @@ async def on_edit_offer_date(
     """Обработчик редактирования даты сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -514,7 +457,7 @@ async def on_edit_offer_date(
 
 
 async def on_edit_offer_price(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -522,7 +465,7 @@ async def on_edit_offer_price(
     """Обработчик редактирования цены сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -530,7 +473,7 @@ async def on_edit_offer_price(
 
 
 async def on_edit_offer_payment_timing(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -538,7 +481,7 @@ async def on_edit_offer_payment_timing(
     """Обработчик редактирования условий оплаты сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -546,7 +489,7 @@ async def on_edit_offer_payment_timing(
 
 
 async def on_edit_offer_comment(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -554,7 +497,7 @@ async def on_edit_offer_comment(
     """Обработчик редактирования комментария сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -562,7 +505,7 @@ async def on_edit_offer_comment(
 
 
 async def on_edit_date_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _calendar: ManagedCalendar,
     dialog_manager: DialogManager,
     selected_date: datetime,
@@ -570,17 +513,17 @@ async def on_edit_date_selected(
     """Обработчик выбора новой даты для сделки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет календаря
         dialog_manager: Менеджер диалога
     """
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id or not selected_date:
-        await _callback.answer("❌ Ошибка при обновлении даты", show_alert=True)
+        await _event.answer("❌ Ошибка при обновлении даты", show_alert=True)
         return
 
     # Сохраняем выбранную дату для последующего использования
@@ -610,10 +553,10 @@ async def on_edit_date_time_input(
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -697,10 +640,10 @@ async def on_edit_price_input(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -723,7 +666,7 @@ async def on_edit_price_input(
 
 
 async def on_edit_payment_timing_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
@@ -732,7 +675,7 @@ async def on_edit_payment_timing_selected(
     """Обработчик выбора условий оплаты.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет селектора
         dialog_manager: Менеджер диалога
         item_id: Выбранный тип оплаты
@@ -747,7 +690,7 @@ async def on_edit_payment_timing_selected(
 
 
 async def on_edit_payment_date_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     selected_date: datetime,
@@ -755,7 +698,7 @@ async def on_edit_payment_date_selected(
     """Обработчик выбора даты оплаты.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет календаря
         dialog_manager: Менеджер диалога
         selected_date: Выбранная дата
@@ -771,10 +714,10 @@ async def _update_payment_timing(
     """Вспомогательная функция для обновления условий оплаты."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         return
@@ -805,10 +748,10 @@ async def on_edit_comment_input(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -829,7 +772,7 @@ async def on_edit_comment_input(
 
 
 async def on_add_to_calendar(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     button: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -837,10 +780,10 @@ async def on_add_to_calendar(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
-    if dialog_manager.start_data:
-        exchange_id = dialog_manager.start_data.get("exchange_id", None)
-    else:
-        exchange_id = dialog_manager.dialog_data.get("exchange_id", None)
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
     if not exchange:
@@ -855,8 +798,17 @@ async def on_add_to_calendar(
 
     dt_format = "%Y%m%dT%H%M%S"
     dtstamp = datetime.now().strftime("%Y%m%dT%H%M%SZ")
-    dtstart = exchange.start_time.strftime(dt_format)
-    dtend = exchange.end_time.strftime(dt_format)
+
+    # Защита от None значений в датах
+    if exchange.start_time:
+        dtstart = exchange.start_time.strftime(dt_format)
+    else:
+        dtstart = datetime.now().strftime(dt_format)
+
+    if exchange.end_time:
+        dtend = exchange.end_time.strftime(dt_format)
+    else:
+        dtend = datetime.now().strftime(dt_format)
 
     ics_text = f"""BEGIN:VCALENDAR
 VERSION:2.0
@@ -876,8 +828,8 @@ END:VCALENDAR
 
     buffered_file = BufferedInputFile(ics_text.encode("utf-8"), filename="Подмена.ics")
 
-    await callback.bot.send_document(
-        chat_id=callback.from_user.id,
+    await event.bot.send_document(
+        chat_id=event.from_user.id,
         document=buffered_file,
         caption="""<b>✍🏼 Подмена в календарь</b>
 
@@ -886,7 +838,7 @@ END:VCALENDAR
 
 
 async def on_reset_filters(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -894,7 +846,7 @@ async def on_reset_filters(
     """Обработчик сброса фильтров и сортировки к значениям по умолчанию.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
