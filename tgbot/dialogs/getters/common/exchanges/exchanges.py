@@ -250,17 +250,22 @@ async def get_exchange_text(
         price_per_hour_text = (
             f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
         )
-        # Показываем цену за час первой, общую стоимость в скобках
+        # Показываем оплату за час первой, общую стоимость в скобках
         price_display = (
             f"{price_per_hour_text} ({price:g} р.)"
             if price_per_hour is not None
             else f"{price:g} р."
         )
 
+        # Форматируем дату оплаты
+        payment_date_str = "сразу" if exchange.payment_type == "immediate" else (
+            exchange.payment_date.strftime("%d.%m.%Y") if exchange.payment_date else "по договоренности"
+        )
+
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
-💰 <b>Цена:</b>
-<code>{price_display}</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+💰 <b>Оплата:</b>
+<code>{price_display}</code> - {payment_date_str}
 👤 <b>Продавец:</b>
 {seller_name}</blockquote>"""
     else:
@@ -268,10 +273,15 @@ async def get_exchange_text(
         buyer_name = format_fullname(
             buyer.fullname, True, True, buyer.username, buyer.username
         )
+        # Форматируем дату оплаты для buy запроса
+        payment_date_str = "сразу" if exchange.payment_type == "immediate" else (
+            exchange.payment_date.strftime("%d.%m.%Y") if exchange.payment_date else "по договоренности"
+        )
+
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
-💰 <b>Цена:</b>
-<code>{price:g} р./ч.</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+💰 <b>Оплата:</b>
+<code>{price:g} р./ч.</code> - {payment_date_str}
 👤 <b>Продавец:</b>
 {buyer_name}</blockquote>"""
     return exchange_text
@@ -374,10 +384,10 @@ async def exchange_buy_getter(
         def sort_key(exchange):
             # Определяем направление сортировки для даты
             date_multiplier = 1 if date_sort_value == "nearest" else -1
-            # Определяем направление сортировки для цены
+            # Определяем направление сортировки для оплаты
             price_multiplier = 1 if price_sort_value == "cheap" else -1
 
-            # Возвращаем кортеж (дата, цена) с учетом направления сортировки
+            # Возвращаем кортеж (дата, оплата) с учетом направления сортировки
             # Используем timestamp для корректной обработки отрицательных значений
             return (
                 date_multiplier * exchange.start_time.timestamp(),
@@ -445,11 +455,11 @@ async def exchange_buy_getter(
         else:
             sorting_text_parts.append("По дате: 📉 Сначала дальние")
 
-        # Показываем сортировку по цене всегда (вторичный критерий)
+        # Показываем сортировку по оплате всегда (вторичный критерий)
         if price_sort_value == "cheap":
-            sorting_text_parts.append("По цене: 💰 Сначала дешевые")
+            sorting_text_parts.append("По оплате: 💰 Сначала дешевые")
         else:
-            sorting_text_parts.append("По цене: 💸 Сначала дорогие")
+            sorting_text_parts.append("По оплате: 💸 Сначала дорогие")
 
         sorting_text = "\n".join(sorting_text_parts)
 
@@ -478,7 +488,7 @@ async def exchange_buy_getter(
             "has_exchanges": False,
             "active_filters": "Период: 📅 Все дни\nСмена: ⭐ Все",
             "has_active_filters": True,
-            "active_sorting": "По дате: 📈 Сначала ближайшие\nПо цене: 💰 Сначала дешевые",
+            "active_sorting": "По дате: 📈 Сначала ближайшие\nПо оплате: 💰 Сначала дешевые",
             "has_active_sorting": True,
             "show_reset_button": False,
         }
