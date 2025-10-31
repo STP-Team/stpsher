@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_subscriptions_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -30,7 +30,7 @@ async def start_subscriptions_dialog(
     """Обработчик перехода в диалог биржи подмен.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -56,12 +56,12 @@ async def start_subscriptions_dialog(
 
 
 async def finish_subscriptions_dialog(
-    _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
 ) -> None:
     """Завершение диалога биржи.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _button: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -69,7 +69,7 @@ async def finish_subscriptions_dialog(
 
 
 async def on_subscription_selected(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
@@ -87,16 +87,16 @@ async def on_subscription_selected(
         dialog_manager.dialog_data["subscription_id"] = subscription_id
         await dialog_manager.switch_to(ExchangesSub.sub_detail)
     except (ValueError, TypeError):
-        await callback.answer("❌ Ошибка выбора подписки", show_alert=True)
+        await event.answer("❌ Ошибка выбора подписки", show_alert=True)
 
 
 async def on_sub_status_click(
-    _callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ) -> None:
     """Изменение статуса подписки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
@@ -117,14 +117,14 @@ async def on_sub_status_click(
 
 
 async def on_create_subscription(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик начала создания новой подписки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -137,7 +137,7 @@ async def on_create_subscription(
 
 
 async def on_delete_subscription(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
 ) -> None:
@@ -159,26 +159,26 @@ async def on_delete_subscription(
         success = await stp_repo.exchange.delete_subscription(subscription_id)
 
         if success:
-            await callback.answer("✅ Подписка удалена", show_alert=True)
+            await event.answer("✅ Подписка удалена", show_alert=True)
             dialog_manager.dialog_data.clear()
             await dialog_manager.switch_to(ExchangesSub.menu)
         else:
-            await callback.answer("❌ Ошибка удаления подписки", show_alert=True)
+            await event.answer("❌ Ошибка удаления подписки", show_alert=True)
 
     except Exception as e:
         logger.error(f"Ошибка удаления подписки {subscription_id}: {e}")
-        await callback.answer("❌ Ошибка удаления подписки", show_alert=True)
+        await event.answer("❌ Ошибка удаления подписки", show_alert=True)
 
 
 async def on_criteria_next(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик перехода к следующему или предыдущему шагу настройки критериев.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -306,7 +306,7 @@ async def on_price_input(
 
 
 async def on_seller_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -314,7 +314,7 @@ async def on_seller_selected(
     """Обработчик выбора конкретного продавца для подписки.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Select
         dialog_manager: Менеджер диалога
         item_id: ID выбранного продавца
@@ -327,7 +327,7 @@ async def on_seller_selected(
 
 
 async def on_confirm_subscription(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ) -> None:
@@ -350,15 +350,15 @@ async def on_confirm_subscription(
         subscription_id = subscription.id if subscription else None
 
         if subscription_id:
-            await callback.answer("✅ Подписка создана успешно!", show_alert=True)
+            await event.answer("✅ Подписка создана успешно!", show_alert=True)
             dialog_manager.dialog_data.clear()
             await dialog_manager.switch_to(ExchangesSub.menu)
         else:
-            await callback.answer("❌ Ошибка создания подписки", show_alert=True)
+            await event.answer("❌ Ошибка создания подписки", show_alert=True)
 
     except Exception as e:
         logger.error(f"Ошибка создания подписки для пользователя {user.user_id}: {e}")
-        await callback.answer("❌ Ошибка создания подписки", show_alert=True)
+        await event.answer("❌ Ошибка создания подписки", show_alert=True)
 
 
 def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) -> dict:

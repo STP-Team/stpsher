@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 async def on_product_click(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id,
@@ -36,9 +36,7 @@ async def on_product_click(
         logger.error(
             f"[Покупка предмета] Ошибка при открытии информации о предмете: {e}"
         )
-        await callback.answer(
-            "❌ Ошибка получения информации о предмете", show_alert=True
-        )
+        await event.answer("❌ Ошибка получения информации о предмете", show_alert=True)
         return
 
     # Получаем баланс пользователя
@@ -46,7 +44,7 @@ async def on_product_click(
 
     # Проверяем, достаточно ли баллов
     if user_balance < product_info.cost:
-        await callback.answer(
+        await event.answer(
             f"❌ Недостаточно баллов!\nУ тебя: {user_balance} баллов\nНужно: {product_info.cost} баллов",
             show_alert=True,
         )
@@ -68,7 +66,7 @@ async def on_product_click(
 
 
 async def on_confirm_purchase(
-    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ):
     """Обработчик приобретения предмета из магазина.
 
@@ -85,7 +83,7 @@ async def on_confirm_purchase(
     user_balance = await stp_repo.transaction.get_user_balance(user.user_id)
 
     if user_balance < product_info["cost"]:
-        await callback.answer(
+        await event.answer(
             f"❌ Недостаточно баллов!\nУ тебя: {user_balance}, нужно: {product_info['cost']}",
             show_alert=True,
         )
@@ -116,11 +114,11 @@ async def on_confirm_purchase(
         logger.error(
             f"[Подтверждение покупки] Ошибка при подтверждении покупки предмета: {e}"
         )
-        await callback.answer("❌ Ошибка при покупке предмета", show_alert=True)
+        await event.answer("❌ Ошибка при покупке предмета", show_alert=True)
 
 
 async def on_sell_product(
-    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ):
     """Обработчик продажи предмета из магазина.
 
@@ -146,14 +144,14 @@ async def on_sell_product(
         )
 
         if success:
-            await callback.answer(
+            await event.answer(
                 f"✅ Продано: {product_info['name']}.\nВозвращено: {product_info['cost']} баллов"
             )
             # Возвращаемся в магазин
             await dialog_manager.switch_to(Game.products)
         else:
-            await callback.answer("❌ Ошибка при продаже предмета", show_alert=True)
+            await event.answer("❌ Ошибка при продаже предмета", show_alert=True)
 
     except Exception as e:
         logger.error(f"[Продажа предмета] Ошибка при продаже предмета: {e}")
-        await callback.answer("❌ Ошибка при продаже предмета", show_alert=True)
+        await event.answer("❌ Ошибка при продаже предмета", show_alert=True)

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_group_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -22,7 +22,7 @@ async def start_group_dialog(
     """Обработчик перехода в диалог групп.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -32,12 +32,12 @@ async def start_group_dialog(
 
 
 async def on_member_select(
-    _callback: CallbackQuery, _widget: Select, dialog_manager, item_id, **_kwargs
+    _event: CallbackQuery, _widget: Select, dialog_manager, item_id, **_kwargs
 ) -> None:
     """Обработчик выбора члена группы из списка.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного пользователя
@@ -56,7 +56,7 @@ async def on_member_select(
 
 
 async def on_member_casino_change(
-    callback: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+    event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
 ):
     """Обработчик изменения доступа к казино для члена группы.
 
@@ -70,7 +70,7 @@ async def on_member_casino_change(
         selected_member_id = dialog_manager.dialog_data.get("selected_member_id")
 
         if not stp_repo or not selected_member_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
             return
 
         # Получаем текущее состояние чекбокса
@@ -86,7 +86,7 @@ async def on_member_casino_change(
             )
 
         if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            await event.answer("❌ Пользователь не найден", show_alert=True)
             return
 
         # Проверяем, действительно ли состояние изменилось
@@ -100,15 +100,15 @@ async def on_member_casino_change(
 
         # Показываем уведомление
         status_text = "включен" if is_casino_allowed else "выключен"
-        await callback.answer(f"✅ Доступ к казино {status_text}")
+        await event.answer(f"✅ Доступ к казино {status_text}")
 
     except Exception as e:
         logger.error(f"[Казино] Ошибка при изменении доступа: {e}")
-        await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
+        await event.answer("❌ Ошибка при изменении доступа", show_alert=True)
 
 
 async def on_member_role_change(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -127,14 +127,14 @@ async def on_member_role_change(
         selected_member_id = dialog_manager.dialog_data.get("selected_member_id")
 
         if not stp_repo or not selected_member_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
             return
 
         new_role_id = int(item_id)
         role_info = roles.get(new_role_id)
 
         if not role_info:
-            await callback.answer("❌ Ошибка: роль не найдена", show_alert=True)
+            await event.answer("❌ Ошибка: роль не найдена", show_alert=True)
             return
 
         # Обновляем роль пользователя
@@ -147,7 +147,7 @@ async def on_member_role_change(
             )
 
         if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            await event.answer("❌ Пользователь не найден", show_alert=True)
             return
 
         # Обновляем роль в базе данных
@@ -156,7 +156,7 @@ async def on_member_role_change(
         )
 
         # Показываем уведомление о смене роли
-        await callback.answer(
+        await event.answer(
             f"✅ Роль изменена на: {role_info['emoji']} {role_info['name']}"
         )
 
@@ -165,11 +165,11 @@ async def on_member_role_change(
 
     except Exception as e:
         logger.error(f"[Смена роли] Ошибка при изменении роли: {e}")
-        await callback.answer("❌ Ошибка при изменении роли", show_alert=True)
+        await event.answer("❌ Ошибка при изменении роли", show_alert=True)
 
 
 async def on_member_schedule_mode_select(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget,
     dialog_manager: DialogManager,
     item_id: str,
@@ -178,7 +178,7 @@ async def on_member_schedule_mode_select(
     """Изменение режима отображения графика члена группы.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные от виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного режима
@@ -188,7 +188,7 @@ async def on_member_schedule_mode_select(
 
 
 async def on_game_casino_member_click(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -206,13 +206,13 @@ async def on_game_casino_member_click(
         stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
 
         if not stp_repo or not item_id:
-            await callback.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
+            await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
             return
 
         # Получаем пользователя
         searched_user = await stp_repo.employee.get_users(main_id=int(item_id))
         if not searched_user:
-            await callback.answer("❌ Пользователь не найден", show_alert=True)
+            await event.answer("❌ Пользователь не найден", show_alert=True)
             return
 
         # Переключаем доступ к казино
@@ -224,18 +224,18 @@ async def on_game_casino_member_click(
 
         # Показываем уведомление
         status_text = "включен" if new_casino_state else "выключен"
-        await callback.answer(f"✅ Доступ к казино {status_text}")
+        await event.answer(f"✅ Доступ к казино {status_text}")
 
         # Обновляем окно
         await dialog_manager.switch_to(HeadGroupSG.game_casino)
 
     except Exception as e:
         logger.error(f"[Игра - Казино] Ошибка при изменении доступа: {e}")
-        await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
+        await event.answer("❌ Ошибка при изменении доступа", show_alert=True)
 
 
 async def on_game_casino_toggle_all(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -252,14 +252,14 @@ async def on_game_casino_toggle_all(
         user: Employee = dialog_manager.middleware_data.get("user")
 
         if not stp_repo or not user:
-            await callback.answer("❌ Ошибка при получении данных", show_alert=True)
+            await event.answer("❌ Ошибка при получении данных", show_alert=True)
             return
 
         # Получаем всех пользователей группы
         group_members = await stp_repo.employee.get_users(head=user.fullname)
 
         if not group_members:
-            await callback.answer("❌ В группе нет сотрудников", show_alert=True)
+            await event.answer("❌ В группе нет сотрудников", show_alert=True)
             return
 
         # Определяем, сколько пользователей с включенным казино
@@ -275,7 +275,7 @@ async def on_game_casino_toggle_all(
             )
 
         status_text = "включено" if new_state else "выключено"
-        await callback.answer(
+        await event.answer(
             f"✅ Казино {status_text} для всей группы ({len(group_members)} чел.)"
         )
 
@@ -284,4 +284,4 @@ async def on_game_casino_toggle_all(
 
     except Exception as e:
         logger.error(f"[Игра - Казино] Ошибка при массовом изменении доступа: {e}")
-        await callback.answer("❌ Ошибка при изменении доступа", show_alert=True)
+        await event.answer("❌ Ошибка при изменении доступа", show_alert=True)

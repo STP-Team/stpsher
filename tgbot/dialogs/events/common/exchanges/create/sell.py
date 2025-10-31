@@ -393,12 +393,12 @@ def is_time_within_shift(time_str: str, shift_start: str, shift_end: str) -> boo
 
 
 async def finish_exchange_create_dialog(
-    _callback: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
 ) -> None:
     """Завершает процесс создания сделки и закрывает диалог.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _button: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -406,14 +406,14 @@ async def finish_exchange_create_dialog(
 
 
 async def on_cancel_sell(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик отмены создания предложения.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _button: Кнопка отмены
         dialog_manager: Менеджер диалога
     """
@@ -441,7 +441,7 @@ async def on_date_selected(
 
     # Проверяем, что дата не в прошлом (можно продавать сегодня и в будущем)
     if selected_date < today:
-        await callback.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
+        await event.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
         return
 
     shift_date_iso = selected_date.isoformat()
@@ -449,7 +449,7 @@ async def on_date_selected(
     # Проверяем, что пользователь работает в этот день
     shift_info = await get_user_shift_info(dialog_manager, shift_date_iso)
     if not shift_info:
-        await callback.answer("❌ В выбранную дату у тебя нет смены", show_alert=True)
+        await event.answer("❌ В выбранную дату у тебя нет смены", show_alert=True)
         return
 
     shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
@@ -460,7 +460,7 @@ async def on_date_selected(
     )
 
     if is_full_sold:
-        await callback.answer(
+        await event.answer(
             "❌ Вся смена на эту дату уже продана или продается", show_alert=True
         )
         return
@@ -490,7 +490,7 @@ async def on_date_selected(
 
 
 async def on_today_selected(
-    callback: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Выбор текущей даты для сделки.
 
@@ -505,7 +505,7 @@ async def on_today_selected(
     # Проверяем, что пользователь работает сегодня
     shift_info = await get_user_shift_info(dialog_manager, shift_date_iso)
     if not shift_info:
-        await callback.answer("❌ Сегодня у тебя нет смены", show_alert=True)
+        await event.answer("❌ Сегодня у тебя нет смены", show_alert=True)
         return
 
     shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
@@ -516,7 +516,7 @@ async def on_today_selected(
     )
 
     if is_full_sold:
-        await callback.answer(
+        await event.answer(
             "❌ Вся смена на сегодня уже продана или продается", show_alert=True
         )
         return
@@ -546,7 +546,7 @@ async def on_today_selected(
 
 
 async def on_hours_selected(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _select: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -580,7 +580,7 @@ async def on_hours_selected(
             )
 
             if has_overlap:
-                await callback.answer(
+                await event.answer(
                     "❌ У тебя уже есть активный обмен в это время", show_alert=True
                 )
                 return
@@ -593,7 +593,7 @@ async def on_hours_selected(
 
         except Exception as e:
             logger.error(f"[Биржа] Ошибка обработки полной смены: {e}")
-            await callback.answer("❌ Произошла ошибка", show_alert=True)
+            await event.answer("❌ Произошла ошибка", show_alert=True)
 
     elif item_id == "partial":
         # Частичная смена - переходим к вводу времени
@@ -710,7 +710,7 @@ async def on_time_input(
 
 
 async def on_remaining_time_selected(
-    callback: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик нажатия кнопки 'Оставшееся время'.
 
@@ -760,7 +760,7 @@ async def on_remaining_time_selected(
         # Проверяем, что начальное время не позже окончания смены
         shift_end_minutes = time_to_minutes(shift_end)
         if start_minutes >= shift_end_minutes:
-            await callback.answer(
+            await event.answer(
                 "❌ Смена уже закончилась или заканчивается слишком скоро для создания сделки",
                 show_alert=True,
             )
@@ -768,7 +768,7 @@ async def on_remaining_time_selected(
 
         # Проверяем минимальную продолжительность (30 минут)
         if shift_end_minutes - start_minutes < 30:
-            await callback.answer(
+            await event.answer(
                 "❌ Оставшееся время смены менее 30 минут - минимальная продолжительность сделки",
                 show_alert=True,
             )
@@ -779,7 +779,7 @@ async def on_remaining_time_selected(
 
         # Проверяем, что время в пределах смены пользователя
         if not is_time_within_shift(time_range, shift_start, shift_end):
-            await callback.answer(
+            await event.answer(
                 f"❌ Рассчитанное время не в пределах смены: {shift_start}-{shift_end}",
                 show_alert=True,
             )
@@ -805,7 +805,7 @@ async def on_remaining_time_selected(
                     conflicting_times.append(f"{sold_start}-{sold_end}")
 
         if conflicting_times:
-            await callback.answer(
+            await event.answer(
                 f"❌ Рассчитанное время пересекается с существующими сделками: {', '.join(conflicting_times)}",
                 show_alert=True,
             )
@@ -826,7 +826,7 @@ async def on_remaining_time_selected(
         )
 
         if has_overlap:
-            await callback.answer(
+            await event.answer(
                 "❌ У тебя уже есть активный обмен в рассчитанное время",
                 show_alert=True,
             )
@@ -836,15 +836,13 @@ async def on_remaining_time_selected(
         dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
         dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
 
-        await callback.answer("Время выставлено на начало часа")
+        await event.answer("Время выставлено на начало часа")
         # Переходим к вводу цены
         await dialog_manager.switch_to(ExchangeCreateSell.price)
 
     except Exception as e:
         logger.error(f"[Биржа] Ошибка при расчете оставшегося времени: {e}")
-        await callback.answer(
-            "❌ Произошла ошибка при расчете времени", show_alert=True
-        )
+        await event.answer("❌ Произошла ошибка при расчете времени", show_alert=True)
 
 
 async def on_price_input(
@@ -874,7 +872,7 @@ async def on_price_input(
 
 
 async def on_payment_timing_selected(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
     item_id: str,
@@ -900,14 +898,12 @@ async def on_payment_date_selected(
     """Обработчик выбора даты платежа."""
     shift_date_str = dialog_manager.dialog_data.get("shift_date")
     if not shift_date_str:
-        await callback.answer("❌ Ошибка: дата смены не найдена", show_alert=True)
+        await event.answer("❌ Ошибка: дата смены не найдена", show_alert=True)
         return
 
     # Проверяем, что дата платежа не в прошлом
     if selected_date < datetime.now().date():
-        await callback.answer(
-            "❌ Дата платежа не может быть в прошлом", show_alert=True
-        )
+        await event.answer("❌ Дата платежа не может быть в прошлом", show_alert=True)
         return
 
     # Сохраняем дату платежа
@@ -918,7 +914,7 @@ async def on_payment_date_selected(
 
 
 async def on_confirm_sell(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: Any,
     dialog_manager: DialogManager,
 ):
@@ -942,9 +938,7 @@ async def on_confirm_sell(
 
         # Проверяем бан пользователя
         if await stp_repo.exchange.is_user_exchange_banned(user_id):
-            await callback.answer(
-                "❌ Ты заблокирован от участия в бирже", show_alert=True
-            )
+            await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
             return
 
         # Получаем комментарий
@@ -964,22 +958,20 @@ async def on_confirm_sell(
         )
 
         if exchange:
-            await callback.answer("✅ Сделка добавлена на биржу!", show_alert=True)
+            await event.answer("✅ Сделка добавлена на биржу!", show_alert=True)
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
             await dialog_manager.start(
                 Exchanges.my_detail, data={"exchange_id": exchange.id}
             )
         else:
-            await callback.answer(
+            await event.answer(
                 "❌ Не удалось создать сделку. Попробуйте позже.", show_alert=True
             )
 
     except Exception as e:
         logger.error(f"[Биржа - Создание сделки] Произошла ошибка при публикации: {e}")
-        await callback.answer(
-            "❌ Произошла ошибка при создании сделки", show_alert=True
-        )
+        await event.answer("❌ Произошла ошибка при создании сделки", show_alert=True)
 
 
 async def on_comment_input(
@@ -1002,7 +994,7 @@ async def on_comment_input(
 
 
 async def on_skip_comment(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:

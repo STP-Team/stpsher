@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_files_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -24,7 +24,7 @@ async def start_files_dialog(
     """Обработчик перехода в диалог файлов.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -34,7 +34,7 @@ async def start_files_dialog(
 
 
 async def on_file_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -42,7 +42,7 @@ async def on_file_selected(
     """Обработчик выбора файла из списка.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _widget: Select виджет
         dialog_manager: Менеджер диалога
         item_id: ID выбранного файла (имя файла)
@@ -52,40 +52,40 @@ async def on_file_selected(
 
 
 async def on_remove_file(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик удаления файла.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
     file_name = dialog_manager.dialog_data.get("selected_file")
     if not file_name:
-        await _callback.answer("Файл не выбран", show_alert=True)
+        await _event.answer("Файл не выбран", show_alert=True)
         return
 
     file_path = Path("uploads") / file_name
     if file_path.exists():
         file_path.unlink()
-        await _callback.answer(f"Файл {file_name} удалён", show_alert=True)
+        await _event.answer(f"Файл {file_name} удалён", show_alert=True)
         await dialog_manager.switch_to(Files.local)
     else:
-        await _callback.answer("Файл не найден", show_alert=True)
+        await _event.answer("Файл не найден", show_alert=True)
 
 
 async def on_rename_file(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик начала переименования файла.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -122,7 +122,7 @@ async def process_rename(
 
 
 async def on_restore_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -130,7 +130,7 @@ async def on_restore_selected(
     """Обработчик восстановления выбранного файла из истории.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _widget: Select виджет
         dialog_manager: Менеджер диалога
         item_id: database record id
@@ -139,7 +139,7 @@ async def on_restore_selected(
     file_name = dialog_manager.dialog_data.get("selected_file")
 
     if not bot or not file_name:
-        await _callback.answer("Ошибка восстановления", show_alert=True)
+        await _event.answer("Ошибка восстановления", show_alert=True)
         return
 
     # Получаем file_id из истории по record id
@@ -151,7 +151,7 @@ async def on_restore_selected(
             break
 
     if not file_id:
-        await _callback.answer("Файл не найден в истории", show_alert=True)
+        await _event.answer("Файл не найден в истории", show_alert=True)
         return
 
     try:
@@ -160,15 +160,15 @@ async def on_restore_selected(
         file_path = Path("uploads") / file_name
         await bot.download_file(file.file_path, file_path)
 
-        await _callback.answer(f"Файл {file_name} восстановлен", show_alert=True)
+        await _event.answer(f"Файл {file_name} восстановлен", show_alert=True)
         await dialog_manager.switch_to(Files.local_details)
     except Exception as e:
         logger.error(f"Ошибка восстановления файла: {e}")
-        await _callback.answer("Не удалось восстановить файл", show_alert=True)
+        await _event.answer("Не удалось восстановить файл", show_alert=True)
 
 
 async def on_history_file_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -176,7 +176,7 @@ async def on_history_file_selected(
     """Обработчик выбора файла из истории загрузок.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _widget: Select виджет
         dialog_manager: Менеджер диалога
         item_id: ID выбранного файла (database record id)
@@ -186,14 +186,14 @@ async def on_history_file_selected(
 
 
 async def on_download_local_file(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик скачивания локального файла.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -201,35 +201,35 @@ async def on_download_local_file(
     file_name = dialog_manager.dialog_data.get("selected_file")
 
     if not bot or not file_name:
-        await _callback.answer("Ошибка скачивания", show_alert=True)
+        await _event.answer("Ошибка скачивания", show_alert=True)
         return
 
     file_path = Path("uploads") / file_name
 
     if not file_path.exists():
-        await _callback.answer("Файл не найден", show_alert=True)
+        await _event.answer("Файл не найден", show_alert=True)
         return
 
     try:
         from aiogram.types import FSInputFile
 
         file = FSInputFile(file_path)
-        await bot.send_document(_callback.from_user.id, file)
-        await _callback.answer("Файл отправлен", show_alert=False)
+        await bot.send_document(_event.from_user.id, file)
+        await _event.answer("Файл отправлен", show_alert=False)
     except Exception as e:
         logger.error(f"Ошибка отправки файла: {e}")
-        await _callback.answer("Не удалось отправить файл", show_alert=True)
+        await _event.answer("Не удалось отправить файл", show_alert=True)
 
 
 async def on_download_history_file(
-    _callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик скачивания файла из истории.
 
     Args:
-        _callback: Callback query от пользователя
+        event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -237,7 +237,7 @@ async def on_download_history_file(
     history_file_id = dialog_manager.dialog_data.get("selected_history_file")
 
     if not bot or not history_file_id:
-        await _callback.answer("Ошибка скачивания", show_alert=True)
+        await event.answer("Ошибка скачивания", show_alert=True)
         return
 
     # Получаем информацию о файле из dialog_data
@@ -250,28 +250,28 @@ async def on_download_history_file(
     file_info = file_info_data.get("file_info")
 
     if not file_info or not file_info.get("file_id"):
-        await _callback.answer("Файл не найден", show_alert=True)
+        await event.answer("Файл не найден", show_alert=True)
         return
 
     try:
         await bot.send_document(
-            _callback.from_user.id, file_info["file_id"], caption=file_info["name"]
+            event.from_user.id, file_info["file_id"], caption=file_info["name"]
         )
-        await _callback.answer("Файл отправлен", show_alert=False)
+        await event.answer("Файл отправлен", show_alert=False)
     except Exception as e:
         logger.error(f"Ошибка отправки файла: {e}")
-        await _callback.answer("Не удалось отправить файл", show_alert=True)
+        await event.answer("Не удалось отправить файл", show_alert=True)
 
 
 async def on_restore_history_file(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик восстановления файла из истории в локальную папку.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -279,7 +279,7 @@ async def on_restore_history_file(
     history_file_id = dialog_manager.dialog_data.get("selected_history_file")
 
     if not bot or not history_file_id:
-        await _callback.answer("Ошибка восстановления", show_alert=True)
+        await _event.answer("Ошибка восстановления", show_alert=True)
         return
 
     stp_repo = dialog_manager.middleware_data.get("stp_repo")
@@ -289,7 +289,7 @@ async def on_restore_history_file(
     file_info = file_info_data.get("file_info")
 
     if not file_info or not file_info.get("file_id"):
-        await _callback.answer("Файл не найден", show_alert=True)
+        await _event.answer("Файл не найден", show_alert=True)
         return
 
     try:
@@ -298,10 +298,8 @@ async def on_restore_history_file(
         file_path = Path("uploads") / file_info["name"]
         await bot.download_file(file.file_path, file_path)
 
-        await _callback.answer(
-            f"Файл {file_info['name']} восстановлен", show_alert=True
-        )
+        await _event.answer(f"Файл {file_info['name']} восстановлен", show_alert=True)
         await dialog_manager.switch_to(Files.history)
     except Exception as e:
         logger.error(f"Ошибка восстановления файла: {e}")
-        await _callback.answer("Не удалось восстановить файл", show_alert=True)
+        await _event.answer("Не удалось восстановить файл", show_alert=True)

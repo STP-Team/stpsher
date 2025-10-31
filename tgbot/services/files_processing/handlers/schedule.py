@@ -44,7 +44,7 @@ class ScheduleHandlerService:
         self.analyzer = ScheduleAnalyzer()
 
     @staticmethod
-    async def check_user_auth(callback: CallbackQuery, user: Employee) -> bool:
+    async def check_user_auth(event: CallbackQuery, user: Employee) -> bool:
         """Проверяет авторизацию пользователя.
 
         Args:
@@ -68,7 +68,7 @@ class ScheduleHandlerService:
 
     @staticmethod
     async def handle_schedule_error(
-        callback: CallbackQuery,
+        event: CallbackQuery,
         error: Exception,
         fallback_markup: Optional[InlineKeyboardMarkup] = None,
     ) -> None:
@@ -100,7 +100,7 @@ class ScheduleHandlerService:
             )
         except Exception as edit_error:
             logger.error(f"Failed to edit message: {edit_error}")
-            await callback.answer(error_msg, show_alert=True)
+            await event.answer(error_msg, show_alert=True)
 
     async def get_user_schedule_response(
         self,

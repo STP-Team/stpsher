@@ -18,14 +18,14 @@ user_auth_router.callback_query.filter(F.message.chat.type == "private")
 
 
 @user_auth_router.callback_query(F.data == "auth")
-async def user_auth(callback: CallbackQuery, state: FSMContext) -> None:
+async def user_auth(event: CallbackQuery, state: FSMContext) -> None:
     """Обработчик запуска диалога авторизации.
 
     Args:
         callback: Callback query от Telegram
         state: Машина состояний
     """
-    await callback.answer()
+    await event.answer()
 
     logger.info(
         f"[Авторизация] Пользователь {callback.from_user.username} ({callback.from_user.id}) запустил авторизацию"

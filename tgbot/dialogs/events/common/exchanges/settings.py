@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def on_reset_day_filters(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -18,7 +18,7 @@ async def on_reset_day_filters(
     """Обработчик сброса фильтров по дням к значениям по умолчанию.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
@@ -33,7 +33,7 @@ async def on_reset_day_filters(
 
 
 async def on_reset_shift_filters(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -41,7 +41,7 @@ async def on_reset_shift_filters(
     """Обработчик сброса фильтров по смене к значениям по умолчанию.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """

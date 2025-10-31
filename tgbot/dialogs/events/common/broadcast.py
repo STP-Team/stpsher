@@ -14,7 +14,7 @@ from tgbot.services.broadcaster import broadcast_copy
 
 
 async def start_broadcast_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -22,7 +22,7 @@ async def start_broadcast_dialog(
     """Обработчик перехода в диалог рассылок.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -50,7 +50,7 @@ async def on_broadcast_message_during_progress(
 
 
 async def on_broadcast_type_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -58,7 +58,7 @@ async def on_broadcast_type_selected(
     """Обработчик выбора типа рассылки.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _widget: Select виджет
         dialog_manager: Менеджер диалога
         item_id: Идентификатор типа рассылки
@@ -90,7 +90,7 @@ async def on_broadcast_type_selected(
 
 
 async def on_broadcast_filter_changed(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Radio,
     dialog_manager: DialogManager,
     item_id: str,
@@ -98,7 +98,7 @@ async def on_broadcast_filter_changed(
     """Обработчик изменения фильтра направлений.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _widget: Radio виджет
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного фильтра
@@ -107,14 +107,14 @@ async def on_broadcast_filter_changed(
 
 
 async def on_broadcast_items_confirmed(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик подтверждения выбора направлений/групп.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -147,14 +147,14 @@ async def on_broadcast_text_input(
 
 
 async def on_broadcast_send(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик отправки рассылки.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -271,14 +271,14 @@ async def on_broadcast_send(
 
 
 async def on_broadcast_back_to_menu(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик возврата в главное меню рассылок с очисткой данных.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -288,7 +288,7 @@ async def on_broadcast_back_to_menu(
 
 
 async def on_broadcast_history_item_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -296,7 +296,7 @@ async def on_broadcast_history_item_selected(
     """Обработчик выбора рассылки из истории для просмотра деталей.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _widget: Select виджет
         dialog_manager: Менеджер диалога
         item_id: ID выбранной рассылки
@@ -306,14 +306,14 @@ async def on_broadcast_history_item_selected(
 
 
 async def on_broadcast_resend(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной отправки рассылки.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """

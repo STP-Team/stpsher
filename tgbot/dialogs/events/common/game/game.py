@@ -8,7 +8,7 @@ from tgbot.dialogs.states.common.game import Game
 
 
 async def start_game_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -16,7 +16,7 @@ async def start_game_dialog(
     """Обработчик перехода в диалог игры.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """

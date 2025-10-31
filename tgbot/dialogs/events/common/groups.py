@@ -17,7 +17,7 @@ from tgbot.dialogs.states.common.groups import Groups
 
 
 async def start_groups_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -25,7 +25,7 @@ async def start_groups_dialog(
     """Обработчик перехода в диалог групп.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
@@ -35,7 +35,7 @@ async def start_groups_dialog(
 
 
 async def on_group_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -45,7 +45,7 @@ async def on_group_selected(
     Меняет окно на настройки выбранной группы
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранной группы
@@ -55,7 +55,7 @@ async def on_group_selected(
 
 
 async def on_role_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Multiselect,
     dialog_manager: DialogManager,
     _item_id: str,
@@ -65,7 +65,7 @@ async def on_role_selected(
     Сохраняет выбранные роли в БД в формате JSON.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет Multiselect
         dialog_manager: Менеджер диалога
         _item_id: ID выбранной/снятой роли (роль, на которую кликнули)
@@ -82,7 +82,7 @@ async def on_role_selected(
 
 
 async def on_service_message_selected(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Any,
     dialog_manager: DialogManager,
     _item_id: str,
@@ -93,7 +93,7 @@ async def on_service_message_selected(
     Сохраняет выбранные типы сообщений в БД.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Виджет Multiselect
         dialog_manager: Менеджер диалога
         _item_id: ID выбранного/снятого типа сообщения
@@ -142,7 +142,7 @@ async def _toggle_group_setting(
         )
 
 
-async def on_toggle_only_employees(
+async def on_only_employees_click(
     event: CallbackQuery,
     widget: ManagedCheckbox,
     dialog_manager: DialogManager,
@@ -202,7 +202,7 @@ async def on_toggle_is_casino_allowed(
 
 
 async def on_confirm_delete_group(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -227,9 +227,9 @@ async def on_confirm_delete_group(
         await stp_repo.group.delete_group(group_id)
 
         # Бот покидает группу
-        await callback.bot.leave_chat(chat_id=group_id)
+        await event.bot.leave_chat(chat_id=group_id)
 
-        await callback.answer(
+        await event.answer(
             "✅ Бот успешно удален из группы, все данные очищены", show_alert=True
         )
 
@@ -237,6 +237,6 @@ async def on_confirm_delete_group(
         await dialog_manager.switch_to(Groups.menu)
 
     except Exception as e:
-        await callback.answer(
+        await event.answer(
             f"❌ Ошибка при удалении бота из группы: {str(e)}", show_alert=True
         )

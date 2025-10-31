@@ -6,7 +6,7 @@ from aiogram_dialog.widgets.kbd import ManagedRadio
 
 
 async def on_filter_change(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     widget: ManagedRadio,
     dialog_manager: DialogManager,
     item_id: str,
@@ -21,4 +21,4 @@ async def on_filter_change(
         item_id: Идентификатор выбранного фильтра
     """
     dialog_manager.dialog_data[widget.widget_id] = item_id
-    await callback.answer()
+    await event.answer()

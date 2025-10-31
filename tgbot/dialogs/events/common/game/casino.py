@@ -13,7 +13,7 @@ from tgbot.dialogs.states.common.game import Game
 
 
 async def check_casino_access(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     dialog_manager: DialogManager,
 ) -> bool:
     """Проверить доступ пользователя к казино.
@@ -28,7 +28,7 @@ async def check_casino_access(
     user: Employee = dialog_manager.middleware_data["user"]
 
     if user is None or not user.is_casino_allowed:
-        await callback.answer(
+        await event.answer(
             "Казино недоступно. Обратитесь к руководителю если считаешь это ошибкой",
             show_alert=True,
         )
@@ -38,14 +38,14 @@ async def check_casino_access(
 
 
 async def change_rate(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     button: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения ставки.
 
     Args:
-        _callback: Callback query от пользователя
+        _event: Callback query от пользователя
         button: Button виджет
         dialog_manager: Менеджер диалога
     """
@@ -108,7 +108,7 @@ def calculate_simple_multiplier(value: int) -> float:
 
 
 async def play_casino_game(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     dialog_manager: DialogManager,
     stp_repo: MainRequestsRepo,
     user: Employee,
@@ -131,7 +131,7 @@ async def play_casino_game(
 
     # Проверяем баланс
     if user_balance < current_rate:
-        await callback.answer("Недостаточно баллов для игры!", show_alert=True)
+        await event.answer("Недостаточно баллов для игры!", show_alert=True)
         return
 
     # Сохраняем тип игры и старый баланс
@@ -260,7 +260,7 @@ def format_result(game_type: str, value: int, multiplier: float, net_win: int) -
 
 
 async def start_slots(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -283,7 +283,7 @@ async def start_slots(
 
 
 async def start_dice(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -306,7 +306,7 @@ async def start_dice(
 
 
 async def start_darts(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -329,7 +329,7 @@ async def start_darts(
 
 
 async def start_bowling(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:
@@ -352,7 +352,7 @@ async def start_bowling(
 
 
 async def play_again(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _button: Button,
     dialog_manager: DialogManager,
 ) -> None:

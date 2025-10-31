@@ -15,9 +15,9 @@ from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.groups import (
     on_confirm_delete_group,
+    on_only_employees_click,
     on_role_selected,
     on_service_message_selected,
-    on_toggle_only_employees,
 )
 from tgbot.dialogs.getters.common.groups import (
     group_details_access_getter,
@@ -38,7 +38,7 @@ groups_access_window = Window(
         Const("✓ 👔 Только сотрудники 👔"),
         Const("👔 Только сотрудники 👔"),
         id="only_employees",
-        on_state_changed=on_toggle_only_employees,
+        on_click=on_only_employees_click,
     ),
     Group(
         Multiselect(
