@@ -48,41 +48,71 @@ async def prepare_calendar_data_for_exchange(
     try:
         # Получаем текущий месяц для календаря
         current_date = datetime.now().date()
-
         parser = ScheduleParser()
-        month_name = get_month_name(current_date.month)
 
-        # Получаем график пользователя на текущий месяц
-        try:
-            schedule_dict = await parser.get_user_schedule_with_duties(
-                user.fullname,
-                month_name,
-                user.division,
-                stp_repo,
-                current_day_only=False,
-            )
+        # Собираем данные о сменах за несколько месяцев
+        all_shift_dates = {}
 
-            # Извлекаем дни когда есть смены
-            shift_dates = {}
-            for day, (schedule, duty_info) in schedule_dict.items():
-                if schedule and schedule not in ["Не указано", "В", "О"]:
-                    # Извлекаем номер дня
-                    day_match = re.search(r"(\d{1,2})", day)
-                    if day_match:
-                        day_num = f"{int(day_match.group(1)):02d}"
-                        shift_dates[day_num] = {
-                            "schedule": schedule,
-                            "duty_info": duty_info,
-                        }
+        # Загружаем данные для текущего месяца и соседних месяцев
+        months_to_load = [
+            current_date.month - 1
+            if current_date.month > 1
+            else 12,  # Предыдущий месяц
+            current_date.month,  # Текущий месяц
+            current_date.month + 1 if current_date.month < 12 else 1,  # Следующий месяц
+        ]
 
-            # Сохраняем данные в dialog_data для использования в календаре
-            dialog_manager.dialog_data["shift_dates"] = shift_dates
+        for month_num in months_to_load:
+            month_name = get_month_name(month_num)
+            logger.debug(f"[Биржа] Загружаем данные календаря для {month_name}")
 
-        except Exception:
-            # В случае ошибки просто не показываем смены
-            dialog_manager.dialog_data["shift_dates"] = {}
+            try:
+                schedule_dict = await parser.get_user_schedule_with_duties(
+                    user.fullname,
+                    month_name,
+                    user.division,
+                    stp_repo,
+                    current_day_only=False,
+                )
 
-    except Exception:
+                # Извлекаем дни когда есть смены
+                for day, (schedule, duty_info) in schedule_dict.items():
+                    if schedule and schedule not in ["Не указано", "В", "О"]:
+                        # Извлекаем номер дня
+                        day_match = re.search(r"(\d{1,2})", day)
+                        if day_match:
+                            day_num = f"{int(day_match.group(1)):02d}"
+                            # Создаем уникальный ключ для месяца и дня
+                            month_day_key = f"{month_num:02d}_{day_num}"
+                            all_shift_dates[month_day_key] = {
+                                "schedule": schedule,
+                                "duty_info": duty_info,
+                                "month": month_num,
+                                "day": int(day_num),
+                            }
+                            # Также сохраняем под простым ключом дня для обратной совместимости с текущим месяцем
+                            if month_num == current_date.month:
+                                all_shift_dates[day_num] = {
+                                    "schedule": schedule,
+                                    "duty_info": duty_info,
+                                }
+
+                logger.debug(
+                    f"[Биржа] Загружено {len([k for k in all_shift_dates.keys() if k.startswith(f'{month_num:02d}_')])} дней для {month_name}"
+                )
+
+            except Exception as e:
+                logger.debug(f"[Биржа] Ошибка загрузки данных для {month_name}: {e}")
+                continue
+
+        # Сохраняем данные в dialog_data для использования в календаре
+        dialog_manager.dialog_data["shift_dates"] = all_shift_dates
+        logger.debug(
+            f"[Биржа] Всего загружено {len(all_shift_dates)} записей календаря"
+        )
+
+    except Exception as e:
+        logger.debug(f"[Биржа] Ошибка подготовки данных календаря: {e}")
         # В случае ошибки просто не показываем смены
         dialog_manager.dialog_data["shift_dates"] = {}
 
@@ -220,11 +250,18 @@ async def get_exchange_text(
         price_per_hour_text = (
             f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
         )
+        # Показываем цену за час первой, общую стоимость в скобках
+        price_display = (
+            f"{price_per_hour_text} ({price:g} р.)"
+            if price_per_hour is not None
+            else f"{price:g} р."
+        )
+
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Цена:</b>
-<code>{price:g} р. ({price_per_hour_text})</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
-👤 <b>Продавец:</b> 
+<code>{price_display}</code> {"сразу" if exchange.payment_type == "immediate" else exchange.payment_date}
+👤 <b>Продавец:</b>
 {seller_name}</blockquote>"""
     else:
         buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)

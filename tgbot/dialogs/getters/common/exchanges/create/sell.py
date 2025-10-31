@@ -248,11 +248,15 @@ async def sell_payment_timing_getter(
     data = dialog_manager.dialog_data
 
     shift_date = data.get("shift_date")
-    price = data.get("price", 0)
+    price_per_hour = data.get("price_per_hour", 0)
+    total_price = data.get("price", 0)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
 
     shift_time = await get_exchange_shift_time(start_time, end_time)
+
+    # Форматируем цену: цена за час (общая стоимость)
+    price_display = f"{price_per_hour}р./ч. ({total_price} р.)"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -261,13 +265,13 @@ async def sell_payment_timing_getter(
             "selected_date": formatted_date,
             "shift_date": shift_date,
             "shift_time": shift_time,
-            "price": price,
+            "price": price_display,
         }
     return {
         "selected_date": "Не выбрана",
         "shift_date": shift_date,
         "shift_time": shift_time,
-        "price": price,
+        "price": price_display,
     }
 
 
@@ -280,15 +284,27 @@ async def sell_payment_date_getter(
     shift_date = data.get("shift_date")
     start_time = data.get("start_time")
     end_time = data.get("end_time")
-    price = data.get("price")
+    price_per_hour = data.get("price_per_hour", 0)
+    total_price = data.get("price", 0)
 
     shift_time = await get_exchange_shift_time(start_time, end_time)
+
+    # Форматируем цену: цена за час (общая стоимость)
+    price_display = f"{price_per_hour}р./ч. ({total_price} р.)"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
-        return {"shift_date": formatted_date, "shift_time": shift_time, "price": price}
-    return {"shift_date": "Не выбрана"}
+        return {
+            "shift_date": formatted_date,
+            "shift_time": shift_time,
+            "price": price_display,
+        }
+    return {
+        "shift_date": "Не выбрана",
+        "shift_time": shift_time,
+        "price": price_display,
+    }
 
 
 async def sell_comment_getter(
@@ -298,12 +314,16 @@ async def sell_comment_getter(
     data = dialog_manager.dialog_data
 
     shift_date = data.get("shift_date")
-    price = data.get("price", 0)
+    price_per_hour = data.get("price_per_hour", 0)
+    total_price = data.get("price", 0)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     payment_type = data.get("payment_type")
 
     shift_time = await get_exchange_shift_time(start_time, end_time)
+
+    # Форматируем цену: цена за час (общая стоимость)
+    price_display = f"{price_per_hour}р./ч. ({total_price} р.)"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -312,7 +332,7 @@ async def sell_comment_getter(
             "selected_date": formatted_date,
             "shift_date": shift_date,
             "shift_time": shift_time,
-            "price": price,
+            "price": price_display,
             "payment_type": "Сразу"
             if payment_type == "immediate"
             else "В выбранную дату",
@@ -321,7 +341,7 @@ async def sell_comment_getter(
         "selected_date": "Не выбрана",
         "shift_date": shift_date,
         "shift_time": shift_time,
-        "price": price,
+        "price": price_display,
         "payment_type": "Сразу" if payment_type == "immediate" else "В выбранную дату",
     }
 
@@ -333,7 +353,8 @@ async def sell_confirmation_getter(
     data = dialog_manager.dialog_data
 
     shift_date = data.get("shift_date")
-    price = data.get("price", 0)
+    price_per_hour = data.get("price_per_hour", 0)
+    total_price = data.get("price", 0)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     payment_type = data.get("payment_type", "immediate")
@@ -362,10 +383,13 @@ async def sell_confirmation_getter(
         formatted_payment_date = payment_date_obj.strftime("%d.%m.%Y")
         payment_info = f"До {formatted_payment_date}"
 
+    # Форматируем цену: цена за час (общая стоимость)
+    price_display = f"{price_per_hour}р./ч. ({total_price} р.)"
+
     result = {
         "shift_date": formatted_shift_date,
         "shift_time": shift_time_info,
-        "price": price,
+        "price": price_display,
         "payment_info": payment_info,
     }
 
