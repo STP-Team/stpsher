@@ -295,7 +295,7 @@ async def on_private_change(
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)
@@ -330,7 +330,7 @@ async def on_paid_click(
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)
@@ -365,8 +365,8 @@ async def on_schedule_change(
         widget: Виджет чекбокса
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    user: Employee = dialog_manager.middleware_data.get("user")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user: Employee = dialog_manager.middleware_data["user"]
 
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)
@@ -417,7 +417,7 @@ async def on_activation_change(
         widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)
@@ -452,7 +452,7 @@ async def on_delete_exchange(
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)
@@ -477,7 +477,7 @@ async def on_set_paid(
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)

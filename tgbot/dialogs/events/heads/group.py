@@ -45,7 +45,7 @@ async def on_member_select(
     dialog_manager.dialog_data["selected_member_id"] = item_id
 
     # Получаем информацию о пользователе и устанавливаем состояние чекбокса казино
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     searched_user = await stp_repo.employee.get_users(main_id=int(item_id))
 
     casino_checkbox: ManagedCheckbox = dialog_manager.find("member_casino_access")
@@ -66,7 +66,7 @@ async def on_member_casino_change(
         dialog_manager: Менеджер диалога
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_member_id = dialog_manager.dialog_data.get("selected_member_id")
 
         if not stp_repo or not selected_member_id:
@@ -123,7 +123,7 @@ async def on_member_role_change(
         item_id: ID выбранной роли
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_member_id = dialog_manager.dialog_data.get("selected_member_id")
 
         if not stp_repo or not selected_member_id:
@@ -203,7 +203,7 @@ async def on_game_casino_member_click(
         item_id: ID пользователя
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
 
         if not stp_repo or not item_id:
             await event.answer("❌ Ошибка: пользователь не выбран", show_alert=True)
@@ -248,8 +248,8 @@ async def on_game_casino_toggle_all(
         dialog_manager: Менеджер диалога
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-        user: Employee = dialog_manager.middleware_data.get("user")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+        user: Employee = dialog_manager.middleware_data["user"]
 
         if not stp_repo or not user:
             await event.answer("❌ Ошибка при получении данных", show_alert=True)

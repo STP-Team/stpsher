@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, Select
+from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.files import get_history_file_details
 from tgbot.dialogs.states.common.files import Files
@@ -135,7 +136,7 @@ async def on_restore_selected(
         dialog_manager: Менеджер диалога
         item_id: database record id
     """
-    bot: Bot = dialog_manager.middleware_data.get("bot")
+    bot: Bot = dialog_manager.middleware_data["bot"]
     file_name = dialog_manager.dialog_data.get("selected_file")
 
     if not bot or not file_name:
@@ -197,7 +198,7 @@ async def on_download_local_file(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    bot: Bot = dialog_manager.middleware_data.get("bot")
+    bot: Bot = dialog_manager.middleware_data["bot"]
     file_name = dialog_manager.dialog_data.get("selected_file")
 
     if not bot or not file_name:
@@ -233,7 +234,7 @@ async def on_download_history_file(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    bot: Bot = dialog_manager.middleware_data.get("bot")
+    bot: Bot = dialog_manager.middleware_data["bot"]
     history_file_id = dialog_manager.dialog_data.get("selected_history_file")
 
     if not bot or not history_file_id:
@@ -243,7 +244,7 @@ async def on_download_history_file(
     # Получаем информацию о файле из dialog_data
     from tgbot.dialogs.getters.common.files import get_history_file_details
 
-    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     file_info_data = await get_history_file_details(
         stp_repo=stp_repo, dialog_manager=dialog_manager
     )
@@ -275,14 +276,14 @@ async def on_restore_history_file(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    bot: Bot = dialog_manager.middleware_data.get("bot")
+    bot: Bot = dialog_manager.middleware_data["bot"]
     history_file_id = dialog_manager.dialog_data.get("selected_history_file")
 
     if not bot or not history_file_id:
         await _event.answer("Ошибка восстановления", show_alert=True)
         return
 
-    stp_repo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     file_info_data = await get_history_file_details(
         stp_repo=stp_repo, dialog_manager=dialog_manager
     )

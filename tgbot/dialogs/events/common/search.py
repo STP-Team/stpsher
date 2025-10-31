@@ -78,7 +78,7 @@ async def on_user_select(
     dialog_manager.dialog_data["previous_state"] = str(current_state)
 
     # Получаем информацию о пользователе и устанавливаем состояние чекбоксов
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     searched_user = await stp_repo.employee.get_users(main_id=int(item_id))
 
     casino_checkbox: ManagedCheckbox = dialog_manager.find("casino_access")
@@ -113,7 +113,7 @@ async def on_search_query(
         return  # TextInput сам валидирует ввод
 
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         if not stp_repo:
             return
 
@@ -163,7 +163,7 @@ async def on_casino_change(
         dialog_manager: Менеджер диалога
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
         if not stp_repo or not selected_user_id:
@@ -214,7 +214,7 @@ async def on_trainee_change(
         dialog_manager: Менеджер диалога
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
         if not stp_repo or not selected_user_id:
@@ -265,7 +265,7 @@ async def on_exchanges_change(
         dialog_manager: Менеджер диалога
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
         if not stp_repo or not selected_user_id:
@@ -321,7 +321,7 @@ async def on_role_change(
         item_id: ID выбранной роли
     """
     try:
-        stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
         selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
 
         if not stp_repo or not selected_user_id:

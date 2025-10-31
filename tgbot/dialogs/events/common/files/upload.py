@@ -51,9 +51,9 @@ async def on_document_uploaded(
         return
 
     document: Document = message.document
-    bot: Bot = dialog_manager.middleware_data.get("bot")
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    main_db: Session = dialog_manager.middleware_data.get("main_db")
+    bot: Bot = dialog_manager.middleware_data["bot"]
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    main_db: Session = dialog_manager.middleware_data["main_db"]
 
     if not bot or not stp_repo:
         await message.answer("❌ Ошибка инициализации")
