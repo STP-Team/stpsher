@@ -281,6 +281,86 @@ async def advanced_inline_handler(
                     ),
                 )
             )
+        elif "subscription_" in query_text:
+            subscription_id = query_text.split("_")[1]
+            subscription = await stp_repo.exchange.get_subscription_by_id(
+                int(subscription_id)
+            )
+            if not subscription:
+                return
+
+            type_names = {
+                "buy": "Покупка часов",
+                "sell": "Продажа часов",
+                "both": "Оба типа",
+            }
+            exchange_type = type_names.get(
+                subscription.exchange_type, subscription.exchange_type
+            )
+            criteria_parts = []
+            if subscription.min_price:
+                criteria_parts.append(
+                    f"• Минимальная цена: {subscription.min_price} р."
+                )
+            if subscription.max_price:
+                criteria_parts.append(
+                    f"• Максимальная цена: {subscription.max_price} р."
+                )
+            if subscription.start_time and subscription.end_time:
+                criteria_parts.append(
+                    f"• Время: с {subscription.start_time.strftime('%H:%M')} до {subscription.end_time.strftime('%H:%M')}"
+                )
+            if subscription.days_of_week:
+                day_names = {
+                    1: "Пн",
+                    2: "Вт",
+                    3: "Ср",
+                    4: "Чт",
+                    5: "Пт",
+                    6: "Сб",
+                    7: "Вс",
+                }
+                days_text = ", ".join([
+                    day_names.get(d, str(d)) for d in subscription.days_of_week
+                ])
+                criteria_parts.append(f"• Дни: {days_text}")
+
+            criteria_text = (
+                "\n".join(criteria_parts) if criteria_parts else "• Все обмены"
+            )
+
+            message_text = f"""🔍 <b>Детали подписки</b>
+
+📝 <b>Название:</b> {subscription.name}
+<b>Тип обменов:</b> {exchange_type}
+
+🎯 <b>Критерии:</b>
+{criteria_text}"""
+
+            deeplink = await create_start_link(
+                bot=bot, payload=f"subscription_{subscription.id}", encode=True
+            )
+            results.append(
+                InlineQueryResultArticle(
+                    id=f"subscription_{subscription_id}",
+                    title=f"Подписка {subscription.id}",
+                    description=f"Тип обменов: {exchange_type}\n🎯 <b>Критерии:</b>\n{criteria_text}",
+                    input_message_content=InputTextMessageContent(
+                        message_text=message_text, parse_mode="HTML"
+                    ),
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="🔔 Добавить подписку",
+                                    url=deeplink,
+                                )
+                            ]
+                        ]
+                    ),
+                )
+            )
+
         else:
             # Обработка поискового запроса
             if query_text and len(query_text) >= 2:

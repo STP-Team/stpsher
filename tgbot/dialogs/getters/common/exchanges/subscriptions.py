@@ -3,6 +3,8 @@
 import logging
 from typing import Any, Dict
 
+from aiogram import Bot
+from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio, ManagedToggle
 from stp_database import Employee, MainRequestsRepo
@@ -60,11 +62,16 @@ async def subscriptions_getter(
 
 
 async def subscription_detail_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
+    stp_repo: MainRequestsRepo,
+    user: Employee,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для деталей конкретной подписки.
 
     Args:
+        bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
         user: Экземпляр пользователя с моделью Employee
         dialog_manager: Менеджер диалога
@@ -78,19 +85,14 @@ async def subscription_detail_getter(
             or dialog_manager.start_data["subscription_id"]
         )
 
-        if not subscription_id:
-            raise ValueError("Не указан ID подписки")
-
         # Получаем подписку
         subscription = await stp_repo.exchange.get_subscription_by_id(
             subscription_id, user.user_id
         )
-        if not subscription:
-            raise ValueError("Подписка не найдена")
 
         # Установка чекбоксов
         sub_status_checkbox: ManagedCheckbox = dialog_manager.find("sub_status")
-        await sub_status_checkbox.set_checked(subscription.is_active)
+        await sub_status_checkbox.set_checked(bool(subscription.is_active))
 
         # Форматируем критерии
         criteria_parts = []
@@ -121,10 +123,16 @@ async def subscription_detail_getter(
             subscription.exchange_type, subscription.exchange_type
         )
 
+        deeplink = f"subscription_{subscription_id}"
+        deeplink_url = await create_start_link(bot=bot, payload=deeplink, encode=True)
+
         return {
-            "subscription_name": subscription.name or "Без названия",
+            "subscription_name": subscription.name,
             "exchange_type": exchange_type,
             "criteria_text": criteria_text,
+            "status": subscription.is_active,
+            "deeplink": deeplink,
+            "deeplink_url": deeplink_url,
         }
 
     except Exception as e:
@@ -133,13 +141,6 @@ async def subscription_detail_getter(
             "subscription_name": "Ошибка загрузки",
             "exchange_type": "Неизвестно",
             "criteria_text": "Ошибка загрузки критериев",
-            "notification_settings": "Ошибка загрузки настроек",
-            "is_active": False,
-            "notifications_sent": 0,
-            "matches_found": 0,
-            "created_at": "Неизвестно",
-            "last_notified_at": "Никогда",
-            "toggle_text": "🟢 Включить",
         }
 
 

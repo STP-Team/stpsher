@@ -13,6 +13,7 @@ from aiogram_dialog.widgets.kbd import (
     Row,
     ScrollingGroup,
     Select,
+    SwitchInlineQueryChosenChatButton,
     SwitchTo,
 )
 from aiogram_dialog.widgets.text import Const, Format
@@ -88,16 +89,31 @@ sub_detail_window = Window(
     Const("🔍 <b>Детали подписки</b>"),
     Format("""
 📝 <b>Название:</b> {subscription_name}
-📈 <b>Тип обменов:</b> {exchange_type}
-📋 <b>Критерии:</b>
+<b>Тип обменов:</b> {exchange_type}
+
+🎯 <b>Критерии:</b>
 {criteria_text}"""),
-    Checkbox(
-        Const("🟢 Активная"),
-        Const("🟡 Выключена"),
-        id="sub_status",
-        on_click=on_sub_status_click,
+    Format("""
+🔗 <b>Ссылка:</b> <code>{deeplink_url}</code>"""),
+    Group(
+        SwitchInlineQueryChosenChatButton(
+            Const("🔗 Поделиться"),
+            query=Format("{deeplink}"),
+            allow_user_chats=True,
+            allow_group_chats=True,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="subscription_deeplink",
+        ),
+        when=F["status"],
     ),
     Row(
+        Checkbox(
+            Const("🟢 Активная"),
+            Const("🟡 Выключена"),
+            id="sub_status",
+            on_click=on_sub_status_click,
+        ),
         Button(
             Const("🗑️ Удалить"),
             id="delete_subscription",
