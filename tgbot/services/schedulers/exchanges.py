@@ -138,11 +138,11 @@ async def notify_expire_offer(
         chat_id=exchange.seller_id,
         text=f"""⏳ <b>Сделка истекла</b>
 
-У предложения наступило время {"начала" if exchange.type == "sell" else "конца"}
+У сделки наступило время {"начала" if exchange.type == "sell" else "конца"}
 
 {exchange_info}
 
-<i>Ты можешь отредактировать его и опубликовать снова</i>""",
+<i>Ты можешь отредактировать ее и опубликовать снова</i>""",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="🎭 Открыть сделку", url=deeplink)]
@@ -229,9 +229,9 @@ async def notify_subscription_match(
             bot=bot, payload=f"subscription_{subscription.id}", encode=True
         )
 
-        message_text = f"""🔔 <b>Новый обмен</b>
+        message_text = f"""🔔 <b>Новая сделка</b>
 
-Найден обмен, соответствующий подписке <b>{subscription.name}</b>:
+Найдена сделка, соответствующая подписке <b>{subscription.name}</b>:
 
 {exchange_info}"""
 
