@@ -55,7 +55,7 @@ class ScheduleHandlerService:
             Статус авторизации пользователя
         """
         if not user:
-            await callback.message.answer(
+            await event.message.answer(
                 """👋 Привет
 
 Я - бот-помощник СТП
@@ -94,7 +94,7 @@ class ScheduleHandlerService:
         logger.error(f"Schedule error: {error}", exc_info=True)
 
         try:
-            await callback.message.edit_text(
+            await event.message.edit_text(
                 text=error_msg,
                 reply_markup=fallback_markup,
             )

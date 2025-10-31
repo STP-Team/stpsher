@@ -139,10 +139,10 @@ async def play_casino_game(
     dialog_manager.dialog_data["old_balance"] = user_balance
 
     # Убираем кнопки с текущего сообщения перед отправкой dice
-    await callback.message.edit_reply_markup(reply_markup=None)
+    await event.message.edit_reply_markup(reply_markup=None)
 
     # Отправляем dice и ждем результата
-    dice_message = await callback.message.answer_dice(emoji=dice_emoji)
+    dice_message = await event.message.answer_dice(emoji=dice_emoji)
     dice_value = dice_message.dice.value
 
     # Ждем анимацию (3 секунды)
@@ -271,14 +271,14 @@ async def start_slots(
         button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "slots", DiceEmoji.SLOT_MACHINE
+        event, dialog_manager, stp_repo, user, "slots", DiceEmoji.SLOT_MACHINE
     )
 
 
@@ -294,14 +294,14 @@ async def start_dice(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "dice", DiceEmoji.DICE
+        event, dialog_manager, stp_repo, user, "dice", DiceEmoji.DICE
     )
 
 
@@ -317,14 +317,14 @@ async def start_darts(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "darts", DiceEmoji.DART
+        event, dialog_manager, stp_repo, user, "darts", DiceEmoji.DART
     )
 
 
@@ -340,14 +340,14 @@ async def start_bowling(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "bowling", DiceEmoji.BOWLING
+        event, dialog_manager, stp_repo, user, "bowling", DiceEmoji.BOWLING
     )
 
 
@@ -363,7 +363,7 @@ async def play_again(
         _button: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
@@ -382,7 +382,7 @@ async def play_again(
 
     # Запускаем игру снова с теми же параметрами
     await play_casino_game(
-        callback,
+        event,
         dialog_manager,
         stp_repo,
         user,

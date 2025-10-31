@@ -225,7 +225,7 @@ async def on_broadcast_send(
     dialog_manager.dialog_data["error_count"] = error_count
 
     # Сохраняем рассылку в базу данных
-    user_id = _callback.from_user.id
+    user_id = _event.from_user.id
     broadcast_text = dialog_manager.dialog_data.get("broadcast_text")
 
     db_type = ""
@@ -356,7 +356,7 @@ async def on_broadcast_resend(
     dialog_manager.dialog_data["error_count"] = error_count
 
     # Сохраняем новую рассылку в базу данных
-    user_id = _callback.from_user.id
+    user_id = _event.from_user.id
     await stp_repo.broadcast.create_broadcast(
         user_id=user_id,
         broadcast_type=broadcast.type,
