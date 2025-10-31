@@ -111,7 +111,7 @@ async def on_sub_status_click(
     )
 
     if subscription:
-        success = await stp_repo.exchange.update_subscription(
+        await stp_repo.exchange.update_subscription(
             subscription_id, is_active=not widget.is_checked()
         )
 
