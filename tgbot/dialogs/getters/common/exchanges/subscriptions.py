@@ -9,6 +9,8 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio, ManagedToggle
 from stp_database import Employee, MainRequestsRepo
 
+from tgbot.misc.helpers import short_name
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,6 +113,20 @@ async def subscription_detail_getter(
             ])
             criteria_parts.append(f"• Дни: {days_text}")
 
+        # Проверяем наличие выбранного сотрудника
+        if subscription.target_seller_id:
+            try:
+                target_seller = await stp_repo.employee.get_users(
+                    user_id=subscription.target_seller_id
+                )
+                if target_seller:
+                    seller_short = short_name(target_seller.fullname)
+                    criteria_parts.append(f"• Сотрудник: {seller_short}")
+            except Exception as e:
+                logger.error(
+                    f"Ошибка получения информации о сотруднике {subscription.target_seller_id}: {e}"
+                )
+
         criteria_text = "\n".join(criteria_parts) if criteria_parts else "• Все обмены"
 
         # Форматируем тип обмена
@@ -193,7 +209,7 @@ async def subscription_create_criteria_getter(
         ("price", "💰 По цене"),
         ("time", "⏰ По времени"),
         ("days", "📅 По дням недели"),
-        ("seller", "👤 Конкретный продавец"),
+        ("seller", "👤 По сотруднику"),
     ]
 
     # Проверяем выбранные критерии
@@ -205,7 +221,7 @@ async def subscription_create_criteria_getter(
         "price": "💰 По цене",
         "time": "⏰ По времени",
         "days": "📅 По дням недели",
-        "seller": "👤 Конкретный продавец",
+        "seller": "👤 По сотруднику",
     }
 
     if selected_criteria:
@@ -250,7 +266,7 @@ async def subscription_create_price_getter(
         "price": "💰 По цене",
         "time": "⏰ По времени",
         "days": "📅 По дням недели",
-        "seller": "👤 Конкретный продавец",
+        "seller": "👤 По сотруднику",
     }
 
     selected_criteria_text = ", ".join([
@@ -314,7 +330,7 @@ async def subscription_create_time_getter(
         "price": "💰 По цене",
         "time": "⏰ По времени",
         "days": "📅 По дням недели",
-        "seller": "👤 Конкретный продавец",
+        "seller": "👤 По сотруднику",
     }
 
     criteria_display = (
@@ -402,7 +418,7 @@ async def subscription_create_date_getter(
         "price": "💰 По цене",
         "time": "⏰ По времени",
         "days": "📅 По дням недели",
-        "seller": "👤 Конкретный продавец",
+        "seller": "👤 По сотруднику",
     }
 
     criteria_display = (
@@ -536,6 +552,12 @@ def _generate_subscription_name(dialog_manager: DialogManager) -> str:
     type_names = {"buy": "Покупка", "sell": "Продажа", "both": "Все обмены"}
     parts.append(type_names.get(sub_type, "Обмены"))
 
+    # Сотрудник (приоритетно)
+    selected_seller_name = dialog_manager.dialog_data.get("selected_seller_name")
+    if selected_seller_name:
+        seller_short = short_name(selected_seller_name)
+        parts.append(f"от {seller_short}")
+
     # Цена
     price_data = dialog_manager.dialog_data.get("price_data", {})
     if price_data.get("max_price"):
@@ -588,6 +610,12 @@ def _get_criteria_summary(dialog_manager: DialogManager) -> str:
         criteria_parts.append(f"от {price_data['min_price']} р.")
     if price_data.get("max_price"):
         criteria_parts.append(f"до {price_data['max_price']} р.")
+
+    # Добавляем выбранного сотрудника
+    selected_seller_name = dialog_manager.dialog_data.get("selected_seller_name")
+    if selected_seller_name:
+        seller_short = short_name(selected_seller_name)
+        criteria_parts.append(f"от {seller_short}")
 
     return ", ".join(criteria_parts) if criteria_parts else "Все обмены"
 
@@ -648,6 +676,12 @@ def _get_detailed_criteria_summary(dialog_manager: DialogManager) -> str:
         days_text = ", ".join([day_names.get(d, d) for d in selected_days])
         criteria_parts.append(f"• Дни: {days_text}")
 
+    # Сотрудник
+    selected_seller_name = dialog_manager.dialog_data.get("selected_seller_name")
+    if selected_seller_name:
+        seller_short = short_name(selected_seller_name)
+        criteria_parts.append(f"• Сотрудник: {seller_short}")
+
     return "\n".join(criteria_parts) if criteria_parts else "• Все обмены"
 
 
@@ -655,3 +689,66 @@ def _get_notification_summary(dialog_manager: DialogManager) -> str:
     """Получить сводку настроек уведомлений."""
     # Всегда включены мгновенные уведомления о новых/отредактированных обменах
     return "• Мгновенные уведомления о новых и отредактированных обменах"
+
+
+async def subscription_create_seller_search_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для поиска сотрудника для подписки.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными для поиска сотрудника
+    """
+    sub_type = dialog_manager.dialog_data.get("type")
+
+    type_names = {
+        "buy": "📈 Покупка часов",
+        "sell": "📉 Продажа часов",
+        "both": "🔄 Оба типа",
+    }
+
+    # Получаем выбранные критерии для отображения
+    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
+    selected_criteria = criteria_widget.get_checked() if criteria_widget else []
+
+    criteria_names = {
+        "price": "💰 По цене",
+        "time": "⏰ По времени",
+        "days": "📅 По дням недели",
+        "seller": "👤 По сотруднику",
+    }
+
+    criteria_display = (
+        ", ".join([criteria_names.get(c, c) for c in selected_criteria]) or "все обмены"
+    )
+
+    return {
+        "exchange_type_display": type_names.get(sub_type, "Не выбрано"),
+        "criteria_display": criteria_display,
+    }
+
+
+async def subscription_create_seller_results_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для результатов поиска сотрудника.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с результатами поиска
+    """
+    search_results = dialog_manager.dialog_data.get("seller_search_results", [])
+    search_query = dialog_manager.dialog_data.get("seller_search_query", "")
+    total_found = dialog_manager.dialog_data.get("seller_search_total", 0)
+
+    return {
+        "search_results": search_results,
+        "search_query": search_query,
+        "total_found": total_found,
+        "has_results": len(search_results) > 0,
+    }

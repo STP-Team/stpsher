@@ -208,6 +208,8 @@ async def _navigate_forward(current_state, dialog_manager: DialogManager) -> Non
             await dialog_manager.switch_to(ExchangesSub.create_time)
         elif "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
+        elif "seller" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_seller)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_confirmation)
     elif current_state == ExchangesSub.create_price:
@@ -215,21 +217,32 @@ async def _navigate_forward(current_state, dialog_manager: DialogManager) -> Non
             await dialog_manager.switch_to(ExchangesSub.create_time)
         elif "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
+        elif "seller" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_seller)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_confirmation)
     elif current_state == ExchangesSub.create_time:
         if "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
+        elif "seller" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_seller)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_confirmation)
     elif current_state == ExchangesSub.create_date:
+        if "seller" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_seller)
+        else:
+            await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+    elif (
+        current_state == ExchangesSub.create_seller
+        or current_state == ExchangesSub.create_seller_results
+    ):
         await dialog_manager.switch_to(ExchangesSub.create_confirmation)
     elif current_state == ExchangesSub.create_confirmation:
         # Возврат из подтверждения к последнему шагу настройки
-        criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
-        selected_criteria = criteria_widget.get_checked() if criteria_widget else []
-
-        if "days" in selected_criteria:
+        if "seller" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_seller)
+        elif "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
         elif "time" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_time)
@@ -259,8 +272,22 @@ async def _navigate_back(current_state, dialog_manager: DialogManager) -> None:
             await dialog_manager.switch_to(ExchangesSub.create_price)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    elif current_state == ExchangesSub.create_confirmation:
+    elif (
+        current_state == ExchangesSub.create_seller
+        or current_state == ExchangesSub.create_seller_results
+    ):
         if "days" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_date)
+        elif "time" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_time)
+        elif "price" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_price)
+        else:
+            await dialog_manager.switch_to(ExchangesSub.create_criteria)
+    elif current_state == ExchangesSub.create_confirmation:
+        if "seller" in selected_criteria:
+            await dialog_manager.switch_to(ExchangesSub.create_seller)
+        elif "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
         elif "time" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_time)
@@ -304,6 +331,66 @@ async def on_price_input(
     await _navigate_forward(dialog_manager.current_context().state, dialog_manager)
 
 
+async def on_seller_search_query(
+    _message: Message,
+    _widget: ManagedTextInput,
+    dialog_manager: DialogManager,
+    text: str,
+) -> None:
+    """Обработчик поискового запроса сотрудника для подписки.
+
+    Args:
+        _message: Сообщение пользователя
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        text: Текст запроса
+    """
+    search_query = text.strip()
+
+    if not search_query or len(search_query) < 2:
+        return
+
+    try:
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+        if not stp_repo:
+            return
+
+        # Поиск сотрудников
+        found_users = await stp_repo.employee.search_users(search_query, limit=50)
+
+        if not found_users:
+            # Сохраняем поисковый запрос для отображения в окне "ничего не найдено"
+            dialog_manager.dialog_data["seller_search_query"] = search_query
+            dialog_manager.dialog_data["seller_search_results"] = []
+            dialog_manager.dialog_data["seller_search_total"] = 0
+            # Переходим к результатам поиска (пустым)
+            await dialog_manager.switch_to(ExchangesSub.create_seller_results)
+            return
+
+        # Сортировка результатов
+        sorted_users = sorted(
+            found_users,
+            key=lambda u: (
+                search_query.lower() not in u.fullname.lower(),
+                u.fullname,
+            ),
+        )
+
+        # Сохраняем результаты поиска (используем user_id для foreign key)
+        dialog_manager.dialog_data["seller_search_results"] = [
+            (user.user_id, f"{user.fullname} ({user.position or 'Без должности'})")
+            for user in sorted_users
+        ]
+        dialog_manager.dialog_data["seller_search_query"] = search_query
+        dialog_manager.dialog_data["seller_search_total"] = len(sorted_users)
+
+        # Переходим к результатам поиска
+        await dialog_manager.switch_to(ExchangesSub.create_seller_results)
+
+    except Exception as e:
+        logger.error(f"Ошибка поиска сотрудника для подписки: {e}")
+
+
 async def on_seller_selected(
     _event: CallbackQuery,
     _widget: Select,
@@ -319,10 +406,25 @@ async def on_seller_selected(
         item_id: ID выбранного продавца
     """
     try:
-        seller_id = int(item_id)
-        dialog_manager.dialog_data["selected_seller_id"] = seller_id
+        seller_user_id = int(item_id)
+        dialog_manager.dialog_data["selected_seller_id"] = seller_user_id
+
+        # Получаем информацию о выбранном сотруднике для отображения
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+        selected_employee = await stp_repo.employee.get_users(user_id=seller_user_id)
+
+        if selected_employee:
+            dialog_manager.dialog_data["selected_seller_name"] = (
+                selected_employee.fullname
+            )
+
+        # Переходим к следующему шагу навигации
+        await _navigate_forward(dialog_manager.current_context().state, dialog_manager)
+
     except (ValueError, TypeError):
         logger.error(f"Ошибка выбора продавца: неверный ID {item_id}")
+    except Exception as e:
+        logger.error(f"Ошибка при выборе продавца: {e}")
 
 
 async def on_confirm_subscription(

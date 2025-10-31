@@ -73,6 +73,7 @@ class ExchangesSub(StatesGroup):
     create_price = State()  # Настройка цены
     create_time = State()  # Настройка времени
     create_date = State()  # Настройка дат
-    create_seller = State()  # Выбор продавца
+    create_seller = State()  # Поиск продавца
+    create_seller_results = State()  # Результаты поиска продавца
     create_name = State()  # Название подписки
     create_confirmation = State()  # Подтверждение создания

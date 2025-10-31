@@ -24,6 +24,8 @@ from tgbot.dialogs.events.common.exchanges.subscriptions import (
     on_criteria_next,
     on_delete_subscription,
     on_price_input,
+    on_seller_search_query,
+    on_seller_selected,
     on_sub_status_click,
     on_subscription_selected,
 )
@@ -32,6 +34,8 @@ from tgbot.dialogs.getters.common.exchanges.subscriptions import (
     subscription_create_criteria_getter,
     subscription_create_date_getter,
     subscription_create_price_getter,
+    subscription_create_seller_results_getter,
+    subscription_create_seller_search_getter,
     subscription_create_time_getter,
     subscription_detail_getter,
     subscriptions_getter,
@@ -149,7 +153,7 @@ subscription_create_criteria_window = Window(
         "\n💡 <i>Выберите критерии или оставь пустым для подписки на любые условия</i>",
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.create_criteria),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.menu),
         Button(
             Const("➡️ Далее"),
             id="next_step",
@@ -252,6 +256,83 @@ create_date_window = Window(
 )
 
 
+# Поиск сотрудника
+create_seller_search_window = Window(
+    Const("👤 <b>Шаг: Выбор сотрудника</b>"),
+    Format("""
+<blockquote>📈 <b>Тип:</b> {exchange_type_display}
+🎯 <b>Критерии:</b> {criteria_display}</blockquote>"""),
+    Format("""
+💡 Введи ФИО, ID пользователя или username сотрудника:
+
+<i>Например: Иванов, 123456789, @username, username</i>"""),
+    TextInput(
+        id="seller_search_input",
+        on_success=on_seller_search_query,
+    ),
+    Row(
+        Button(Const("⬅️ Назад"), id="back_step", on_click=on_criteria_next),
+        SwitchTo(Const("↩️ К меню"), id="cancel", state=ExchangesSub.menu),
+    ),
+    getter=subscription_create_seller_search_getter,
+    state=ExchangesSub.create_seller,
+)
+
+# Результаты поиска сотрудника
+create_seller_results_window = Window(
+    Const("👤 <b>Результаты поиска</b>"),
+    Format(
+        """
+По запросу "<code>{search_query}</code>" найдено: {total_found} сотрудников""",
+        when="has_results",
+    ),
+    Format(
+        """
+❌ <b>Ничего не найдено</b>
+
+По запросу "<code>{search_query}</code>" сотрудники не найдены.
+
+Попробуйте:
+• Проверить правильность написания
+• Использовать только часть имени или фамилии
+• Поискать по username без @
+• Использовать числовой ID пользователя""",
+        when=~F["has_results"],
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{item[1]}"),
+            id="seller_results",
+            items="search_results",
+            item_id_getter=lambda item: item[0],
+            on_click=on_seller_selected,
+        ),
+        width=1,
+        height=5,
+        hide_on_single_page=True,
+        id="seller_results_scroll",
+        when="has_results",
+    ),
+    Row(
+        SwitchTo(
+            Const("🔄 Новый поиск"), id="new_search", state=ExchangesSub.create_seller
+        ),
+        Button(
+            Const("➡️ Пропустить"),
+            id="skip_seller",
+            on_click=on_criteria_next,
+            when=~F["has_results"],
+        ),
+    ),
+    Row(
+        Button(Const("⬅️ Назад"), id="back_step", on_click=on_criteria_next),
+        SwitchTo(Const("↩️ К меню"), id="cancel", state=ExchangesSub.menu),
+    ),
+    getter=subscription_create_seller_results_getter,
+    state=ExchangesSub.create_seller_results,
+)
+
+
 # Подтверждение создания
 create_confirmation_window = Window(
     Const("✅ <b>Шаг 5: Подтверждение создания</b>"),
@@ -281,5 +362,7 @@ exchanges_subscriptions_dialog = Dialog(
     create_price_window,
     create_time_window,
     create_date_window,
+    create_seller_search_window,
+    create_seller_results_window,
     create_confirmation_window,
 )
