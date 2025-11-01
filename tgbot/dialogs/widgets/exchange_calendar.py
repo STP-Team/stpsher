@@ -25,13 +25,16 @@ class ShiftDateText(Text):
         """Рендер даты с эмодзи смены если она есть."""
         selected_date: date = data["date"]
         day = selected_date.day
+        month = selected_date.month
 
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
-        # Проверяем есть ли смена на эту дату
-        date_key = f"{day:02d}"
-        if date_key in shift_dates:
+        # Проверяем есть ли смена на эту дату (сначала с месяцем, потом без)
+        month_day_key = f"{month:02d}_{day:02d}"
+        day_key = f"{day:02d}"
+
+        if month_day_key in shift_dates or day_key in shift_dates:
             return f"·{day}·"
 
         return str(day)
@@ -48,13 +51,16 @@ class TodayShiftDateText(Text):
         """Рендер сегодняшней даты с эмодзи смены если она есть."""
         selected_date: date = data["date"]
         day = selected_date.day
+        month = selected_date.month
 
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
-        # Проверяем есть ли смена на эту дату
-        date_key = f"{day:02d}"
-        if date_key in shift_dates:
+        # Проверяем есть ли смена на эту дату (сначала с месяцем, потом без)
+        month_day_key = f"{month:02d}_{day:02d}"
+        day_key = f"{day:02d}"
+
+        if month_day_key in shift_dates or day_key in shift_dates:
             return f"·︎︎{day}·"
 
         return f"{day}"
