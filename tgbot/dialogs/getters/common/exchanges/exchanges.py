@@ -367,12 +367,12 @@ async def get_exchange_text(
             )
         )
 
-        exchange_text = f"""<blockquote><b>{exchange_type}:</b>
+        exchange_text = f"""<blockquote>{seller_name}
+        
+<b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Оплата:</b>
-<code>{price_display}</code> - {payment_date_str}
-👤 <b>Продавец:</b>
-{seller_name}</blockquote>"""
+<code>{price_display}</code> - {payment_date_str}</blockquote>"""
     else:
         buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
         buyer_name = format_fullname(
