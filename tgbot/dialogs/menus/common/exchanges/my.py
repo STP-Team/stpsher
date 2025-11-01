@@ -79,13 +79,12 @@ my_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
 📊 <b>Статус:</b> {status_text}"""),
-    Format("""
-{exchange_info}"""),
     Format(
-        """
-💸 <b>Оплачено:</b> {is_paid}""",
+        """💸 <b>Оплачено:</b> {is_paid}""",
         when="has_other_party",
     ),
+    Format("""
+{exchange_info}"""),
     Format(
         """
 📝 <b>Комментарий:</b>
@@ -120,7 +119,7 @@ my_detail_window = Window(
             Const("🟡 Не оплачено"),
             id="exchange_is_paid",
             on_click=on_paid_click,
-            when=~F["is_seller"],
+            when=F["current_user_should_get_paid"],
         ),
         Row(
             Checkbox(
