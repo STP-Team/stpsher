@@ -16,8 +16,12 @@ from aiogram_dialog.widgets.text import Const, Format
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_buy_confirm,
     on_buy_full_exchange,
-    on_exchange_buy,
+    on_exchange_sell,
     on_exchange_sell_selected,
+    # New seller event handlers
+    on_offer_full_time,
+    on_sell_confirm,
+    on_seller_time_input,
     on_time_input,
 )
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
@@ -28,6 +32,9 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
     buy_time_selection_getter,
     exchange_sell_detail_getter,
     exchange_sell_getter,
+    sell_confirmation_getter,
+    # New seller getters
+    sell_time_selection_getter,
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -80,7 +87,7 @@ sell_detail_window = Window(
     Format("""
 {exchange_info}"""),
     Button(
-        Const("✍️ Предложить сделку"), id="accept_buy_request", on_click=on_exchange_buy
+        Const("✍️ Предложить сделку"), id="accept_buy_request", on_click=on_exchange_sell
     ),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
@@ -138,4 +145,44 @@ buy_confirmation_window = Window(
     ),
     getter=buy_confirmation_getter,
     state=Exchanges.buy_confirmation,
+)
+
+sell_time_selection_window = Window(
+    Const("💰 <b>Сделка: Выбор времени</b>"),
+    Format("""
+<blockquote>👤 <b>Покупатель:</b> {buyer_name}
+⏱️ <b>Время:</b> {requested_time_range} ({requested_hours} ч.) {date_str}
+💰 <b>Оплата:</b> {price_per_hour} р./ч.</blockquote>
+
+Введи часы, которые хочешь продать
+
+<i>💡 Время должно быть в рамках твоей смены и времени текущей сделки</i>"""),
+    Button(
+        Const("🔄 Предложить всё время"),
+        id="offer_full_time",
+        on_click=on_offer_full_time,
+    ),
+    TextInput(
+        id="seller_time_input",
+        on_success=on_seller_time_input,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_detail), HOME_BTN),
+    getter=sell_time_selection_getter,
+    state=Exchanges.sell_time_selection,
+)
+
+sell_confirmation_window = Window(
+    Const("✅ <b>Сделка: Подтверждение</b>"),
+    Format("""
+<blockquote>👤 <b>Покупатель:</b> {buyer_name}
+🕐 <b>Твое предложение:</b> {offered_time_range} ({offered_hours} ч.) {date_str}
+💰 <b>Цена:</b> {price_per_hour} р./ч. (общая стоимость: {total_price} р.)</blockquote>
+
+Отправить предложение покупателю?"""),
+    Row(
+        Button(Const("✅ Отправить"), id="confirm_offer", on_click=on_sell_confirm),
+        SwitchTo(Const("✋ Отмена"), id="cancel_offer", state=Exchanges.sell),
+    ),
+    getter=sell_confirmation_getter,
+    state=Exchanges.sell_confirmation,
 )

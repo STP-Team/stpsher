@@ -1083,3 +1083,108 @@ async def buy_confirmation_getter(
         "seller_name": seller_name,
         "buy_full": buy_full,
     }
+
+
+# New getters for seller responding to buy requests
+
+
+async def sell_time_selection_getter(
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> Dict[str, Any]:
+    """Геттер для экрана выбора времени продавцом в ответ на buy request."""
+    buy_request = dialog_manager.dialog_data.get("buy_request")
+
+    if not buy_request:
+        return {"error": "Buy request не найден"}
+
+    # Получаем информацию о покупателе
+    buyer = await stp_repo.employee.get_users(user_id=buy_request["buyer_id"])
+    buyer_name = format_fullname(
+        buyer.fullname, True, True, buyer.username, buyer.username
+    )
+
+    # Форматируем время и дату
+    start_time = buy_request["start_time"].strftime("%H:%M")
+    end_time = buy_request["end_time"].strftime("%H:%M")
+    date_str = buy_request["start_time"].strftime("%d.%m.%Y")
+
+    # Рассчитываем общее количество часов
+    duration = buy_request["end_time"] - buy_request["start_time"]
+    requested_hours = duration.total_seconds() / 3600
+
+    return {
+        "buyer_name": buyer_name,
+        "date_str": date_str,
+        "requested_time_range": f"{start_time}-{end_time}",
+        "requested_hours": f"{requested_hours:g}",
+        "price_per_hour": buy_request["price"],
+    }
+
+
+async def sell_confirmation_getter(
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> Dict[str, Any]:
+    """Геттер для экрана подтверждения предложения продажи."""
+    buy_request = dialog_manager.dialog_data.get("buy_request")
+    offer_full = dialog_manager.dialog_data.get("offer_full", False)
+
+    if not buy_request:
+        return {"error": "Buy request не найден"}
+
+    # Получаем информацию о покупателе
+    buyer = await stp_repo.employee.get_users(user_id=buy_request["buyer_id"])
+    buyer_name = format_fullname(
+        buyer.fullname, True, True, buyer.username, buyer.username
+    )
+
+    date_str = buy_request["start_time"].strftime("%d.%m.%Y")
+    price_per_hour = buy_request["price"]
+
+    # Форматируем запрашиваемое время
+    request_start = buy_request["start_time"].strftime("%H:%M")
+    request_end = buy_request["end_time"].strftime("%H:%M")
+    request_duration = buy_request["end_time"] - buy_request["start_time"]
+    requested_hours = request_duration.total_seconds() / 3600
+
+    if offer_full:
+        # Предлагаем всё запрашиваемое время
+        offered_time_range = f"{request_start}-{request_end}"
+        offered_hours = requested_hours
+        total_price = int(price_per_hour * offered_hours)
+    else:
+        # Частичное предложение времени
+        start_str = dialog_manager.dialog_data.get("offered_start_time")
+        end_str = dialog_manager.dialog_data.get("offered_end_time")
+
+        from datetime import datetime
+
+        request_date = buy_request["start_time"].date()
+        offered_start = datetime.combine(
+            request_date, datetime.strptime(start_str, "%H:%M").time()
+        )
+        offered_end = datetime.combine(
+            request_date, datetime.strptime(end_str, "%H:%M").time()
+        )
+
+        # Рассчитываем цену исходя из цены за час
+        offered_duration = offered_end - offered_start
+        offered_hours = offered_duration.total_seconds() / 3600
+        total_price = int(price_per_hour * offered_hours)
+
+        offered_time_range = f"{start_str}-{end_str}"
+
+    return {
+        "buyer_name": buyer_name,
+        "date_str": date_str,
+        "requested_time_range": f"{request_start}-{request_end}",
+        "requested_hours": f"{requested_hours:g}",
+        "offered_time_range": offered_time_range,
+        "offered_hours": f"{offered_hours:g}",
+        "price_per_hour": price_per_hour,
+        "total_price": total_price,
+        "offer_full": offer_full,
+    }
