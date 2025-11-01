@@ -99,6 +99,32 @@ class ExchangesScheduler(BaseScheduler):
             replace_existing=True,
         )
 
+        # Уведомления за 1 час до начала обмена
+        scheduler.add_job(
+            func=self._check_upcoming_exchanges_1hour,
+            args=[session_pool, bot],
+            trigger="interval",
+            id="exchanges_notify_1hour",
+            name="Уведомления за 1 час до обмена",
+            minutes=10,
+            coalesce=True,
+            misfire_grace_time=300,
+            replace_existing=True,
+        )
+
+        # Уведомления за 1 день до начала обмена
+        scheduler.add_job(
+            func=self._check_upcoming_exchanges_1day,
+            args=[session_pool, bot],
+            trigger="interval",
+            id="exchanges_notify_1day",
+            name="Уведомления за 1 день до обмена",
+            hours=1,
+            coalesce=True,
+            misfire_grace_time=600,
+            replace_existing=True,
+        )
+
     async def _check_expired_offers(self, session_pool, bot: Bot) -> None:
         """Проверка истекших сделок.
 
@@ -116,6 +142,24 @@ class ExchangesScheduler(BaseScheduler):
             bot: Экземпляр бота
         """
         await check_subscription_matches(session_pool, bot)
+
+    async def _check_upcoming_exchanges_1hour(self, session_pool, bot: Bot) -> None:
+        """Проверка обменов, начинающихся через 1 час.
+
+        Args:
+            session_pool: Сессия с БД
+            bot: Экземпляр бота
+        """
+        await check_upcoming_exchanges(session_pool, bot, hours_before=1)
+
+    async def _check_upcoming_exchanges_1day(self, session_pool, bot: Bot) -> None:
+        """Проверка обменов, начинающихся через 1 день.
+
+        Args:
+            session_pool: Сессия с БД
+            bot: Экземпляр бота
+        """
+        await check_upcoming_exchanges(session_pool, bot, hours_before=24)
 
 
 async def check_expired_offers(session_pool, bot: Bot):
@@ -312,3 +356,128 @@ async def notify_subscription_match(
 
     except Exception as e:
         logger.error(f"Ошибка отправки уведомления о совпадении: {e}")
+
+
+async def check_upcoming_exchanges(session_pool, bot: Bot, hours_before: int):
+    """Проверка и отправка уведомлений о приближающихся обменах.
+
+    Args:
+        session_pool: Пул сессий основной БД
+        bot: Экземпляр бота
+        hours_before: За сколько часов до начала отправлять уведомление
+    """
+    async with session_pool() as stp_session:
+        stp_repo = MainRequestsRepo(stp_session)
+
+        try:
+            current_local_time = datetime.now(tz)
+            target_time = current_local_time + timedelta(hours=hours_before)
+
+            # Определяем временное окно (±5 минут для уведомлений)
+            time_window = timedelta(minutes=5)
+            target_start = target_time - time_window
+            target_end = target_time + time_window
+
+            # Получаем проданные обмены, которые еще не начались
+            upcoming_exchanges = await stp_repo.exchange.get_upcoming_sold_exchanges(
+                start_after=target_start, start_before=target_end, limit=500
+            )
+
+            for exchange in upcoming_exchanges:
+                # Приводим время к локальной временной зоне
+                start_time = exchange.start_time
+                if start_time.tzinfo is None:
+                    start_time = tz.localize(start_time)
+
+                # Отправляем уведомления обеим сторонам
+                await notify_upcoming_exchange(bot, stp_repo, exchange, hours_before)
+
+        except Exception as e:
+            logger.error(
+                f"Ошибка проверки приближающихся обменов ({hours_before}ч): {e}"
+            )
+
+
+async def notify_upcoming_exchange(
+    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange, hours_before: int
+) -> None:
+    """Отправка уведомления о приближающемся обмене.
+
+    Args:
+        bot: Экземпляр бота
+        stp_repo: Репозиторий операций с базой STP
+        exchange: Экземпляр сделки
+        hours_before: За сколько часов отправляется уведомление
+    """
+    try:
+        # Создаем deeplink один раз
+        deeplink = await create_start_link(
+            bot=bot, payload=f"exchange_{exchange.id}", encode=True
+        )
+
+        # Определяем текст уведомления в зависимости от времени
+        if hours_before == 1:
+            time_text = "через 1 час"
+            emoji = "⏰"
+        elif hours_before == 24:
+            time_text = "завтра"
+            emoji = "📅"
+        else:
+            time_text = f"через {hours_before} часов"
+            emoji = "⏰"
+
+        # Создаем клавиатуру
+        inline_keyboard = [
+            [InlineKeyboardButton(text="🎭 Открыть сделку", url=deeplink)]
+        ]
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+        # Уведомление продавцу
+        if exchange.seller_id:
+            # Получаем информацию об обмене с точки зрения продавца
+            seller_exchange_info = await get_exchange_text(
+                stp_repo, exchange, user_id=exchange.seller_id
+            )
+
+            seller_message = f"""{emoji} <b>Напоминание о смене</b>
+
+Проданный промежуток смены начинается {time_text}
+
+{seller_exchange_info}"""
+
+            await bot.send_message(
+                chat_id=exchange.seller_id,
+                text=seller_message,
+                reply_markup=reply_markup,
+                disable_notification=False,
+            )
+
+        # Уведомление покупателю
+        if exchange.buyer_id:
+            # Получаем информацию об обмене с точки зрения покупателя
+            buyer_exchange_info = await get_exchange_text(
+                stp_repo, exchange, user_id=exchange.buyer_id
+            )
+
+            buyer_message = f"""{emoji} <b>Напоминание о смене</b>
+
+Смена, которую ты купил, начинается {time_text}
+
+{buyer_exchange_info}"""
+
+            await bot.send_message(
+                chat_id=exchange.buyer_id,
+                text=buyer_message,
+                reply_markup=reply_markup,
+                disable_notification=False,
+            )
+
+        logger.info(
+            f"Отправлены уведомления о приближающемся обмене {exchange.id} "
+            f"(за {hours_before}ч)"
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка отправки уведомления о приближающемся обмене {exchange.id}: {e}"
+        )
