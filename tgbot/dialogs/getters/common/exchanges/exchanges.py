@@ -258,8 +258,14 @@ async def get_exchange_text(
         )
 
         # Форматируем дату оплаты
-        payment_date_str = "сразу" if exchange.payment_type == "immediate" else (
-            exchange.payment_date.strftime("%d.%m.%Y") if exchange.payment_date else "по договоренности"
+        payment_date_str = (
+            "сразу"
+            if exchange.payment_type == "immediate"
+            else (
+                exchange.payment_date.strftime("%d.%m.%Y")
+                if exchange.payment_date
+                else "по договоренности"
+            )
         )
 
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
@@ -274,8 +280,14 @@ async def get_exchange_text(
             buyer.fullname, True, True, buyer.username, buyer.username
         )
         # Форматируем дату оплаты для buy запроса
-        payment_date_str = "сразу" if exchange.payment_type == "immediate" else (
-            exchange.payment_date.strftime("%d.%m.%Y") if exchange.payment_date else "по договоренности"
+        payment_date_str = (
+            "сразу"
+            if exchange.payment_type == "immediate"
+            else (
+                exchange.payment_date.strftime("%d.%m.%Y")
+                if exchange.payment_date
+                else "по договоренности"
+            )
         )
 
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
@@ -643,24 +655,11 @@ async def exchange_sell_detail_getter(
         if not exchange:
             return {"error": "Запрос не найден"}
 
-        # Проверяем, что это buy-запрос
-        if exchange.type != "buy":
-            return {"error": "Неверный тип запроса"}
-
-        # Информация об оплате
-        if exchange.payment_type == "immediate":
-            payment_info = "Сразу при продаже"
-        elif exchange.payment_date:
-            payment_info = f"До {exchange.payment_date.strftime('%d.%m.%Y')}"
-        else:
-            payment_info = "По договоренности"
-
         exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
         deeplink = f"buy_request_{exchange.id}"
 
         return {
             "exchange_info": exchange_info,
-            "payment_info": payment_info,
             "deeplink": deeplink,
         }
 
