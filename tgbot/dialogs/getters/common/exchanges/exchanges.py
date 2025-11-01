@@ -270,6 +270,62 @@ async def get_exchange_status(exchange: Exchange) -> str:
     return status
 
 
+async def get_exchange_button_text(
+    exchange: Exchange, user_id: int, date_str: str
+) -> str:
+    """Генерирует текст кнопки для обмена в зависимости от роли пользователя, типа и статуса сделки.
+
+    Args:
+        exchange: Экземпляр сделки с моделью Exchange
+        user_id: ID текущего пользователя
+        date_str: Форматированная дата (например, "15.11")
+
+    Returns:
+        Текст кнопки для отображения в списке обменов
+    """
+    # Определяем роль пользователя в сделке
+    is_seller = exchange.seller_id == user_id
+
+    if is_seller:
+        # Пользователь - продавец или создатель запроса на покупку
+        if exchange.type == "sell":
+            # Пользователь продает смену
+            if exchange.status == "sold":
+                return f"📉 Продал {date_str}"
+            elif exchange.status == "active":
+                return f"📉 Продаю {date_str}"
+            elif exchange.status == "inactive":
+                return f"📉 Приостановил {date_str}"
+            elif exchange.status == "canceled":
+                return f"📉 Отменил {date_str}"
+            elif exchange.status == "expired":
+                return f"📉 Просрочил {date_str}"
+            else:
+                return f"📉 {exchange.status.title()} {date_str}"
+        else:  # exchange.type == "buy"
+            # Пользователь создал запрос на покупку
+            if exchange.status == "sold":
+                return f"📈 Купил {date_str}"
+            elif exchange.status == "active":
+                return f"📈 Покупаю {date_str}"
+            elif exchange.status == "inactive":
+                return f"📈 Приостановил {date_str}"
+            elif exchange.status == "canceled":
+                return f"📈 Отменил {date_str}"
+            elif exchange.status == "expired":
+                return f"📈 Просрочил {date_str}"
+            else:
+                return f"📈 {exchange.status.title()} {date_str}"
+    else:
+        # Пользователь - покупатель (buyer_id == user_id)
+        if exchange.type == "sell":
+            # Пользователь купил чужое предложение продажи
+            return f"📈 Купил {date_str}"
+        else:
+            # Пользователь принял чужой запрос на покупку (продал)
+            return f"📉 Продал {date_str}"
+
+
 async def get_exchange_hours(exchange: Exchange) -> float | None:
     """Расчет кол-ва часов сделки.
 
@@ -409,6 +465,130 @@ async def get_exchange_text(
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Оплата:</b>
 <code>{price_display}</code> - {payment_date_str}</blockquote>"""
+    return exchange_text
+
+
+async def get_exchange_detailed_text(
+    stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
+) -> str:
+    """Форматирует детальный текст для отображения информации о сделке с четким указанием ролей.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        exchange: Экземпляр сделки с моделью Exchange
+        user_id: Идентификатор Telegram текущего пользователя
+
+    Returns:
+        Форматированная строка с четким указанием ролей продавца и покупателя
+    """
+    # Определяем роль текущего пользователя
+    is_current_user_seller = exchange.seller_id == user_id
+
+    # Защита от None значений в датах/времени
+    if exchange.start_time:
+        shift_date = exchange.start_time.strftime("%d.%m.%Y")
+        start_time_str = exchange.start_time.strftime("%H:%M")
+    else:
+        shift_date = "Не указано"
+        start_time_str = "Не указано"
+
+    if exchange.end_time:
+        end_time_str = exchange.end_time.strftime("%H:%M")
+    else:
+        end_time_str = "Не указано"
+
+    shift_time = f"{start_time_str}-{end_time_str}"
+    shift_hours = await get_exchange_hours(exchange)
+    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
+
+    # Получаем информацию о продавце
+    seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+    seller_name = (
+        format_fullname(seller.fullname, True, True, seller.username, seller.username)
+        if seller
+        else "Не указано"
+    )
+
+    # Получаем информацию о покупателе (если есть)
+    buyer_name = "Не указано"
+    if exchange.buyer_id:
+        buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
+        buyer_name = (
+            format_fullname(buyer.fullname, True, True, buyer.username, buyer.username)
+            if buyer
+            else "Не указано"
+        )
+
+    # Определяем роли для отображения в зависимости от типа сделки
+    # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
+    if exchange.type == "sell":
+        # Для продажи: seller_id - отдает смену и платит, buyer_id - берет смену и получает оплату
+        if is_current_user_seller:
+            current_user_role = "Продавец (оплата)"
+            other_party_role = "Покупатель"
+            other_party_name = buyer_name
+        else:
+            current_user_role = "Покупатель"
+            other_party_role = "Продавец (оплата)"
+            other_party_name = seller_name
+    else:
+        # Для запроса покупки: seller_id - хочет взять смену (получить оплату), buyer_id - отдает смену (платит)
+        if is_current_user_seller:
+            current_user_role = "Покупатель"  # Создатель запроса хочет взять смену
+            other_party_role = "Продавец (оплата)"
+            other_party_name = buyer_name
+        else:
+            current_user_role = "Продавец (оплата)"  # Исполнитель отдает смену
+            other_party_role = "Покупатель"
+            other_party_name = seller_name
+
+    # Определяем тип операции для заголовка
+    if exchange.type == "sell":
+        operation_type = "📉 Продажа смены"
+    else:
+        operation_type = "📈 Покупка смены"
+
+    # Расчет цены
+    price_per_hour = exchange.price
+    price_per_hour_text = (
+        f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
+    )
+
+    # Рассчитываем общую стоимость
+    if shift_hours is not None and price_per_hour is not None:
+        total_price = int(price_per_hour * shift_hours)
+        price_display = f"{price_per_hour_text} ({total_price:g} р.)"
+    else:
+        price_display = price_per_hour_text
+
+    # Форматируем дату оплаты
+    payment_date_str = (
+        "сразу"
+        if exchange.payment_type == "immediate"
+        else (
+            exchange.payment_date.strftime("%d.%m.%Y")
+            if exchange.payment_date
+            else "по договоренности"
+        )
+    )
+
+    # Формируем детальную информацию о ролях
+    roles_info = f"""👤 <b>Ты:</b> {current_user_role}"""
+
+    if other_party_name != "Не указано":
+        roles_info += f"""
+👥 <b>Партнер:</b> {other_party_role} - {other_party_name}"""
+    else:
+        roles_info += f"""
+👥 <b>Партнер:</b> {other_party_role} - <i>не назначен</i>"""
+
+    exchange_text = f"""<blockquote>{roles_info}
+
+<b>{operation_type}:</b>
+<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
+💰 <b>Оплата:</b>
+<code>{price_display}</code> - {payment_date_str}</blockquote>"""
+
     return exchange_text
 
 
@@ -803,33 +983,8 @@ async def my_exchanges(
             else:
                 date_str = "Не указано"
 
-            # Определяем тип и статус обмена для пользователя
-            if exchange.seller_id == user_id:
-                # Пользователь - продавец или создатель запроса на покупку
-                if exchange.type == "sell":
-                    # Пользователь продает смену
-                    if exchange.status == "sold":
-                        button_text = f"📉 Продал {date_str}"
-                    elif exchange.status == "active":
-                        button_text = f"📉 Продаю {date_str}"
-                    else:  # cancelled, expired, inactive
-                        button_text = f"Отменил {date_str}"
-                else:  # exchange.type == "buy"
-                    # Пользователь создал запрос на покупку
-                    if exchange.status == "sold":
-                        button_text = f"📈 Купил {date_str}"
-                    elif exchange.status == "active":
-                        button_text = f"📈 Покупаю {date_str}"
-                    else:  # cancelled, expired, inactive
-                        button_text = f"Отменил {date_str}"
-            else:
-                # Пользователь - покупатель (buyer_id == user_id)
-                if exchange.type == "sell":
-                    # Пользователь купил чужое предложение продажи
-                    button_text = f"📈 Купил {date_str}"
-                else:
-                    # Пользователь принял чужой запрос на покупку (продал)
-                    button_text = f"📉 Продал {date_str}"
+            # Генерируем текст кнопки с помощью универсальной функции
+            button_text = await get_exchange_button_text(exchange, user_id, date_str)
 
             my_exchanges_list.append({
                 "id": exchange.id,
@@ -912,6 +1067,17 @@ async def my_detail_getter(
         exchange.in_seller_schedule if is_seller else exchange.in_buyer_schedule
     )
 
+    # Определяем, кто должен получить оплату и управлять кнопкой "Оплачено"
+    # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
+    current_user_should_get_paid = False
+
+    if exchange.type == "sell":
+        # Для продажи: buyer_id получает оплату от seller_id
+        current_user_should_get_paid = (exchange.buyer_id == dialog_manager.event.from_user.id)
+    else:  # exchange.type == "buy"
+        # Для запроса покупки: seller_id (создатель запроса) получает оплату от buyer_id
+        current_user_should_get_paid = (exchange.seller_id == dialog_manager.event.from_user.id)
+
     exchange_is_paid: ManagedCheckbox = dialog_manager.find(
         "exchange_is_paid"
     )  # Статус оплаты
@@ -932,7 +1098,7 @@ async def my_detail_getter(
         exchange, user.user_id, stp_repo
     )
 
-    exchange_text = await get_exchange_text(stp_repo, exchange, user.user_id)
+    exchange_text = await get_exchange_detailed_text(stp_repo, exchange, user.user_id)
     exchange_status = await get_exchange_status(exchange)
     exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
 
@@ -967,6 +1133,7 @@ async def my_detail_getter(
         "deeplink_url": exchange_deeplink_url,
         "could_activate": could_activate,
         "is_seller": is_seller,
+        "current_user_should_get_paid": current_user_should_get_paid,
     }
 
 
