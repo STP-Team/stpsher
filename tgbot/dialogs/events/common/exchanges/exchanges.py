@@ -345,114 +345,6 @@ async def on_exchange_buy(
         await event.answer("❌ Произошла ошибка при обработке запроса", show_alert=True)
 
 
-async def on_exchange_sell(
-    event: CallbackQuery,
-    widget: Any,
-    dialog_manager: DialogManager,
-):
-    """Обработчик покупки обмена или принятия запроса на покупку."""
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    user_id = dialog_manager.event.from_user.id
-    exchange_id = dialog_manager.dialog_data.get("exchange_id")
-
-    if not exchange_id:
-        await event.answer("❌ Обмен не найден", show_alert=True)
-        return
-
-    try:
-        # Проверяем бан пользователя
-        if await stp_repo.exchange.is_user_exchange_banned(user_id):
-            await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
-            return
-
-        # Получаем обмен
-        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-        if not exchange or exchange.status != "active":
-            await event.answer("❌ Сделка недоступна", show_alert=True)
-            return
-
-        # Покупаем обмен
-        success = await stp_repo.exchange.buy_exchange(exchange_id, user_id)
-
-        if success:
-            await event.answer(
-                "✅ Смена успешно куплена! Свяжись с продавцом для уточнения деталей",
-                show_alert=True,
-            )
-            dialog_manager.dialog_data.clear()
-            await dialog_manager.switch_to(Exchanges.buy)
-        else:
-            await event.answer(
-                "❌ Не удалось купить смену. Попробуй позже.", show_alert=True
-            )
-
-    except Exception as e:
-        logger.error(e)
-        await event.answer("❌ Произошла ошибка при обработке запроса", show_alert=True)
-
-
-async def on_exchange_buy_cancel(
-    event: CallbackQuery,
-    widget: Any,
-    dialog_manager: DialogManager,
-):
-    """Обработчик отмены покупки обмена."""
-    # Очищаем данные и возвращаемся к списку покупок
-    dialog_manager.dialog_data.pop("exchange_id", None)
-    await dialog_manager.switch_to(Exchanges.buy)
-
-
-async def on_exchange_cancel(
-    event: CallbackQuery,
-    widget: Any,
-    dialog_manager: DialogManager,
-):
-    """Обработчик отмены собственного обмена."""
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    user_id = dialog_manager.event.from_user.id
-    exchange_id = dialog_manager.dialog_data.get("exchange_id")
-
-    if not exchange_id:
-        await event.answer("❌ Обмен не найден", show_alert=True)
-        return
-
-    try:
-        # Получаем обмен
-        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-        if not exchange:
-            await event.answer("❌ Обмен не найден", show_alert=True)
-            return
-
-        # Проверяем, что это обмен пользователя
-        if exchange.seller_id != user_id:
-            await event.answer("❌ Можно отменять только свои обмены", show_alert=True)
-            return
-
-        # Проверяем статус обмена
-        if exchange.status != "active":
-            await event.answer(
-                "❌ Можно отменять только активные обмены", show_alert=True
-            )
-            return
-
-        # Отменяем обмен
-        success = await stp_repo.exchange.cancel_exchange(exchange_id, user_id)
-
-        if success:
-            await event.answer("✅ Обмен успешно отменен", show_alert=True)
-            # Очищаем данные диалога
-            dialog_manager.dialog_data.clear()
-            # Возвращаемся к меню продажи
-            await dialog_manager.switch_to(Exchanges.sell)
-        else:
-            await event.answer(
-                "❌ Не удалось отменить обмен. Попробуйте позже.", show_alert=True
-            )
-
-    except Exception:
-        await event.answer("❌ Произошла ошибка при отмене обмена", show_alert=True)
-
-
 async def on_my_exchange_selected(
     event: CallbackQuery,
     widget: Any,
@@ -1045,16 +937,6 @@ async def on_buy_confirm(
         await event.answer("❌ Произошла ошибка при покупке", show_alert=True)
 
 
-async def on_buy_cancel(
-    event: CallbackQuery,
-    widget: Any,
-    dialog_manager: DialogManager,
-):
-    """Обработчик отмены покупки."""
-    dialog_manager.dialog_data.clear()
-    await dialog_manager.switch_to(Exchanges.sell_detail)
-
-
 def _validate_time_format(time_str: str) -> bool:
     """Валидация формата времени ЧЧ:ММ-ЧЧ:ММ."""
     import re
@@ -1117,10 +999,8 @@ async def _handle_partial_exchange(
         end_time=selected_end,
         price=price_per_hour,  # Цена за час остается неизменной
         status="sold",
+        buyer_id=user_id,
     )
-
-    # Устанавливаем покупателя
-    await stp_repo.exchange.buy_exchange(original_exchange["id"], user_id)
 
     # Создаем новые обмены для оставшегося времени
     original_start = original_exchange["start_time"]

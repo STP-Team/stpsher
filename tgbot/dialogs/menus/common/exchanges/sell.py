@@ -14,15 +14,11 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import (
-    on_buy_cancel,
     on_buy_confirm,
     on_buy_full_exchange,
     on_exchange_buy,
     on_exchange_sell_selected,
     on_time_input,
-)
-from tgbot.dialogs.events.common.exchanges.subscriptions import (
-    start_subscriptions_dialog,
 )
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
     start_subscriptions_dialog,
@@ -138,7 +134,7 @@ buy_confirmation_window = Window(
 Подтвердить покупку?"""),
     Row(
         Button(Const("✅ Подтвердить"), id="confirm_buy", on_click=on_buy_confirm),
-        Button(Const("❌ Отменить"), id="cancel_buy", on_click=on_buy_cancel),
+        SwitchTo(Const("✋ Отмена"), id="cancel_buy", state=Exchanges.sell),
     ),
     getter=buy_confirmation_getter,
     state=Exchanges.buy_confirmation,
