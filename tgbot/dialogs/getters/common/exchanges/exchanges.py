@@ -1067,16 +1067,16 @@ async def my_detail_getter(
         exchange.in_seller_schedule if is_seller else exchange.in_buyer_schedule
     )
 
-    # Определяем, кто должен получить оплату и управлять кнопкой "Оплачено"
-    # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
-    current_user_should_get_paid = False
-
     if exchange.type == "sell":
-        # Для продажи: buyer_id получает оплату от seller_id
-        current_user_should_get_paid = (exchange.buyer_id == dialog_manager.event.from_user.id)
+        # Для продажи: seller_id отдает смену и платит, buyer_id берет смену и получает оплату
+        current_user_should_get_paid = (
+            exchange.buyer_id == dialog_manager.event.from_user.id
+        )
     else:  # exchange.type == "buy"
-        # Для запроса покупки: seller_id (создатель запроса) получает оплату от buyer_id
-        current_user_should_get_paid = (exchange.seller_id == dialog_manager.event.from_user.id)
+        # Для запроса покупки: seller_id хочет взять смену и получить оплату, buyer_id отдает смену и платит
+        current_user_should_get_paid = (
+            exchange.seller_id == dialog_manager.event.from_user.id
+        )
 
     exchange_is_paid: ManagedCheckbox = dialog_manager.find(
         "exchange_is_paid"
