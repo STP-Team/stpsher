@@ -247,7 +247,7 @@ async def on_confirm_buy(
 
         # Создаем запрос на покупку
         exchange = await stp_repo.exchange.create_exchange(
-            seller_id=user_id,  # В buy-запросе seller_id это фактически buyer_id
+            buyer_id=user_id,  # В buy-запросе seller_id это фактически buyer_id
             start_time=start_time,
             end_time=end_time,
             price=price_per_hour,  # Цена за час

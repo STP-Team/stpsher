@@ -25,6 +25,10 @@ class Exchanges(StatesGroup):
     buy_time_selection = State()  # Выбор времени для покупки
     buy_confirmation = State()  # Подтверждение покупки с расчетом цены
 
+    # Продажа в ответ на запрос покупки
+    sell_time_selection = State()  # Выбор времени для продажи в ответ на buy request
+    sell_confirmation = State()  # Подтверждение предложения продажи
+
     # Настройки биржи
     buy_settings = State()
     buy_filters_day = State()

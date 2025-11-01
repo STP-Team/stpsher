@@ -307,7 +307,7 @@ async def on_exchange_buy(
     widget: Any,
     dialog_manager: DialogManager,
 ):
-    """Обработчик покупки предложения - переходим к выбору времени."""
+    """Обработчик покупки sell offer."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
     exchange_id = dialog_manager.dialog_data.get("exchange_id")
@@ -328,7 +328,12 @@ async def on_exchange_buy(
             await event.answer("❌ Сделка недоступна", show_alert=True)
             return
 
-        # Сохраняем данные обмена для следующего экрана
+        # Проверяем что это sell offer
+        if exchange.type != "sell":
+            await event.answer("❌ Это не предложение продажи", show_alert=True)
+            return
+
+        # Пользователь покупает существующее предложение продажи
         dialog_manager.dialog_data["original_exchange"] = {
             "id": exchange.id,
             "start_time": exchange.start_time,
@@ -336,9 +341,58 @@ async def on_exchange_buy(
             "price": exchange.price,
             "seller_id": exchange.seller_id,
         }
-
-        # Переходим к экрану выбора времени
+        # Переходим к экрану выбора времени для покупки
         await dialog_manager.switch_to(Exchanges.buy_time_selection)
+
+    except Exception as e:
+        logger.error(e)
+        await event.answer("❌ Произошла ошибка при обработке запроса", show_alert=True)
+
+
+async def on_exchange_sell(
+    event: CallbackQuery,
+    widget: Any,
+    dialog_manager: DialogManager,
+):
+    """Обработчик ответа на buy request (продажа)."""
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user_id = dialog_manager.event.from_user.id
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
+
+    if not exchange_id:
+        await event.answer("❌ Обмен не найден", show_alert=True)
+        return
+
+    try:
+        # Проверяем бан пользователя
+        if await stp_repo.exchange.is_user_exchange_banned(user_id):
+            await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
+            return
+
+        # Получаем обмен
+        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+        if not exchange or exchange.status != "active":
+            await event.answer("❌ Сделка недоступна", show_alert=True)
+            return
+
+        # Проверяем что это buy request
+        if exchange.type != "buy":
+            await event.answer("❌ Это не запрос покупки", show_alert=True)
+            return
+
+        # Пользователь (продавец) отвечает на запрос покупки
+        dialog_manager.dialog_data["buy_request"] = {
+            "id": exchange.id,
+            "start_time": exchange.start_time,
+            "end_time": exchange.end_time,
+            "price": exchange.price,
+            "buyer_id": exchange.buyer_id,
+        }
+        # Переходим к экрану выбора времени для продажи
+        await dialog_manager.switch_to(Exchanges.sell_time_selection)
 
     except Exception as e:
         logger.error(e)
@@ -1024,4 +1078,262 @@ async def _handle_partial_exchange(
             end_time=original_end,
             price=price_per_hour,  # Та же цена за час
             exchange_type="sell",
+        )
+
+
+# New event handlers for seller responding to buy requests
+
+
+async def on_offer_full_time(
+    event: CallbackQuery,
+    widget: Any,
+    dialog_manager: DialogManager,
+):
+    """Обработчик предложения полного времени в ответ на buy request."""
+    # Устанавливаем флаг что предлагаем полное время
+    dialog_manager.dialog_data["offer_full"] = True
+    # Переходим к подтверждению
+    await dialog_manager.switch_to(Exchanges.sell_confirmation)
+
+
+async def on_seller_time_input(
+    message: Any,
+    widget: Any,
+    dialog_manager: DialogManager,
+    text: str,
+):
+    """Обработчик ввода времени продавцом для ответа на buy request."""
+    try:
+        # Валидируем формат времени
+        if not _validate_time_format(text):
+            await message.answer(
+                "❌ Неверный формат времени. Используй формат ЧЧ:ММ-ЧЧ:ММ (например: 14:00-18:00)"
+            )
+            return
+
+        # Парсим время
+        start_str, end_str = text.split("-")
+
+        # Валидируем границы времени против buy request
+        buy_request = dialog_manager.dialog_data.get("buy_request")
+        if not buy_request:
+            await message.answer("❌ Ошибка: данные запроса покупки не найдены")
+            return
+
+        if not _validate_seller_time_limits(start_str, end_str, buy_request):
+            request_start = buy_request["start_time"].strftime("%H:%M")
+            request_end = buy_request["end_time"].strftime("%H:%M")
+            await message.answer(
+                f"❌ Время должно быть в пределах запрашиваемого диапазона {request_start}-{request_end}"
+            )
+            return
+
+        # Сохраняем предложенное время
+        dialog_manager.dialog_data["offered_start_time"] = start_str
+        dialog_manager.dialog_data["offered_end_time"] = end_str
+        dialog_manager.dialog_data["offer_full"] = False
+
+        # Переходим к подтверждению
+        await dialog_manager.switch_to(Exchanges.sell_confirmation)
+
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка обработки времени продавца: {e}")
+        await message.answer("❌ Произошла ошибка при обработке времени")
+
+
+async def on_sell_confirm(
+    event: CallbackQuery,
+    widget: Any,
+    dialog_manager: DialogManager,
+):
+    """Обработчик подтверждения предложения продажи."""
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user_id = dialog_manager.event.from_user.id
+
+    try:
+        buy_request = dialog_manager.dialog_data.get("buy_request")
+        offer_full = dialog_manager.dialog_data.get("offer_full", False)
+
+        if not buy_request:
+            await event.answer(
+                "❌ Ошибка: данные запроса покупки не найдены", show_alert=True
+            )
+            return
+
+        # Проверяем, покрывает ли предложение полное время buy request
+        is_full_time_offer = offer_full or _is_full_time_offer(
+            dialog_manager, buy_request
+        )
+
+        if is_full_time_offer:
+            # Предлагаем всё запрашиваемое время - просто устанавливаем seller_id как в buy логике
+            await stp_repo.exchange.update_exchange(
+                buy_request["id"], status="sold", seller_id=user_id
+            )
+            await event.answer("✅ Запрос покупки успешно принят!", show_alert=True)
+        else:
+            # Частичное предложение времени - обновляем buy request и создаем новые для оставшегося времени
+            await _handle_partial_sell_offer_new(dialog_manager, stp_repo, user_id)
+            await event.answer(
+                "✅ Частичное предложение отправлено покупателю!", show_alert=True
+            )
+
+        # Очищаем данные и возвращаемся
+        dialog_manager.dialog_data.clear()
+        await dialog_manager.switch_to(Exchanges.sell)
+
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка подтверждения предложения продажи: {e}")
+        await event.answer(
+            "❌ Произошла ошибка при отправке предложения", show_alert=True
+        )
+
+
+def _validate_seller_time_limits(
+    start_str: str, end_str: str, buy_request: dict
+) -> bool:
+    """Валидация что предложенное время находится в пределах buy request."""
+    from datetime import datetime
+
+    try:
+        # Парсим предложенное время
+        start_time = datetime.strptime(start_str, "%H:%M").time()
+        end_time = datetime.strptime(end_str, "%H:%M").time()
+
+        # Получаем границы buy request
+        request_start = buy_request["start_time"].time()
+        request_end = buy_request["end_time"].time()
+
+        # Проверяем что предложенное время в границах запроса
+        return (
+            start_time >= request_start
+            and end_time <= request_end
+            and start_time < end_time
+        )
+    except Exception:
+        return False
+
+
+async def _handle_partial_sell_offer(
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int
+):
+    """Обработка частичного предложения времени продавцом (старая логика)."""
+    from datetime import datetime
+
+    buy_request = dialog_manager.dialog_data.get("buy_request")
+    start_str = dialog_manager.dialog_data.get("offered_start_time")
+    end_str = dialog_manager.dialog_data.get("offered_end_time")
+
+    # Создаем datetime объекты для предложенного времени
+    request_date = buy_request["start_time"].date()
+    offered_start = datetime.combine(
+        request_date, datetime.strptime(start_str, "%H:%M").time()
+    )
+    offered_end = datetime.combine(
+        request_date, datetime.strptime(end_str, "%H:%M").time()
+    )
+
+    # Цена за час берется из buy request
+    price_per_hour = buy_request["price"]
+
+    # Создаем новое предложение продажи
+    new_exchange_id = await stp_repo.exchange.create_exchange(
+        seller_id=user_id,
+        start_time=offered_start,
+        end_time=offered_end,
+        price=price_per_hour,
+        exchange_type="sell",
+        comment=f"Частичный ответ на запрос покупки #{buy_request['id']}",
+    )
+
+    if new_exchange_id:
+        # Помечаем оригинальный buy request как частично выполненный
+        # В данном случае оставляем активным, так как это частичное предложение
+        pass
+
+
+def _is_full_time_offer(dialog_manager: DialogManager, buy_request: dict) -> bool:
+    """Проверяет, покрывает ли предложение полное время buy request."""
+    if dialog_manager.dialog_data.get("offer_full", False):
+        return True
+
+    # Проверяем для частичного предложения времени
+    start_str = dialog_manager.dialog_data.get("offered_start_time")
+    end_str = dialog_manager.dialog_data.get("offered_end_time")
+
+    if not start_str or not end_str:
+        return False
+
+    try:
+        from datetime import datetime
+
+        # Парсим предложенное время
+        offered_start = datetime.strptime(start_str, "%H:%M").time()
+        offered_end = datetime.strptime(end_str, "%H:%M").time()
+
+        # Получаем время buy request
+        request_start = buy_request["start_time"].time()
+        request_end = buy_request["end_time"].time()
+
+        # Проверяем, совпадает ли полностью
+        return offered_start == request_start and offered_end == request_end
+    except Exception:
+        return False
+
+
+async def _handle_partial_sell_offer_new(
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int
+):
+    """Обработка частичного предложения времени продавцом (новая логика как в покупке)."""
+    from datetime import datetime
+
+    buy_request = dialog_manager.dialog_data.get("buy_request")
+    start_str = dialog_manager.dialog_data.get("offered_start_time")
+    end_str = dialog_manager.dialog_data.get("offered_end_time")
+
+    # Создаем datetime объекты для предложенного времени
+    request_date = buy_request["start_time"].date()
+    offered_start = datetime.combine(
+        request_date, datetime.strptime(start_str, "%H:%M").time()
+    )
+    offered_end = datetime.combine(
+        request_date, datetime.strptime(end_str, "%H:%M").time()
+    )
+
+    # Цена за час остается той же для всех частей
+    price_per_hour = buy_request["price"]
+
+    # Обновляем существующий buy request на предложенное время и помечаем как проданный
+    await stp_repo.exchange.update_exchange(
+        buy_request["id"],
+        start_time=offered_start,
+        end_time=offered_end,
+        price=price_per_hour,  # Цена за час остается неизменной
+        status="sold",
+        seller_id=user_id,
+    )
+
+    # Создаем новые buy requests для оставшегося времени
+    original_start = buy_request["start_time"]
+    original_end = buy_request["end_time"]
+    original_buyer_id = buy_request["buyer_id"]
+
+    # Создаем buy request для времени до предложенного диапазона
+    if original_start < offered_start:
+        await stp_repo.exchange.create_exchange(
+            buyer_id=original_buyer_id,
+            start_time=original_start,
+            end_time=offered_start,
+            price=price_per_hour,  # Та же цена за час
+            exchange_type="buy",
+        )
+
+    # Создаем buy request для времени после предложенного диапазона
+    if offered_end < original_end:
+        await stp_repo.exchange.create_exchange(
+            buyer_id=original_buyer_id,
+            start_time=offered_end,
+            end_time=original_end,
+            price=price_per_hour,  # Та же цена за час
+            exchange_type="buy",
         )

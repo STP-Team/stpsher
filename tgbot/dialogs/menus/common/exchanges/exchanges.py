@@ -35,7 +35,10 @@ from tgbot.dialogs.menus.common.exchanges.my import (
 from tgbot.dialogs.menus.common.exchanges.sell import (
     buy_confirmation_window,
     buy_time_selection_window,
+    sell_confirmation_window,
     sell_detail_window,
+    # New seller windows
+    sell_time_selection_window,
     sell_window,
 )
 from tgbot.dialogs.menus.common.exchanges.settings import (
@@ -141,6 +144,9 @@ exchanges_dialog = Dialog(
     sell_detail_window,
     buy_time_selection_window,
     buy_confirmation_window,
+    # New seller windows for responding to buy requests
+    sell_time_selection_window,
+    sell_confirmation_window,
     # Настройки покупок
     buy_settings_window,
     buy_filters_day_window,
