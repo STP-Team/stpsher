@@ -24,6 +24,9 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
     start_subscriptions_dialog,
 )
+from tgbot.dialogs.events.common.exchanges.subscriptions import (
+    start_subscriptions_dialog,
+)
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     buy_confirmation_getter,
     buy_time_selection_getter,

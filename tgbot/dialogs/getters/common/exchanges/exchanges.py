@@ -337,6 +337,9 @@ async def get_exchange_text(
     # Защита от None значений в часах
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
 
+    # Защита от None значений в часах
+    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
+
     if exchange.type == "sell":
         seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
         seller_name = format_fullname(
