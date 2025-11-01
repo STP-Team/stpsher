@@ -111,7 +111,12 @@ my_detail_window = Window(
         ),
         when=F["status"] == "active",  # noqa
     ),
-    SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer),
+    SwitchTo(
+        Const("✏️ Редактировать"),
+        id="edit",
+        state=Exchanges.edit_offer,
+        when=F["status"] == "active",  # noqa
+    ),
     # Кнопки завершенной сделки
     Group(
         Checkbox(
