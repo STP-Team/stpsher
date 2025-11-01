@@ -79,10 +79,6 @@ my_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
 📊 <b>Статус:</b> {status_text}"""),
-    Format(
-        """🙋‍♂️ <b>{other_party_type}:</b> {other_party_name}""",
-        when="has_other_party",
-    ),
     Format("""
 {exchange_info}"""),
     Format(
