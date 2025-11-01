@@ -1,22 +1,231 @@
 """События для биржи подмен."""
 
 import logging
+import re
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional, Tuple
 
 from aiogram.types import BufferedInputFile, CallbackQuery
 from aiogram_dialog import ChatEvent, DialogManager
-from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, ManagedCheckbox, Select
+from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
 from stp_database import Employee, MainRequestsRepo
 
+from tgbot.dialogs.getters.common.exchanges.exchanges import get_exchange_status
 from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateBuy,
     ExchangeCreateSell,
     Exchanges,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
+from tgbot.misc.helpers import tz
 
 logger = logging.getLogger(__name__)
+
+
+async def get_shift_info_from_calendar_data(
+    dialog_manager: DialogManager,
+    selected_date: datetime,
+) -> Optional[Tuple[str, str, bool, Optional[str], Optional[str]]]:
+    """Получает информацию о смене из календарных данных.
+
+    Args:
+        dialog_manager: Менеджер диалога
+        selected_date: Выбранная дата
+
+    Returns:
+        Кортеж (start_time, end_time, has_duty, duty_time, duty_type) или None если смена не найдена
+    """
+    # Проверяем календарные данные
+    shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
+    if not shift_dates:
+        return None
+
+    # Формируем ключи для поиска
+    month_day_key = f"{selected_date.month:02d}_{selected_date.day:02d}"
+    day_key = f"{selected_date.day:02d}"
+
+    # Ищем данные о смене
+    calendar_data = None
+    if month_day_key in shift_dates:
+        calendar_data = shift_dates[month_day_key]
+    elif day_key in shift_dates:
+        calendar_data = shift_dates[day_key]
+
+    if not calendar_data or "schedule" not in calendar_data:
+        return None
+
+    # Извлекаем время из графика
+    schedule_value = calendar_data["schedule"]
+    time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
+    match = re.search(time_pattern, schedule_value)
+
+    if not match:
+        return None
+
+    shift_start = match.group(1)
+    shift_end = match.group(2)
+
+    # Получаем информацию о дежурствах из календарных данных
+    duty_info = calendar_data.get("duty_info")
+    has_duty = bool(duty_info)
+    duty_time = duty_info if has_duty else None
+    duty_type = None
+
+    if duty_info and isinstance(duty_info, str):
+        # Парсим информацию о дежурстве (формат: "время тип")
+        duty_parts = duty_info.split()
+        if len(duty_parts) >= 2 and duty_parts[-1] in ["С", "П"]:
+            duty_type = duty_parts[-1]
+            duty_time = " ".join(duty_parts[:-1])
+
+    return shift_start, shift_end, has_duty, duty_time, duty_type
+
+
+async def get_existing_sales_for_date(
+    dialog_manager: DialogManager,
+    shift_date: str,
+    shift_start: str,
+    shift_end: str,
+) -> tuple[bool, list[tuple[str, str]], list[str]]:
+    """Получает информацию о существующих продажах на указанную дату.
+
+    Args:
+        dialog_manager: Менеджер диалога
+        shift_date: Дата смены в формате ISO
+        shift_start: Время начала смены (HH:MM)
+        shift_end: Время окончания смены (HH:MM)
+
+    Returns:
+        Кортеж (is_full_shift_sold, sold_time_ranges, sold_time_strings)
+        - is_full_shift_sold: True если вся смена уже продана/продается
+        - sold_time_ranges: Список кортежей (start, end) проданного времени
+        - sold_time_strings: Список словарей с данными о проданных сделках
+          {"time_str": "HH:MM-HH:MM", "exchange_id": int, "status": str}
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    user_id = dialog_manager.event.from_user.id
+
+    try:
+        # Получаем активные и проданные обмены пользователя только как продавец
+        user_exchanges = await stp_repo.exchange.get_user_exchanges(
+            user_id=user_id, exchange_type="sold"
+        )
+
+        # Фильтруем только активные и проданные обмены
+        relevant_exchanges = [
+            exchange
+            for exchange in user_exchanges
+            if exchange.status in ["active", "sold"]
+            and exchange.start_time
+            and exchange.end_time
+        ]
+
+        # Фильтруем по дате
+        shift_date_obj = datetime.fromisoformat(shift_date).date()
+        date_exchanges = [
+            exchange
+            for exchange in relevant_exchanges
+            if exchange.start_time.date() == shift_date_obj
+        ]
+
+        if not date_exchanges:
+            return False, [], []
+
+        # Получаем временные диапазоны проданного времени
+        sold_time_ranges = []
+        sold_time_strings = []
+
+        for exchange in date_exchanges:
+            start_str = exchange.start_time.strftime("%H:%M")
+            end_str = exchange.end_time.strftime("%H:%M")
+            sold_time_ranges.append((start_str, end_str))
+
+            # Добавляем статус для отображения
+            status_text = await get_exchange_status(exchange)
+            sold_time_strings.append({
+                "time_str": f"{start_str}-{end_str}",
+                "exchange_id": exchange.id,
+                "status": status_text,
+            })
+
+        # Проверяем, покрывают ли проданные части всю смену
+        shift_start_minutes = time_to_minutes(shift_start)
+        shift_end_minutes = time_to_minutes(shift_end)
+
+        # Сортируем интервалы по времени начала
+        sorted_ranges = sorted([
+            (time_to_minutes(start), time_to_minutes(end))
+            for start, end in sold_time_ranges
+        ])
+
+        # Проверяем покрытие всей смены
+        is_full_shift_sold = False
+        if sorted_ranges:
+            # Объединяем пересекающиеся интервалы
+            merged_ranges = [sorted_ranges[0]]
+            for current_start, current_end in sorted_ranges[1:]:
+                last_start, last_end = merged_ranges[-1]
+                if current_start <= last_end:
+                    # Интервалы пересекаются или соприкасаются
+                    merged_ranges[-1] = (last_start, max(last_end, current_end))
+                else:
+                    merged_ranges.append((current_start, current_end))
+
+            # Проверяем, покрывает ли объединенный интервал всю смену
+            if (
+                len(merged_ranges) == 1
+                and merged_ranges[0][0] <= shift_start_minutes
+                and merged_ranges[0][1] >= shift_end_minutes
+            ):
+                is_full_shift_sold = True
+
+        return is_full_shift_sold, sold_time_ranges, sold_time_strings
+
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка получения информации о продажах: {e}")
+        return False, [], []
+
+
+def time_to_minutes(time_str: str) -> int:
+    """Преобразует время в формате HH:MM в минуты от начала дня."""
+    try:
+        h, m = map(int, time_str.split(":"))
+        return h * 60 + m
+    except Exception:
+        return 0
+
+
+def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
+    """Проверяет, началась ли смена на указанную дату.
+
+    Args:
+        shift_start_time: Время начала смены в формате HH:MM
+        shift_date: Дата смены в формате ISO
+
+    Returns:
+        True если смена началась, False если нет
+    """
+    try:
+        current_time = datetime.now(tz=tz)
+        shift_date_obj = datetime.fromisoformat(shift_date).date()
+
+        # Если дата не сегодня, то смена не может быть начата
+        if shift_date_obj != current_time.date():
+            return False
+
+        # Создаем datetime для времени начала смены
+        shift_start = datetime.combine(
+            shift_date_obj, datetime.strptime(shift_start_time, "%H:%M").time()
+        )
+
+        # Добавляем часовой пояс
+        shift_start = shift_start.replace(tzinfo=tz)
+        current_time = current_time.replace(tzinfo=tz)
+
+        return current_time >= shift_start
+
+    except Exception:
+        return False
 
 
 async def start_exchanges_dialog(
@@ -440,21 +649,6 @@ async def on_set_paid(
     await stp_repo.exchange.mark_exchange_paid(exchange_id)
 
 
-async def on_edit_offer_date(
-    _event: CallbackQuery,
-    _widget: Any,
-    dialog_manager: DialogManager,
-    **_kwargs,
-) -> None:
-    """Обработчик редактирования даты сделки.
-
-    Args:
-        _event: Callback query от Telegram
-        _widget: Виджет кнопки
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.switch_to(Exchanges.edit_offer_date)
-
 
 async def on_edit_offer_price(
     _event: CallbackQuery,
@@ -504,123 +698,8 @@ async def on_edit_offer_comment(
     await dialog_manager.switch_to(Exchanges.edit_offer_comment)
 
 
-async def on_edit_date_selected(
-    _event: CallbackQuery,
-    _calendar: ManagedCalendar,
-    dialog_manager: DialogManager,
-    selected_date: datetime,
-) -> None:
-    """Обработчик выбора новой даты для сделки.
-
-    Args:
-        _event: Callback query от Telegram
-        _widget: Виджет календаря
-        dialog_manager: Менеджер диалога
-    """
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
-
-    if not exchange_id or not selected_date:
-        await _event.answer("❌ Ошибка при обновлении даты", show_alert=True)
-        return
-
-    # Сохраняем выбранную дату для последующего использования
-    dialog_manager.dialog_data["selected_date"] = selected_date.isoformat()
-
-    # Переходим к вводу времени
-    await dialog_manager.switch_to(Exchanges.edit_offer_date_time)
 
 
-async def on_edit_date_time_input(
-    message: Any,
-    widget: Any,
-    dialog_manager: DialogManager,
-    text: str,
-    **_kwargs,
-) -> None:
-    """Обработчик ввода нового времени для сделки после выбора даты.
-
-    Args:
-        message: Сообщение от пользователя
-        widget: Виджет ввода текста
-        dialog_manager: Менеджер диалога
-        text: Введенный текст
-    """
-    import re
-    from datetime import datetime
-
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
-
-    if not exchange_id:
-        await message.answer("❌ Ошибка: сделка не найдена")
-        return
-
-    # Валидация формата времени
-    time_pattern = r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$"
-    match = re.match(time_pattern, text.strip())
-
-    if not match:
-        await message.answer("❌ Неверный формат времени. Используй формат ЧЧ:ММ-ЧЧ:ММ")
-        return
-
-    start_hour, start_minute, end_hour, end_minute = map(int, match.groups())
-
-    # Валидация времени
-    if not (0 <= start_hour <= 23 and 0 <= end_hour <= 23):
-        await message.answer("❌ Часы должны быть от 0 до 23")
-        return
-
-    if not (0 <= start_minute <= 59 and 0 <= end_minute <= 59):
-        await message.answer("❌ Минуты должны быть от 0 до 59")
-        return
-
-    if start_minute not in [0, 30] or end_minute not in [0, 30]:
-        await message.answer("❌ Минуты могут быть только 00 или 30")
-        return
-
-    # Проверка корректности интервала
-    start_total_minutes = start_hour * 60 + start_minute
-    end_total_minutes = end_hour * 60 + end_minute
-
-    if start_total_minutes >= end_total_minutes:
-        await message.answer("❌ Время начала должно быть раньше времени окончания")
-        return
-
-    if end_total_minutes - start_total_minutes < 30:
-        await message.answer("❌ Минимальная продолжительность смены: 30 минут")
-        return
-
-    try:
-        # Получаем выбранную дату из dialog_data
-        selected_date_str = dialog_manager.dialog_data.get("selected_date")
-        if not selected_date_str:
-            await message.answer("❌ Ошибка: дата не выбрана")
-            return
-
-        # Формируем новые времена с выбранной датой
-        shift_date = datetime.fromisoformat(selected_date_str).date()
-        start_time = datetime.combine(
-            shift_date,
-            datetime.min.time().replace(hour=start_hour, minute=start_minute),
-        )
-        end_time = datetime.combine(
-            shift_date, datetime.min.time().replace(hour=end_hour, minute=end_minute)
-        )
-
-        # Обновляем и дату, и время одновременно
-        await stp_repo.exchange.update_exchange_date(exchange_id, start_time, end_time)
-        await message.answer("✅ Дата и время успешно обновлены")
-        await dialog_manager.switch_to(Exchanges.my_detail)
-    except Exception as e:
-        logger.error(f"Error updating exchange date and time: {e}")
-        await message.answer("❌ Ошибка при обновлении даты и времени")
 
 
 async def on_edit_price_input(

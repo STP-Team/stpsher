@@ -53,20 +53,44 @@ async def prepare_calendar_data_for_exchange(
         # Собираем данные о сменах за несколько месяцев
         all_shift_dates = {}
 
-        # Загружаем данные для текущего месяца и соседних месяцев
-        months_to_load = [
-            current_date.month - 1
-            if current_date.month > 1
-            else 12,  # Предыдущий месяц
-            current_date.month,  # Текущий месяц
-            current_date.month + 1 if current_date.month < 12 else 1,  # Следующий месяц
-        ]
+        # Загружаем данные для текущего месяца и следующих месяцев
+        # Увеличиваем количество загружаемых месяцев для поддержки навигации по календарю
+        months_to_load = []
 
-        for month_num in months_to_load:
+        # Загружаем текущий месяц и следующие 5 месяцев (всего 6 месяцев)
+        for i in range(6):
+            target_date = datetime(current_date.year, current_date.month, 1)
+            # Добавляем i месяцев к текущей дате
+            if current_date.month + i <= 12:
+                month_num = current_date.month + i
+                year_num = current_date.year
+            else:
+                # Переходим в следующий год
+                month_num = (current_date.month + i - 1) % 12 + 1
+                year_num = current_date.year + ((current_date.month + i - 1) // 12)
+
+            months_to_load.append((month_num, year_num))
+
+        for month_num, year_num in months_to_load:
             month_name = get_month_name(month_num)
-            logger.debug(f"[Биржа] Загружаем данные календаря для {month_name}")
+            logger.debug(f"[Биржа] Загружаем данные календаря для {month_name} {year_num}")
 
             try:
+                # Примечание: парсер расписания работает только с текущим годом
+                # Для будущих лет (например, январь следующего года) данные могут быть недоступны
+                if year_num > current_date.year:
+                    logger.debug(f"[Биржа] Пропускаем {month_name} {year_num} - парсер работает только с текущим годом")
+                    continue
+
+                # ОТЛАДКА: Сначала проверяем, есть ли вообще этот месяц в файле расписания
+                try:
+                    base_schedule = parser.get_user_schedule(user.fullname, month_name, user.division)
+                    logger.info(f"[Биржа] {month_name} {year_num}: Найдено {len(base_schedule)} дней в базовом расписании")
+                except Exception as e:
+                    logger.warning(f"[Биржа] {month_name} {year_num}: Ошибка получения базового расписания: {e}")
+                    # Если базовое расписание не найдено, пропускаем этот месяц
+                    continue
+
                 schedule_dict = await parser.get_user_schedule_with_duties(
                     user.fullname,
                     month_name,
@@ -75,34 +99,75 @@ async def prepare_calendar_data_for_exchange(
                     current_day_only=False,
                 )
 
-                # Извлекаем дни когда есть смены
+                # Проверяем, что получили данные
+                if not schedule_dict:
+                    logger.debug(f"[Биржа] Нет данных расписания для {month_name} {year_num}")
+                    continue
+
+                # ОТЛАДКА: Показываем что именно возвращает парсер для каждого месяца
+                work_days = []
                 for day, (schedule, duty_info) in schedule_dict.items():
                     if schedule and schedule not in ["Не указано", "В", "О"]:
-                        # Извлекаем номер дня
                         day_match = re.search(r"(\d{1,2})", day)
                         if day_match:
-                            day_num = f"{int(day_match.group(1)):02d}"
-                            # Создаем уникальный ключ для месяца и дня
-                            month_day_key = f"{month_num:02d}_{day_num}"
-                            all_shift_dates[month_day_key] = {
-                                "schedule": schedule,
-                                "duty_info": duty_info,
-                                "month": month_num,
-                                "day": int(day_num),
-                            }
-                            # Также сохраняем под простым ключом дня для обратной совместимости с текущим месяцем
-                            if month_num == current_date.month:
-                                all_shift_dates[day_num] = {
+                            work_days.append(int(day_match.group(1)))
+
+                logger.info(f"[Биржа] {month_name} {year_num}: рабочие дни = {sorted(work_days)}")
+                logger.debug(f"[Биржа] {month_name} {year_num}: полные данные = {list(schedule_dict.keys())[:5]}...")  # Показываем первые 5 ключей
+
+                # ПРОВЕРКА НА ДУБЛИКАТЫ: Сравниваем с предыдущими месяцами
+                current_work_days = sorted(work_days)
+                is_duplicate = False
+
+                for prev_month_num, prev_year in months_to_load[:months_to_load.index((month_num, year_num))]:
+                    prev_month_name = get_month_name(prev_month_num)
+                    # Проверяем, есть ли уже такой же паттерн работы
+                    prev_days = [int(k.split('_')[1]) for k in all_shift_dates.keys()
+                                if k.startswith(f"{prev_month_num:02d}_") and '_' in k]
+
+                    # Более умная проверка на дубликаты:
+                    # 1. Точно совпадающие паттерны (подозрительно)
+                    # 2. Или подозрительно большое пересечение для месяцев без данных
+                    if (sorted(prev_days) == current_work_days and len(current_work_days) > 5) or \
+                       (len(current_work_days) > 10 and len(set(prev_days) & set(current_work_days)) > len(current_work_days) * 0.8):
+                        logger.warning(f"[Биржа] ⚠️ ДУБЛИКАТ: {month_name} {year_num} имеет подозрительно похожий паттерн как {prev_month_name}")
+                        logger.warning(f"[Биржа] ⚠️ {month_name}: {current_work_days}")
+                        logger.warning(f"[Биржа] ⚠️ {prev_month_name}: {sorted(prev_days)}")
+                        logger.warning(f"[Биржа] ⚠️ Возможно, {month_name} отсутствует в файле расписания и используются fallback данные")
+                        # Пропускаем этот месяц, так как это, вероятно, дублированные данные
+                        is_duplicate = True
+                        break
+
+                if not is_duplicate:
+                    # Извлекаем дни когда есть смены (только если нет дубликатов)
+                    for day, (schedule, duty_info) in schedule_dict.items():
+                        if schedule and schedule not in ["Не указано", "В", "О"]:
+                            # Извлекаем номер дня
+                            day_match = re.search(r"(\d{1,2})", day)
+                            if day_match:
+                                day_num = f"{int(day_match.group(1)):02d}"
+                                # Создаем уникальный ключ для месяца и дня
+                                month_day_key = f"{month_num:02d}_{day_num}"
+                                all_shift_dates[month_day_key] = {
                                     "schedule": schedule,
                                     "duty_info": duty_info,
+                                    "month": month_num,
+                                    "day": int(day_num),
+                                    "year": year_num,
                                 }
+                                # Также сохраняем под простым ключом дня для обратной совместимости с текущим месяцем
+                                if month_num == current_date.month and year_num == current_date.year:
+                                    all_shift_dates[day_num] = {
+                                        "schedule": schedule,
+                                        "duty_info": duty_info,
+                                    }
 
-                logger.debug(
-                    f"[Биржа] Загружено {len([k for k in all_shift_dates.keys() if k.startswith(f'{month_num:02d}_')])} дней для {month_name}"
-                )
+                    logger.debug(
+                        f"[Биржа] Загружено {len([k for k in all_shift_dates.keys() if k.startswith(f'{month_num:02d}_')])} дней для {month_name} {year_num}"
+                    )
 
             except Exception as e:
-                logger.debug(f"[Биржа] Ошибка загрузки данных для {month_name}: {e}")
+                logger.debug(f"[Биржа] Ошибка загрузки данных для {month_name} {year_num}: {e}")
                 continue
 
         # Сохраняем данные в dialog_data для использования в календаре
@@ -857,10 +922,18 @@ async def my_detail_getter(
     }
 
 
-async def edit_offer_date_getter(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
-) -> Dict[str, Any]:
-    """Геттер для окна выбора даты."""
-    # Подготавливаем данные календаря с информацией о сменах
-    await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
-    return {}
+async def my_detail_edit_getter(
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+):
+    """Геттер для настроек сделки."""
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
+
+    exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+    return {"status": exchange.status}
+
+

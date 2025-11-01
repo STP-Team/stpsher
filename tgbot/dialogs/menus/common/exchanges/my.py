@@ -20,10 +20,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_add_to_calendar,
     on_delete_exchange,
     on_edit_comment_input,
-    on_edit_date_selected,
-    on_edit_date_time_input,
     on_edit_offer_comment,
-    on_edit_offer_date,
     on_edit_offer_payment_timing,
     on_edit_offer_price,
     on_edit_payment_date_selected,
@@ -36,14 +33,13 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     open_my_schedule,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
-    edit_offer_date_getter,
+    my_detail_edit_getter,
     my_detail_getter,
     my_exchanges,
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.dialogs.widgets.calendars import RussianCalendar
-from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 my_window = Window(
     Const("🗳 <b>Биржа: Мои сделки</b>"),
@@ -115,6 +111,7 @@ my_detail_window = Window(
         ),
         when=F["status"] == "active",  # noqa
     ),
+    SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer),
     # Кнопки завершенной сделки
     Group(
         Checkbox(
@@ -139,10 +136,6 @@ my_detail_window = Window(
         ),
         when=F["status"] == "sold",  # noqa
     ),
-    Group(
-        SwitchTo(Const("✏️ Редактировать"), id="edit", state=Exchanges.edit_offer),
-        when=F["status"] != "sold",  # noqa
-    ),
     Button(Const("🔄 Обновить"), id="update"),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my), HOME_BTN),
     getter=my_detail_getter,
@@ -166,11 +159,7 @@ offer_edit_window = Window(
             id="offer_private_status",
             on_click=on_private_click,
         ),
-    ),
-    Row(
-        Button(
-            Const("📅 Дата и время"), id="edit_offer_date", on_click=on_edit_offer_date
-        ),
+        when=F["status"] == "active",  # noqa
     ),
     Row(
         Button(Const("💰 Цена"), id="edit_offer_price", on_click=on_edit_offer_price),
@@ -189,38 +178,10 @@ offer_edit_window = Window(
         on_click=on_delete_exchange,
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my_detail), HOME_BTN),
+    getter=my_detail_edit_getter,
     state=Exchanges.edit_offer,
 )
 
-edit_offer_date_window = Window(
-    Const("📅 <b>Редактирование даты</b>"),
-    Const("Выбери новую дату для сделки:"),
-    ExchangeCalendar(
-        id="edit_date_calendar",
-        on_click=on_edit_date_selected,
-    ),
-    SwitchTo(Const("🔍 К сделке"), id="back_to_exchange", state=Exchanges.my_detail),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
-    getter=edit_offer_date_getter,
-    state=Exchanges.edit_offer_date,
-)
-
-edit_offer_date_time_window = Window(
-    Const("🕐 <b>Редактирование времени</b>"),
-    Format("""
-Введи новое время в формате ЧЧ:ММ-ЧЧ:ММ
-
-Например: <code>09:00-13:00</code>
-Минуты могут быть только 00 или 30
-Минимальная продолжительность: 30 минут"""),
-    TextInput(
-        id="edit_date_time_input",
-        on_success=on_edit_date_time_input,
-    ),
-    SwitchTo(Const("🔍 К сделке"), id="back_to_exchange", state=Exchanges.my_detail),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.edit_offer), HOME_BTN),
-    state=Exchanges.edit_offer_date_time,
-)
 
 edit_offer_price_window = Window(
     Const("💰 <b>Редактирование цены</b>"),

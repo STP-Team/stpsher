@@ -25,8 +25,6 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import exchanges_getter
 from tgbot.dialogs.menus.common.exchanges.buy import buy_detail_window, buy_window
 from tgbot.dialogs.menus.common.exchanges.my import (
     edit_offer_comment_window,
-    edit_offer_date_time_window,
-    edit_offer_date_window,
     edit_offer_payment_date_window,
     edit_offer_payment_timing_window,
     edit_offer_price_window,
@@ -147,8 +145,6 @@ exchanges_dialog = Dialog(
     my_detail_window,
     # Редактирование сделки
     offer_edit_window,
-    edit_offer_date_window,
-    edit_offer_date_time_window,
     edit_offer_price_window,
     edit_offer_payment_timing_window,
     edit_offer_payment_date_window,

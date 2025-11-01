@@ -30,10 +30,6 @@ class Exchanges(StatesGroup):
 
     # Изменение сделки
     edit_offer = State()
-    edit_offer_date = State()
-    edit_offer_date_time = (
-        State()
-    )  # Новое состояние для ввода времени после выбора даты
     edit_offer_price = State()
     edit_offer_payment_timing = State()
     edit_offer_payment_date = State()
