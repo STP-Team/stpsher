@@ -21,6 +21,10 @@ class Exchanges(StatesGroup):
     sell_detail = State()  # Детали собственного обмена для отмены
     my_detail = State()  # Детали собственных обменов из раздела "Мои сделки"
 
+    # Покупка со временем выбора
+    buy_time_selection = State()  # Выбор времени для покупки
+    buy_confirmation = State()  # Подтверждение покупки с расчетом цены
+
     # Настройки биржи
     buy_settings = State()
     buy_filters_day = State()

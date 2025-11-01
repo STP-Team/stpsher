@@ -73,21 +73,31 @@ async def prepare_calendar_data_for_exchange(
 
         for month_num, year_num in months_to_load:
             month_name = get_month_name(month_num)
-            logger.debug(f"[Биржа] Загружаем данные календаря для {month_name} {year_num}")
+            logger.debug(
+                f"[Биржа] Загружаем данные календаря для {month_name} {year_num}"
+            )
 
             try:
                 # Примечание: парсер расписания работает только с текущим годом
                 # Для будущих лет (например, январь следующего года) данные могут быть недоступны
                 if year_num > current_date.year:
-                    logger.debug(f"[Биржа] Пропускаем {month_name} {year_num} - парсер работает только с текущим годом")
+                    logger.debug(
+                        f"[Биржа] Пропускаем {month_name} {year_num} - парсер работает только с текущим годом"
+                    )
                     continue
 
                 # ОТЛАДКА: Сначала проверяем, есть ли вообще этот месяц в файле расписания
                 try:
-                    base_schedule = parser.get_user_schedule(user.fullname, month_name, user.division)
-                    logger.info(f"[Биржа] {month_name} {year_num}: Найдено {len(base_schedule)} дней в базовом расписании")
+                    base_schedule = parser.get_user_schedule(
+                        user.fullname, month_name, user.division
+                    )
+                    logger.info(
+                        f"[Биржа] {month_name} {year_num}: Найдено {len(base_schedule)} дней в базовом расписании"
+                    )
                 except Exception as e:
-                    logger.warning(f"[Биржа] {month_name} {year_num}: Ошибка получения базового расписания: {e}")
+                    logger.warning(
+                        f"[Биржа] {month_name} {year_num}: Ошибка получения базового расписания: {e}"
+                    )
                     # Если базовое расписание не найдено, пропускаем этот месяц
                     continue
 
@@ -101,7 +111,9 @@ async def prepare_calendar_data_for_exchange(
 
                 # Проверяем, что получили данные
                 if not schedule_dict:
-                    logger.debug(f"[Биржа] Нет данных расписания для {month_name} {year_num}")
+                    logger.debug(
+                        f"[Биржа] Нет данных расписания для {month_name} {year_num}"
+                    )
                     continue
 
                 # ОТЛАДКА: Показываем что именно возвращает парсер для каждого месяца
@@ -112,28 +124,49 @@ async def prepare_calendar_data_for_exchange(
                         if day_match:
                             work_days.append(int(day_match.group(1)))
 
-                logger.info(f"[Биржа] {month_name} {year_num}: рабочие дни = {sorted(work_days)}")
-                logger.debug(f"[Биржа] {month_name} {year_num}: полные данные = {list(schedule_dict.keys())[:5]}...")  # Показываем первые 5 ключей
+                logger.info(
+                    f"[Биржа] {month_name} {year_num}: рабочие дни = {sorted(work_days)}"
+                )
+                logger.debug(
+                    f"[Биржа] {month_name} {year_num}: полные данные = {list(schedule_dict.keys())[:5]}..."
+                )  # Показываем первые 5 ключей
 
                 # ПРОВЕРКА НА ДУБЛИКАТЫ: Сравниваем с предыдущими месяцами
                 current_work_days = sorted(work_days)
                 is_duplicate = False
 
-                for prev_month_num, prev_year in months_to_load[:months_to_load.index((month_num, year_num))]:
+                for prev_month_num, prev_year in months_to_load[
+                    : months_to_load.index((month_num, year_num))
+                ]:
                     prev_month_name = get_month_name(prev_month_num)
                     # Проверяем, есть ли уже такой же паттерн работы
-                    prev_days = [int(k.split('_')[1]) for k in all_shift_dates.keys()
-                                if k.startswith(f"{prev_month_num:02d}_") and '_' in k]
+                    prev_days = [
+                        int(k.split("_")[1])
+                        for k in all_shift_dates.keys()
+                        if k.startswith(f"{prev_month_num:02d}_") and "_" in k
+                    ]
 
                     # Более умная проверка на дубликаты:
                     # 1. Точно совпадающие паттерны (подозрительно)
                     # 2. Или подозрительно большое пересечение для месяцев без данных
-                    if (sorted(prev_days) == current_work_days and len(current_work_days) > 5) or \
-                       (len(current_work_days) > 10 and len(set(prev_days) & set(current_work_days)) > len(current_work_days) * 0.8):
-                        logger.warning(f"[Биржа] ⚠️ ДУБЛИКАТ: {month_name} {year_num} имеет подозрительно похожий паттерн как {prev_month_name}")
+                    if (
+                        sorted(prev_days) == current_work_days
+                        and len(current_work_days) > 5
+                    ) or (
+                        len(current_work_days) > 10
+                        and len(set(prev_days) & set(current_work_days))
+                        > len(current_work_days) * 0.8
+                    ):
+                        logger.warning(
+                            f"[Биржа] ⚠️ ДУБЛИКАТ: {month_name} {year_num} имеет подозрительно похожий паттерн как {prev_month_name}"
+                        )
                         logger.warning(f"[Биржа] ⚠️ {month_name}: {current_work_days}")
-                        logger.warning(f"[Биржа] ⚠️ {prev_month_name}: {sorted(prev_days)}")
-                        logger.warning(f"[Биржа] ⚠️ Возможно, {month_name} отсутствует в файле расписания и используются fallback данные")
+                        logger.warning(
+                            f"[Биржа] ⚠️ {prev_month_name}: {sorted(prev_days)}"
+                        )
+                        logger.warning(
+                            f"[Биржа] ⚠️ Возможно, {month_name} отсутствует в файле расписания и используются fallback данные"
+                        )
                         # Пропускаем этот месяц, так как это, вероятно, дублированные данные
                         is_duplicate = True
                         break
@@ -156,7 +189,10 @@ async def prepare_calendar_data_for_exchange(
                                     "year": year_num,
                                 }
                                 # Также сохраняем под простым ключом дня для обратной совместимости с текущим месяцем
-                                if month_num == current_date.month and year_num == current_date.year:
+                                if (
+                                    month_num == current_date.month
+                                    and year_num == current_date.year
+                                ):
                                     all_shift_dates[day_num] = {
                                         "schedule": schedule,
                                         "duty_info": duty_info,
@@ -167,7 +203,9 @@ async def prepare_calendar_data_for_exchange(
                     )
 
             except Exception as e:
-                logger.debug(f"[Биржа] Ошибка загрузки данных для {month_name} {year_num}: {e}")
+                logger.debug(
+                    f"[Биржа] Ошибка загрузки данных для {month_name} {year_num}: {e}"
+                )
                 continue
 
         # Сохраняем данные в dialog_data для использования в календаре
@@ -253,21 +291,15 @@ async def get_exchange_hours(exchange: Exchange) -> float | None:
 
 
 async def get_exchange_price_per_hour(exchange: Exchange):
-    """Расчет стоимости одного часа в сделке.
+    """Получает стоимость одного часа в сделке.
 
     Args:
         exchange: Экземпляр сделки с моделью Exchange
 
     Returns:
-        Стоимость одного часа
+        Стоимость одного часа (exchange.price теперь уже цена за час)
     """
-    price = 0
-    exchange_hours = await get_exchange_hours(exchange)
-
-    if exchange_hours and exchange_hours > 0 and exchange.price:
-        price = round(exchange.price / exchange_hours, 2)
-
-    return price
+    return exchange.price if exchange.price else 0
 
 
 async def get_exchange_text(
@@ -311,16 +343,18 @@ async def get_exchange_text(
         seller_name = format_fullname(
             seller.fullname, True, True, seller.username, seller.username
         )
-        price_per_hour = await get_exchange_price_per_hour(exchange)
+        # exchange.price теперь уже цена за час
+        price_per_hour = exchange.price
         price_per_hour_text = (
             f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
         )
-        # Показываем оплату за час первой, общую стоимость в скобках
-        price_display = (
-            f"{price_per_hour_text} ({price:g} р.)"
-            if price_per_hour is not None
-            else f"{price:g} р."
-        )
+
+        # Рассчитываем общую стоимость (цена за час * количество часов)
+        if shift_hours is not None and price_per_hour is not None:
+            total_price = int(price_per_hour * shift_hours)
+            price_display = f"{price_per_hour_text} ({total_price:g} р.)"
+        else:
+            price_display = price_per_hour_text
 
         # Форматируем дату оплаты
         payment_date_str = (
@@ -355,10 +389,22 @@ async def get_exchange_text(
             )
         )
 
+        # Рассчитываем общую стоимость для buy запроса тоже
+        price_per_hour = exchange.price
+        if shift_hours is not None and price_per_hour is not None:
+            total_price = int(price_per_hour * shift_hours)
+            price_display = f"{price_per_hour:g} р./ч. ({total_price:g} р.)"
+        else:
+            price_display = (
+                f"{price_per_hour:g} р./ч."
+                if price_per_hour is not None
+                else "Не указано"
+            )
+
         exchange_text = f"""<blockquote><b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Оплата:</b>
-<code>{price:g} р./ч.</code> - {payment_date_str}
+<code>{price_display}</code> - {payment_date_str}
 👤 <b>Продавец:</b>
 {buyer_name}</blockquote>"""
     return exchange_text
@@ -937,3 +983,101 @@ async def my_detail_edit_getter(
     return {"status": exchange.status}
 
 
+async def buy_time_selection_getter(
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> Dict[str, Any]:
+    """Геттер для экрана выбора времени покупки."""
+    original_exchange = dialog_manager.dialog_data.get("original_exchange")
+
+    if not original_exchange:
+        return {"error": "Обмен не найден"}
+
+    # Получаем информацию об обмене
+    start_time = original_exchange["start_time"].strftime("%H:%M")
+    end_time = original_exchange["end_time"].strftime("%H:%M")
+    date_str = original_exchange["start_time"].strftime("%d.%m.%Y")
+
+    # Рассчитываем общее количество часов
+    duration = original_exchange["end_time"] - original_exchange["start_time"]
+    total_hours = duration.total_seconds() / 3600
+
+    # Рассчитываем общую стоимость (цена за час * количество часов)
+    price_per_hour = original_exchange["price"]
+    total_price = int(price_per_hour * total_hours)
+
+    return {
+        "start_time": start_time,
+        "end_time": end_time,
+        "date_str": date_str,
+        "total_hours": f"{total_hours:g}",
+        "price_per_hour": price_per_hour,
+        "total_price": total_price,
+        "time_range": f"{start_time}-{end_time}",
+    }
+
+
+async def buy_confirmation_getter(
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> Dict[str, Any]:
+    """Геттер для экрана подтверждения покупки."""
+    original_exchange = dialog_manager.dialog_data.get("original_exchange")
+    buy_full = dialog_manager.dialog_data.get("buy_full", False)
+
+    if not original_exchange:
+        return {"error": "Обмен не найден"}
+
+    # Получаем информацию о продавце
+    seller = await stp_repo.employee.get_users(user_id=original_exchange["seller_id"])
+    seller_name = format_fullname(
+        seller.fullname, True, True, seller.username, seller.username
+    )
+
+    date_str = original_exchange["start_time"].strftime("%d.%m.%Y")
+    price_per_hour = original_exchange["price"]
+
+    if buy_full:
+        # Полная покупка
+        start_time = original_exchange["start_time"].strftime("%H:%M")
+        end_time = original_exchange["end_time"].strftime("%H:%M")
+        duration = original_exchange["end_time"] - original_exchange["start_time"]
+        hours = duration.total_seconds() / 3600
+        total_price = int(price_per_hour * hours)
+        time_range = f"{start_time}-{end_time}"
+        purchase_type = "Полная покупка смены"
+    else:
+        # Частичная покупка
+        start_str = dialog_manager.dialog_data.get("selected_start_time")
+        end_str = dialog_manager.dialog_data.get("selected_end_time")
+
+        from datetime import datetime
+
+        exchange_date = original_exchange["start_time"].date()
+        selected_start = datetime.combine(
+            exchange_date, datetime.strptime(start_str, "%H:%M").time()
+        )
+        selected_end = datetime.combine(
+            exchange_date, datetime.strptime(end_str, "%H:%M").time()
+        )
+
+        # Рассчитываем цену исходя из цены за час
+        selected_duration = selected_end - selected_start
+        hours = selected_duration.total_seconds() / 3600
+        total_price = int(price_per_hour * hours)
+
+        time_range = f"{start_str}-{end_str}"
+        purchase_type = "Частичная покупка смены"
+
+    return {
+        "purchase_type": purchase_type,
+        "date_str": date_str,
+        "time_range": time_range,
+        "hours": f"{hours:g}",
+        "price_per_hour": price_per_hour,
+        "total_price": total_price,
+        "seller_name": seller_name,
+        "buy_full": buy_full,
+    }
