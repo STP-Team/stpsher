@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -14,6 +14,51 @@ from tgbot.misc.helpers import tz
 from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
+
+
+def can_reschedule_exchange(exchange: Exchange) -> bool:
+    """Проверяет, можно ли автоматически перенести сделку.
+
+    Args:
+        exchange: Экземпляр сделки
+
+    Returns:
+        bool: True если сделка может быть перенесена автоматически
+    """
+    if not exchange.end_time:
+        return False
+
+    # Получаем текущее время в локальной зоне
+    current_local_time = datetime.now(tz)
+
+    # Проверяем, что сделка сегодня
+    today = current_local_time.date()
+
+    # Убеждаемся, что end_time timezone-aware для сравнения
+    end_time = exchange.end_time
+    if end_time.tzinfo is None:
+        end_time = tz.localize(end_time)
+
+    # Проверяем, что конец сделки сегодня
+    if end_time.date() != today:
+        return False
+
+    # Проверяем, что конец сделки еще не прошел
+    if end_time <= current_local_time:
+        return False
+
+    # Вычисляем следующий доступный получасовой интервал
+    current_time = current_local_time.time()
+    if current_time.minute < 30:
+        next_slot_start = current_local_time.replace(minute=30, second=0, microsecond=0)
+    else:
+        next_slot_start = current_local_time.replace(
+            minute=0, second=0, microsecond=0
+        ) + timedelta(hours=1)
+
+    # Проверяем, что от следующего слота до конца сделки минимум 30 минут
+    time_remaining = end_time - next_slot_start
+    return time_remaining >= timedelta(minutes=30)
 
 
 class ExchangesScheduler(BaseScheduler):
@@ -134,6 +179,18 @@ async def notify_expire_offer(
         bot=bot, payload=f"exchange_{exchange.id}", encode=True
     )
 
+    # Создаем клавиатуру с кнопками
+    inline_keyboard = [[InlineKeyboardButton(text="🎭 Открыть сделку", url=deeplink)]]
+
+    # Для продаж добавляем кнопку автоматического переноса (если возможно)
+    if exchange.type == "sell" and can_reschedule_exchange(exchange):
+        inline_keyboard.append([
+            InlineKeyboardButton(
+                text="⏰ Перенести автоматически",
+                callback_data=f"reschedule_{exchange.id}",
+            )
+        ])
+
     await bot.send_message(
         chat_id=exchange.seller_id,
         text=f"""⏳ <b>Сделка истекла</b>
@@ -143,11 +200,7 @@ async def notify_expire_offer(
 {exchange_info}
 
 <i>Ты можешь отредактировать ее и опубликовать снова</i>""",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="🎭 Открыть сделку", url=deeplink)]
-            ]
-        ),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=inline_keyboard),
     )
 
 

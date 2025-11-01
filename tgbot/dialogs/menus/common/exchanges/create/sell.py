@@ -118,7 +118,7 @@ price_window = Window(
         """
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code></blockquote>""",
     ),
-    Format("\nВведи полную цену за продаваемую смену (в рублях):"),
+    Format("\nВведи цену за час (в рублях):"),
     TextInput(
         id="price_input",
         on_success=on_price_input,
@@ -138,7 +138,7 @@ payment_timing_window = Window(
     Const("💳 <b>Шаг 5: Условия оплаты</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Оплата:</b> <code>{price} р.</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price}</code></blockquote>"""),
     Format("\nВыбери когда поступит оплата:"),
     Select(
         Format("{item[1]}"),
@@ -165,7 +165,7 @@ payment_date_window = Window(
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
 💰 <b>Оплата:</b> <code>{price} р.</code></blockquote>"""),
     Format("\nВыбери крайнюю дату для оплаты:"),
-    Format("<i>Дата должна быть не позже даты смены</i>"),
+    Format("<i>Можно выбрать любую дату, начиная с сегодня</i>"),
     RussianCalendar(
         id="payment_date_calendar",
         on_click=on_payment_date_selected,

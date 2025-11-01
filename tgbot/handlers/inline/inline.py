@@ -253,6 +253,22 @@ async def advanced_inline_handler(
 
             shift_time = f"{start_time_str}-{end_time_str}"
 
+            # Рассчитываем общую стоимость (цена за час * количество часов)
+            from tgbot.dialogs.getters.common.exchanges.exchanges import (
+                get_exchange_hours,
+            )
+
+            exchange_hours = await get_exchange_hours(exchange)
+            price_per_hour = exchange.price
+
+            if exchange_hours and price_per_hour:
+                total_price = int(price_per_hour * exchange_hours)
+                price_text = f"{price_per_hour:g} р./ч. ({total_price:g} р.)"
+            else:
+                price_text = (
+                    f"{price_per_hour:g} р./ч." if price_per_hour else "Не указано"
+                )
+
             exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
             message_text = f"""🔍 <b>Детали сделки</b>
 
@@ -265,7 +281,7 @@ async def advanced_inline_handler(
                 InlineQueryResultArticle(
                     id=f"exchange_{exchange.id}",
                     title=f"Сделка №{exchange.id}",
-                    description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {exchange.price} р.",
+                    description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {price_text}",
                     input_message_content=InputTextMessageContent(
                         message_text=message_text, parse_mode="HTML"
                     ),

@@ -2,6 +2,7 @@
 
 from aiogram import F
 from aiogram_dialog import Window
+from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Row,
@@ -13,13 +14,22 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import (
+    on_buy_cancel,
+    on_buy_confirm,
+    on_buy_full_exchange,
     on_exchange_buy,
     on_exchange_sell_selected,
+    on_time_input,
+)
+from tgbot.dialogs.events.common.exchanges.subscriptions import (
+    start_subscriptions_dialog,
 )
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
     start_subscriptions_dialog,
 )
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    buy_confirmation_getter,
+    buy_time_selection_getter,
     exchange_sell_detail_getter,
     exchange_sell_getter,
 )
@@ -88,4 +98,48 @@ sell_detail_window = Window(
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
     getter=exchange_sell_detail_getter,
     state=Exchanges.sell_detail,
+)
+
+buy_time_selection_window = Window(
+    Const("⏰ <b>Выбор времени покупки</b>"),
+    Format("""
+📅 <b>Дата:</b> {date_str}
+⏱️ <b>Доступное время:</b> {time_range} ({total_hours} ч.)
+💰 <b>Оплата:</b> {price_per_hour} р./ч. (общая стоимость: {total_price} р.)
+
+Выбери нужное время:"""),
+    Button(
+        Const("🔄 Полностью"),
+        id="buy_full",
+        on_click=on_buy_full_exchange,
+    ),
+    Const("\n💡 <i>Или введи конкретное время в формате ЧЧ:ММ-ЧЧ:ММ</i>"),
+    Const("<i>Например: 14:00-18:00</i>"),
+    TextInput(
+        id="time_input",
+        on_success=on_time_input,
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_detail), HOME_BTN),
+    getter=buy_time_selection_getter,
+    state=Exchanges.buy_time_selection,
+)
+
+buy_confirmation_window = Window(
+    Const("✅ <b>Подтверждение покупки</b>"),
+    Format("""
+📊 <b>{purchase_type}</b>
+
+📅 <b>Дата:</b> {date_str}
+⏱️ <b>Время:</b> {time_range} ({hours} ч.)
+💰 <b>Цена:</b> {price_per_hour} р./ч.
+💸 <b>К оплате:</b> {total_price} р.
+👤 <b>Продавец:</b> {seller_name}
+
+Подтвердить покупку?"""),
+    Row(
+        Button(Const("✅ Подтвердить"), id="confirm_buy", on_click=on_buy_confirm),
+        Button(Const("❌ Отменить"), id="cancel_buy", on_click=on_buy_cancel),
+    ),
+    getter=buy_confirmation_getter,
+    state=Exchanges.buy_confirmation,
 )

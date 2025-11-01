@@ -25,6 +25,65 @@ from tgbot.services.files_processing.parsers.schedule import (
 logger = logging.getLogger(__name__)
 
 
+async def get_shift_info_from_calendar_data(
+    dialog_manager: DialogManager,
+    selected_date: datetime,
+) -> Optional[Tuple[str, str, bool, Optional[str], Optional[str]]]:
+    """Получает информацию о смене из календарных данных.
+
+    Args:
+        dialog_manager: Менеджер диалога
+        selected_date: Выбранная дата
+
+    Returns:
+        Кортеж (start_time, end_time, has_duty, duty_time, duty_type) или None если смена не найдена
+    """
+    # Проверяем календарные данные
+    shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
+    if not shift_dates:
+        return None
+
+    # Формируем ключи для поиска
+    month_day_key = f"{selected_date.month:02d}_{selected_date.day:02d}"
+    day_key = f"{selected_date.day:02d}"
+
+    # Ищем данные о смене
+    calendar_data = None
+    if month_day_key in shift_dates:
+        calendar_data = shift_dates[month_day_key]
+    elif day_key in shift_dates:
+        calendar_data = shift_dates[day_key]
+
+    if not calendar_data or "schedule" not in calendar_data:
+        return None
+
+    # Извлекаем время из графика
+    schedule_value = calendar_data["schedule"]
+    time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
+    match = re.search(time_pattern, schedule_value)
+
+    if not match:
+        return None
+
+    shift_start = match.group(1)
+    shift_end = match.group(2)
+
+    # Получаем информацию о дежурствах из календарных данных
+    duty_info = calendar_data.get("duty_info")
+    has_duty = bool(duty_info)
+    duty_time = duty_info if has_duty else None
+    duty_type = None
+
+    if duty_info and isinstance(duty_info, str):
+        # Парсим информацию о дежурстве (формат: "время тип")
+        duty_parts = duty_info.split()
+        if len(duty_parts) >= 2 and duty_parts[-1] in ["С", "П"]:
+            duty_type = duty_parts[-1]
+            duty_time = " ".join(duty_parts[:-1])
+
+    return shift_start, shift_end, has_duty, duty_time, duty_type
+
+
 async def get_user_shift_info(
     dialog_manager: DialogManager,
     shift_date: str,
@@ -444,15 +503,16 @@ async def on_date_selected(
         await event.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
         return
 
-    shift_date_iso = selected_date.isoformat()
-
-    # Проверяем, что пользователь работает в этот день
-    shift_info = await get_user_shift_info(dialog_manager, shift_date_iso)
+    # Используем уже загруженные календарные данные
+    shift_info = await get_shift_info_from_calendar_data(dialog_manager, selected_date)
     if not shift_info:
         await event.answer("❌ В выбранную дату у тебя нет смены", show_alert=True)
         return
 
     shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
+
+    # Форматируем дату для дальнейшего использования
+    shift_date_iso = selected_date.isoformat()
 
     # Проверяем существующие продажи на эту дату
     is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
@@ -502,8 +562,8 @@ async def on_today_selected(
     today = datetime.now().date()
     shift_date_iso = today.isoformat()
 
-    # Проверяем, что пользователь работает сегодня
-    shift_info = await get_user_shift_info(dialog_manager, shift_date_iso)
+    # Используем уже загруженные календарные данные
+    shift_info = await get_shift_info_from_calendar_data(dialog_manager, today)
     if not shift_info:
         await event.answer("❌ Сегодня у тебя нет смены", show_alert=True)
         return
@@ -736,11 +796,9 @@ async def on_remaining_time_selected(
         if remainder == 0:
             # Уже на :00 или :30, используем текущее время
             start_minutes = current_minutes
-        elif remainder <= 15:
-            # Округляем вниз до ближайших :00 или :30
-            start_minutes = current_minutes - remainder
         else:
-            # Округляем вверх до ближайших :00 или :30
+            # Всегда округляем ВВЕРХ до ближайших :00 или :30
+            # (так как предыдущий слот уже начался и время прошло)
             start_minutes = current_minutes + (30 - remainder)
 
         # Проверяем, чтобы время не выходило за пределы дня
@@ -851,24 +909,51 @@ async def on_price_input(
     dialog_manager: DialogManager,
     data: str,
 ):
-    """Обработчик ввода цены."""
+    """Обработчик ввода цены за час."""
     try:
-        price = int(data)
-        if price <= 0:
+        price_per_hour = int(data)
+        if price_per_hour <= 0:
             await message.answer("❌ Цена должна быть больше 0")
             return
-        if price > 50000:
-            await message.answer("❌ Слишком большая цена (максимум 50,000 р.)")
+        if price_per_hour > 10000:
+            await message.answer(
+                "❌ Слишком большая цена за час (максимум 10,000 р./ч.)"
+            )
             return
 
-        # Сохраняем цену
-        dialog_manager.dialog_data["price"] = price
+        # Получаем время начала и окончания для расчета общей стоимости
+        start_time_str = dialog_manager.dialog_data.get("start_time")
+        end_time_str = dialog_manager.dialog_data.get("end_time")
+
+        if not start_time_str or not end_time_str:
+            await message.answer("❌ Ошибка: время смены не найдено")
+            return
+
+        # Рассчитываем количество часов
+        start_time = datetime.fromisoformat(start_time_str)
+        end_time = datetime.fromisoformat(end_time_str)
+        duration = end_time - start_time
+        hours = duration.total_seconds() / 3600
+
+        # Рассчитываем общую стоимость
+        total_price = round(price_per_hour * hours)
+
+        # Сохраняем цену за час и общую стоимость
+        dialog_manager.dialog_data["price_per_hour"] = price_per_hour
+        dialog_manager.dialog_data["price"] = (
+            total_price  # Общая стоимость для совместимости
+        )
 
         # Переходим к выбору времени оплаты
         await dialog_manager.switch_to(ExchangeCreateSell.payment_timing)
 
     except ValueError:
-        await message.answer("❌ Введите корректную цену (например: 1000 или 1500)")
+        await message.answer(
+            "❌ Введите корректную цену за час (например: 200 или 300)"
+        )
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка при расчете стоимости: {e}")
+        await message.answer("❌ Произошла ошибка при расчете стоимости")
 
 
 async def on_payment_timing_selected(
@@ -896,11 +981,6 @@ async def on_payment_date_selected(
     selected_date: datetime,
 ):
     """Обработчик выбора даты платежа."""
-    shift_date_str = dialog_manager.dialog_data.get("shift_date")
-    if not shift_date_str:
-        await event.answer("❌ Ошибка: дата смены не найдена", show_alert=True)
-        return
-
     # Проверяем, что дата платежа не в прошлом
     if selected_date < datetime.now().date():
         await event.answer("❌ Дата платежа не может быть в прошлом", show_alert=True)

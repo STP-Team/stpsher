@@ -25,8 +25,6 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import exchanges_getter
 from tgbot.dialogs.menus.common.exchanges.buy import buy_detail_window, buy_window
 from tgbot.dialogs.menus.common.exchanges.my import (
     edit_offer_comment_window,
-    edit_offer_date_time_window,
-    edit_offer_date_window,
     edit_offer_payment_date_window,
     edit_offer_payment_timing_window,
     edit_offer_price_window,
@@ -34,7 +32,12 @@ from tgbot.dialogs.menus.common.exchanges.my import (
     my_window,
     offer_edit_window,
 )
-from tgbot.dialogs.menus.common.exchanges.sell import sell_detail_window, sell_window
+from tgbot.dialogs.menus.common.exchanges.sell import (
+    buy_confirmation_window,
+    buy_time_selection_window,
+    sell_detail_window,
+    sell_window,
+)
 from tgbot.dialogs.menus.common.exchanges.settings import (
     buy_filters_day_window,
     buy_filters_shift_window,
@@ -136,6 +139,8 @@ exchanges_dialog = Dialog(
     # Меню продаж
     sell_window,
     sell_detail_window,
+    buy_time_selection_window,
+    buy_confirmation_window,
     # Настройки покупок
     buy_settings_window,
     buy_filters_day_window,
@@ -147,8 +152,6 @@ exchanges_dialog = Dialog(
     my_detail_window,
     # Редактирование сделки
     offer_edit_window,
-    edit_offer_date_window,
-    edit_offer_date_time_window,
     edit_offer_price_window,
     edit_offer_payment_timing_window,
     edit_offer_payment_date_window,
