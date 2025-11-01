@@ -333,7 +333,6 @@ async def get_exchange_text(
 
     shift_time = f"{start_time_str}-{end_time_str}"
     shift_hours = await get_exchange_hours(exchange)
-    price = exchange.price
 
     # Защита от None значений в часах
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
@@ -401,12 +400,12 @@ async def get_exchange_text(
                 else "Не указано"
             )
 
-        exchange_text = f"""<blockquote><b>{exchange_type}:</b>
+        exchange_text = f"""<blockquote>{buyer_name}
+        
+<b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Оплата:</b>
-<code>{price_display}</code> - {payment_date_str}
-👤 <b>Продавец:</b>
-{buyer_name}</blockquote>"""
+<code>{price_display}</code> - {payment_date_str}</blockquote>"""
     return exchange_text
 
 
