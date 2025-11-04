@@ -247,14 +247,14 @@ async def on_confirm_buy(
 
         # Создаем запрос на покупку
         exchange = await stp_repo.exchange.create_exchange(
-            buyer_id=user_id,  # В buy-запросе seller_id это фактически buyer_id
+            owner_id=user_id,  # Пользователь создающий запрос на покупку
             start_time=start_time,
             end_time=end_time,
             price=price_per_hour,  # Цена за час
             payment_type="immediate",  # Для buy-запросов всегда немедленная оплата
             payment_date=None,
             comment=comment,
-            exchange_type="buy",  # Указываем тип как покупка
+            owner_intent="buy",  # Указываем тип как покупка смены
             is_private=False,  # По умолчанию создаем публичные обмены
         )
 

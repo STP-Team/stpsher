@@ -8,7 +8,7 @@ from typing import Any, Dict
 from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.kbd import ManagedCheckbox
+from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio
 from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
@@ -239,7 +239,7 @@ async def get_exchange_type(exchange: Exchange, is_seller: bool) -> str:
     Returns:
         Тип сделки: "📉 Продам" или "📈 Куплю"
     """
-    if exchange.type == "sell":
+    if exchange.owner_intent == "sell":
         operation_type = "📉 Продам"
     else:
         operation_type = "📈 Куплю"
@@ -284,11 +284,11 @@ async def get_exchange_button_text(
         Текст кнопки для отображения в списке обменов
     """
     # Определяем роль пользователя в сделке
-    is_seller = exchange.seller_id == user_id
+    is_seller = exchange.owner_id == user_id
 
     if is_seller:
         # Пользователь - продавец или создатель запроса на покупку
-        if exchange.type == "sell":
+        if exchange.owner_intent == "sell":
             # Пользователь продает смену
             if exchange.status == "sold":
                 return f"📉 Продал {date_str}"
@@ -302,7 +302,7 @@ async def get_exchange_button_text(
                 return f"📉 Просрочил {date_str}"
             else:
                 return f"📉 {exchange.status.title()} {date_str}"
-        else:  # exchange.type == "buy"
+        else:  # exchange.owner_intent == "buy"
             # Пользователь создал запрос на покупку
             if exchange.status == "sold":
                 return f"📈 Купил {date_str}"
@@ -318,7 +318,7 @@ async def get_exchange_button_text(
                 return f"📈 {exchange.status.title()} {date_str}"
     else:
         # Пользователь - покупатель (buyer_id == user_id)
-        if exchange.type == "sell":
+        if exchange.owner_intent == "sell":
             # Пользователь купил чужое предложение продажи
             return f"📈 Купил {date_str}"
         else:
@@ -371,7 +371,7 @@ async def get_exchange_text(
         Форматированная строка
     """
     exchange_type = await get_exchange_type(
-        exchange, is_seller=exchange.seller_id == user_id
+        exchange, is_seller=exchange.owner_id == user_id
     )
 
     # Защита от None значений в датах/времени
@@ -396,8 +396,8 @@ async def get_exchange_text(
     # Защита от None значений в часах
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
 
-    if exchange.type == "sell":
-        seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+    if exchange.owner_intent == "sell":
+        seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
         seller_name = format_fullname(
             seller.fullname, True, True, seller.username, seller.username
         )
@@ -432,7 +432,7 @@ async def get_exchange_text(
 💰 <b>Оплата:</b>
 <code>{price_display}</code> - {payment_date_str}</blockquote>"""
     else:
-        buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
+        buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
         buyer_name = format_fullname(
             buyer.fullname, True, True, buyer.username, buyer.username
         )
@@ -482,7 +482,7 @@ async def get_exchange_detailed_text(
         Форматированная строка с четким указанием ролей продавца и покупателя
     """
     # Определяем роль текущего пользователя
-    is_current_user_seller = exchange.seller_id == user_id
+    is_current_user_seller = exchange.owner_id == user_id
 
     # Защита от None значений в датах/времени
     if exchange.start_time:
@@ -502,26 +502,26 @@ async def get_exchange_detailed_text(
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
 
     # Получаем информацию о продавце
-    seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+    seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
     seller_name = (
-        format_fullname(seller.fullname, True, True, seller.username, seller.username)
+        format_fullname(seller.fullname, True, True, seller.username, seller.user_id)
         if seller
         else "Не указано"
     )
 
     # Получаем информацию о покупателе (если есть)
     buyer_name = "Не указано"
-    if exchange.buyer_id:
-        buyer = await stp_repo.employee.get_users(user_id=exchange.buyer_id)
+    if exchange.counterpart_id:
+        buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
         buyer_name = (
-            format_fullname(buyer.fullname, True, True, buyer.username, buyer.username)
+            format_fullname(buyer.fullname, True, True, buyer.username, buyer.user_id)
             if buyer
             else "Не указано"
         )
 
     # Определяем роли для отображения в зависимости от типа сделки
     # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
-    if exchange.type == "sell":
+    if exchange.owner_intent == "sell":
         # Для продажи: seller_id - отдает смену и платит, buyer_id - берет смену и получает оплату
         if is_current_user_seller:
             current_user_role = "Продавец (оплата)"
@@ -543,7 +543,7 @@ async def get_exchange_detailed_text(
             other_party_name = seller_name
 
     # Определяем тип операции для заголовка
-    if exchange.type == "sell":
+    if exchange.owner_intent == "sell":
         operation_type = "📉 Продажа смены"
     else:
         operation_type = "📈 Покупка смены"
@@ -630,7 +630,7 @@ async def exchange_buy_getter(
         exchanges = await stp_repo.exchange.get_active_exchanges(
             exclude_user_id=user_id,
             division="НЦК" if user.division == "НЦК" else ["НТП1", "НТП2"],
-            exchange_type="sell",
+            owner_intent="sell",
         )
 
         # Получаем настройки фильтрации и сортировки
@@ -723,7 +723,7 @@ async def exchange_buy_getter(
                 "time": time_str,
                 "date": date_str,
                 "price": exchange.price,
-                "seller_id": exchange.seller_id,
+                "owner_id": exchange.owner_id,
             })
 
         # Формируем текст активных фильтров (показываем ВСЕ активные фильтры)
@@ -821,7 +821,7 @@ async def exchange_sell_getter(
         buy_requests = await stp_repo.exchange.get_active_exchanges(
             exclude_user_id=user_id,
             division="НЦК" if user.division == "НЦК" else ["НТП1", "НТП2"],
-            exchange_type="buy",
+            owner_intent="buy",
         )
 
         # Форматируем данные для отображения
@@ -846,7 +846,7 @@ async def exchange_sell_getter(
                 "time": time_str,
                 "date": date_str,
                 "price": exchange.price,
-                "buyer_id": exchange.seller_id,  # В buy-запросе seller_id это фактически buyer_id
+                "owner_id": exchange.owner_id,  # Создатель запроса покупки
             })
 
         return {
@@ -881,7 +881,7 @@ async def exchange_buy_detail_getter(
             return {"error": "Обмен не найден"}
 
         # Получаем информацию о продавце
-        seller = await stp_repo.employee.get_users(user_id=exchange.seller_id)
+        seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
 
         # Информация об оплате
         if exchange.payment_type == "immediate":
@@ -968,10 +968,18 @@ async def my_exchanges(
     user_id = dialog_manager.event.from_user.id
 
     try:
-        # Получаем все обмены пользователя (как продажи, так и покупки)
+        exchanges_filter: ManagedRadio = dialog_manager.find("exchanges_filter")
+        current_filter = exchanges_filter.get_checked()
+
+        intent = None
+        match current_filter:
+            case "sell":
+                intent = "sell"
+            case "buy":
+                intent = "buy"
         exchanges = await stp_repo.exchange.get_user_exchanges(
             user_id=user_id,
-            exchange_type="all",  # Получаем все типы обменов
+            intent=intent,
         )
 
         # Форматируем данные для отображения
@@ -989,9 +997,9 @@ async def my_exchanges(
             my_exchanges_list.append({
                 "id": exchange.id,
                 "button_text": button_text,
-                "type": exchange.type,
+                "type": exchange.owner_intent,
                 "status": exchange.status,
-                "is_seller": exchange.seller_id == user_id,
+                "is_seller": exchange.owner_id == user_id,
                 "date": date_str,
                 "time": f"{exchange.start_time.strftime('%H:%M') if exchange.start_time else 'Не указано'}-{exchange.end_time.strftime('%H:%M') if exchange.end_time else 'Не указано'}".rstrip(
                     "-"
@@ -1000,12 +1008,18 @@ async def my_exchanges(
             })
 
         exchanges_query = "my_exchanges"
+        exchanges_types = [
+            ("all", "Все"),
+            ("sell", "📉 Продажа"),
+            ("buy", "📈 Покупка"),
+        ]
 
         return {
             "my_exchanges": my_exchanges_list,
             "length": len(my_exchanges_list),
             "has_exchanges": len(my_exchanges_list) > 0,
             "exchanges_deeplink": exchanges_query,
+            "exchanges_types": exchanges_types,
         }
 
     except Exception:
@@ -1019,11 +1033,11 @@ async def _get_other_party_info(
     exchange: Exchange, user_id: int, stp_repo: MainRequestsRepo
 ) -> tuple[str | None, str | None]:
     """Get information about the other party in the exchange."""
-    if user_id and exchange.seller_id == user_id:
-        other_party_id = exchange.buyer_id
+    if user_id and exchange.owner_id == user_id:
+        other_party_id = exchange.counterpart_id
         other_party_type = "Покупатель"
     else:
-        other_party_id = exchange.seller_id
+        other_party_id = exchange.owner_id
         other_party_type = "Продавец"
 
     if not other_party_id:
@@ -1060,25 +1074,25 @@ async def my_detail_getter(
     )
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-    is_seller = exchange.seller_id == dialog_manager.event.from_user.id
+    is_seller = exchange.owner_id == dialog_manager.event.from_user.id
 
     # Установка чекбоксов
     in_schedule: ManagedCheckbox = dialog_manager.find(
         "exchange_in_schedule"
     )  # В графике
     await in_schedule.set_checked(
-        exchange.in_seller_schedule if is_seller else exchange.in_buyer_schedule
+        exchange.in_owner_schedule if is_seller else exchange.in_counterpart_schedule
     )
 
-    if exchange.type == "sell":
+    if exchange.owner_intent == "sell":
         # Для продажи: seller_id отдает смену и платит, buyer_id берет смену и получает оплату
         current_user_should_get_paid = (
-            exchange.buyer_id == dialog_manager.event.from_user.id
+            exchange.counterpart_id == dialog_manager.event.from_user.id
         )
-    else:  # exchange.type == "buy"
+    else:  # exchange.owner_intent == "buy"
         # Для запроса покупки: seller_id хочет взять смену и получить оплату, buyer_id отдает смену и платит
         current_user_should_get_paid = (
-            exchange.seller_id == dialog_manager.event.from_user.id
+            exchange.owner_id == dialog_manager.event.from_user.id
         )
 
     exchange_is_paid: ManagedCheckbox = dialog_manager.find(
@@ -1203,7 +1217,7 @@ async def buy_confirmation_getter(
         return {"error": "Обмен не найден"}
 
     # Получаем информацию о продавце
-    seller = await stp_repo.employee.get_users(user_id=original_exchange["seller_id"])
+    seller = await stp_repo.employee.get_users(user_id=original_exchange["owner_id"])
     seller_name = format_fullname(
         seller.fullname, True, True, seller.username, seller.username
     )
@@ -1270,7 +1284,7 @@ async def sell_time_selection_getter(
         return {"error": "Buy request не найден"}
 
     # Получаем информацию о покупателе
-    buyer = await stp_repo.employee.get_users(user_id=buy_request["buyer_id"])
+    buyer = await stp_repo.employee.get_users(user_id=buy_request["owner_id"])
     buyer_name = format_fullname(
         buyer.fullname, True, True, buyer.username, buyer.username
     )
@@ -1306,7 +1320,7 @@ async def sell_confirmation_getter(
         return {"error": "Buy request не найден"}
 
     # Получаем информацию о покупателе
-    buyer = await stp_repo.employee.get_users(user_id=buy_request["buyer_id"])
+    buyer = await stp_repo.employee.get_users(user_id=buy_request["owner_id"])
     buyer_name = format_fullname(
         buyer.fullname, True, True, buyer.username, buyer.username
     )

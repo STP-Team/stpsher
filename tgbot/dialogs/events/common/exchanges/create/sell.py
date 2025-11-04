@@ -249,7 +249,7 @@ async def get_existing_sales_for_date(
     try:
         # Получаем активные и проданные обмены пользователя только как продавец
         user_exchanges = await stp_repo.exchange.get_user_exchanges(
-            user_id=user_id, exchange_type="sold"
+            user_id=user_id, status="sold"
         )
 
         # Фильтруем только активные и проданные обмены
@@ -940,9 +940,7 @@ async def on_price_input(
 
         # Сохраняем цену за час и общую стоимость
         dialog_manager.dialog_data["price_per_hour"] = price_per_hour
-        dialog_manager.dialog_data["price"] = (
-            total_price  # Общая стоимость для совместимости
-        )
+        dialog_manager.dialog_data["total_price"] = total_price
 
         # Переходим к выбору времени оплаты
         await dialog_manager.switch_to(ExchangeCreateSell.payment_timing)
@@ -1005,7 +1003,8 @@ async def on_confirm_sell(
     try:
         # Получаем данные из диалога
         data = dialog_manager.dialog_data
-        price = data["price"]
+        total_price = data["total_price"]
+        price_per_hour = data["price_per_hour"]
         start_time = datetime.fromisoformat(data["start_time"])
         end_time = (
             datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None
@@ -1026,14 +1025,14 @@ async def on_confirm_sell(
 
         # Создаем обмен
         exchange = await stp_repo.exchange.create_exchange(
-            seller_id=user_id,
+            owner_id=user_id,
             start_time=start_time,
             end_time=end_time,
-            price=price,
+            price=price_per_hour,
             payment_type=payment_type,
             payment_date=payment_date,
             comment=comment,
-            exchange_type="sell",  # Указываем тип обмена
+            owner_intent="sell",  # Указываем тип обмена - продажа смены
             is_private=False,  # По умолчанию создаем публичные обмены
         )
 

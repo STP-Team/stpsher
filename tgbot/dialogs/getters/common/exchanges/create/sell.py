@@ -249,7 +249,7 @@ async def sell_payment_timing_getter(
 
     shift_date = data.get("shift_date")
     price_per_hour = data.get("price_per_hour", 0)
-    total_price = data.get("price", 0)
+    total_price = data.get("total_price", 0)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
 
@@ -285,7 +285,7 @@ async def sell_payment_date_getter(
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     price_per_hour = data.get("price_per_hour", 0)
-    total_price = data.get("price", 0)
+    total_price = data.get("total_price", 0)
 
     shift_time = await get_exchange_shift_time(start_time, end_time)
 
@@ -315,7 +315,7 @@ async def sell_comment_getter(
 
     shift_date = data.get("shift_date")
     price_per_hour = data.get("price_per_hour", 0)
-    total_price = data.get("price", 0)
+    total_price = data.get("total_price", 0)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     payment_type = data.get("payment_type")
@@ -354,7 +354,7 @@ async def sell_confirmation_getter(
 
     shift_date = data.get("shift_date")
     price_per_hour = data.get("price_per_hour", 0)
-    total_price = data.get("price", 0)
+    total_price = data.get("total_price", 0)
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     payment_type = data.get("payment_type", "immediate")

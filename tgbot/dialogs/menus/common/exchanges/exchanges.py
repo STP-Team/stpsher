@@ -133,6 +133,9 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     price_sort_toggle: ManagedToggle = dialog_manager.find("price_sort")
     await price_sort_toggle.set_checked("cheap")
 
+    exchanges_types: ManagedRadio = dialog_manager.find("exchanges_filter")
+    await exchanges_types.set_checked("all")
+
 
 exchanges_dialog = Dialog(
     menu_window,

@@ -80,8 +80,8 @@ async def start_deeplink(
                 await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
             else:
                 if (
-                    exchange.seller_id == user.user_id
-                    or exchange.buyer_id == user.user_id
+                    exchange.owner_id == user.user_id
+                    or exchange.counterpart_id == user.user_id
                 ):
                     # Запускаем диалог своей подмены
                     await dialog_manager.start(
@@ -93,7 +93,7 @@ async def start_deeplink(
                 if exchange.status != "active":
                     await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
                     return
-                if exchange.type == "sell":
+                if exchange.owner_intent == "sell":
                     # Запускаем диалог продаж
                     await dialog_manager.start(
                         Exchanges.buy_detail,

@@ -445,7 +445,7 @@ async def on_confirm_subscription(
     try:
         # Собираем все данные подписки
         subscription_data = _collect_subscription_data(dialog_manager, user)
-
+        print(subscription_data)
         # Создаем подписку
         subscription = await stp_repo.exchange.create_subscription(**subscription_data)
         subscription_id = subscription.id if subscription else None

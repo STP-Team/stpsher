@@ -48,7 +48,7 @@ buy_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("{item[time]}, {item[date]} | {item[price]} р."),
+            Format("{item[time]}, {item[date]} | {item[price]} р./ч."),
             id="exchange_select",
             items="available_exchanges",
             item_id_getter=lambda item: item["id"],
@@ -99,7 +99,7 @@ buy_detail_window = Window(
 <blockquote expandable>{comment}</blockquote>""",
         when="comment",
     ),
-    Button(Const("✍️ Предложить сделку"), id="apply", on_click=on_exchange_buy),
+    Button(Const("✍️ Предложить сделку"), id="apply_buy", on_click=on_exchange_buy),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
         query=Format("{deeplink}"),
