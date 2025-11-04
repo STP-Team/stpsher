@@ -11,7 +11,8 @@ from aiogram.types import (
 from aiogram.utils.deep_linking import create_start_link
 from stp_database import MainRequestsRepo
 
-from tgbot.handlers.inline.helpers import DAY_NAMES, EXCHANGE_TYPE_NAMES
+from tgbot.handlers.inline.helpers import EXCHANGE_TYPE_NAMES
+from tgbot.misc.helpers import DAY_NAMES
 
 logger = logging.getLogger(__name__)
 

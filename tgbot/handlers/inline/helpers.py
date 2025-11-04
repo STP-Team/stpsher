@@ -1,4 +1,4 @@
-# Constants
+#
 import os
 
 SEARCH_LIMITS = {
@@ -19,38 +19,18 @@ CACHE_TIMES = {
     "DEFAULT_COMMANDS": 3 if _IS_DEVELOPMENT else 60,
     "SEARCH_RESULTS": 3 if _IS_DEVELOPMENT else 300,
     "NO_CACHE": 0,
-    "EXCHANGE_DETAILS": 5 if _IS_DEVELOPMENT else 180,  # Cache exchange details
-    "SUBSCRIPTION_DETAILS": 5 if _IS_DEVELOPMENT else 300,  # Cache subscription details
+    "EXCHANGE_DETAILS": 5 if _IS_DEVELOPMENT else 30,  # Кеш информации о сделке
+    "MY_EXCHANGES": 5 if _IS_DEVELOPMENT else 30,  # Кеш информации об активных сделках
+    "SUBSCRIPTION_DETAILS": 5 if _IS_DEVELOPMENT else 30,  # Кеш информации о подписке
 }
 
-ROLE_MAPPINGS = {
-    "EMPLOYEE": 1,
-    "HEAD": 2,
-    "ADMIN": 3,
-}
-
-ROLE_NAMES = {
-    1: "сотрудник",
-    2: "руководитель",
-    3: "администратор",
-}
+# Role mappings will be imported from misc modules
 
 EXCHANGE_TYPE_NAMES = {
     "buy": "Покупка часов",
     "sell": "Продажа часов",
     "both": "Оба типа",
 }
-
-DAY_NAMES = {
-    1: "Пн",
-    2: "Вт",
-    3: "Ср",
-    4: "Чт",
-    5: "Пт",
-    6: "Сб",
-    7: "Вс",
-}
-
 
 # Search filter keywords
 FILTER_KEYWORDS = {
@@ -59,14 +39,4 @@ FILTER_KEYWORDS = {
     "POSITION": "pos",
     "USERNAME": "username",
     "USER_ID": "user_id",
-}
-
-ROLE_ALIASES = {
-    "head": ROLE_MAPPINGS["HEAD"],
-    "руководитель": ROLE_MAPPINGS["HEAD"],
-    "admin": ROLE_MAPPINGS["ADMIN"],
-    "администратор": ROLE_MAPPINGS["ADMIN"],
-    "user": ROLE_MAPPINGS["EMPLOYEE"],
-    "пользователь": ROLE_MAPPINGS["EMPLOYEE"],
-    "сотрудник": ROLE_MAPPINGS["EMPLOYEE"],
 }

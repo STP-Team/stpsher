@@ -40,8 +40,7 @@ async def on_inventory_product_click(
 
     try:
         user_product_detail = await stp_repo.purchase.get_purchase_details(item_id)
-    except Exception as e:
-        print(e)
+    except Exception:
         await event.answer("❌ Ошибка получения информации о предмете", show_alert=True)
         return
 

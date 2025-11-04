@@ -6,10 +6,46 @@ import string
 import pytz
 from sqlalchemy.orm import Mapped
 
-from tgbot.misc.dicts import roles
+from tgbot.misc.dicts import roles, russian_weekdays_short
 
 tz = pytz.timezone("Asia/Yekaterinburg")
 strftime_date = "%H:%M %d.%m.%Y"
+
+# Convert 0-6 indexing from russian_weekdays_short to 1-7 indexing for compatibility
+DAY_NAMES = {i + 1: day for i, day in russian_weekdays_short.items()}
+
+# Role mappings from dicts.py structure
+ROLE_MAPPINGS = {
+    "EMPLOYEE": 1,  # Специалист
+    "HEAD": 2,  # Руководитель
+    "DUTY": 3,  # Дежурный
+    "ADMIN": 4,  # Администратор
+    "GOK": 5,  # ГОК
+    "MIP": 6,  # МИП
+    "ROOT": 10,  # root
+}
+
+# Role names from dicts.py
+ROLE_NAMES = {role_id: role_data["name"] for role_id, role_data in roles.items()}
+
+# Role aliases for search and lookup
+ROLE_ALIASES = {
+    "head": ROLE_MAPPINGS["HEAD"],
+    "руководитель": ROLE_MAPPINGS["HEAD"],
+    "admin": ROLE_MAPPINGS["ADMIN"],
+    "администратор": ROLE_MAPPINGS["ADMIN"],
+    "user": ROLE_MAPPINGS["EMPLOYEE"],
+    "пользователь": ROLE_MAPPINGS["EMPLOYEE"],
+    "сотрудник": ROLE_MAPPINGS["EMPLOYEE"],
+    "специалист": ROLE_MAPPINGS["EMPLOYEE"],
+    "duty": ROLE_MAPPINGS["DUTY"],
+    "дежурный": ROLE_MAPPINGS["DUTY"],
+    "gok": ROLE_MAPPINGS["GOK"],
+    "гок": ROLE_MAPPINGS["GOK"],
+    "mip": ROLE_MAPPINGS["MIP"],
+    "мип": ROLE_MAPPINGS["MIP"],
+    "root": ROLE_MAPPINGS["ROOT"],
+}
 
 
 def generate_auth_code(length=6):

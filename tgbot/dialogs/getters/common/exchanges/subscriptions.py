@@ -9,7 +9,8 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio, ManagedToggle
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.helpers import short_name
+from tgbot.handlers.inline.helpers import EXCHANGE_TYPE_NAMES
+from tgbot.misc.helpers import DAY_NAMES, short_name
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +108,8 @@ async def subscription_detail_getter(
                 f"• Время: с {subscription.start_time.strftime('%H:%M')} до {subscription.end_time.strftime('%H:%M')}"
             )
         if subscription.days_of_week:
-            day_names = {1: "Пн", 2: "Вт", 3: "Ср", 4: "Чт", 5: "Пт", 6: "Сб", 7: "Вс"}
             days_text = ", ".join([
-                day_names.get(d, str(d)) for d in subscription.days_of_week
+                DAY_NAMES.get(d, str(d)) for d in subscription.days_of_week
             ])
             criteria_parts.append(f"• Дни: {days_text}")
 
@@ -130,12 +130,7 @@ async def subscription_detail_getter(
         criteria_text = "\n".join(criteria_parts) if criteria_parts else "• Все обмены"
 
         # Форматируем тип обмена
-        type_names = {
-            "buy": "Покупка часов",
-            "sell": "Продажа часов",
-            "both": "Оба типа",
-        }
-        exchange_type = type_names.get(
+        exchange_type = EXCHANGE_TYPE_NAMES.get(
             subscription.exchange_type, subscription.exchange_type
         )
 
@@ -458,16 +453,8 @@ async def subscription_create_date_getter(
     days_widget: ManagedToggle = dialog_manager.find("days_of_week")
     selected_days = days_widget.get_checked() if days_widget else []
     if selected_days:
-        day_names = {
-            "1": "Пн",
-            "2": "Вт",
-            "3": "Ср",
-            "4": "Чт",
-            "5": "Пт",
-            "6": "Сб",
-            "7": "Вс",
-        }
-        days_text = ", ".join([day_names.get(d, d) for d in selected_days])
+        # Convert string keys to int for DAY_NAMES lookup
+        days_text = ", ".join([DAY_NAMES.get(int(d), d) for d in selected_days])
         settings_parts.append(f"📅 <b>Дни:</b> {days_text}")
     else:
         settings_parts.append("📅 <b>Дни:</b> настраиваем сейчас")
@@ -664,16 +651,8 @@ def _get_detailed_criteria_summary(dialog_manager: DialogManager) -> str:
     days_widget: ManagedToggle = dialog_manager.find("days_of_week")
     selected_days = days_widget.get_checked() if days_widget else []
     if selected_days:
-        day_names = {
-            "1": "Пн",
-            "2": "Вт",
-            "3": "Ср",
-            "4": "Чт",
-            "5": "Пт",
-            "6": "Сб",
-            "7": "Вс",
-        }
-        days_text = ", ".join([day_names.get(d, d) for d in selected_days])
+        # Convert string keys to int for DAY_NAMES lookup
+        days_text = ", ".join([DAY_NAMES.get(int(d), d) for d in selected_days])
         criteria_parts.append(f"• Дни: {days_text}")
 
     # Сотрудник
