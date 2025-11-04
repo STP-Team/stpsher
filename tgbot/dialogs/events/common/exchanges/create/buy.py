@@ -10,7 +10,7 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
 from stp_database import MainRequestsRepo
 
-from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy
+from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy, Exchanges
 
 
 async def on_buy_date_selected(
@@ -177,7 +177,7 @@ async def on_buy_skip_comment(
     dialog_manager.dialog_data.pop("buy_comment", None)
 
     # Переходим к подтверждению
-    await dialog_manager.switch_to(ExchangeCreateBuy.comment)
+    await dialog_manager.switch_to(ExchangeCreateBuy.confirmation)
 
 
 async def on_buy_comment_input(
@@ -264,8 +264,9 @@ async def on_confirm_buy(
             )
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
-            # Возвращаемся к главному меню биржи
-            await dialog_manager.done()
+            await dialog_manager.start(
+                Exchanges.my_detail, data={"exchange_id": exchange.id}
+            )
         else:
             await event.answer(
                 "❌ Не удалось создать запрос. Попробуйте позже.", show_alert=True

@@ -1248,7 +1248,11 @@ async def on_sell_confirm(
 ):
     """Обработчик подтверждения предложения продажи."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    bot: Bot = dialog_manager.middleware_data["bot"]
     user_id = dialog_manager.event.from_user.id
+
+    seller_user = await stp_repo.employee.get_users(user_id=user_id)
+    formatted_seller = format_fullname(seller_user, True, True)
 
     try:
         buy_request = dialog_manager.dialog_data.get("buy_request")
@@ -1270,12 +1274,97 @@ async def on_sell_confirm(
             await stp_repo.exchange.update_exchange(
                 buy_request["id"], status="sold", counterpart_id=user_id
             )
-            await event.answer("✅ Запрос покупки успешно принят!", show_alert=True)
+            await event.answer(
+                "✅ Сделка полностью закрыта!\n\nНе забудь создать подмену в WFM!",
+                show_alert=True,
+            )
+
+            # Уведомление покупателю о том, что его запрос принят
+            deeplink = await create_start_link(
+                bot=bot, payload=f"exchange_{buy_request['id']}", encode=True
+            )
+            await event.bot.send_message(
+                chat_id=buy_request["owner_id"],
+                text=f"""🎉 <b>Запрос покупки принят</b>
+
+🏷️ Номер сделки: #{buy_request["id"]}
+👥 Партнер: {formatted_seller}
+
+<i>Не забудьте создать подмену на <b>WFM</b></i>""",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🎭 Открыть сделку",
+                                url=deeplink,
+                            )
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                text="🗓️ Открыть WFM",
+                                url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                            )
+                        ],
+                    ]
+                ),
+            )
         else:
             # Частичное предложение времени - обновляем buy request и создаем новые для оставшегося времени
-            await _handle_partial_sell_offer_new(dialog_manager, stp_repo, user_id)
+            new_exchanges = await _handle_partial_sell_offer_new(
+                dialog_manager, stp_repo, user_id
+            )
             await event.answer(
-                "✅ Частичное предложение отправлено покупателю!", show_alert=True
+                "✅ Часы проданы!\n\nНе забудь создать подмену в WFM!",
+                show_alert=True,
+            )
+
+            # Уведомление покупателю о частичном принятии запроса
+            deeplink = await create_start_link(
+                bot=bot, payload=f"exchange_{buy_request['id']}", encode=True
+            )
+
+            # Create deeplinks for new exchanges
+            new_exchanges_text = ""
+            if new_exchanges:
+                new_exchanges_links = []
+                for exchange in new_exchanges:
+                    exchange_deeplink = await create_start_link(
+                        bot=bot, payload=f"exchange_{exchange.id}", encode=True
+                    )
+                    new_exchanges_links.append(
+                        f"🏷️ Номер сделки: <a href='{exchange_deeplink}'>#{exchange.id} ({exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')})</a>"
+                    )
+                new_exchanges_text = (
+                    "Созданы новые запросы на оставшееся время:\n"
+                    + "\n".join(new_exchanges_links)
+                )
+
+            await event.bot.send_message(
+                chat_id=buy_request["owner_id"],
+                text=f"""🎉 <b>Запрос покупки частично принят</b>
+
+🏷️ Номер сделки: #{buy_request["id"]}
+👥 Партнер: {formatted_seller}
+
+{new_exchanges_text}
+
+<i>Не забудьте создать подмену на <b>WFM</b></i>""",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🎭 Открыть сделку",
+                                url=deeplink,
+                            )
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                text="🗓️ Открыть WFM",
+                                url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                            )
+                        ],
+                    ]
+                ),
             )
 
         # Очищаем данные и возвращаемся
@@ -1418,22 +1507,26 @@ async def _handle_partial_sell_offer_new(
     original_end = buy_request["end_time"]
     original_buyer_id = buy_request["owner_id"]  # Исправлено: используем owner_id
 
+    new_exchanges = []
     # Создаем buy request для времени до предложенного диапазона
     if original_start < offered_start:
-        await stp_repo.exchange.create_exchange(
+        new_exchange = await stp_repo.exchange.create_exchange(
             owner_id=original_buyer_id,
             start_time=original_start,
             end_time=offered_start,
             price=price_per_hour,  # Та же цена за час
             owner_intent="buy",
         )
+        new_exchanges.append(new_exchange)
 
     # Создаем buy request для времени после предложенного диапазона
     if offered_end < original_end:
-        await stp_repo.exchange.create_exchange(
+        new_exchange = await stp_repo.exchange.create_exchange(
             owner_id=original_buyer_id,
             start_time=offered_end,
             end_time=original_end,
             price=price_per_hour,  # Та же цена за час
             owner_intent="buy",
         )
+        new_exchanges.append(new_exchange)
+    return new_exchanges

@@ -393,13 +393,9 @@ async def get_exchange_text(
     # Защита от None значений в часах
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
 
-    # Защита от None значений в часах
-    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
-
     if exchange.owner_intent == "sell":
         seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
         seller_name = format_fullname(seller, True, True)
-        # exchange.price теперь уже цена за час
         price_per_hour = exchange.price
         price_per_hour_text = (
             f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
@@ -430,7 +426,7 @@ async def get_exchange_text(
 💰 <b>Оплата:</b>
 <code>{price_display}</code> - {payment_date_str}</blockquote>"""
     else:
-        buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
+        buyer = await stp_repo.employee.get_users(user_id=exchange.owner_id)
         buyer_name = format_fullname(buyer, True, True)
         # Форматируем дату оплаты для buy запроса
         payment_date_str = (
@@ -937,7 +933,7 @@ async def exchange_sell_detail_getter(
             return {"error": "Запрос не найден"}
 
         exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
-        deeplink = f"buy_request_{exchange.id}"
+        deeplink = f"exchange_{exchange.id}"
 
         return {
             "exchange_info": exchange_info,
@@ -1346,7 +1342,7 @@ async def sell_confirmation_getter(
         "date_str": date_str,
         "requested_time_range": f"{request_start}-{request_end}",
         "requested_hours": f"{requested_hours:g}",
-        "offered_time_range": offered_time_range,
+        "time_range": offered_time_range,
         "offered_hours": f"{offered_hours:g}",
         "price_per_hour": price_per_hour,
         "total_price": total_price,
