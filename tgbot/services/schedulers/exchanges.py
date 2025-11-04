@@ -44,16 +44,20 @@ SCHEDULER_CONFIG = {
         "name": "Уведомления за 1 день до обмена",
     },
     "payment_notifications": {
-        "interval_hours": 6,
-        "misfire_grace_time": 600,
+        "trigger": "cron",
+        "hour": 12,
+        "minute": 0,
+        "misfire_grace_time": 1800,  # 30 minutes
         "id": "exchanges_payment_date_notifications",
-        "name": "Уведомления о датах оплаты",
+        "name": "Уведомления о датах оплаты в 12:00",
     },
     "immediate_reminders": {
-        "interval_hours": 12,
-        "misfire_grace_time": 600,
+        "trigger": "cron",
+        "hour": 12,
+        "minute": 0,
+        "misfire_grace_time": 1800,  # 30 minutes
         "id": "exchanges_immediate_payment_reminders",
-        "name": "Напоминания об immediate оплате",
+        "name": "Напоминания об immediate оплате в 12:00",
     },
     "daily_payment_reminder": {
         "trigger": "cron",
