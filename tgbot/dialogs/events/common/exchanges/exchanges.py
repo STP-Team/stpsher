@@ -5,7 +5,14 @@ import re
 from datetime import datetime
 from typing import Any, Optional, Tuple
 
-from aiogram.types import BufferedInputFile, CallbackQuery
+from aiogram import Bot
+from aiogram.types import (
+    BufferedInputFile,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
+from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
 from stp_database import Employee, MainRequestsRepo
@@ -17,7 +24,7 @@ from tgbot.dialogs.states.common.exchanges import (
     Exchanges,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import format_fullname, tz
 
 logger = logging.getLogger(__name__)
 
@@ -963,8 +970,11 @@ async def on_buy_confirm(
 ):
     """Обработчик подтверждения покупки."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    bot: Bot = dialog_manager.middleware_data["bot"]
     user_id = dialog_manager.event.from_user.id
 
+    buyer_user = await stp_repo.employee.get_users(user_id=user_id)
+    formatted_buyer = format_fullname(buyer_user, True, True)
     try:
         original_exchange = dialog_manager.dialog_data.get("original_exchange")
         buy_full = dialog_manager.dialog_data.get("buy_full", False)
@@ -980,15 +990,92 @@ async def on_buy_confirm(
             )
             if success:
                 await event.answer(
-                    "✅ Смена успешно куплена полностью!", show_alert=True
+                    "✅ Смена успешно куплена полностью!\n\nНе забудь создать подмену в WFM!",
+                    show_alert=True,
+                )
+                deeplink = f"exchange_{original_exchange['id']}"
+                await event.bot.send_message(
+                    chat_id=original_exchange["owner_id"],
+                    text=f"""🎉<b>Сделка полностью закрыта</b>
+
+🏷️ Номер сделки: #{original_exchange["id"]}
+👥 Партнер: {formatted_buyer}
+
+<i>Не забудьте создать подмену на <b>WFM</b></i>""",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="🎭 Открыть сделку",
+                                    switch_inline_query_current_chat=deeplink,
+                                )
+                            ],
+                            [
+                                InlineKeyboardButton(
+                                    text="🗓️ Открыть WFM",
+                                    url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                                )
+                            ],
+                        ]
+                    ),
                 )
             else:
                 await event.answer("❌ Не удалось купить смену", show_alert=True)
                 return
         else:
             # Частичная покупка - обновляем существующий обмен и создаем новый
-            await _handle_partial_exchange(dialog_manager, stp_repo, user_id)
-            await event.answer("✅ Часть смены успешно куплена!", show_alert=True)
+            new_exchanges = await _handle_partial_exchange(
+                dialog_manager, stp_repo, user_id
+            )
+            await event.answer(
+                "✅ Часть смены успешно куплена!\n\nНе забудь создать подмену в WFM!",
+                show_alert=True,
+            )
+            deeplink = f"exchange_{original_exchange['id']}"
+
+            # Create deeplinks for new exchanges
+            new_exchanges_text = ""
+            if new_exchanges:
+                new_exchanges_links = []
+                for exchange in new_exchanges:
+                    exchange_deeplink = await create_start_link(
+                        bot=bot, payload=f"exchange_{exchange.id}", encode=True
+                    )
+                    new_exchanges_links.append(
+                        f"🏷️ Номер сделки: #{exchange.id} ({exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}) - {exchange_deeplink}"
+                    )
+                new_exchanges_text = (
+                    "Созданы новые сделки на оставшееся время:\n"
+                    + "\n".join(new_exchanges_links)
+                )
+
+            await event.bot.send_message(
+                chat_id=original_exchange["owner_id"],
+                text=f"""🎉 <b>Сделка частично закрыта</b>
+
+🏷️ Номер сделки: #{original_exchange["id"]}
+👥 Партнер: {formatted_buyer}
+
+{new_exchanges_text}
+
+<i>Не забудьте создать подмену на <b>WFM</b></i>""",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="🎭 Открыть сделку",
+                                switch_inline_query_current_chat=deeplink,
+                            )
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                text="🗓️ Открыть WFM",
+                                url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                            )
+                        ],
+                    ]
+                ),
+            )
 
         # Очищаем данные и возвращаемся
         dialog_manager.dialog_data.clear()
@@ -1068,28 +1155,29 @@ async def _handle_partial_exchange(
     original_start = original_exchange["start_time"]
     original_end = original_exchange["end_time"]
 
+    new_exchanges = []
     # Создаем обмен для времени до выбранного диапазона
     if original_start < selected_start:
-        await stp_repo.exchange.create_exchange(
+        new_exchange = await stp_repo.exchange.create_exchange(
             owner_id=original_exchange["owner_id"],
             start_time=original_start,
             end_time=selected_start,
             price=price_per_hour,  # Та же цена за час
             owner_intent="sell",
         )
+        new_exchanges.append(new_exchange)
 
     # Создаем обмен для времени после выбранного диапазона
     if selected_end < original_end:
-        await stp_repo.exchange.create_exchange(
+        new_exchange = await stp_repo.exchange.create_exchange(
             owner_id=original_exchange["owner_id"],
             start_time=selected_end,
             end_time=original_end,
             price=price_per_hour,  # Та же цена за час
             owner_intent="sell",
         )
-
-
-# New event handlers for seller responding to buy requests
+        new_exchanges.append(new_exchange)
+    return new_exchanges
 
 
 async def on_offer_full_time(

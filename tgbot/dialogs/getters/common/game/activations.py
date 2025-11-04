@@ -39,11 +39,9 @@ async def activations_getter(
         # Получаем информацию о пользователе, который купил предмет
         purchase_user = await stp_repo.employee.get_users(user_id=purchase.user_id)
         purchase_user_text = format_fullname(
-            purchase_user.fullname,
+            purchase_user,
             True,
             True,
-            purchase_user.username,
-            purchase_user.user_id,
         )
 
         formatted_activations.append((

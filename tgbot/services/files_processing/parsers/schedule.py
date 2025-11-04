@@ -866,15 +866,11 @@ class DutyScheduleParser(BaseParser):
 
             # Добавляем старших дежурных
             for duty in group["seniors"]:
-                lines.append(
-                    f"Дежурный - {format_fullname(duty.name, True, True, duty.username, duty.user_id)}"
-                )
+                lines.append(f"Дежурный - {format_fullname(duty, True, True)}")
 
             # Добавляем помощников
             for duty in group["helpers"]:
-                lines.append(
-                    f"Помощник - {format_fullname(duty.name, True, True, duty.username, duty.user_id)}"
-                )
+                lines.append(f"Помощник - {format_fullname(duty, True, True)}")
 
             # Проверяем, является ли следующий слот текущим
             next_is_current = False
@@ -1078,7 +1074,7 @@ class HeadScheduleParser(BaseParser):
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
-                head_line = f"{format_fullname(head.name, True, True, head.username, head.user_id)}"
+                head_line = f"{format_fullname(head, True, True)}"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"
@@ -1146,9 +1142,7 @@ class GroupScheduleParser(BaseParser):
 
     def _format_member_with_link(self, member: GroupMemberInfo) -> str:
         """Format member name with link and working hours."""
-        user_link = format_fullname(
-            member.name, True, True, member.username, member.user_id
-        )
+        user_link = format_fullname(member, True, True)
 
         working_hours = member.working_hours or "Не указано"
         result = f"{user_link} <code>{working_hours}</code>"

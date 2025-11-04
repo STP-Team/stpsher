@@ -95,17 +95,13 @@ async def game_statistics_getter(
     medals = ["🥇", "🥈", "🥉"]
 
     for idx, (member, balance) in enumerate(month_top):
-        name = format_fullname(
-            member.fullname, True, True, member.username, member.user_id
-        )
+        name = format_fullname(member, True, True)
         month_top_text.append(f"{medals[idx]} {name} - {int(balance)} баллов")
 
     # Форматируем топ-3 за все время
     all_time_top_text = []
     for idx, (member, balance) in enumerate(all_time_top):
-        name = format_fullname(
-            member.fullname, True, True, member.username, member.user_id
-        )
+        name = format_fullname(member, True, True)
         all_time_top_text.append(f"{medals[idx]} {name} - {balance} баллов")
 
     statistics_text = f"""📊 <b>Статистика группы</b>
@@ -198,9 +194,7 @@ async def game_achievements_getter(
                 period = "Вручную"
 
         date_str = transaction.created_at.strftime(strftime_date)
-        member_name = format_fullname(
-            member.fullname, True, True, member.username, member.user_id
-        )
+        member_name = format_fullname(member, True, True)
 
         formatted_achievements.append((
             transaction.id,
@@ -270,7 +264,7 @@ async def game_products_getter(
         date_str = user_product.bought_at.strftime("%d.%m.%y")
         status_emoji = get_status_emoji(user_product.status)
         usage_info = f"({product.current_usages}/{product.max_usages})"
-        member_name = format_fullname(member.fullname, True, True)
+        member_name = format_fullname(member, True, True)
         button_text = f"{status_emoji} {usage_info} {product_info.name} - {member_name} ({date_str})"
 
         formatted_products.append((
@@ -340,7 +334,7 @@ async def game_balance_history_getter(
     formatted_history = []
     for member, transaction in all_transactions[:100]:
         date_str = transaction.created_at.strftime(strftime_date)
-        member_name = format_fullname(member.fullname, True, True)
+        member_name = format_fullname(member, True, True)
 
         # Определяем тип транзакции
         transaction_type = "Неизвестно"
@@ -409,7 +403,7 @@ async def game_casino_getter(
             casino_enabled_count += 1
 
         status_emoji = "🟢" if member.is_casino_allowed else "🔴"
-        member_name = format_fullname(member.fullname, True, True)
+        member_name = format_fullname(member, True, True)
 
         formatted_members.append((
             member.id,
@@ -464,9 +458,7 @@ async def game_rating_getter(
         else:
             prefix = f"{idx}."
 
-        member_name = format_fullname(
-            member.fullname, True, True, member.username, member.user_id
-        )
+        member_name = format_fullname(member, True, True)
         rating_lines.append(f"{prefix} {member_name}")
         rating_lines.append(f"{balance} баллов")
 

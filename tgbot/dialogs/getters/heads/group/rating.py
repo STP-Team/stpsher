@@ -220,9 +220,7 @@ async def get_rating_display_data(
                     "kpi": kpi,
                     "value": value,
                     "formatted_value": _format_rating_value(value, normative),
-                    "formatted_name": format_fullname(
-                        member.fullname, True, True, member.username, member.user_id
-                    ),
+                    "formatted_name": format_fullname(member, True, True),
                     "contacts_info": contacts_info,
                 })
 

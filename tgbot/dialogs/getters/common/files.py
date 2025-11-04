@@ -78,13 +78,7 @@ async def get_local_file_details(
         uploaded_by_user = await stp_repo.employee.get_users(
             user_id=latest.uploaded_by_user_id
         )
-        uploaded_by_text = format_fullname(
-            uploaded_by_user.fullname,
-            True,
-            True,
-            uploaded_by_user.username,
-            uploaded_by_user.user_id,
-        )
+        uploaded_by_text = format_fullname(uploaded_by_user, True, True)
         file_info["uploaded_by_fullname"] = uploaded_by_text
         file_info["uploaded_at"] = latest.uploaded_at.strftime(strftime_date)
 
@@ -116,11 +110,9 @@ async def get_file_history(
     for record in db_records:
         uploaded_by_user = users_map.get(record.uploaded_by_user_id)
         fullname = format_fullname(
-            uploaded_by_user.fullname,
+            uploaded_by_user,
             True,
             True,
-            uploaded_by_user.username,
-            uploaded_by_user.user_id,
         )
 
         history.append((
@@ -156,11 +148,9 @@ async def get_all_files_history(stp_repo: MainRequestsRepo, **_kwargs) -> dict:
     for record in db_records:
         uploaded_by_user = users_map.get(record.uploaded_by_user_id)
         uploaded_by_text = format_fullname(
-            uploaded_by_user.fullname,
+            uploaded_by_user,
             True,
             True,
-            uploaded_by_user.username,
-            uploaded_by_user.user_id,
         )
 
         files.append((
@@ -196,11 +186,9 @@ async def get_history_file_details(
         user_id=record.uploaded_by_user_id
     )
     uploaded_by_text = format_fullname(
-        uploaded_user.fullname,
+        uploaded_user,
         True,
         True,
-        uploaded_user.username,
-        record.uploaded_by_user_id,
     )
 
     file_info = {

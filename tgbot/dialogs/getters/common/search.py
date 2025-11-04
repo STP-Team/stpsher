@@ -77,7 +77,7 @@ async def search_specialists_getter(
         role_info = get_role(specialist.role)
         formatted_specialists.append((
             specialist.id,
-            format_fullname(specialist.fullname, True, True),
+            format_fullname(specialist, True, True),
             role_info["emoji"],
         ))
 
@@ -127,7 +127,7 @@ async def search_heads_getter(
         role_info = get_role(head.role)
         formatted_heads.append((
             head.id,
-            format_fullname(head.fullname, True, True),
+            format_fullname(head, True, True),
             role_info["emoji"],
         ))
 
@@ -210,18 +210,16 @@ async def search_user_info_getter(
         if searched_user.head:
             user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        user_info = f"""<b>{format_fullname(searched_user.fullname, False, True, searched_user.username, searched_user.user_id)}</b>
+        user_info = f"""<b>{format_fullname(searched_user, False, True)}</b>
 
 <b>💼 Должность:</b> {searched_user.position} {searched_user.division}"""
 
         if user_head:
             user_info += f"\n<b>👑 Руководитель:</b> {
                 format_fullname(
-                    user_head.fullname,
+                    user_head,
                     True,
                     True,
-                    user_head.username,
-                    user_head.user_id,
                 )
             }"
 
@@ -306,11 +304,9 @@ async def search_access_level_getter(
         try:
             if selected_user:
                 selected_user_name = format_fullname(
-                    selected_user.fullname,
+                    selected_user,
                     short=False,
                     gender_emoji=True,
-                    username=selected_user.username,
-                    user_id=selected_user.user_id,
                 )
                 role_info = get_role(selected_user.role)
                 if role_info:
@@ -353,11 +349,9 @@ async def search_schedule_getter(
 
     # Добавляем информацию о пользователе в начало текста графика
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
-        username=selected_user.username,
-        user_id=selected_user.user_id,
     )
 
     if "schedule_text" in schedule_data:
@@ -392,11 +386,9 @@ async def search_kpi_getter(
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
-        username=selected_user.username,
-        user_id=selected_user.user_id,
     )
 
     if "kpi_text" in kpi_data:
@@ -433,11 +425,9 @@ async def search_kpi_requirements_getter(
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
-        username=selected_user.username,
-        user_id=selected_user.user_id,
     )
 
     if "requirements_text" in requirements_data:
@@ -472,11 +462,9 @@ async def search_salary_getter(
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
-        username=selected_user.username,
-        user_id=selected_user.user_id,
     )
 
     if "salary_text" in salary_data:
@@ -569,11 +557,9 @@ async def search_achievements_getter(
     ]
 
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
-        username=selected_user.username,
-        user_id=selected_user.user_id,
     )
 
     return {
@@ -635,13 +621,7 @@ async def search_inventory_getter(
             product.max_usages,
         ))
 
-    user_name = format_fullname(
-        selected_user.fullname,
-        short=False,
-        gender_emoji=True,
-        username=selected_user.username,
-        user_id=selected_user.user_id,
-    )
+    user_name = format_fullname(selected_user, short=False, gender_emoji=True)
 
     return {
         "products": formatted_products,

@@ -206,11 +206,9 @@ async def on_document_uploaded(
                             if user:
                                 formatted_fired.append(
                                     format_fullname(
-                                        user.fullname,
+                                        user,
                                         short=True,
                                         gender_emoji=True,
-                                        username=user.username,
-                                        user_id=user.user_id,
                                     )
                                 )
                             else:
@@ -225,11 +223,9 @@ async def on_document_uploaded(
                             if user:
                                 formatted_updated.append(
                                     format_fullname(
-                                        user.fullname,
+                                        user,
                                         short=True,
                                         gender_emoji=True,
-                                        username=user.username,
-                                        user_id=user.user_id,
                                     )
                                 )
                             else:
@@ -243,11 +239,9 @@ async def on_document_uploaded(
                         if user:
                             formatted_new.append(
                                 format_fullname(
-                                    user.fullname,
+                                    user,
                                     short=True,
                                     gender_emoji=True,
-                                    username=user.username,
-                                    user_id=user.user_id,
                                 )
                             )
                         else:
@@ -305,11 +299,9 @@ async def on_document_uploaded(
                                     formatted_name = None
                                     if user:
                                         formatted_name = format_fullname(
-                                            user.fullname,
+                                            user,
                                             short=True,
                                             gender_emoji=True,
-                                            username=user.username,
-                                            user_id=user.user_id,
                                         )
                                     else:
                                         formatted_name = fullname

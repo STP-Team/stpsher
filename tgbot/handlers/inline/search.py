@@ -137,7 +137,7 @@ class InlineResultBuilder:
         if user.head:
             if user_head:
                 message_parts.append(
-                    f"<b>👑 Руководитель:</b> {format_fullname(user_head.fullname, True, True, user_head.username, user_head.user_id)}"
+                    f"<b>👑 Руководитель:</b> {format_fullname(user_head, True, True)}"
                 )
             else:
                 message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")

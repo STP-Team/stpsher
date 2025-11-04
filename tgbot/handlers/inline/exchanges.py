@@ -53,7 +53,7 @@ async def handle_exchange_query(
         return [
             InlineQueryResultArticle(
                 id=f"exchange_{exchange.id}",
-                title=f"Сделка №{exchange.id}",
+                title=f"Сделка #{exchange.id}",
                 description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {price_text}",
                 input_message_content=InputTextMessageContent(
                     message_text=message_text, parse_mode="HTML"
@@ -165,7 +165,7 @@ async def handle_user_exchanges(
             results.append(
                 InlineQueryResultArticle(
                     id=f"user_exchange_{exchange.id}",
-                    title=f"{status_icon} Сделка №{exchange.id}",
+                    title=f"{status_icon} Сделка #{exchange.id}",
                     description=f"📅 {shift_time} {shift_date} ПРМ\n💰 {price_text}",
                     input_message_content=InputTextMessageContent(
                         message_text=message_text, parse_mode="HTML"
