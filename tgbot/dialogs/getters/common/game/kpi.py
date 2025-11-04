@@ -38,7 +38,7 @@ async def kpi_getter(
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        premium: Показатели премии сотрудника с моделью SpecPremium или HeadPremium
+        kpi_repo: Репозиторий операций с базой KPI
 
     Returns:
         Словарь с текстом сообщения о показателях пользователя
@@ -51,7 +51,7 @@ async def kpi_getter(
             "kpi_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
         }
 
-    # Format dates
+    # Форматирование даты
     updated_at_str = "—"
     if premium.updated_at:
         updated_at_str = (
@@ -68,17 +68,14 @@ async def kpi_getter(
         kpi_text = f"""🌟 <b>Показатели</b>
 
 🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}
-План: {SalaryFormatter.format_value(premium.flr_normative)}</blockquote>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}</blockquote>
 
 ⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}
-План: {SalaryFormatter.format_value(premium.gok_normative)}</blockquote>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}</blockquote>
 
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
-Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
+Факт: {SalaryFormatter.format_value(premium.target)}</blockquote>
 
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
@@ -104,25 +101,20 @@ async def kpi_getter(
         kpi_text = f"""🌟 <b>Показатели</b>
     
 📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}
-План: {SalaryFormatter.format_value(premium.csi_normative)}</blockquote>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}</blockquote>
     
 🎯 <b>Отклик</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}
-План: {SalaryFormatter.format_value(round(premium.csi_response_normative))}</blockquote>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}</blockquote>
     
 🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}
-План: {SalaryFormatter.format_value(premium.flr_normative)}</blockquote>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}</blockquote>
     
 ⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}
-План: {SalaryFormatter.format_value(premium.gok_normative)}</blockquote>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}</blockquote>
     
 🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
 <blockquote>Тип: {premium.target_type or "—"}
-Факт: {SalaryFormatter.format_value(premium.target)}
-План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}</blockquote>
+Факт: {SalaryFormatter.format_value(premium.target)}</blockquote>
     
 💼 <b>Дополнительно</b>
 <blockquote>Дисциплина: {SalaryFormatter.format_percentage(premium.discipline_premium)}
@@ -149,7 +141,7 @@ async def kpi_requirements_getter(
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        premium: Показатели премии сотрудника с моделью SpecPremium или HeadPremium
+        kpi_repo: Репозиторий операций с базой KPI
 
     Returns:
         Словарь с текстом сообщения о выполнении нормативов пользователем
@@ -164,9 +156,14 @@ async def kpi_requirements_getter(
 Не смог найти твои показатели в премиуме :(""",
         }
 
-    requirements_text = KPICalculator.format_requirements_message(
-        user=user, premium=premium, is_head=True if user.role == 2 else False
-    )
+    try:
+        requirements_text = KPICalculator.format_requirements_message(
+            user=user, premium=premium, is_head=True if user.role == 2 else False
+        )
+    except Exception:
+        requirements_text = """🧮 <b>Нормативы</b>
+        
+Кажется, нормативы пока что не выставлены 🤷‍♂️"""
 
     return {"requirements_text": requirements_text}
 
@@ -178,7 +175,7 @@ async def salary_getter(
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        premium: Показатели премии сотрудника с моделью SpecPremium или HeadPremium
+        kpi_repo: Репозиторий операций с базой KPI
 
     Returns:
         Словарь с текстом сообщения о зарплате сотрудника
@@ -193,9 +190,14 @@ async def salary_getter(
 Не смог найти твои показатели в премиуме :(""",
         }
 
-    salary_result = await SalaryCalculator.calculate_salary(
-        user=user, premium_data=premium
-    )
+    try:
+        salary_result = await SalaryCalculator.calculate_salary(
+            user=user, premium_data=premium
+        )
+    except Exception:
+        salary_result = """💰 <b>Зарплата</b>
+        
+Не смог посчитать твою зарплату 🥺"""
 
     salary_text = SalaryFormatter.format_salary_message(salary_result, premium)
 
