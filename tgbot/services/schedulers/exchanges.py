@@ -51,14 +51,6 @@ SCHEDULER_CONFIG = {
         "id": "exchanges_payment_date_notifications",
         "name": "Уведомления о датах оплаты в 12:00",
     },
-    "immediate_reminders": {
-        "trigger": "cron",
-        "hour": 12,
-        "minute": 0,
-        "misfire_grace_time": 1800,  # 30 minutes
-        "id": "exchanges_immediate_payment_reminders",
-        "name": "Напоминания об immediate оплате в 12:00",
-    },
     "daily_payment_reminder": {
         "trigger": "cron",
         "hour": 12,
@@ -107,13 +99,6 @@ MESSAGES = {
 {exchange_info}
 
 <i>Пожалуйста, произведи оплату покупателю</i>""",
-    "immediate_reminder": """⚡ <b>Напоминание об оплате</b>
-
-Ты еще не отметил оплату для купленной смены с моментальной оплатой
-
-{exchange_info}
-
-<i>Пожалуйста, проверь получение оплаты и отметь это в сделке</i>""",
     "daily_payment_reminder_buyer": """🕐 <b>Ежедневное напоминание об оплате</b>
 
 У тебя есть неоплаченные купленные сделки:
@@ -358,7 +343,6 @@ class ExchangesScheduler(BaseScheduler):
             ("upcoming_1hour", self._check_upcoming_exchanges_1hour),
             ("upcoming_1day", self._check_upcoming_exchanges_1day),
             ("payment_notifications", self._check_payment_date_notifications),
-            ("immediate_reminders", self._check_immediate_payment_reminders),
             ("daily_payment_reminder", self._check_daily_payment_reminders),
         ]
 
@@ -434,15 +418,6 @@ class ExchangesScheduler(BaseScheduler):
             bot: Экземпляр бота
         """
         await check_payment_date_notifications(session_pool, bot)
-
-    async def _check_immediate_payment_reminders(self, session_pool, bot: Bot) -> None:
-        """Проверка напоминаний об immediate оплате.
-
-        Args:
-            session_pool: Сессия с БД
-            bot: Экземпляр бота
-        """
-        await check_immediate_payment_reminders(session_pool, bot)
 
     async def _check_daily_payment_reminders(self, session_pool, bot: Bot) -> None:
         """Ежедневная проверка неоплаченных обменов в 12:00.
@@ -836,47 +811,6 @@ async def check_payment_date_notifications(session_pool, bot: Bot) -> None:
         logger.error(f"Ошибка проверки уведомлений о датах оплаты: {e}")
 
 
-async def check_immediate_payment_reminders(session_pool, bot: Bot) -> None:
-    """Проверка и отправка ежедневных напоминаний об immediate оплате.
-
-    Args:
-        session_pool: Пул сессий основной БД
-        bot: Экземпляр бота
-    """
-    try:
-        async with session_pool() as stp_session:
-            stp_repo = MainRequestsRepo(stp_session)
-
-            # Получаем проданные неоплаченные обмены с immediate оплатой
-            exchanges_to_remind = (
-                await stp_repo.exchange.get_immediate_unpaid_exchanges(
-                    status="sold", is_paid=False, payment_type="immediate"
-                )
-            )
-
-            if not exchanges_to_remind:
-                return
-
-            reminders_sent = 0
-
-            for exchange in exchanges_to_remind:
-                try:
-                    await notify_immediate_payment_reminder(bot, stp_repo, exchange)
-                    reminders_sent += 1
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка отправки напоминания об оплате для обмена {exchange.id}: {e}"
-                    )
-
-            if reminders_sent > 0:
-                logger.info(
-                    f"Отправлено {reminders_sent} напоминаний об immediate оплате"
-                )
-
-    except Exception as e:
-        logger.error(f"Ошибка проверки напоминаний об immediate оплате: {e}")
-
-
 async def notify_payment_date_reached(
     bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange
 ) -> None:
@@ -936,50 +870,6 @@ async def notify_payment_date_reached(
 
     except Exception as e:
         logger.error(f"Ошибка отправки уведомления о дате оплаты {exchange.id}: {e}")
-
-
-async def notify_immediate_payment_reminder(
-    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange
-) -> None:
-    """Отправка ежедневного напоминания об immediate оплате.
-
-    Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки с моделью Exchange
-    """
-    try:
-        # Уведомляем только покупателя о необходимости оплаты
-        if not exchange.buyer_id:
-            logger.warning(f"Не найден покупатель для обмена {exchange.id}")
-            return
-
-        buyer_exchange_info = await get_exchange_text(
-            stp_repo, exchange, user_id=exchange.buyer_id
-        )
-
-        deeplink = await create_exchange_deeplink(bot, exchange.id)
-
-        message = MESSAGES["immediate_reminder"].format(
-            exchange_info=buyer_exchange_info
-        )
-
-        success = await send_message(
-            bot=bot,
-            user_id=exchange.buyer_id,
-            text=message,
-            reply_markup=create_payment_keyboard(deeplink),
-        )
-
-        if success:
-            logger.info(
-                f"Отправлено напоминание об immediate оплате для обмена {exchange.id}"
-            )
-
-    except Exception as e:
-        logger.error(
-            f"Ошибка отправки напоминания об immediate оплате {exchange.id}: {e}"
-        )
 
 
 async def check_daily_payment_reminders(session_pool, bot: Bot) -> None:
