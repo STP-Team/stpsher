@@ -159,42 +159,9 @@ async def send_product_cancellation_notifications(
             bot_username=bot_info.username,
         )
 
-        # Определяем получателей уведомлений (всегда отправляем, независимо от смен)
-        manager_ids = []
-        manager_role = product.manager_role
-
-        if manager_role == 3:
-            # Для manager_role 3 уведомляем всех пользователей с этой ролью
-            users_with_role = await stp_repo.employee.get_users(roles=manager_role)
-            for role_user in users_with_role:
-                if role_user.user_id != user.user_id:
-                    manager_ids.append(role_user.user_id)
-        elif manager_role in [5, 6]:
-            # Для manager_role 5 или 6 уведомляем пользователей с такой же ролью
-            users_with_role = await stp_repo.employee.get_users(roles=manager_role)
-            for role_user in users_with_role:
-                if role_user.user_id != user.user_id:
-                    manager_ids.append(role_user.user_id)
-
-        # Отправляем уведомления менеджерам
-        if manager_ids:
-            notification_text = f"""<b>🔔 Отмена активации предмета</b>
-
-<b>🛒 Предмет:</b> {product_name}
-<b>👤 Пользователь:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
-<b>📋 Описание:</b> {product.description}
-
-<b>Активация предмета отменена</b>"""
-
-            result = await broadcast(
-                bot=bot,
-                users=manager_ids,
-                text=notification_text,
-            )
-
-            logger.info(
-                f"[Отмена активации] {user.username} ({user.user_id}) отменил активацию '{product_name}'. Уведомлено менеджеров: {result} из {len(manager_ids)}"
-            )
+        logger.info(
+            f"[Отмена активации] {user.username} ({user.user_id}) отменил активацию '{product_name}'"
+        )
 
     except Exception as e:
         logger.error(f"[Уведомления] Ошибка при отправке уведомлений об отмене: {e}")
