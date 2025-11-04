@@ -242,7 +242,7 @@ def create_expire_keyboard(deeplink: str, exchange: Exchange) -> InlineKeyboardM
 
     Args:
         deeplink: Ссылка на обмен
-        exchange: Объект обмена
+        exchange: Экземпляр сделки с моделью Exchange
 
     Returns:
         Объект клавиатуры
@@ -298,7 +298,7 @@ def can_reschedule_exchange(exchange: Exchange) -> bool:
     """Проверяет, можно ли автоматически перенести сделку.
 
     Args:
-        exchange: Экземпляр сделки
+        exchange: Экземпляр сделки с моделью Exchange
 
     Returns:
         bool: True если сделка может быть перенесена автоматически
@@ -622,7 +622,7 @@ async def notify_subscription_match(
         bot: Экземпляр бота
         stp_repo: Репозиторий базы данных
         subscription: Подписка
-        exchange: Обмен
+        exchange: Экземпляр сделки с моделью Exchange
     """
     try:
         # Получаем данные пользователя
@@ -733,7 +733,7 @@ async def notify_upcoming_exchange(
     Args:
         bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки
+        exchange: Экземпляр сделки с моделью Exchange
         hours_before: За сколько часов отправляется уведомление
     """
     try:
@@ -885,7 +885,7 @@ async def notify_payment_date_reached(
     Args:
         bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки
+        exchange: Экземпляр сделки с моделью Exchange
     """
     try:
         deeplink = await create_exchange_deeplink(bot, exchange.id)
@@ -946,7 +946,7 @@ async def notify_immediate_payment_reminder(
     Args:
         bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки
+        exchange: Экземпляр сделки с моделью Exchange
     """
     try:
         # Уведомляем только покупателя о необходимости оплаты
