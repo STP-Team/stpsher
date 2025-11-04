@@ -16,7 +16,7 @@ from tgbot.filters.role import (
     MultiRoleFilter,
     SpecialistFilter,
 )
-from tgbot.handlers.inline.exchanges import handle_exchange_query
+from tgbot.handlers.inline.exchanges import handle_exchange_query, handle_user_exchanges
 from tgbot.handlers.inline.helpers import CACHE_TIMES
 from tgbot.handlers.inline.search import InlineResultBuilder, handle_search_query
 from tgbot.handlers.inline.subscriptions import handle_subscription_query
@@ -68,6 +68,8 @@ async def inline_handler(
             # Роутинг специфичных запросов
             if "exchange_" in query_text:
                 results = await handle_exchange_query(query_text, stp_repo, user, bot)
+            elif "my_exchanges" in query_text:
+                results = await handle_user_exchanges(stp_repo, user, bot)
             elif "subscription_" in query_text:
                 results = await handle_subscription_query(query_text, stp_repo, bot)
             else:
@@ -186,6 +188,9 @@ def get_cache_time(query_text: str, results: List[InlineQueryResultArticle]) -> 
     elif "exchange_" in query_text:
         # Кешируем детали сделки
         return CACHE_TIMES["EXCHANGE_DETAILS"]
+    elif "my_exchanges" in query_text:
+        # Кешируем список активных сделок
+        return CACHE_TIMES["MY_EXCHANGES"]
     elif "subscription_" in query_text:
         # Кешируем детали подписки
         return CACHE_TIMES["SUBSCRIPTION_DETAILS"]

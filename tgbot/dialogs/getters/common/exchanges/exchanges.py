@@ -999,7 +999,7 @@ async def my_exchanges(
                 "price": exchange.price,
             })
 
-        exchanges_query = "active_exchanges"
+        exchanges_query = "my_exchanges"
 
         return {
             "my_exchanges": my_exchanges_list,

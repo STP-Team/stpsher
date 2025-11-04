@@ -28,8 +28,7 @@ async def on_transaction_click(
 
     try:
         transaction = await stp_repo.transaction.get_transaction(item_id)
-    except Exception as e:
-        print(e)
+    except Exception:
         await event.answer(
             "❌ Ошибка получения информации о транзакции", show_alert=True
         )
