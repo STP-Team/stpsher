@@ -49,19 +49,15 @@ async def on_activation_click(
         )
 
         user_info = format_fullname(
-            purchase_user.fullname,
+            purchase_user,
             True,
             True,
-            purchase_user.username,
-            purchase_user.user_id,
         )
 
         head_info = format_fullname(
-            purchase_user_head.fullname,
+            purchase_user_head,
             True,
             True,
-            purchase_user_head.username,
-            purchase_user_head.user_id,
         )
 
         # Сохраняем информацию о выбранной активации в dialog_data
@@ -135,7 +131,7 @@ async def on_activation_approve_comment_input(
         if activation_info["usage_count"] + 1 >= activation_info["product_count"]:
             employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
 
-Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+Менеджер {format_fullname(user, True, True)} подтвердил активацию предмета
 
 💬 <b>Комментарий менеджера:</b>
 <blockquote expandable>{comment}</blockquote>
@@ -149,7 +145,7 @@ async def on_activation_approve_comment_input(
             )
             employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
 
-Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+Менеджер {format_fullname(user, True, True)} подтвердил активацию предмета
 
 💬 <b>Комментарий менеджера:</b>
 <blockquote expandable>{comment}</blockquote>
@@ -201,7 +197,7 @@ async def on_skip_approve_comment(
         if activation_info["usage_count"] + 1 >= activation_info["product_count"]:
             employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
 
-Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+Менеджер {format_fullname(user, True, True)} подтвердил активацию предмета
 
 У <b>{activation_info["product_name"]}</b> не осталось использований
 
@@ -212,7 +208,7 @@ async def on_skip_approve_comment(
             )
             employee_notify_message = f"""<b>👌 Предмет активирован:</b> {activation_info["product_name"]}
 
-Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} подтвердил активацию предмета
+Менеджер {format_fullname(user, True, True)} подтвердил активацию предмета
 
 📍 Осталось активаций: {remaining_uses} из {activation_info["product_count"]}"""
 
@@ -269,7 +265,7 @@ async def on_activation_reject_comment_input(
         # Уведомляем пользователя
         employee_notify_message = f"""<b>Активация отменена:</b> {activation_info["product_name"]}
 
-Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} отменил активацию <b>{activation_info["product_name"]}</b>
+Менеджер {format_fullname(user, True, True)} отменил активацию <b>{activation_info["product_name"]}</b>
 
 💬 <b>Комментарий менеджера:</b>
 <blockquote expandable>{comment}</blockquote>
@@ -318,7 +314,7 @@ async def on_skip_reject_comment(
         # Уведомляем пользователя
         employee_notify_message = f"""<b>Активация отменена:</b> {activation_info["product_name"]}
 
-Менеджер {format_fullname(user.fullname, True, True, user.username, user.user_id)} отменил активацию <b>{activation_info["product_name"]}</b>
+Менеджер {format_fullname(user, True, True)} отменил активацию <b>{activation_info["product_name"]}</b>
 
 <i>Использование предмета не будет засчитано</i>"""
 

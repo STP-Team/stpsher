@@ -4,7 +4,7 @@ import random
 import string
 
 import pytz
-from sqlalchemy.orm import Mapped
+from stp_database import Employee
 
 from tgbot.misc.dicts import roles, russian_weekdays_short
 
@@ -137,38 +137,34 @@ def short_name(full_name: str) -> str:
 
 
 def format_fullname(
-    fullname: str | Mapped[str],
+    user: Employee,
     short: bool = True,
     gender_emoji: bool = False,
-    username: str | Mapped[str] = None,
-    user_id: int | Mapped[int] = None,
 ) -> str:
     """Форматирует ФИО пользователя.
 
     Args:
-        fullname: Полные ФИО
+        user: Экземпляр пользователя с моделью Employee
         short: Нужно ли сократить до ФИ
         gender_emoji: Нужно ли добавлять эмодзи гендеры к ФИО
-        username: Юзернейм пользователя Telegram
-        user_id: Идентификатор пользователя Telegram
 
     Returns:
         Форматированная строка с указанными параметрами
     """
     if short:
-        formatted_fullname = short_name(fullname)
+        formatted_fullname = short_name(user.fullname)
     else:
-        formatted_fullname = fullname
+        formatted_fullname = user.fullname
 
-    if username is not None:
-        formatted_fullname = f"<a href='t.me/{username}'>{formatted_fullname}</a>"
-    elif username is None and user_id is not None:
+    if user.username is not None:
+        formatted_fullname = f"<a href='t.me/{user.username}'>{formatted_fullname}</a>"
+    elif user.username is None and user.user_id is not None:
         formatted_fullname = (
-            f"<a href='tg://user?id={user_id}'>{formatted_fullname}</a>"
+            f"<a href='tg://user?id={user.user_id}'>{formatted_fullname}</a>"
         )
 
     if gender_emoji:
-        emoji = get_gender_emoji(fullname)
+        emoji = get_gender_emoji(user.fullname)
         formatted_fullname = f"{emoji} {formatted_fullname}"
 
     return formatted_fullname

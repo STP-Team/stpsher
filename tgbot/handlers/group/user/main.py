@@ -37,9 +37,7 @@ async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
             db_user = await stp_repo.employee.get_users(user_id=user_info.id)
             if db_user:
                 # Если есть в БД, используем данные из БД с ссылкой
-                display_name = format_fullname(
-                    db_user.fullname, True, True, db_user.username, db_user.user_id
-                )
+                display_name = format_fullname(db_user, True, True)
             else:
                 # Если нет в БД, используем данные из Telegram
                 display_name = (
@@ -159,9 +157,7 @@ async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
                     position_emoji = f"{i}."
 
                 # Формируем строку рейтинга
-                employee_link = format_fullname(
-                    employee.fullname, True, True, employee.username, employee.user_id
-                )
+                employee_link = format_fullname(employee, True, True)
 
                 message_text += f"{position_emoji} <b>{employee_link}</b>\n"
                 message_text += f"{balance} баллов\n"

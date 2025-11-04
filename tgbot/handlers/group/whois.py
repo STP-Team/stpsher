@@ -28,11 +28,9 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
             message_parts.append(
                 f"<b>👑 Руководитель:</b> {
                     format_fullname(
-                        user_head.fullname,
+                        user_head,
                         True,
                         True,
-                        user_head.username,
-                        user_head.user_id,
                     )
                 }"
             )

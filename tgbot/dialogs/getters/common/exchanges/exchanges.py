@@ -398,9 +398,7 @@ async def get_exchange_text(
 
     if exchange.owner_intent == "sell":
         seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-        seller_name = format_fullname(
-            seller.fullname, True, True, seller.username, seller.username
-        )
+        seller_name = format_fullname(seller, True, True)
         # exchange.price теперь уже цена за час
         price_per_hour = exchange.price
         price_per_hour_text = (
@@ -433,9 +431,7 @@ async def get_exchange_text(
 <code>{price_display}</code> - {payment_date_str}</blockquote>"""
     else:
         buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
-        buyer_name = format_fullname(
-            buyer.fullname, True, True, buyer.username, buyer.username
-        )
+        buyer_name = format_fullname(buyer, True, True)
         # Форматируем дату оплаты для buy запроса
         payment_date_str = (
             "сразу"
@@ -503,21 +499,13 @@ async def get_exchange_detailed_text(
 
     # Получаем информацию о продавце
     seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-    seller_name = (
-        format_fullname(seller.fullname, True, True, seller.username, seller.user_id)
-        if seller
-        else "Не указано"
-    )
+    seller_name = format_fullname(seller, True, True) if seller else "Не указано"
 
     # Получаем информацию о покупателе (если есть)
     buyer_name = "Не указано"
     if exchange.counterpart_id:
         buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
-        buyer_name = (
-            format_fullname(buyer.fullname, True, True, buyer.username, buyer.user_id)
-            if buyer
-            else "Не указано"
-        )
+        buyer_name = format_fullname(buyer, True, True) if buyer else "Не указано"
 
     # Определяем роли для отображения в зависимости от типа сделки
     # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
@@ -1047,11 +1035,9 @@ async def _get_other_party_info(
         other_party_user = await stp_repo.employee.get_users(user_id=other_party_id)
         if other_party_user:
             other_party_name = format_fullname(
-                other_party_user.fullname,
+                other_party_user,
                 short=True,
                 gender_emoji=True,
-                username=other_party_user.username,
-                user_id=other_party_user.user_id,
             )
             return other_party_name, other_party_type
     except Exception as e:
@@ -1218,9 +1204,7 @@ async def buy_confirmation_getter(
 
     # Получаем информацию о продавце
     seller = await stp_repo.employee.get_users(user_id=original_exchange["owner_id"])
-    seller_name = format_fullname(
-        seller.fullname, True, True, seller.username, seller.username
-    )
+    seller_name = format_fullname(seller, True, True)
 
     date_str = original_exchange["start_time"].strftime("%d.%m.%Y")
     price_per_hour = original_exchange["price"]
@@ -1285,9 +1269,7 @@ async def sell_time_selection_getter(
 
     # Получаем информацию о покупателе
     buyer = await stp_repo.employee.get_users(user_id=buy_request["owner_id"])
-    buyer_name = format_fullname(
-        buyer.fullname, True, True, buyer.username, buyer.username
-    )
+    buyer_name = format_fullname(buyer, True, True)
 
     # Форматируем время и дату
     start_time = buy_request["start_time"].strftime("%H:%M")
@@ -1321,9 +1303,7 @@ async def sell_confirmation_getter(
 
     # Получаем информацию о покупателе
     buyer = await stp_repo.employee.get_users(user_id=buy_request["owner_id"])
-    buyer_name = format_fullname(
-        buyer.fullname, True, True, buyer.username, buyer.username
-    )
+    buyer_name = format_fullname(buyer, True, True)
 
     date_str = buy_request["start_time"].strftime("%d.%m.%Y")
     price_per_hour = buy_request["price"]

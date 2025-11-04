@@ -126,21 +126,19 @@ buy_time_selection_window = Window(
 )
 
 buy_confirmation_window = Window(
-    Const("✅ <b>Подтверждение покупки</b>"),
+    Const("✅ <b>Подтверждение сделки</b>"),
     Format("""
 📊 <b>{purchase_type}</b>
 
 📅 <b>Дата:</b> {date_str}
 ⏱️ <b>Время:</b> {time_range} ({hours} ч.)
-💰 <b>Цена:</b> {price_per_hour} р./ч.
-💸 <b>К оплате:</b> {total_price} р.
-👤 <b>Продавец:</b> {seller_name}
-
-Подтвердить покупку?"""),
+💰 <b>Оплата:</b> {price_per_hour} р./ч. ({total_price} р.)
+👤 <b>Продавец:</b> {seller_name}"""),
     Row(
-        Button(Const("✅ Подтвердить"), id="confirm_buy", on_click=on_buy_confirm),
         SwitchTo(Const("✋ Отмена"), id="cancel_buy", state=Exchanges.sell),
+        Button(Const("✅ Подтвердить"), id="confirm_buy", on_click=on_buy_confirm),
     ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_detail), HOME_BTN),
     getter=buy_confirmation_getter,
     state=Exchanges.buy_confirmation,
 )

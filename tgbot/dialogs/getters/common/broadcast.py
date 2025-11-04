@@ -45,9 +45,7 @@ async def broadcast_select_getter(
 
         items = []
         for head in heads:
-            display_name = format_fullname(
-                head.fullname, True, True, head.username, int(head.user_id)
-            )
+            display_name = format_fullname(head, True, True)
             items.append((head.id, display_name))
 
         # Получаем уникальные направления руководителей для фильтрации
@@ -115,11 +113,9 @@ async def broadcast_info_getter(
                         if head:
                             short_names.append(
                                 format_fullname(
-                                    head.fullname,
+                                    head,
                                     True,
                                     True,
-                                    head.username,
-                                    int(head.user_id),
                                 )
                             )
                     broadcast_targets = ", ".join(short_names)
@@ -267,7 +263,5 @@ async def broadcast_detail_getter(
         "broadcast_text": broadcast.text,
         "recipients_count": len(broadcast.recipients or []),
         "created_at": created_at_str,
-        "creator_name": format_fullname(
-            creator.fullname, True, True, creator.username, int(creator.user_id)
-        ),
+        "creator_name": format_fullname(creator, True, True),
     }
