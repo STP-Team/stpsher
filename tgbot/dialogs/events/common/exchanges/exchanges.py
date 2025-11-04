@@ -1046,7 +1046,7 @@ async def on_buy_confirm(
                         bot=bot, payload=f"exchange_{exchange.id}", encode=True
                     )
                     new_exchanges_links.append(
-                        f"🏷️ Номер сделки: #{exchange.id} ({exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}) - {exchange_deeplink}"
+                        f"🏷️ Номер сделки: <a href='{exchange_deeplink}'>#{exchange.id} ({exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')})</a>"
                     )
                 new_exchanges_text = (
                     "Созданы новые сделки на оставшееся время:\n"
