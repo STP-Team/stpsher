@@ -3,11 +3,12 @@
 import logging
 from datetime import datetime
 
+from aiogram import Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select
-from stp_database import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo, Product, Purchase
 
 from tgbot.dialogs.states.common.game import Game
 from tgbot.misc.helpers import tz
@@ -22,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 async def send_product_activation_notifications(
-    bot,
-    user,
-    product,
-    purchase,
+    bot: Bot,
+    user: Employee,
+    product: Product,
+    purchase: Purchase,
     product_name: str,
     comment: str = None,
     stp_repo: MainRequestsRepo = None,
@@ -75,10 +76,17 @@ async def send_product_activation_notifications(
         manager_role = product.manager_role
 
         if manager_role == 3:
+            target_division = (
+                ["НТП1", "НТП2"] if user.division in ["НТП1", "НТП2"] else ["НЦК"]
+            )
+
             # Для manager_role 3 уведомляем всех пользователей с этой ролью
             users_with_role = await stp_repo.employee.get_users(roles=manager_role)
             for role_user in users_with_role:
-                if role_user.user_id != user.user_id:
+                if (
+                    role_user.user_id != user.user_id
+                    and role_user.division in target_division
+                ):
                     manager_ids.append(role_user.user_id)
         elif manager_role in [5, 6]:
             # Для manager_role 5 или 6 уведомляем пользователей с такой же ролью
@@ -95,7 +103,6 @@ async def send_product_activation_notifications(
 <b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
 <b>📋 Описание:</b> {product.description}
 {f"<b>💬 Комментарий:</b> {comment}" if comment else ""}
-
 <b>Требуется рассмотрение заявки</b>"""
 
             result = await broadcast(
@@ -113,10 +120,10 @@ async def send_product_activation_notifications(
 
 
 async def send_product_cancellation_notifications(
-    bot,
-    user,
-    product,
-    purchase,
+    bot: Bot,
+    user: Employee,
+    product: Product,
+    purchase: Purchase,
     product_name: str,
     stp_repo: MainRequestsRepo = None,
 ) -> None:
