@@ -999,10 +999,13 @@ async def my_exchanges(
                 "price": exchange.price,
             })
 
+        exchanges_query = "active_exchanges"
+
         return {
             "my_exchanges": my_exchanges_list,
             "length": len(my_exchanges_list),
             "has_exchanges": len(my_exchanges_list) > 0,
+            "exchanges_deeplink": exchanges_query,
         }
 
     except Exception:

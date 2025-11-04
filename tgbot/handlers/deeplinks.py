@@ -31,8 +31,9 @@ async def start_deeplink(
     Args:
         message: Сообщение пользователя
         user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
         dialog_manager: Менеджер диалога
-        event_logger: Логгер событий
+        event_logger: Логер событий
     """
     if not user:
         await message.answer(
