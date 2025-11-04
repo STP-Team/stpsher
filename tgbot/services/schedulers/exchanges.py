@@ -99,28 +99,35 @@ MESSAGES = {
 
 {exchange_info}
 
-<i>Пожалуйста, произведи оплату и отметь это в сделке</i>""",
+<i>Пожалуйста, проверь получение оплаты и отметь это в сделке</i>""",
     "payment_date_seller": """📅 <b>Дата оплаты наступила</b>
 
 Для проданной смены наступила дата оплаты
 
 {exchange_info}
 
-<i>Покупатель должен произвести оплату</i>""",
+<i>Пожалуйста, произведи оплату покупателю</i>""",
     "immediate_reminder": """⚡ <b>Напоминание об оплате</b>
 
 Ты еще не отметил оплату для купленной смены с моментальной оплатой
 
 {exchange_info}
 
-<i>Пожалуйста, произведи оплату и отметь это в сделке</i>""",
-    "daily_payment_reminder": """🕐 <b>Ежедневное напоминание об оплате</b>
+<i>Пожалуйста, проверь получение оплаты и отметь это в сделке</i>""",
+    "daily_payment_reminder_buyer": """🕐 <b>Ежедневное напоминание об оплате</b>
 
-У тебя есть неоплаченные обмены:
+У тебя есть неоплаченные купленные сделки:
 
 {exchanges_info}
 
-<i>Пожалуйста, произведи оплату и отметь это в соответствующих сделках</i>""",
+<i>Пожалуйста, проверь получение оплаты и отметь это в соответствующих сделках</i>""",
+    "daily_payment_reminder_seller": """🕐 <b>Ежедневное напоминание об оплате</b>
+
+У тебя есть неоплаченные проданные сделки:
+
+{exchanges_info}
+
+<i>Пожалуйста, произведи оплату покупателям</i>""",
 }
 
 # Button Text Constants
@@ -1033,27 +1040,67 @@ async def notify_daily_payment_reminder(
         if not exchanges:
             return
 
-        # Формируем информацию о всех неоплаченных обменах
-        exchanges_info_list = []
+        # Разделяем сделки по ролям пользователя
+        buyer_exchanges = []
+        seller_exchanges = []
+
         for exchange in exchanges:
-            exchange_info = await get_exchange_text(stp_repo, exchange, user_id=user_id)
-            exchanges_info_list.append(f"• {exchange_info}")
+            if exchange.buyer_id == user_id:
+                buyer_exchanges.append(exchange)
+            elif exchange.seller_id == user_id:
+                seller_exchanges.append(exchange)
 
-        exchanges_info = "\n\n".join(exchanges_info_list)
+        messages_sent = 0
 
-        # Формируем сообщение
-        message = MESSAGES["daily_payment_reminder"].format(
-            exchanges_info=exchanges_info
-        )
+        # Отправляем напоминание о купленных сделках (пользователь должен заплатить)
+        if buyer_exchanges:
+            buyer_exchanges_info_list = []
+            for exchange in buyer_exchanges:
+                exchange_info = await get_exchange_text(
+                    stp_repo, exchange, user_id=user_id
+                )
+                buyer_exchanges_info_list.append(f"• {exchange_info}")
 
-        # Отправляем уведомление (без клавиатуры, так как может быть много обменов)
-        success = await send_message(
-            bot=bot, user_id=user_id, text=message, disable_notification=False
-        )
+            buyer_exchanges_info = "\n\n".join(buyer_exchanges_info_list)
 
-        if success:
+            buyer_message = MESSAGES["daily_payment_reminder_buyer"].format(
+                exchanges_info=buyer_exchanges_info
+            )
+
+            success = await send_message(
+                bot=bot, user_id=user_id, text=buyer_message, disable_notification=False
+            )
+            if success:
+                messages_sent += 1
+
+        # Отправляем напоминание о проданных сделках (пользователь должен проверить получение оплаты)
+        if seller_exchanges:
+            seller_exchanges_info_list = []
+            for exchange in seller_exchanges:
+                exchange_info = await get_exchange_text(
+                    stp_repo, exchange, user_id=user_id
+                )
+                seller_exchanges_info_list.append(f"• {exchange_info}")
+
+            seller_exchanges_info = "\n\n".join(seller_exchanges_info_list)
+
+            seller_message = MESSAGES["daily_payment_reminder_seller"].format(
+                exchanges_info=seller_exchanges_info
+            )
+
+            success = await send_message(
+                bot=bot,
+                user_id=user_id,
+                text=seller_message,
+                disable_notification=False,
+            )
+            if success:
+                messages_sent += 1
+
+        if messages_sent > 0:
             logger.info(
-                f"Отправлено ежедневное напоминание пользователю {user_id} о {len(exchanges)} неоплаченных обменах"
+                f"Отправлено {messages_sent} ежедневных напоминаний пользователю {user_id} "
+                f"(покупатель: {len(buyer_exchanges)}, продавец: {len(seller_exchanges)})"
             )
 
     except Exception as e:
