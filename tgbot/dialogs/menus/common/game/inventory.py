@@ -136,8 +136,18 @@ inventory_activation_comment_window = Window(
         on_click=on_skip_activation_comment,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.inventory_details, when=~F["came_from_products"]),
-        SwitchTo(Const("↩️ Назад"), id="back_to_products", state=Game.products_success, when="came_from_products"),
+        SwitchTo(
+            Const("↩️ Назад"),
+            id="back_to_details",
+            state=Game.inventory_details,
+            when=~F["came_from_products"],
+        ),
+        SwitchTo(
+            Const("↩️ Назад"),
+            id="back_to_products",
+            state=Game.products_success,
+            when="came_from_products",
+        ),
         Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
     ),
     getter=inventory_detail_getter,
