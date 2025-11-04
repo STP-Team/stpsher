@@ -120,26 +120,33 @@ async def use_product(
 
         # Если все проверки пройдены, переходим к окну комментария
         if dialog_manager.current_context().state == Game.products_success:
-            # Для магазина используем старую логику (без комментария)
-            stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+            # Для магазина создаем унифицированную структуру данных для комментария
             new_purchase = dialog_manager.dialog_data["new_purchase"]
             user_product_id = new_purchase["id"]
 
-            success = await stp_repo.purchase.use_purchase(user_product_id)
+            # Создаем структуру, совместимую с inventory_detail_getter
+            dialog_manager.dialog_data["selected_inventory_product"] = {
+                "user_product_id": user_product_id,
+                "product_id": product_info["id"],
+                "product_name": product_info["name"],
+                "product_description": product_info["description"],
+                "product_cost": product_info["cost"],
+                "product_count": product_info["count"],
+                "activate_days": product_info.get("activate_days"),
+                "status": "stored",  # Новый предмет всегда stored
+                "usage_count": 0,    # Новый предмет не использовался
+                "current_usages": 0,
+                "max_usages": product_info["count"],
+                "bought_at": "только что",
+                "comment": None,
+                "updated_by_user_id": None,
+                "updated_at": None,
+            }
+            # Сохраняем информацию о том, что пришли из магазина
+            dialog_manager.dialog_data["came_from_products"] = True
 
-            if success:
-                await callback.answer(
-                    f"✅ Предмет {product_name} отправлен на рассмотрение!",
-                    show_alert=True,
-                )
-                await dialog_manager.switch_to(Game.products)
-            else:
-                await callback.answer(
-                    "❌ Невозможно использовать предмет", show_alert=True
-                )
-        else:
-            # Для инвентаря переходим к окну ввода комментария
-            await dialog_manager.switch_to(Game.inventory_activation_comment)
+        # Для всех случаев переходим к окну ввода комментария
+        await dialog_manager.switch_to(Game.inventory_activation_comment)
 
     except Exception as e:
         logger.error(
@@ -263,7 +270,12 @@ async def on_inventory_activation_comment_input(
         await message.answer(
             f"✅ Предмет {product_name} отправлен на рассмотрение с комментарием!"
         )
-        await dialog_manager.switch_to(Game.inventory)
+
+        # Возвращаемся туда, откуда пришли
+        if dialog_manager.dialog_data.get("came_from_products"):
+            await dialog_manager.switch_to(Game.products)
+        else:
+            await dialog_manager.switch_to(Game.inventory)
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при сохранении комментария: {e}")
@@ -379,7 +391,12 @@ async def on_skip_activation_comment(
                 f"✅ Предмет {product_name} отправлен на рассмотрение!",
                 show_alert=True,
             )
-            await dialog_manager.switch_to(Game.inventory)
+
+            # Возвращаемся туда, откуда пришли
+            if dialog_manager.dialog_data.get("came_from_products"):
+                await dialog_manager.switch_to(Game.products)
+            else:
+                await dialog_manager.switch_to(Game.inventory)
         else:
             await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
 

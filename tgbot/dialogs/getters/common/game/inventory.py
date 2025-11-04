@@ -112,4 +112,7 @@ async def inventory_detail_getter(
         "can_use": can_use,
         "can_sell": can_sell,
         "can_cancel": can_cancel,
+        "came_from_products": dialog_manager.dialog_data.get(
+            "came_from_products", False
+        ),
     }
