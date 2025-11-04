@@ -65,12 +65,12 @@ async def handle_exchange_reschedule(
             return
 
         # Проверяем права доступа (пользователь должен быть владельцем сделки)
-        if exchange.seller_id != user.user_id:
+        if exchange.owner_id != user.user_id:
             await callback.answer("❌ У вас нет прав на эту сделку", show_alert=True)
             return
 
         # Проверяем тип сделки
-        if exchange.type != "sell":
+        if exchange.owner_intent != "sell":
             await callback.answer(
                 "❌ Автоматический перенос доступен только для продаж", show_alert=True
             )

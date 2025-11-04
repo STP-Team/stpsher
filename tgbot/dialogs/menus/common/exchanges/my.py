@@ -1,5 +1,7 @@
 """Генерация диалога сделок пользователя."""
 
+import operator
+
 from aiogram import F
 from aiogram_dialog import Window
 from aiogram_dialog.widgets.input import TextInput
@@ -7,6 +9,7 @@ from aiogram_dialog.widgets.kbd import (
     Button,
     Checkbox,
     Group,
+    Radio,
     Row,
     ScrollingGroup,
     Select,
@@ -68,8 +71,15 @@ my_window = Window(
         id="my_exchange_scrolling",
         when="has_exchanges",
     ),
+    Radio(
+        Format("🔘 {item[1]}"),
+        Format("⚪️ {item[1]}"),
+        id="exchanges_filter",
+        item_id_getter=operator.itemgetter(0),
+        items="exchanges_types",
+    ),
     SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться активными"),
+        Const("🔗 Поделиться"),
         query=Format("{exchanges_deeplink}"),
         allow_user_chats=True,
         allow_group_chats=True,
@@ -77,8 +87,10 @@ my_window = Window(
         allow_bot_chats=False,
         id="active_exchanges_deeplink",
     ),
-    Button(Const("👔 Мой график"), id="my_schedule", on_click=open_my_schedule),
-    Button(Const("🔄 Обновить"), id="refresh_my_exchanges"),
+    Row(
+        Button(Const("👔 Мой график"), id="my_schedule", on_click=open_my_schedule),
+        Button(Const("🔄 Обновить"), id="refresh_my_exchanges"),
+    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     getter=my_exchanges,
     state=Exchanges.my,

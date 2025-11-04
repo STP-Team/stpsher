@@ -150,49 +150,44 @@ class ScheduleParser(BaseParser):
                     month_duties = {}
 
             # Получаем информацию о купленных обменах пользователя
-            user_exchanges = {}
+            schedule_exchanges = {}
             if stp_repo:
                 try:
                     user = await stp_repo.employee.get_users(fullname=fullname)
                     if user:
                         # Получаем купленные обмены пользователя (где он buyer)
-                        bought_exchanges = await stp_repo.exchange.get_user_exchanges(
+                        user_exchanges = await stp_repo.exchange.get_user_exchanges(
                             user_id=user.user_id,
-                            exchange_type="all",
+                            status="sold",
                         )
 
-                        # Фильтруем только завершенные покупки
                         current_year = datetime.now().year
                         month_num = MonthManager.get_month_number(month)
 
-                        for exchange in bought_exchanges:
-                            # Проверяем что пользователь покупатель и сделка завершена
+                        for exchange in user_exchanges:
                             if (
-                                exchange.status == "sold"
-                                and exchange.start_time
-                                and (
-                                    (
-                                        exchange.buyer_id == user.user_id
-                                        and exchange.in_buyer_schedule
-                                    )
-                                    or (
-                                        exchange.seller_id == user.user_id
-                                        and exchange.in_seller_schedule
-                                    )
-                                )
+                                exchange.owner_id == user.user_id
+                                and exchange.in_owner_schedule
+                            ) or (
+                                exchange.counterpart_id == user.user_id
+                                and exchange.in_counterpart_schedule
                             ):
+                                print("here")
                                 # Проверяем что обмен относится к нужному месяцу
                                 if (
                                     exchange.start_time.year == current_year
                                     and exchange.start_time.month == month_num
                                 ):
+                                    print("here 1")
                                     day_num = exchange.start_time.day
                                     emoji = (
                                         "📈"
-                                        if exchange.buyer_id == user.user_id
+                                        if exchange.owner_id == user.user_id
+                                        and exchange.owner_intent == "buy"
                                         else "📉"
                                     )
                                     if bot:
+                                        print("here 2")
                                         deeplink = await create_start_link(
                                             bot=bot,
                                             payload=f"exchange_{exchange.id}",
@@ -201,7 +196,7 @@ class ScheduleParser(BaseParser):
                                         exchange_info = f"<a href='{deeplink}'>{emoji} {exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}</a>"
                                     else:
                                         exchange_info = f"{emoji} {exchange.start_time.strftime('%H:%M')}-{exchange.end_time.strftime('%H:%M')}"
-                                    user_exchanges[day_num] = exchange_info
+                                    schedule_exchanges[day_num] = exchange_info
 
                         logger.debug(
                             f"[Excel] Найдено {len(user_exchanges)} сделок для {fullname}"
@@ -234,8 +229,8 @@ class ScheduleParser(BaseParser):
                                     break
 
                         # Проверяем сделки
-                        if day_num in user_exchanges:
-                            exchange_info = user_exchanges[day_num]
+                        if day_num in schedule_exchanges:
+                            exchange_info = schedule_exchanges[day_num]
 
                 except Exception as e:
                     logger.debug(

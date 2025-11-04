@@ -237,7 +237,7 @@ def create_expire_keyboard(deeplink: str, exchange: Exchange) -> InlineKeyboardM
     ]
 
     # Для продаж добавляем кнопку автоматического переноса (если возможно)
-    if exchange.type == "sell" and can_reschedule_exchange(exchange):
+    if exchange.owner_intent == "sell" and can_reschedule_exchange(exchange):
         inline_keyboard.append([
             InlineKeyboardButton(
                 text=BUTTONS["reschedule_auto"],
@@ -453,9 +453,9 @@ async def check_expired_offers(session_pool, bot: Bot) -> None:
             for exchange in active_exchanges:
                 try:
                     # Определяем время истечения в зависимости от типа предложения
-                    if exchange.type == "sell":
+                    if exchange.owner_intent == "sell":
                         expiration_datetime = exchange.start_time
-                    elif exchange.type == "buy":
+                    elif exchange.owner_intent == "buy":
                         expiration_datetime = exchange.end_time
                     else:
                         continue
@@ -495,7 +495,7 @@ async def notify_expire_offer(
     """
     try:
         # Определяем владельца сделки
-        owner_id = exchange.seller_id if exchange.type == "sell" else exchange.buyer_id
+        owner_id = exchange.owner_id
         if not owner_id:
             logger.warning(f"Не найден владелец для сделки {exchange.id}")
             return
@@ -514,7 +514,7 @@ async def notify_expire_offer(
         deeplink = await create_exchange_deeplink(bot, exchange.id)
 
         # Формируем сообщение
-        time_type = "начала" if exchange.type == "sell" else "конца"
+        time_type = "начала" if exchange.owner_intent == "sell" else "конца"
         message_text = MESSAGES["expired_offer"].format(
             time_type=time_type, exchange_info=exchange_info
         )
@@ -719,10 +719,15 @@ async def notify_upcoming_exchange(
 
         notifications_sent = 0
 
-        # Уведомление продавцу
-        if exchange.seller_id:
+        # Уведомление продавцу (определяем на основе owner_intent)
+        seller_id = (
+            exchange.owner_id
+            if exchange.owner_intent == "sell"
+            else exchange.counterpart_id
+        )
+        if seller_id:
             seller_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=exchange.seller_id
+                stp_repo, exchange, user_id=seller_id
             )
 
             seller_message = MESSAGES["upcoming_seller"].format(
@@ -731,7 +736,7 @@ async def notify_upcoming_exchange(
 
             success = await send_message(
                 bot=bot,
-                user_id=exchange.seller_id,
+                user_id=seller_id,
                 text=seller_message,
                 reply_markup=reply_markup,
             )
@@ -739,9 +744,9 @@ async def notify_upcoming_exchange(
                 notifications_sent += 1
 
         # Уведомление покупателю
-        if exchange.buyer_id:
+        if exchange.counterpart_id:
             buyer_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=exchange.buyer_id
+                stp_repo, exchange, user_id=exchange.counterpart_id
             )
 
             buyer_message = MESSAGES["upcoming_buyer"].format(
@@ -750,7 +755,7 @@ async def notify_upcoming_exchange(
 
             success = await send_message(
                 bot=bot,
-                user_id=exchange.buyer_id,
+                user_id=exchange.counterpart_id,
                 text=buyer_message,
                 reply_markup=reply_markup,
             )
@@ -826,9 +831,9 @@ async def notify_payment_date_reached(
         notifications_sent = 0
 
         # Уведомляем покупателя о необходимости оплаты
-        if exchange.buyer_id:
+        if exchange.counterpart_id:
             buyer_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=exchange.buyer_id
+                stp_repo, exchange, user_id=exchange.counterpart_id
             )
 
             buyer_message = MESSAGES["payment_date_buyer"].format(
@@ -837,7 +842,7 @@ async def notify_payment_date_reached(
 
             success = await send_message(
                 bot=bot,
-                user_id=exchange.buyer_id,
+                user_id=exchange.counterpart_id,
                 text=buyer_message,
                 reply_markup=create_payment_keyboard(deeplink),
             )
@@ -845,9 +850,14 @@ async def notify_payment_date_reached(
                 notifications_sent += 1
 
         # Уведомляем продавца о том, что покупатель должен произвести оплату
-        if exchange.seller_id:
+        seller_id = (
+            exchange.owner_id
+            if exchange.owner_intent == "sell"
+            else exchange.counterpart_id
+        )
+        if seller_id:
             seller_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=exchange.seller_id
+                stp_repo, exchange, user_id=seller_id
             )
 
             seller_message = MESSAGES["payment_date_seller"].format(
@@ -856,7 +866,7 @@ async def notify_payment_date_reached(
 
             success = await send_message(
                 bot=bot,
-                user_id=exchange.seller_id,
+                user_id=seller_id,
                 text=seller_message,
                 reply_markup=create_basic_keyboard(deeplink),
             )
@@ -935,10 +945,19 @@ async def notify_daily_payment_reminder(
         seller_exchanges = []
 
         for exchange in exchanges:
-            if exchange.buyer_id == user_id:
-                buyer_exchanges.append(exchange)
-            elif exchange.seller_id == user_id:
-                seller_exchanges.append(exchange)
+            # Определяем роль пользователя на основе owner_intent
+            if exchange.owner_intent == "sell":
+                # В sell: owner_id = продавец, counterpart_id = покупатель
+                if exchange.counterpart_id == user_id:
+                    buyer_exchanges.append(exchange)
+                elif exchange.owner_id == user_id:
+                    seller_exchanges.append(exchange)
+            elif exchange.owner_intent == "buy":
+                # В buy: owner_id = покупатель, counterpart_id = продавец
+                if exchange.owner_id == user_id:
+                    buyer_exchanges.append(exchange)
+                elif exchange.counterpart_id == user_id:
+                    seller_exchanges.append(exchange)
 
         messages_sent = 0
 

@@ -54,7 +54,7 @@ sell_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("{item[time]}, {item[date]} | {item[price]} р."),
+            Format("{item[time]}, {item[date]} | {item[price]} р./ч."),
             id="buy_request_select",
             items="available_buy_requests",
             item_id_getter=lambda item: item["id"],
@@ -86,9 +86,7 @@ sell_detail_window = Window(
     Const("🔍 <b>Детали сделки</b>"),
     Format("""
 {exchange_info}"""),
-    Button(
-        Const("✍️ Предложить сделку"), id="accept_buy_request", on_click=on_exchange_sell
-    ),
+    Button(Const("✍️ Предложить сделку"), id="apply_sell", on_click=on_exchange_sell),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
         query=Format("{deeplink}"),

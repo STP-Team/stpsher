@@ -108,7 +108,7 @@ async def get_existing_sales_for_date(
     try:
         # Получаем активные и проданные обмены пользователя только как продавец
         user_exchanges = await stp_repo.exchange.get_user_exchanges(
-            user_id=user_id, exchange_type="sold"
+            user_id=user_id, owner_intent="sold"
         )
 
         # Фильтруем только активные и проданные обмены
@@ -310,7 +310,11 @@ async def on_exchange_buy(
     """Обработчик покупки sell offer."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
-    exchange_id = dialog_manager.dialog_data.get("exchange_id")
+
+    exchange_id = (
+        dialog_manager.dialog_data.get("exchange_id", None)
+        or dialog_manager.start_data["exchange_id"]
+    )
 
     if not exchange_id:
         await event.answer("❌ Обмен не найден", show_alert=True)
@@ -329,7 +333,7 @@ async def on_exchange_buy(
             return
 
         # Проверяем что это sell offer
-        if exchange.type != "sell":
+        if exchange.owner_intent != "sell":
             await event.answer("❌ Это не предложение продажи", show_alert=True)
             return
 
@@ -339,7 +343,7 @@ async def on_exchange_buy(
             "start_time": exchange.start_time,
             "end_time": exchange.end_time,
             "price": exchange.price,
-            "seller_id": exchange.seller_id,
+            "owner_id": exchange.owner_id,  # Создатель обмена
         }
         # Переходим к экрану выбора времени для покупки
         await dialog_manager.switch_to(Exchanges.buy_time_selection)
@@ -357,6 +361,7 @@ async def on_exchange_sell(
     """Обработчик ответа на buy request (продажа)."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
+
     exchange_id = (
         dialog_manager.dialog_data.get("exchange_id", None)
         or dialog_manager.start_data["exchange_id"]
@@ -379,17 +384,17 @@ async def on_exchange_sell(
             return
 
         # Проверяем что это buy request
-        if exchange.type != "buy":
+        if exchange.owner_intent != "buy":
             await event.answer("❌ Это не запрос покупки", show_alert=True)
             return
 
-        # Пользователь (продавец) отвечает на запрос покупки
+        # Пользователь отвечает на запрос покупки
         dialog_manager.dialog_data["buy_request"] = {
             "id": exchange.id,
             "start_time": exchange.start_time,
             "end_time": exchange.end_time,
             "price": exchange.price,
-            "buyer_id": exchange.buyer_id,
+            "owner_id": exchange.owner_id,  # Создатель запроса покупки
         }
         # Переходим к экрану выбора времени для продажи
         await dialog_manager.switch_to(Exchanges.sell_time_selection)
@@ -507,15 +512,18 @@ async def on_in_schedule_click(
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
 
-    is_seller = exchange.seller_id == user.user_id
+    # Упрощаем логику: используем роли owner/counterpart
+    is_owner = exchange.owner_id == user.user_id
 
-    if is_seller:
+    if is_owner:
+        # Для владельца обмена управляем in_owner_schedule
         await stp_repo.exchange.update_exchange(
-            exchange_id, in_seller_schedule=not widget.is_checked()
+            exchange_id, in_owner_schedule=not widget.is_checked()
         )
     else:
+        # Для counterpart управляем in_counterpart_schedule
         await stp_repo.exchange.update_exchange(
-            exchange_id, in_buyer_schedule=not widget.is_checked()
+            exchange_id, in_counterpart_schedule=not widget.is_checked()
         )
 
 
@@ -806,10 +814,10 @@ async def on_add_to_calendar(
     if not exchange:
         return
 
-    if exchange.seller_id == user.user_id:
-        second_party = exchange.buyer_id
+    if exchange.owner_id == user.user_id:
+        second_party = exchange.counterpart_id
     else:
-        second_party = exchange.seller_id
+        second_party = exchange.owner_id
 
     second_party = await stp_repo.employee.get_users(user_id=second_party)
 
@@ -1053,7 +1061,7 @@ async def _handle_partial_exchange(
         end_time=selected_end,
         price=price_per_hour,  # Цена за час остается неизменной
         status="sold",
-        buyer_id=user_id,
+        counterpart_id=user_id,
     )
 
     # Создаем новые обмены для оставшегося времени
@@ -1063,21 +1071,21 @@ async def _handle_partial_exchange(
     # Создаем обмен для времени до выбранного диапазона
     if original_start < selected_start:
         await stp_repo.exchange.create_exchange(
-            seller_id=original_exchange["seller_id"],
+            owner_id=original_exchange["owner_id"],
             start_time=original_start,
             end_time=selected_start,
             price=price_per_hour,  # Та же цена за час
-            exchange_type="sell",
+            owner_intent="sell",
         )
 
     # Создаем обмен для времени после выбранного диапазона
     if selected_end < original_end:
         await stp_repo.exchange.create_exchange(
-            seller_id=original_exchange["seller_id"],
+            owner_id=original_exchange["owner_id"],
             start_time=selected_end,
             end_time=original_end,
             price=price_per_hour,  # Та же цена за час
-            exchange_type="sell",
+            owner_intent="sell",
         )
 
 
@@ -1166,9 +1174,9 @@ async def on_sell_confirm(
         )
 
         if is_full_time_offer:
-            # Предлагаем всё запрашиваемое время - просто устанавливаем seller_id как в buy логике
+            # Предлагаем всё запрашиваемое время - устанавливаем counterpart_id
             await stp_repo.exchange.update_exchange(
-                buy_request["id"], status="sold", seller_id=user_id
+                buy_request["id"], status="sold", counterpart_id=user_id
             )
             await event.answer("✅ Запрос покупки успешно принят!", show_alert=True)
         else:
@@ -1238,11 +1246,11 @@ async def _handle_partial_sell_offer(
 
     # Создаем новое предложение продажи
     new_exchange_id = await stp_repo.exchange.create_exchange(
-        seller_id=user_id,
+        owner_id=user_id,
         start_time=offered_start,
         end_time=offered_end,
         price=price_per_hour,
-        exchange_type="sell",
+        owner_intent="sell",
         comment=f"Частичный ответ на запрос покупки #{buy_request['id']}",
     )
 
@@ -1310,30 +1318,30 @@ async def _handle_partial_sell_offer_new(
         end_time=offered_end,
         price=price_per_hour,  # Цена за час остается неизменной
         status="sold",
-        seller_id=user_id,
+        counterpart_id=user_id,
     )
 
     # Создаем новые buy requests для оставшегося времени
     original_start = buy_request["start_time"]
     original_end = buy_request["end_time"]
-    original_buyer_id = buy_request["buyer_id"]
+    original_buyer_id = buy_request["owner_id"]  # Исправлено: используем owner_id
 
     # Создаем buy request для времени до предложенного диапазона
     if original_start < offered_start:
         await stp_repo.exchange.create_exchange(
-            buyer_id=original_buyer_id,
+            owner_id=original_buyer_id,
             start_time=original_start,
             end_time=offered_start,
             price=price_per_hour,  # Та же цена за час
-            exchange_type="buy",
+            owner_intent="buy",
         )
 
     # Создаем buy request для времени после предложенного диапазона
     if offered_end < original_end:
         await stp_repo.exchange.create_exchange(
-            buyer_id=original_buyer_id,
+            owner_id=original_buyer_id,
             start_time=offered_end,
             end_time=original_end,
             price=price_per_hour,  # Та же цена за час
-            exchange_type="buy",
+            owner_intent="buy",
         )
