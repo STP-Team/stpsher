@@ -126,12 +126,12 @@ buy_time_selection_window = Window(
 )
 
 buy_confirmation_window = Window(
-    Const("✅ <b>Подтверждение сделки</b>"),
+    Const("✅ <b>Сделка: Подтверждение</b>"),
     Format("""
 📊 <b>{purchase_type}</b>
 
-📅 <b>Дата:</b> {date_str}
-⏱️ <b>Время:</b> {time_range} ({hours} ч.)
+📅 <b>Дата:</b> 
+⏱️ <b>Время:</b> {time_range} ({hours} ч.) {date_str}
 💰 <b>Оплата:</b> {price_per_hour} р./ч. ({total_price} р.)
 👤 <b>Продавец:</b> {seller_name}"""),
     Row(
@@ -170,15 +170,14 @@ sell_time_selection_window = Window(
 sell_confirmation_window = Window(
     Const("✅ <b>Сделка: Подтверждение</b>"),
     Format("""
-<blockquote>👤 <b>Покупатель:</b> {buyer_name}
-🕐 <b>Твое предложение:</b> {offered_time_range} ({offered_hours} ч.) {date_str}
-💰 <b>Цена:</b> {price_per_hour} р./ч. (общая стоимость: {total_price} р.)</blockquote>
-
-Отправить предложение покупателю?"""),
+<blockquote>🕐 <b>Время:</b> {time_range} ({offered_hours} ч.) {date_str}
+💰 <b>Оплата:</b> {price_per_hour} р./ч. ({total_price} р.)
+👤 <b>Покупатель:</b> {buyer_name}</blockquote>"""),
     Row(
-        Button(Const("✅ Отправить"), id="confirm_offer", on_click=on_sell_confirm),
-        SwitchTo(Const("✋ Отмена"), id="cancel_offer", state=Exchanges.sell),
+        SwitchTo(Const("✋ Отмена"), id="cancel_sell", state=Exchanges.sell),
+        Button(Const("✅ Подтвердить"), id="confirm_sell", on_click=on_sell_confirm),
     ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_detail), HOME_BTN),
     getter=sell_confirmation_getter,
     state=Exchanges.sell_confirmation,
 )
