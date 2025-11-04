@@ -993,7 +993,9 @@ async def on_buy_confirm(
                     "✅ Смена успешно куплена полностью!\n\nНе забудь создать подмену в WFM!",
                     show_alert=True,
                 )
-                deeplink = f"exchange_{original_exchange['id']}"
+                deeplink = await create_start_link(
+                    bot=bot, payload=f"exchange_{original_exchange['id']}", encode=True
+                )
                 await event.bot.send_message(
                     chat_id=original_exchange["owner_id"],
                     text=f"""🎉<b>Сделка полностью закрыта</b>
@@ -1007,7 +1009,7 @@ async def on_buy_confirm(
                             [
                                 InlineKeyboardButton(
                                     text="🎭 Открыть сделку",
-                                    switch_inline_query_current_chat=deeplink,
+                                    url=deeplink,
                                 )
                             ],
                             [
@@ -1031,7 +1033,9 @@ async def on_buy_confirm(
                 "✅ Часть смены успешно куплена!\n\nНе забудь создать подмену в WFM!",
                 show_alert=True,
             )
-            deeplink = f"exchange_{original_exchange['id']}"
+            deeplink = await create_start_link(
+                bot=bot, payload=f"exchange_{original_exchange['id']}", encode=True
+            )
 
             # Create deeplinks for new exchanges
             new_exchanges_text = ""
@@ -1064,7 +1068,7 @@ async def on_buy_confirm(
                         [
                             InlineKeyboardButton(
                                 text="🎭 Открыть сделку",
-                                switch_inline_query_current_chat=deeplink,
+                                url=deeplink,
                             )
                         ],
                         [
