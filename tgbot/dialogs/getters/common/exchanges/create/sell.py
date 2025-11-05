@@ -13,6 +13,10 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
     _get_exchange_shift_time,
     prepare_calendar_data_for_exchange,
 )
+from tgbot.services.exchange_stats import (
+    format_intent_specific_stats_text,
+    get_market_average_prices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +220,9 @@ async def sell_time_input_getter(
         }
 
 
-async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
+async def sell_price_getter(
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
     """Геттер для окна ввода цены."""
     data = dialog_manager.dialog_data
 
@@ -226,6 +232,10 @@ async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[st
 
     shift_time = await _get_exchange_shift_time(start_time, end_time)
 
+    # Получаем статистику покупок (что хотят купить)
+    market_stats = await get_market_average_prices(stp_repo, "buy")
+    market_stats_text = format_intent_specific_stats_text(market_stats, "sell_dialog")
+
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
@@ -233,11 +243,13 @@ async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[st
             "selected_date": formatted_date,
             "shift_date": shift_date,
             "shift_time": shift_time,
+            "market_stats": market_stats_text,
         }
     return {
         "selected_date": "Не выбрана",
         "shift_date": shift_date,
         "shift_time": shift_time,
+        "market_stats": market_stats_text,
     }
 
 

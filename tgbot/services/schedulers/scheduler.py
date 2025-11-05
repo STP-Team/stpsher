@@ -9,8 +9,8 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from tgbot.config import load_config
-from tgbot.misc.helpers import IS_DEVELOPMENT, tz
+from tgbot.config import IS_DEVELOPMENT, load_config
+from tgbot.misc.helpers import tz
 from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.exchanges import ExchangesScheduler
 from tgbot.services.schedulers.hr import HRScheduler

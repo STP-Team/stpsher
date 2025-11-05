@@ -118,6 +118,7 @@ price_window = Window(
         """
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code></blockquote>""",
     ),
+    Format("{market_stats}"),
     Format("\nВведи цену за час (в рублях):"),
     TextInput(
         id="price_input",
