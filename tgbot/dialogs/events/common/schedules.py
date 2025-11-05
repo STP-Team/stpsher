@@ -49,7 +49,7 @@ async def open_my_exchanges(
 
 
 async def prev_day(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Получает предыдущий день и сохраняет его в dialog_data.
 
@@ -69,7 +69,7 @@ async def prev_day(
 
 
 async def next_day(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Получает следующий день и сохраняет его в dialog_data.
 
@@ -89,7 +89,7 @@ async def next_day(
 
 
 async def today(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Получает текущий день и сохраняет его в dialog_data.
 
@@ -103,7 +103,7 @@ async def today(
 
 
 async def prev_month(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Получает предыдущий месяц и сохраняет его в dialog_data.
 
@@ -118,7 +118,7 @@ async def prev_month(
 
 
 async def next_month(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Получает следующий месяц и сохраняет его в dialog_data.
 
@@ -133,7 +133,7 @@ async def next_month(
 
 
 async def do_nothing(
-    _event: CallbackQuery, _button: Button, _dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, _dialog_manager: DialogManager
 ) -> None:
     """Делает ничего.
 

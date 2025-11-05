@@ -10,7 +10,7 @@ from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
-    get_exchange_shift_time,
+    _get_exchange_shift_time,
     prepare_calendar_data_for_exchange,
 )
 
@@ -224,7 +224,7 @@ async def sell_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[st
     start_time = data.get("start_time")
     end_time = data.get("end_time")
 
-    shift_time = await get_exchange_shift_time(start_time, end_time)
+    shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -253,7 +253,7 @@ async def sell_payment_timing_getter(
     start_time = data.get("start_time")
     end_time = data.get("end_time")
 
-    shift_time = await get_exchange_shift_time(start_time, end_time)
+    shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     # Форматируем цену: цена за час (общая стоимость)
     price_display = f"{price_per_hour} р./ч. ({total_price} р.)"
@@ -287,7 +287,7 @@ async def sell_payment_date_getter(
     price_per_hour = data.get("price_per_hour", 0)
     total_price = data.get("total_price", 0)
 
-    shift_time = await get_exchange_shift_time(start_time, end_time)
+    shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     # Форматируем цену: цена за час (общая стоимость)
     price_display = f"{price_per_hour} р./ч. ({total_price} р.)"
@@ -320,7 +320,7 @@ async def sell_comment_getter(
     end_time = data.get("end_time")
     payment_type = data.get("payment_type")
 
-    shift_time = await get_exchange_shift_time(start_time, end_time)
+    shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     # Форматируем цену: цена за час (общая стоимость)
     price_display = f"{price_per_hour} р./ч. ({total_price} р.)"

@@ -108,14 +108,14 @@ async def on_broadcast_filter_changed(
 
 async def on_broadcast_items_confirmed(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик подтверждения выбора направлений/групп.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     multiselect: ManagedMultiselect = dialog_manager.find("items_multiselect")
@@ -148,14 +148,14 @@ async def on_broadcast_text_input(
 
 async def on_broadcast_send(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик отправки рассылки.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
@@ -272,14 +272,14 @@ async def on_broadcast_send(
 
 async def on_broadcast_back_to_menu(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик возврата в главное меню рассылок с очисткой данных.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Очищаем все данные диалога
@@ -307,14 +307,14 @@ async def on_broadcast_history_item_selected(
 
 async def on_broadcast_resend(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной отправки рассылки.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]

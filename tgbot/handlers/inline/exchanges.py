@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import List
 
 from aiogram import Bot
 from aiogram.types import (
@@ -9,7 +9,7 @@ from aiogram.types import (
     InputTextMessageContent,
 )
 from aiogram.utils.deep_linking import create_start_link
-from stp_database import Employee, MainRequestsRepo
+from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     get_exchange_hours,
@@ -75,7 +75,7 @@ async def handle_exchange_query(
         return []
 
 
-async def _format_exchange_info(exchange: Any) -> tuple[str, str, str]:
+async def _format_exchange_info(exchange: Exchange) -> tuple[str, str, str]:
     """Форматирование информации о сделке в удобочитаемый вид.
 
     Args:

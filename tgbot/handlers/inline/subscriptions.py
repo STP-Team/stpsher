@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import List
 
 from aiogram import Bot
 from aiogram.types import (
@@ -9,7 +9,7 @@ from aiogram.types import (
     InputTextMessageContent,
 )
 from aiogram.utils.deep_linking import create_start_link
-from stp_database import MainRequestsRepo
+from stp_database import ExchangeSubscription, MainRequestsRepo
 
 from tgbot.handlers.inline.helpers import EXCHANGE_TYPE_NAMES
 from tgbot.misc.helpers import DAY_NAMES
@@ -81,7 +81,7 @@ async def handle_subscription_query(
         return []
 
 
-def _format_subscription_criteria(subscription: Any) -> str:
+def _format_subscription_criteria(subscription: ExchangeSubscription) -> str:
     """Форматирование информации о подписке в удобочитаемый вид.
 
     Args:

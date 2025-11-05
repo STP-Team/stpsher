@@ -39,19 +39,19 @@ async def check_casino_access(
 
 async def change_rate(
     _event: CallbackQuery,
-    button: Button,
+    widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения ставки.
 
     Args:
         _event: Callback query от пользователя
-        button: Button виджет
+        widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Получаем значение изменения из button.widget_id
     # Формат: rate_minus_50 или rate_plus_50
-    widget_id = button.widget_id
+    widget_id = widget.widget_id
     if "minus" in widget_id:
         delta = -int(widget_id.split("_")[-1])
     else:  # "plus" in widget_id
@@ -261,14 +261,14 @@ def format_result(game_type: str, value: int, multiplier: float, net_win: int) -
 
 async def start_slots(
     event: CallbackQuery,
-    button: Button,
+    widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в слоты.
 
     Args:
         event: Callback query от пользователя
-        button: Button виджет
+        widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     if not await check_casino_access(event, dialog_manager):
@@ -284,14 +284,14 @@ async def start_slots(
 
 async def start_dice(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в кости.
 
     Args:
         event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     if not await check_casino_access(event, dialog_manager):
@@ -307,14 +307,14 @@ async def start_dice(
 
 async def start_darts(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в дартс.
 
     Args:
         event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     if not await check_casino_access(event, dialog_manager):
@@ -330,14 +330,14 @@ async def start_darts(
 
 async def start_bowling(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в боулинг.
 
     Args:
         event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     if not await check_casino_access(event, dialog_manager):
@@ -353,14 +353,14 @@ async def start_bowling(
 
 async def play_again(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной игры - сразу запускает ту же игру.
 
     Args:
         event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     if not await check_casino_access(event, dialog_manager):

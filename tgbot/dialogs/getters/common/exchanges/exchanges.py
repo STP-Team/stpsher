@@ -59,7 +59,6 @@ async def prepare_calendar_data_for_exchange(
 
         # Загружаем текущий месяц и следующие 5 месяцев (всего 6 месяцев)
         for i in range(6):
-            target_date = datetime(current_date.year, current_date.month, 1)
             # Добавляем i месяцев к текущей дате
             if current_date.month + i <= 12:
                 month_num = current_date.month + i
@@ -220,7 +219,16 @@ async def prepare_calendar_data_for_exchange(
         dialog_manager.dialog_data["shift_dates"] = {}
 
 
-async def get_exchange_shift_time(start_time: str, end_time: str):
+async def _get_exchange_shift_time(start_time: str, end_time: str) -> str:
+    """Получает время смены для сделки.
+
+    Args:
+        start_time: Время начала смены
+        end_time: Время конца смены
+
+    Returns:
+        Форматированная строка со временем смены сделки
+    """
     # Извлекаем только время из datetime строк
     start_time_str = start_time.split("T")[1][:5] if "T" in start_time else start_time
     end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
@@ -229,12 +237,11 @@ async def get_exchange_shift_time(start_time: str, end_time: str):
     return shift_time
 
 
-async def get_exchange_type(exchange: Exchange, is_seller: bool) -> str:
+async def _get_exchange_type(exchange: Exchange) -> str:
     """Получает тип сделки.
 
     Args:
-        exchange:
-        is_seller:
+        exchange: Экземпляр сделки с моделью Exchange
 
     Returns:
         Тип сделки: "📉 Продам" или "📈 Куплю"
@@ -247,7 +254,36 @@ async def get_exchange_type(exchange: Exchange, is_seller: bool) -> str:
     return operation_type
 
 
-async def get_exchange_status(exchange: Exchange) -> str:
+async def _get_other_party_info(
+    exchange: Exchange, user_id: int, stp_repo: MainRequestsRepo
+) -> tuple[str | None, str | None]:
+    """Get information about the other party in the exchange."""
+    if user_id and exchange.owner_id == user_id:
+        other_party_id = exchange.counterpart_id
+        other_party_type = "Покупатель"
+    else:
+        other_party_id = exchange.owner_id
+        other_party_type = "Продавец"
+
+    if not other_party_id:
+        return None, None
+
+    try:
+        other_party_user = await stp_repo.employee.get_users(user_id=other_party_id)
+        if other_party_user:
+            other_party_name = format_fullname(
+                other_party_user,
+                short=True,
+                gender_emoji=True,
+            )
+            return other_party_name, other_party_type
+    except Exception as e:
+        logger.error(f"[Биржа] Ошибка получения информации о другой стороне: {e}")
+
+    return None, None
+
+
+async def _get_exchange_status(exchange: Exchange) -> str:
     """Получает статус сделки.
 
     Args:
@@ -270,7 +306,7 @@ async def get_exchange_status(exchange: Exchange) -> str:
     return status
 
 
-async def get_exchange_button_text(
+async def _get_exchange_button_text(
     exchange: Exchange, user_id: int, date_str: str
 ) -> str:
     """Генерирует текст кнопки для обмена в зависимости от роли пользователя, типа и статуса сделки.
@@ -346,33 +382,20 @@ async def get_exchange_hours(exchange: Exchange) -> float | None:
             return None
 
 
-async def get_exchange_price_per_hour(exchange: Exchange):
-    """Получает стоимость одного часа в сделке.
-
-    Args:
-        exchange: Экземпляр сделки с моделью Exchange
-
-    Returns:
-        Стоимость одного часа (exchange.price теперь уже цена за час)
-    """
-    return exchange.price if exchange.price else 0
-
-
 async def get_exchange_text(
     stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
 ) -> str:
     """Форматирует текст для отображения базовой информации о сделке.
 
     Args:
+        stp_repo: Репозиторий операций с базой STP
         exchange: Экземпляр сделки с моделью Exchange
         user_id: Идентификатор Telegram
 
     Returns:
         Форматированная строка
     """
-    exchange_type = await get_exchange_type(
-        exchange, is_seller=exchange.owner_id == user_id
-    )
+    exchange_type = await _get_exchange_type(exchange)
 
     # Защита от None значений в датах/времени
     if exchange.start_time:
@@ -927,9 +950,17 @@ async def exchange_sell_detail_getter(
 
 
 async def my_exchanges(
-    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **kwargs
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
-    """Геттер для отображения всех обменов пользователя."""
+    """Геттер для отображения всех сделок пользователя.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь сделок пользователя
+    """
     user_id = dialog_manager.event.from_user.id
 
     try:
@@ -957,7 +988,7 @@ async def my_exchanges(
                 date_str = "Не указано"
 
             # Генерируем текст кнопки с помощью универсальной функции
-            button_text = await get_exchange_button_text(exchange, user_id, date_str)
+            button_text = await _get_exchange_button_text(exchange, user_id, date_str)
 
             my_exchanges_list.append({
                 "id": exchange.id,
@@ -992,35 +1023,6 @@ async def my_exchanges(
             "my_exchanges": [],
             "has_exchanges": False,
         }
-
-
-async def _get_other_party_info(
-    exchange: Exchange, user_id: int, stp_repo: MainRequestsRepo
-) -> tuple[str | None, str | None]:
-    """Get information about the other party in the exchange."""
-    if user_id and exchange.owner_id == user_id:
-        other_party_id = exchange.counterpart_id
-        other_party_type = "Покупатель"
-    else:
-        other_party_id = exchange.owner_id
-        other_party_type = "Продавец"
-
-    if not other_party_id:
-        return None, None
-
-    try:
-        other_party_user = await stp_repo.employee.get_users(user_id=other_party_id)
-        if other_party_user:
-            other_party_name = format_fullname(
-                other_party_user,
-                short=True,
-                gender_emoji=True,
-            )
-            return other_party_name, other_party_type
-    except Exception as e:
-        logger.error(f"[Биржа] Ошибка получения информации о другой стороне: {e}")
-
-    return None, None
 
 
 async def my_detail_getter(
@@ -1079,8 +1081,8 @@ async def my_detail_getter(
     )
 
     exchange_text = await get_exchange_detailed_text(stp_repo, exchange, user.user_id)
-    exchange_status = await get_exchange_status(exchange)
-    exchange_type = await get_exchange_type(exchange, is_seller=is_seller)
+    exchange_status = await _get_exchange_status(exchange)
+    exchange_type = await _get_exchange_type(exchange)
 
     # Generate deeplink
     exchange_deeplink = f"exchange_{exchange.id}"

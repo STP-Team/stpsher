@@ -2,7 +2,6 @@
 
 import logging
 from datetime import time
-from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
@@ -56,7 +55,7 @@ async def start_subscriptions_dialog(
 
 
 async def finish_subscriptions_dialog(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Завершение диалога биржи.
 
@@ -70,7 +69,7 @@ async def finish_subscriptions_dialog(
 
 async def on_subscription_selected(
     event: CallbackQuery,
-    _widget: Any,
+    _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
 ) -> None:
@@ -137,7 +136,7 @@ async def on_create_subscription(
 
 async def on_delete_subscription(
     event: CallbackQuery,
-    _widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик удаления подписки.
@@ -171,7 +170,7 @@ async def on_delete_subscription(
 
 async def on_criteria_next(
     _event: CallbackQuery,
-    widget: Any,
+    widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик перехода к следующему или предыдущему шагу настройки критериев.
@@ -429,14 +428,14 @@ async def on_seller_selected(
 
 async def on_confirm_subscription(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик подтверждения создания подписки.
 
     Args:
         event: Callback query от Telegram
-        widget: Данные виджета Button
+        _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]

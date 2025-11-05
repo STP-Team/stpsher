@@ -414,14 +414,14 @@ async def on_document_uploaded(
 
 async def on_upload_retry(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной попытки загрузки файла.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Очищаем данные предыдущей загрузки
@@ -436,14 +436,14 @@ async def on_upload_retry(
 
 async def on_upload_complete(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик завершения процесса загрузки (возврат в меню).
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Очищаем данные загрузки
@@ -458,14 +458,14 @@ async def on_upload_complete(
 
 async def on_view_uploaded_file(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик просмотра загруженного файла.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     file_name = dialog_manager.dialog_data.get("upload_file_name")

@@ -1,7 +1,5 @@
 """Геттеры для функционала управления группами."""
 
-from typing import Any
-
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.deep_linking import create_startgroup_link
@@ -12,7 +10,7 @@ from stp_database import Employee, MainRequestsRepo
 from tgbot.misc.dicts import roles
 
 
-async def groups_getter(bot: Bot, **_kwargs: Any) -> dict:
+async def groups_getter(bot: Bot, **_kwargs) -> dict:
     """Геттер для главного меню групп.
 
     Args:

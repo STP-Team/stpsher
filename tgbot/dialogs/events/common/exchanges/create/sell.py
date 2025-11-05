@@ -3,7 +3,7 @@
 import logging
 import re
 from datetime import datetime
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import ChatEvent, DialogManager
@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, Select
 from stp_database import MainRequestsRepo
 
-from tgbot.dialogs.getters.common.exchanges.exchanges import get_exchange_status
+from tgbot.dialogs.getters.common.exchanges.exchanges import _get_exchange_status
 from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateSell,
     Exchanges,
@@ -285,7 +285,7 @@ async def get_existing_sales_for_date(
             sold_time_ranges.append((start_str, end_str))
 
             # Добавляем статус для отображения
-            status_text = await get_exchange_status(exchange)
+            status_text = await _get_exchange_status(exchange)
             sold_time_strings.append({
                 "time_str": f"{start_str}-{end_str}",
                 "exchange_id": exchange.id,
@@ -455,7 +455,7 @@ def is_time_within_shift(time_str: str, shift_start: str, shift_end: str) -> boo
 
 
 async def finish_exchange_create_dialog(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Завершает процесс создания сделки и закрывает диалог.
 
@@ -469,7 +469,7 @@ async def finish_exchange_create_dialog(
 
 async def on_cancel_sell(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик отмены создания предложения.
@@ -553,7 +553,7 @@ async def on_date_selected(
 
 
 async def on_today_selected(
-    event: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Выбор текущей даты для сделки.
 
@@ -773,7 +773,7 @@ async def on_time_input(
 
 
 async def on_remaining_time_selected(
-    event: CallbackQuery, _button: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик нажатия кнопки 'Оставшееся время'.
 
@@ -958,8 +958,8 @@ async def on_price_input(
 
 
 async def on_payment_timing_selected(
-    event: CallbackQuery,
-    widget: Any,
+    _event: CallbackQuery,
+    _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
 ):
@@ -996,7 +996,7 @@ async def on_payment_date_selected(
 
 async def on_confirm_sell(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик подтверждения продажи."""
@@ -1006,7 +1006,6 @@ async def on_confirm_sell(
     try:
         # Получаем данные из диалога
         data = dialog_manager.dialog_data
-        total_price = data["total_price"]
         price_per_hour = data["price_per_hour"]
         start_time = datetime.fromisoformat(data["start_time"])
         end_time = (
@@ -1092,7 +1091,7 @@ async def on_comment_input(
 
 async def on_skip_comment(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик пропуска комментария."""

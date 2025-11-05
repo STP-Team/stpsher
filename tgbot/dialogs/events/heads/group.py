@@ -202,7 +202,7 @@ async def on_game_casino_member_click(
 
 async def on_game_casino_toggle_all(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
@@ -210,7 +210,7 @@ async def on_game_casino_toggle_all(
 
     Args:
         event: Callback query от Telegram
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     try:
