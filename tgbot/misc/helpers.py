@@ -1,5 +1,6 @@
 """Функции-помощники для основного кода."""
 
+import os
 import random
 import string
 
@@ -7,6 +8,12 @@ import pytz
 from stp_database import Employee
 
 from tgbot.misc.dicts import roles, russian_weekdays_short
+
+IS_DEVELOPMENT = os.getenv("ENVIRONMENT", "production").lower() in (
+    "development",
+    "dev",
+    "debug",
+)
 
 tz = pytz.timezone("Asia/Yekaterinburg")
 strftime_date = "%H:%M %d.%m.%Y"
