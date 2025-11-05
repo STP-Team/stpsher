@@ -157,64 +157,6 @@ async def get_combined_market_stats(repo: MainRequestsRepo) -> Dict[str, Any]:
     return {"sell": sell_stats, "buy": buy_stats}
 
 
-def format_combined_market_stats_text(combined_stats: Dict[str, Any]) -> str:
-    """Форматирование комбинированной статистики для главного меню.
-
-    Args:
-        combined_stats: Словарь с комбинированной статистикой
-
-    Returns:
-        Отформатированная строка для отображения пользователю
-    """
-    sell_stats = combined_stats["sell"]
-    buy_stats = combined_stats["buy"]
-
-    lines = []
-
-    # Статистика продаж (что можно купить)
-    sell_week_price = sell_stats["week"]["average_price"]
-    sell_week_count = sell_stats["week"]["count"]
-    sell_month_price = sell_stats["month"]["average_price"]
-    sell_month_count = sell_stats["month"]["count"]
-
-    if sell_week_count > 0 or sell_month_count > 0:
-        lines.append("<b>📉 Продажи:</b>")
-        if sell_week_count > 0:
-            lines.append(f"Неделя: {sell_week_price} р./ч. ({sell_week_count})")
-        else:
-            lines.append("Неделя: нет данных")
-
-        if sell_month_count > 0:
-            lines.append(f"Месяц: {sell_month_price} р./ч. ({sell_month_count})")
-        else:
-            lines.append("Месяц: нет данных")
-
-    # Статистика покупок (что хотят купить)
-    buy_week_price = buy_stats["week"]["average_price"]
-    buy_week_count = buy_stats["week"]["count"]
-    buy_month_price = buy_stats["month"]["average_price"]
-    buy_month_count = buy_stats["month"]["count"]
-
-    if buy_week_count > 0 or buy_month_count > 0:
-        if lines:  # Добавляем пустую строку если уже есть данные о продажах
-            lines.append("")
-        lines.append("<b>📈 Покупки:</b>")
-        if buy_week_count > 0:
-            lines.append(f"Неделя: {buy_week_price} р./ч. ({buy_week_count})")
-        else:
-            lines.append("Неделя: нет данных")
-
-        if buy_month_count > 0:
-            lines.append(f"Месяц: {buy_month_price} р./ч. ({buy_month_count})")
-        else:
-            lines.append("Месяц: нет данных")
-
-    if not lines:
-        return "\n<i>Статистика недоступна</i>"
-
-    return "\n" + "\n".join(lines)
-
-
 def format_intent_specific_stats_text(stats: Dict[str, Any], context: str) -> str:
     """Форматирование статистики для конкретного контекста (buy/sell).
 
