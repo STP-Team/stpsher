@@ -54,6 +54,7 @@ menu_window = Window(
     Const("🎭 <b>Биржа подмен</b>"),
     Format("""
 Здесь ты можешь обменять свои рабочие часы, либо взять чужие"""),
+    Format("{market_stats}"),
     Row(
         SwitchTo(Const("📈 Купить"), id="exchanges_buy", state=Exchanges.buy),
         SwitchTo(Const("📉 Продать"), id="exchanges_sell", state=Exchanges.sell),

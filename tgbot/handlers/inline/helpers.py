@@ -1,6 +1,4 @@
-#
-
-from tgbot.misc.helpers import IS_DEVELOPMENT
+from tgbot.config import IS_DEVELOPMENT
 
 SEARCH_LIMITS = {
     "MAX_FIO_SEARCH": 50,
@@ -8,6 +6,7 @@ SEARCH_LIMITS = {
     "INLINE_RESULTS": 15,
     "MAX_DISPLAY_RESULTS": 12,
 }
+
 
 CACHE_TIMES = {
     "DEFAULT_COMMANDS": 3 if IS_DEVELOPMENT else 60,
@@ -18,7 +17,6 @@ CACHE_TIMES = {
     "SUBSCRIPTION_DETAILS": 5 if IS_DEVELOPMENT else 30,  # Кеш информации о подписке
 }
 
-# Role mappings will be imported from misc modules
 
 EXCHANGE_TYPE_NAMES = {
     "buy": "Покупка часов",

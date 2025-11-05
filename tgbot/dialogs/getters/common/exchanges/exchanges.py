@@ -13,6 +13,10 @@ from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
 from tgbot.misc.helpers import format_fullname, strftime_date, tz
+from tgbot.services.exchange_stats import (
+    format_combined_market_stats_text,
+    get_combined_market_stats,
+)
 from tgbot.services.files_processing.parsers.schedule import (
     DutyScheduleParser,
     ScheduleParser,
@@ -580,16 +584,21 @@ async def get_exchange_detailed_text(
     return exchange_text
 
 
-async def exchanges_getter(user: Employee, **_kwargs):
+async def exchanges_getter(user: Employee, stp_repo: MainRequestsRepo, **_kwargs):
     """Геттер для главного меню подмен.
 
     Args:
         user: Экземпляр пользователя с моделью Employee.
+        stp_repo: Репозиторий для работы с базой данных.
 
     Returns:
-        True если сотрудник из НЦК, иначе False
+        Словарь с информацией о дивизионе и рыночной статистике
     """
-    return {"is_nck": user.division == "НЦК"}
+    # Получаем комбинированную рыночную статистику
+    combined_stats = await get_combined_market_stats(stp_repo)
+    market_stats_text = format_combined_market_stats_text(combined_stats)
+
+    return {"is_nck": user.division == "НЦК", "market_stats": market_stats_text}
 
 
 async def exchange_buy_getter(

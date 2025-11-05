@@ -84,6 +84,7 @@ price_window = Window(
     Format("Любая дата", when="any_date"),
     Format("Время: <code>{hours_range}</code>", when="hours_range"),
     Format("Любое время", when="any_hours"),
+    Format("{market_stats}"),
     Format("\nВведи цену за час работы(в рублях)"),
     Format("\n<blockquote>Например: 500</blockquote>"),
     TextInput(

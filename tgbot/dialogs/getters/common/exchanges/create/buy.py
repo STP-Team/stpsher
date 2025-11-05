@@ -4,6 +4,12 @@ from datetime import datetime
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
+from stp_database import MainRequestsRepo
+
+from tgbot.services.exchange_stats import (
+    format_intent_specific_stats_text,
+    get_market_average_prices,
+)
 
 
 async def buy_date_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
@@ -28,7 +34,9 @@ async def buy_hours_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str
     return result
 
 
-async def buy_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
+async def buy_price_getter(
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
     """Геттер для окна ввода цены покупки."""
     data = dialog_manager.dialog_data
 
@@ -39,6 +47,11 @@ async def buy_price_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str
     any_hours = data.get("any_hours", False)
 
     result = {}
+
+    # Получаем статистику продаж (что можно купить)
+    market_stats = await get_market_average_prices(stp_repo, "sell")
+    market_stats_text = format_intent_specific_stats_text(market_stats, "buy_dialog")
+    result["market_stats"] = market_stats_text
 
     # Дата
     if buy_date:
