@@ -22,7 +22,7 @@ from tgbot.services.files_processing.parsers.schedule import (
     ScheduleParser,
 )
 from tgbot.services.notifications.subscription_matcher import (
-    find_matching_subscriptions,
+    notify_matching_subscriptions,
 )
 
 logger = logging.getLogger(__name__)
@@ -1043,7 +1043,7 @@ async def on_confirm_sell(
             # Уведомляем подписчиков о новой сделке
             bot = dialog_manager.middleware_data["bot"]
             try:
-                notifications_sent = await find_matching_subscriptions(
+                notifications_sent = await notify_matching_subscriptions(
                     bot, stp_repo, exchange
                 )
                 if notifications_sent > 0:

@@ -17,32 +17,62 @@ from tgbot.services.schedulers.exchanges import (
 logger = logging.getLogger(__name__)
 
 
-async def find_matching_subscriptions(
-    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange
+async def notify_matching_subscriptions(
+    bot: Bot,
+    stp_repo: MainRequestsRepo,
+    exchange: Exchange,
+    old_exchange: Exchange = None,
 ) -> int:
-    """Находит и уведомляет пользователей с подписками, соответствующими новому обмену.
+    """Находит и уведомляет пользователей с подписками, соответствующими обмену.
+
+    Для обновлений обменов (когда передан old_exchange), уведомления отправляются только
+    подписчикам, для которых старая версия НЕ соответствовала фильтрам, а новая соответствует.
 
     Args:
         bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
-        exchange: Новый созданный обмен
+        exchange: Обмен (новый или обновленный)
+        old_exchange: Старая версия обмена (для обновлений)
 
     Returns:
         Количество отправленных уведомлений
     """
     try:
-        # Находим все подписки, соответствующие этому обмену (используем БД для фильтрации)
-        matching_subscriptions = await stp_repo.exchange.find_matching_subscriptions(
-            exchange
+        # Находим все подписки, соответствующие новому обмену
+        current_matching_subscriptions = (
+            await stp_repo.exchange.find_matching_subscriptions(exchange)
         )
 
-        if not matching_subscriptions:
+        if not current_matching_subscriptions:
             return 0
+
+        # Если это обновление обмена, нужно исключить подписки, которые уже соответствовали старой версии
+        subscriptions_to_notify = current_matching_subscriptions
+
+        if old_exchange is not None:
+            # Находим подписки, которые соответствовали старой версии
+            old_matching_subscriptions = (
+                await stp_repo.exchange.find_matching_subscriptions(old_exchange)
+            )
+            old_matching_ids = {sub.id for sub in old_matching_subscriptions}
+
+            # Уведомляем только тех, кто НЕ получал уведомления раньше
+            subscriptions_to_notify = [
+                sub
+                for sub in current_matching_subscriptions
+                if sub.id not in old_matching_ids
+            ]
+
+            if not subscriptions_to_notify:
+                logger.debug(
+                    f"Нет новых подписок для уведомления об обновлении обмена {exchange.id}"
+                )
+                return 0
 
         notifications_sent = 0
 
         # Отправляем уведомления через broadcaster's send_message
-        for subscription in matching_subscriptions:
+        for subscription in subscriptions_to_notify:
             try:
                 success = await notify_subscription_match(
                     bot, stp_repo, subscription, exchange
@@ -55,8 +85,9 @@ async def find_matching_subscriptions(
                 )
 
         if notifications_sent > 0:
+            action = "обновлении" if old_exchange else "создании"
             logger.info(
-                f"Отправлено {notifications_sent} уведомлений о совпадении подписок для обмена {exchange.id}"
+                f"Отправлено {notifications_sent} уведомлений о {action} обмена {exchange.id}"
             )
 
         return notifications_sent

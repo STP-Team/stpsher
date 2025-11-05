@@ -26,7 +26,7 @@ from tgbot.dialogs.states.common.exchanges import (
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.misc.helpers import format_fullname, tz
 from tgbot.services.notifications.subscription_matcher import (
-    find_matching_subscriptions,
+    notify_matching_subscriptions,
 )
 
 logger = logging.getLogger(__name__)
@@ -566,7 +566,8 @@ async def on_activation_click(
             bot = dialog_manager.middleware_data["bot"]
             updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
             if updated_exchange:
-                notifications_sent = await find_matching_subscriptions(
+                # При реактивации считаем это новым обменом (без old_exchange)
+                notifications_sent = await notify_matching_subscriptions(
                     bot, stp_repo, updated_exchange
                 )
                 if notifications_sent > 0:
@@ -707,15 +708,22 @@ async def on_edit_price_input(
             await message.answer("❌ Цена должна быть от 1 до 50,000 рублей")
             return
 
+        # Получаем старую версию обмена перед обновлением
+        old_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
         await stp_repo.exchange.update_exchange_price(exchange_id, price)
 
         # Проверяем подписки после обновления цены
         try:
             bot = dialog_manager.middleware_data["bot"]
             updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-            if updated_exchange and updated_exchange.status == "active":
-                notifications_sent = await find_matching_subscriptions(
-                    bot, stp_repo, updated_exchange
+            if (
+                updated_exchange
+                and updated_exchange.status == "active"
+                and old_exchange
+            ):
+                notifications_sent = await notify_matching_subscriptions(
+                    bot, stp_repo, updated_exchange, old_exchange
                 )
                 if notifications_sent > 0:
                     logger.info(
@@ -793,6 +801,9 @@ async def _update_payment_timing(
         return
 
     try:
+        # Получаем старую версию обмена перед обновлением
+        old_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
         await stp_repo.exchange.update_payment_timing(
             exchange_id, payment_type, payment_date
         )
@@ -801,9 +812,13 @@ async def _update_payment_timing(
         try:
             bot = dialog_manager.middleware_data["bot"]
             updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-            if updated_exchange and updated_exchange.status == "active":
-                notifications_sent = await find_matching_subscriptions(
-                    bot, stp_repo, updated_exchange
+            if (
+                updated_exchange
+                and updated_exchange.status == "active"
+                and old_exchange
+            ):
+                notifications_sent = await notify_matching_subscriptions(
+                    bot, stp_repo, updated_exchange, old_exchange
                 )
                 if notifications_sent > 0:
                     logger.info(
@@ -851,15 +866,22 @@ async def on_edit_comment_input(
         return
 
     try:
+        # Получаем старую версию обмена перед обновлением
+        old_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
         await stp_repo.exchange.update_exchange_comment(exchange_id, comment)
 
         # Проверяем подписки после обновления комментария
         try:
             bot = dialog_manager.middleware_data["bot"]
             updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
-            if updated_exchange and updated_exchange.status == "active":
-                notifications_sent = await find_matching_subscriptions(
-                    bot, stp_repo, updated_exchange
+            if (
+                updated_exchange
+                and updated_exchange.status == "active"
+                and old_exchange
+            ):
+                notifications_sent = await notify_matching_subscriptions(
+                    bot, stp_repo, updated_exchange, old_exchange
                 )
                 if notifications_sent > 0:
                     logger.info(
@@ -1261,7 +1283,7 @@ async def _handle_partial_exchange(
         total_notifications = 0
         for new_exchange in new_exchanges:
             if new_exchange:
-                notifications_sent = await find_matching_subscriptions(
+                notifications_sent = await notify_matching_subscriptions(
                     bot, stp_repo, new_exchange
                 )
                 total_notifications += notifications_sent
@@ -1626,7 +1648,7 @@ async def _handle_partial_sell_offer_new(
         total_notifications = 0
         for new_exchange in new_exchanges:
             if new_exchange:
-                notifications_sent = await find_matching_subscriptions(
+                notifications_sent = await notify_matching_subscriptions(
                     bot, stp_repo, new_exchange
                 )
                 total_notifications += notifications_sent

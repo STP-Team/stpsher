@@ -106,12 +106,6 @@ my_detail_window = Window(
     ),
     Format("""
 {exchange_info}"""),
-    Format(
-        """
-📝 <b>Комментарий:</b>
-<blockquote expandable>{comment}</blockquote>""",
-        when="comment",
-    ),
     Format("""
 🔗 <b>Ссылка:</b> <code>{deeplink_url}</code>"""),
     # Кнопки активных обменов
