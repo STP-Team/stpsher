@@ -200,7 +200,7 @@ async def finances_getter(
                     )
                     # Получаем часы работы
                     hours = (
-                        f"({exchange.working_hours} ч.)"
+                        f"({exchange.working_hours:g} ч.)"
                         if exchange.working_hours
                         else ""
                     )
@@ -229,7 +229,7 @@ async def finances_getter(
                     )
                     # Получаем часы работы
                     hours = (
-                        f"({exchange.working_hours} ч.)"
+                        f"({exchange.working_hours:g} ч.)"
                         if exchange.working_hours
                         else ""
                     )
