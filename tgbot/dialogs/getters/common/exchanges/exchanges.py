@@ -393,73 +393,50 @@ async def get_exchange_text(
     # Защита от None значений в часах
     hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
 
-    if exchange.owner_intent == "sell":
-        seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-        seller_name = format_fullname(seller, True, True)
-        price_per_hour = exchange.price
-        price_per_hour_text = (
-            f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
-        )
+    # Общая логика для расчета цены
+    price_per_hour = exchange.price
+    price_per_hour_text = (
+        f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
+    )
 
-        # Рассчитываем общую стоимость (цена за час * количество часов)
-        if shift_hours is not None and price_per_hour is not None:
-            total_price = int(price_per_hour * shift_hours)
-            price_display = f"{price_per_hour_text} ({total_price:g} р.)"
-        else:
-            price_display = price_per_hour_text
-
-        # Форматируем дату оплаты
-        payment_date_str = (
-            "сразу"
-            if exchange.payment_type == "immediate"
-            else (
-                exchange.payment_date.strftime("%d.%m.%Y")
-                if exchange.payment_date
-                else "по договоренности"
-            )
-        )
-
-        exchange_text = f"""<blockquote>{seller_name}
-        
-<b>{exchange_type}:</b>
-<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
-💰 <b>Оплата:</b>
-<code>{price_display}</code> - {payment_date_str}</blockquote>"""
+    # Рассчитываем общую стоимость (цена за час * количество часов)
+    if shift_hours is not None and price_per_hour is not None:
+        total_price = int(price_per_hour * shift_hours)
+        price_display = f"{price_per_hour_text} ({total_price:g} р.)"
     else:
-        buyer = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-        buyer_name = format_fullname(buyer, True, True)
-        # Форматируем дату оплаты для buy запроса
-        payment_date_str = (
-            "сразу"
-            if exchange.payment_type == "immediate"
-            else (
-                exchange.payment_date.strftime("%d.%m.%Y")
-                if exchange.payment_date
-                else "по договоренности"
-            )
+        price_display = price_per_hour_text
+
+    # Форматируем дату оплаты
+    payment_date_str = (
+        "сразу"
+        if exchange.payment_type == "immediate"
+        else (
+            exchange.payment_date.strftime("%d.%m.%Y")
+            if exchange.payment_date
+            else "по договоренности"
         )
+    )
 
-        # Рассчитываем общую стоимость для buy запроса тоже
-        price_per_hour = exchange.price
-        if shift_hours is not None and price_per_hour is not None:
-            total_price = int(price_per_hour * shift_hours)
-            price_display = f"{price_per_hour:g} р./ч. ({total_price:g} р.)"
-        else:
-            price_display = (
-                f"{price_per_hour:g} р./ч."
-                if price_per_hour is not None
-                else "Не указано"
-            )
+    # Получаем информацию о пользователе
+    if exchange.owner_intent == "sell":
+        user_info = await stp_repo.employee.get_users(user_id=exchange.owner_id)
+    else:
+        user_info = await stp_repo.employee.get_users(user_id=exchange.owner_id)
 
-        exchange_text = f"""<blockquote>{buyer_name}
-        
+    user_name = format_fullname(user_info, True, True)
+
+    # Формируем блок комментария если он есть
+    comment_block = ""
+    if exchange.comment:
+        comment_block = f"\n💬 <b>Комментарий:</b>\n<blockquote expandable>{exchange.comment}</blockquote>"
+
+    # Формируем основной текст
+    exchange_text = f"""<blockquote>{user_name}
+
 <b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 💰 <b>Оплата:</b>
-<code>{price_display}</code> - {payment_date_str}</blockquote>"""
-
-    if exchange.comment:
-        exchange_text += f"\n<b>💬 Комментарий:</b>\n<blockquote expandable>{exchange.comment}</blockquote>"
+<code>{price_display}</code> - {payment_date_str}{comment_block}</blockquote>"""
 
     return exchange_text
 
