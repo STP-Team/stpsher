@@ -1,5 +1,6 @@
 #
-import os
+
+from tgbot.misc.helpers import IS_DEVELOPMENT
 
 SEARCH_LIMITS = {
     "MAX_FIO_SEARCH": 50,
@@ -8,20 +9,13 @@ SEARCH_LIMITS = {
     "MAX_DISPLAY_RESULTS": 12,
 }
 
-# Cache time settings - use environment variable to switch between dev/prod
-_IS_DEVELOPMENT = os.getenv("ENVIRONMENT", "production").lower() in (
-    "development",
-    "dev",
-    "debug",
-)
-
 CACHE_TIMES = {
-    "DEFAULT_COMMANDS": 3 if _IS_DEVELOPMENT else 60,
-    "SEARCH_RESULTS": 3 if _IS_DEVELOPMENT else 300,
+    "DEFAULT_COMMANDS": 3 if IS_DEVELOPMENT else 60,
+    "SEARCH_RESULTS": 3 if IS_DEVELOPMENT else 300,
     "NO_CACHE": 0,
-    "EXCHANGE_DETAILS": 5 if _IS_DEVELOPMENT else 30,  # Кеш информации о сделке
-    "MY_EXCHANGES": 5 if _IS_DEVELOPMENT else 30,  # Кеш информации об активных сделках
-    "SUBSCRIPTION_DETAILS": 5 if _IS_DEVELOPMENT else 30,  # Кеш информации о подписке
+    "EXCHANGE_DETAILS": 5 if IS_DEVELOPMENT else 30,  # Кеш информации о сделке
+    "MY_EXCHANGES": 5 if IS_DEVELOPMENT else 30,  # Кеш информации об активных сделках
+    "SUBSCRIPTION_DETAILS": 5 if IS_DEVELOPMENT else 30,  # Кеш информации о подписке
 }
 
 # Role mappings will be imported from misc modules

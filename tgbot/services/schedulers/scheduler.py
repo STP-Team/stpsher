@@ -10,7 +10,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from tgbot.config import load_config
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import IS_DEVELOPMENT, tz
 from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.exchanges import ExchangesScheduler
 from tgbot.services.schedulers.hr import HRScheduler
@@ -83,10 +83,11 @@ class SchedulerManager:
         # HR задачи
         self.hr.setup_jobs(self.scheduler, session_pool, bot)
 
-        # Задачи достижений
-        self.achievements.setup_jobs(
-            self.scheduler, session_pool, bot, kpi_session_pool
-        )
+        if not IS_DEVELOPMENT:
+            # Задачи достижений
+            self.achievements.setup_jobs(
+                self.scheduler, session_pool, bot, kpi_session_pool
+            )
 
         # Задачи обучений
         self.studies.setup_jobs(self.scheduler, session_pool, bot)
