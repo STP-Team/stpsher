@@ -12,7 +12,6 @@ from aiogram.utils.deep_linking import create_start_link
 from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
-    get_exchange_hours,
     get_exchange_text,
 )
 from tgbot.misc.helpers import tz
@@ -101,18 +100,9 @@ async def _format_exchange_info(exchange: Exchange) -> tuple[str, str, str]:
         end_time_str = "??:??"
 
     shift_time = f"{start_time_str}-{end_time_str}"
+    price_display = f"{exchange.price:g} р./ч. ({exchange.total_price:g} р.)"
 
-    # Считаем общую стоимость
-    exchange_hours = await get_exchange_hours(exchange)
-    price_per_hour = exchange.price
-
-    if exchange_hours and price_per_hour:
-        total_price = int(price_per_hour * exchange_hours)
-        price_text = f"{price_per_hour:g} р./ч. ({total_price:g} р.)"
-    else:
-        price_text = f"{price_per_hour:g} р./ч." if price_per_hour else "Не указано"
-
-    return shift_date, shift_time, price_text
+    return shift_date, shift_time, price_display
 
 
 async def handle_user_exchanges(
