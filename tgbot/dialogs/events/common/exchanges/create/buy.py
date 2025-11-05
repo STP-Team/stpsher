@@ -13,7 +13,7 @@ from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy, Exchanges
 from tgbot.services.notifications.subscription_matcher import (
-    find_matching_subscriptions,
+    notify_matching_subscriptions,
 )
 
 logger = logging.getLogger(__name__)
@@ -268,7 +268,7 @@ async def on_confirm_buy(
             # Уведомляем подписчиков о новом запросе на покупку
             bot = dialog_manager.middleware_data["bot"]
             try:
-                notifications_sent = await find_matching_subscriptions(
+                notifications_sent = await notify_matching_subscriptions(
                     bot, stp_repo, exchange
                 )
                 if notifications_sent > 0:

@@ -93,12 +93,6 @@ buy_detail_window = Window(
         "\n{duty_warning}",
         when="duty_warning",
     ),
-    Format(
-        """
-📝 <b>Комментарий:</b>
-<blockquote expandable>{comment}</blockquote>""",
-        when="comment",
-    ),
     Button(Const("✍️ Предложить сделку"), id="apply_buy", on_click=on_exchange_buy),
     SwitchInlineQueryChosenChatButton(
         Const("🔗 Поделиться"),
