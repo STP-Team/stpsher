@@ -3,7 +3,6 @@
 import logging
 import re
 from datetime import datetime
-from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
@@ -42,7 +41,7 @@ async def on_buy_date_selected(
 
 async def on_buy_date_skip(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик пропуска выбора даты."""
@@ -134,7 +133,7 @@ async def on_buy_hours_input(
 
 async def on_buy_hours_skip(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик пропуска выбора времени."""
@@ -175,7 +174,7 @@ async def on_buy_price_input(
 
 async def on_buy_skip_comment(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик пропуска комментария для покупки."""
@@ -207,7 +206,7 @@ async def on_buy_comment_input(
 
 async def on_confirm_buy(
     event: CallbackQuery,
-    _widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик подтверждения покупки."""

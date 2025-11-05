@@ -4,7 +4,7 @@ import logging
 
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.input import TextInput
+from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, ManagedRadio, Select
 from stp_database import MainRequestsRepo
 
@@ -97,7 +97,7 @@ async def on_user_select(
 
 
 async def on_search_query(
-    _message: Message, _widget: TextInput, dialog_manager, text: str
+    _message: Message, _widget: ManagedTextInput, dialog_manager, text: str
 ) -> None:
     """Обработчик поискового запроса из текстового поля.
 

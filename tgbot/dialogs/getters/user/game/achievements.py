@@ -57,6 +57,7 @@ async def user_achievements_getter(
     Args:
         stp_repo: Репозиторий операций с базой STP
         user: Экземпляр пользователя с моделью Employee
+        **kwargs:
 
     Returns:
         Возвращает словарь доступных достижений для направления сотрудника

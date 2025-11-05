@@ -1,7 +1,5 @@
 """Обработчики для функционала управления группами."""
 
-from typing import Any
-
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import (
@@ -83,10 +81,10 @@ async def on_role_selected(
 
 async def on_service_message_selected(
     _event: CallbackQuery,
-    _widget: Any,
+    _widget: ManagedMultiselect,
     dialog_manager: DialogManager,
     _item_id: str,
-    **_kwargs: Any,
+    **_kwargs,
 ) -> None:
     """Обработчик изменения типов удаляемых сервисных сообщений через Multiselect.
 
@@ -174,7 +172,7 @@ async def on_is_casino_allowed_click(
 
 async def on_confirm_delete_group(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик подтверждения удаления группы и бота из нее.
@@ -184,7 +182,7 @@ async def on_confirm_delete_group(
 
     Args:
         event: Callback query от Telegram
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]

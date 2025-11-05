@@ -6,7 +6,7 @@ from pathlib import Path
 from aiogram import Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
-from aiogram_dialog.widgets.input import TextInput
+from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database import MainRequestsRepo
 
@@ -54,14 +54,14 @@ async def on_file_selected(
 
 async def on_remove_file(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик удаления файла.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     file_name = dialog_manager.dialog_data.get("selected_file")
@@ -80,14 +80,14 @@ async def on_remove_file(
 
 async def on_rename_file(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик начала переименования файла.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.switch_to(Files.rename)
@@ -95,7 +95,7 @@ async def on_rename_file(
 
 async def process_rename(
     _message: Message,
-    _widget: TextInput,
+    _widget: ManagedTextInput,
     dialog_manager: DialogManager,
     new_name: str,
 ) -> None:
@@ -188,14 +188,14 @@ async def on_history_file_selected(
 
 async def on_download_local_file(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик скачивания локального файла.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     bot: Bot = dialog_manager.middleware_data["bot"]
@@ -224,14 +224,14 @@ async def on_download_local_file(
 
 async def on_download_history_file(
     event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик скачивания файла из истории.
 
     Args:
         event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     bot: Bot = dialog_manager.middleware_data["bot"]
@@ -266,14 +266,14 @@ async def on_download_history_file(
 
 async def on_restore_history_file(
     _event: CallbackQuery,
-    _button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик восстановления файла из истории в локальную папку.
 
     Args:
         _event: Callback query от пользователя
-        _button: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     bot: Bot = dialog_manager.middleware_data["bot"]

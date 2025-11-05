@@ -3,7 +3,7 @@
 import logging
 import re
 from datetime import datetime
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 from aiogram import Bot
 from aiogram.types import (
@@ -11,13 +11,15 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    Message,
 )
 from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import ChatEvent, DialogManager
-from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
+from aiogram_dialog.widgets.input import ManagedTextInput
+from aiogram_dialog.widgets.kbd import Button, Calendar, ManagedCheckbox, Select
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.dialogs.getters.common.exchanges.exchanges import get_exchange_status
+from tgbot.dialogs.getters.common.exchanges.exchanges import _get_exchange_status
 from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateBuy,
     ExchangeCreateSell,
@@ -151,7 +153,7 @@ async def get_existing_sales_for_date(
             sold_time_ranges.append((start_str, end_str))
 
             # Добавляем статус для отображения
-            status_text = await get_exchange_status(exchange)
+            status_text = await _get_exchange_status(exchange)
             sold_time_strings.append({
                 "time_str": f"{start_str}-{end_str}",
                 "exchange_id": exchange.id,
@@ -257,7 +259,7 @@ async def start_exchanges_dialog(
 
 
 async def finish_exchanges_dialog(
-    _event: CallbackQuery, _button: Button, dialog_manager: DialogManager
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager
 ) -> None:
     """Завершение диалога биржи.
 
@@ -284,7 +286,7 @@ async def open_my_schedule(
 
 async def on_exchange_buy_selected(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
 ):
@@ -299,7 +301,7 @@ async def on_exchange_buy_selected(
 
 async def on_exchange_sell_selected(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
 ):
@@ -314,7 +316,7 @@ async def on_exchange_sell_selected(
 
 async def on_exchange_buy(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик покупки sell offer."""
@@ -365,7 +367,7 @@ async def on_exchange_buy(
 
 async def on_exchange_sell(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик ответа на buy request (продажа)."""
@@ -416,7 +418,7 @@ async def on_exchange_sell(
 
 async def on_my_exchange_selected(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
 ):
@@ -582,7 +584,7 @@ async def on_activation_click(
 
 async def on_delete_exchange(
     event: CallbackQuery,
-    _widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
 ):
@@ -605,32 +607,9 @@ async def on_delete_exchange(
     await dialog_manager.switch_to(Exchanges.my)
 
 
-async def on_set_paid(
-    _event: CallbackQuery,
-    _widget: Any,
-    dialog_manager: DialogManager,
-    **_kwargs,
-) -> None:
-    """Отметка сделки оплаченной.
-
-    Args:
-        _event: Callback query от Telegram
-        _widget: Виджет кнопки
-        dialog_manager: Менеджер диалога
-    """
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
-
-    await stp_repo.exchange.mark_exchange_paid(exchange_id)
-
-
 async def on_edit_offer_price(
     _event: CallbackQuery,
-    _widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
@@ -646,7 +625,7 @@ async def on_edit_offer_price(
 
 async def on_edit_offer_payment_timing(
     _event: CallbackQuery,
-    _widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
@@ -662,7 +641,7 @@ async def on_edit_offer_payment_timing(
 
 async def on_edit_offer_comment(
     _event: CallbackQuery,
-    _widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
@@ -677,8 +656,8 @@ async def on_edit_offer_comment(
 
 
 async def on_edit_price_input(
-    message: Any,
-    widget: Any,
+    message: Message,
+    _widget: ManagedTextInput,
     dialog_manager: DialogManager,
     text: str,
     **_kwargs,
@@ -687,7 +666,7 @@ async def on_edit_price_input(
 
     Args:
         message: Сообщение от пользователя
-        widget: Виджет ввода текста
+        _widget: Виджет ввода текста
         dialog_manager: Менеджер диалога
         text: Введенный текст
     """
@@ -745,7 +724,7 @@ async def on_edit_price_input(
 
 async def on_edit_payment_timing_selected(
     _event: CallbackQuery,
-    _widget: Any,
+    _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
     **_kwargs,
@@ -769,7 +748,7 @@ async def on_edit_payment_timing_selected(
 
 async def on_edit_payment_date_selected(
     _event: CallbackQuery,
-    _widget: Any,
+    _widget: Calendar,
     dialog_manager: DialogManager,
     selected_date: datetime,
 ) -> None:
@@ -835,8 +814,8 @@ async def _update_payment_timing(
 
 
 async def on_edit_comment_input(
-    message: Any,
-    widget: Any,
+    message: Message,
+    _widget: ManagedTextInput,
     dialog_manager: DialogManager,
     text: str,
     **_kwargs,
@@ -845,7 +824,7 @@ async def on_edit_comment_input(
 
     Args:
         message: Сообщение от пользователя
-        widget: Виджет ввода текста
+        _widget: Виджет ввода текста
         dialog_manager: Менеджер диалога
         text: Введенный текст
     """
@@ -901,10 +880,17 @@ async def on_edit_comment_input(
 
 async def on_add_to_calendar(
     event: CallbackQuery,
-    button: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> None:
+    """Создает событие для Google и Apple календарей.
+
+    Args:
+        event: Callback query от Telegram
+        _button: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
@@ -1003,20 +989,20 @@ async def on_reset_filters(
 
 
 async def on_buy_full_exchange(
-    event: CallbackQuery,
-    widget: Any,
+    _event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик покупки полного обмена."""
-    # Устанавливаем флаг что покупаем полностью
+    # Устанавливаем флаг, что покупаем полностью
     dialog_manager.dialog_data["buy_full"] = True
     # Переходим к подтверждению
     await dialog_manager.switch_to(Exchanges.buy_confirmation)
 
 
 async def on_time_input(
-    message: Any,
-    widget: Any,
+    message: Message,
+    _widget: ManagedTextInput,
     dialog_manager: DialogManager,
     text: str,
 ):
@@ -1061,7 +1047,7 @@ async def on_time_input(
 
 async def on_buy_confirm(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик подтверждения покупки."""
@@ -1298,20 +1284,20 @@ async def _handle_partial_exchange(
 
 
 async def on_offer_full_time(
-    event: CallbackQuery,
-    widget: Any,
+    _event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик предложения полного времени в ответ на buy request."""
-    # Устанавливаем флаг что предлагаем полное время
+    # Устанавливаем флаг, что предлагаем полное время
     dialog_manager.dialog_data["offer_full"] = True
     # Переходим к подтверждению
     await dialog_manager.switch_to(Exchanges.sell_confirmation)
 
 
 async def on_seller_time_input(
-    message: Any,
-    widget: Any,
+    message: Message,
+    _widget: ManagedTextInput,
     dialog_manager: DialogManager,
     text: str,
 ):
@@ -1356,7 +1342,7 @@ async def on_seller_time_input(
 
 async def on_sell_confirm(
     event: CallbackQuery,
-    widget: Any,
+    _widget: Button,
     dialog_manager: DialogManager,
 ):
     """Обработчик подтверждения предложения продажи."""

@@ -16,7 +16,7 @@ from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 
 async def schedules_getter(
-    user: Employee, stp_repo: MainRequestsRepo, **_kwargs: Any
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для главного меню графиков.
 
