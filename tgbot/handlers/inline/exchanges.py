@@ -100,7 +100,7 @@ async def _format_exchange_info(exchange: Exchange) -> tuple[str, str, str]:
         end_time_str = "??:??"
 
     shift_time = f"{start_time_str}-{end_time_str}"
-    price_display = f"{exchange.price:g} р./ч. ({exchange.total_price:g} р.)"
+    price_display = f"{exchange.price:g} ₽/ч. ({exchange.total_price:g} ₽)"
 
     return shift_date, shift_time, price_display
 

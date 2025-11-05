@@ -92,7 +92,7 @@ async def get_market_average_prices(
         }
 
         logger.info(
-            f"[Биржа] Получена статистика цен ({intent}): неделя={week_average}р. ({week_row.total_count}), месяц={month_average}р. ({month_row.total_count})"
+            f"[Биржа] Получена статистика цен ({intent}): неделя={week_average}₽ ({week_row.total_count}), месяц={month_average}₽ ({month_row.total_count})"
         )
         return result
 
@@ -123,15 +123,15 @@ def format_market_stats_text(stats: Dict[str, Any]) -> str:
 
     if week_count > 0:
         lines.append(
-            f"📈 <b>Средняя цена за неделю:</b> {week_price} р./ч. ({week_count})"
+            f"📈 <b>Средняя цена за неделю:</b> {week_price} ₽/ч. ({week_count})"
         )
     else:
         lines.append("📈 <b>За неделю:</b> нет данных")
 
     if month_count > 0:
         lines.append(
-            f"📊 <b>Средняя цена за месяц:</b> {month_price} р./ч. ({month_count})"
-            f"📊 <b>Средняя цена за месяц:</b> {month_price} р./ч. ({month_count})"
+            f"📊 <b>Средняя цена за месяц:</b> {month_price} ₽/ч. ({month_count})"
+            f"📊 <b>Средняя цена за месяц:</b> {month_price} ₽/ч. ({month_count})"
         )
     else:
         lines.append("📊 <b>За месяц:</b> нет данных")
@@ -185,12 +185,12 @@ def format_intent_specific_stats_text(stats: Dict[str, Any], context: str) -> st
     lines.append(header)
 
     if week_count > 0:
-        lines.append(f"Неделя: {week_price} р./ч. ({week_count})")
+        lines.append(f"Неделя: {week_price} ₽/ч. ({week_count})")
     else:
         lines.append("Неделя: нет данных")
 
     if month_count > 0:
-        lines.append(f"Месяц: {month_price} р./ч. ({month_count})")
+        lines.append(f"Месяц: {month_price} ₽/ч. ({month_count})")
     else:
         lines.append("Месяц: нет данных")
 

@@ -1,9 +1,15 @@
 """Геттеры для окон статистики сделок."""
 
 import logging
+from datetime import datetime
 from typing import Any, Dict
 
+from aiogram import Bot
+from aiogram.utils.deep_linking import create_start_link
 from stp_database import Employee, MainRequestsRepo
+
+from tgbot.misc.dicts import months_emojis, russian_months
+from tgbot.services.files_processing.formatters.schedule import get_current_month
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +65,195 @@ async def stats_getter(
         # Общие суммы
         "total_loss": f"{total_loss:g}",
         "total_gain": f"{total_gain:g}",
+    }
+
+    return result
+
+
+async def finances_getter(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager, bot: Bot, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для финансовой статистики сделок с фильтрацией по месяцам.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с финансовой статистикой сделок пользователя за выбранный месяц
+    """
+    # Получаем выбранный месяц из dialog_data или используем текущий
+    current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
+
+    month_emoji = months_emojis.get(current_month.lower(), "📅")
+
+    # Получаем номер месяца
+    month_to_num = {name: num for num, name in russian_months.items()}
+    month_num = month_to_num.get(current_month.lower(), datetime.now().month)
+
+    # Определяем год (если выбранный месяц больше текущего, то это прошлый год)
+    current_year = datetime.now().year
+    current_month_num = datetime.now().month
+
+    if month_num > current_month_num:
+        year = current_year - 1
+    else:
+        year = current_year
+
+    # Создаем диапазон дат для выбранного месяца
+    start_date = datetime(year, month_num, 1)
+
+    # Конец месяца
+    if month_num == 12:
+        end_date = datetime(year + 1, 1, 1)
+    else:
+        end_date = datetime(year, month_num + 1, 1)
+
+    # Получаем финансовую статистику за период
+    total_income = await stp_repo.exchange.get_user_total_gain(
+        user_id=user.user_id, start_date=start_date, end_date=end_date
+    )
+
+    total_expenses = await stp_repo.exchange.get_user_total_loss(
+        user_id=user.user_id, start_date=start_date, end_date=end_date
+    )
+
+    # Получаем статистику продаж и покупок
+    sales_stats = await stp_repo.exchange.get_sales_stats_for_period(
+        user_id=user.user_id, start_date=start_date, end_date=end_date
+    )
+
+    purchases_stats = await stp_repo.exchange.get_purchases_stats_for_period(
+        user_id=user.user_id, start_date=start_date, end_date=end_date
+    )
+
+    # Подсчитываем общие показатели
+    total_deals = sales_stats.get("total_sales", 0) + purchases_stats.get(
+        "total_purchases", 0
+    )
+    net_profit = total_income - total_expenses
+
+    # Средняя сумма сделки
+    if total_deals > 0:
+        total_deal_amount = sales_stats.get("total_amount", 0) + purchases_stats.get(
+            "total_amount", 0
+        )
+        average_amount = total_deal_amount / total_deals
+    else:
+        average_amount = 0
+
+    # Экстремальные сделки (найдем самые дорогие продажи и покупки)
+    # Получаем все сделки за период для анализа экстремумов
+    user_exchanges = await stp_repo.exchange.get_exchanges_by_date_range(
+        start_date=start_date, end_date=end_date, status="sold"
+    )
+
+    # Фильтруем только сделки пользователя
+    user_period_exchanges = [
+        ex
+        for ex in user_exchanges
+        if ex.owner_id == user.user_id or ex.counterpart_id == user.user_id
+    ]
+
+    # Топ-3 продаж и покупок
+    top_sells_text = ""
+    top_buys_text = ""
+    has_top_sells = False
+    has_top_buys = False
+
+    if user_period_exchanges:
+        exchanges_with_prices = [ex for ex in user_period_exchanges if ex.total_price]
+
+        if exchanges_with_prices:
+            # Продажи пользователя
+            user_sells = [
+                ex
+                for ex in exchanges_with_prices
+                if (ex.owner_id == user.user_id and ex.owner_intent == "sell")
+                or (ex.counterpart_id == user.user_id and ex.owner_intent == "buy")
+            ]
+
+            # Покупки пользователя
+            user_buys = [
+                ex
+                for ex in exchanges_with_prices
+                if (ex.owner_id == user.user_id and ex.owner_intent == "buy")
+                or (ex.counterpart_id == user.user_id and ex.owner_intent == "sell")
+            ]
+
+            # Топ-3 продаж
+            if user_sells:
+                top_sells = sorted(
+                    user_sells, key=lambda x: x.total_price, reverse=True
+                )[:3]
+                sells_list = []
+                for i, exchange in enumerate(top_sells, 1):
+                    deeplink = await create_start_link(
+                        bot=bot, payload=f"exchange_{exchange.id}", encode=True
+                    )
+                    # Форматируем дату
+                    start_date = (
+                        exchange.start_time.strftime("%d.%m.%Y")
+                        if exchange.start_time
+                        else "Без даты"
+                    )
+                    # Получаем часы работы
+                    hours = (
+                        f"({exchange.working_hours} ч.)"
+                        if exchange.working_hours
+                        else ""
+                    )
+                    sells_list.append(
+                        f"{i}. <a href='{deeplink}'><b>{start_date} {hours} {exchange.total_price:g} ₽</b></a>"
+                    )
+                if sells_list:
+                    top_sells_text = "\n".join(sells_list)
+                    has_top_sells = True
+
+            # Топ-3 покупок
+            if user_buys:
+                top_buys = sorted(user_buys, key=lambda x: x.total_price, reverse=True)[
+                    :3
+                ]
+                buys_list = []
+                for i, exchange in enumerate(top_buys, 1):
+                    deeplink = await create_start_link(
+                        bot=bot, payload=f"exchange_{exchange.id}", encode=True
+                    )
+                    # Форматируем дату
+                    start_date = (
+                        exchange.start_time.strftime("%d.%m.%Y")
+                        if exchange.start_time
+                        else "Без даты"
+                    )
+                    # Получаем часы работы
+                    hours = (
+                        f"({exchange.working_hours} ч.)"
+                        if exchange.working_hours
+                        else ""
+                    )
+                    buys_list.append(
+                        f"{i}. <a href='{deeplink}'><b>{start_date} {hours} {exchange.total_price:g} ₽</b></a>"
+                    )
+                if buys_list:
+                    top_buys_text = "\n".join(buys_list)
+                    has_top_buys = True
+
+    # Возвращаем все данные
+    result = {
+        "month_display": f"{month_emoji} {current_month.capitalize()}",
+        "period_text": f"за {current_month.lower()} {year}",
+        "stats_type_financial": True,
+        "has_exchanges": total_deals > 0,
+        "has_top_sells": has_top_sells,
+        "has_top_buys": has_top_buys,
+        "total_income": f"{total_income:g}",
+        "total_expenses": f"{total_expenses:g}",
+        "net_profit": f"{net_profit:g}",
+        "average_amount": f"{average_amount:g}",
+        "top_sells_text": top_sells_text,
+        "top_buys_text": top_buys_text,
     }
 
     return result

@@ -2,11 +2,19 @@
 
 from aiogram import F
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Cancel, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Cancel, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.getters.common.exchanges.stats import stats_getter
-from tgbot.dialogs.states.common.exchanges import Exchanges, ExchangesStats
+from tgbot.dialogs.events.common.schedules import (
+    do_nothing,
+    next_month,
+    prev_month,
+)
+from tgbot.dialogs.getters.common.exchanges.stats import (
+    finances_getter,
+    stats_getter,
+)
+from tgbot.dialogs.states.common.exchanges import ExchangesStats
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 menu_window = Window(
@@ -15,8 +23,8 @@ menu_window = Window(
         """
 Всего сделок совершенно: <b>{total_exchanges}</b>
 
-📈 <b>Заработано:</b> {total_gain} р.
-📉 <b>Потрачено:</b> {total_loss} р.
+📈 <b>Заработано:</b> {total_gain} ₽
+📉 <b>Потрачено:</b> {total_loss} ₽
 
 <blockquote>💸 <b>Создано:</b>
 📈 <b>Покупок:</b> {owner_buy}
@@ -33,8 +41,8 @@ menu_window = Window(
         when=~F["has_exchanges"],
     ),
     Row(
-        SwitchTo(Const("💰 Финансы"), id="finances", state=Exchanges.finances),
-        SwitchTo(Const("🤝 Партнеры"), id="partners", state=Exchanges.partners),
+        SwitchTo(Const("💰 Финансы"), id="finances", state=ExchangesStats.finances),
+        SwitchTo(Const("🤝 Партнеры"), id="partners", state=ExchangesStats.partners),
     ),
     Row(
         Cancel(Const("↩️ Назад"), id="close_stats"),
@@ -46,22 +54,29 @@ menu_window = Window(
 
 
 finances_window = Window(
-    Const("💰 Финансы"),
+    Const("💰 <b>Финансы</b>"),
     Format(
         """
-<blockquote>💰 <b>Финансовая статистика {period_text}:</b>
-• 💵 Получено за продажи: <b>{total_income} ₽</b>
-• 💸 Потрачено на покупки: <b>{total_expenses} ₽</b>
-• 📊 Чистая прибыль: <b>{net_profit} ₽</b>
-• 📈 Средняя сумма сделки: <b>{average_amount} ₽</b></blockquote>""",
+<blockquote>📈 <b>Заработано:</b> <b>{total_income} ₽</b>
+📉 <b>Потрачено:</b> <b>{total_expenses} ₽</b>
+
+📊 Чистая прибыль: <b>{net_profit} ₽</b>
+⚖️ Средняя цена в час: <b>{average_amount} ₽/ч.</b></blockquote>""",
         when=F["stats_type_financial"] & F["has_exchanges"],
     ),
-    # Экстремальные сделки
+    # Топ продаж
     Format(
         """
-🏆 <b>Рекордные сделки:</b>
-<blockquote>{extreme_deals_text}</blockquote>""",
-        when=F["stats_type_financial"] & F["has_extreme_deals"],
+💰 <b>Топ продаж:</b>
+<blockquote>{top_sells_text}</blockquote>""",
+        when=F["stats_type_financial"] & F["has_top_sells"],
+    ),
+    # Топ покупок
+    Format(
+        """
+💸 <b>Топ покупок:</b>
+<blockquote>{top_buys_text}</blockquote>""",
+        when=F["stats_type_financial"] & F["has_top_buys"],
     ),
     Format(
         """
@@ -69,9 +84,27 @@ finances_window = Window(
         when=~F["has_exchanges"],
     ),
     Row(
+        Button(
+            Const("<"),
+            id="prev_month",
+            on_click=prev_month,
+        ),
+        Button(
+            Format("{month_display}"),
+            id="current_month",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_month",
+            on_click=next_month,
+        ),
+    ),
+    Row(
         Cancel(Const("↩️ Назад"), id="close_stats"),
         HOME_BTN,
     ),
+    getter=finances_getter,
     state=ExchangesStats.finances,
 )
 

@@ -392,8 +392,8 @@ async def get_exchange_text(
 
     shift_time = f"{start_time_str}-{end_time_str}"
     hours_text = f"{exchange.working_hours:g} ч."
-    price_per_hour_text = f"{exchange.price:g} р./ч."
-    price_display = f"{price_per_hour_text} ({exchange.total_price:g} р.)"
+    price_per_hour_text = f"{exchange.price:g} ₽/ч."
+    price_display = f"{price_per_hour_text} ({exchange.total_price:g} ₽)"
 
     # Форматируем дату оплаты
     payment_date_str = (
@@ -506,8 +506,8 @@ async def get_exchange_detailed_text(
         operation_type = "📈 Покупка смены"
 
     # Расчет цены
-    price_per_hour_text = f"{exchange.price:g} р./ч."
-    price_display = f"{price_per_hour_text} ({exchange.total_price:g} р.)"
+    price_per_hour_text = f"{exchange.price:g} ₽/ч."
+    price_display = f"{price_per_hour_text} ({exchange.total_price:g} ₽)"
 
     # Форматируем дату оплаты
     payment_date_str = (

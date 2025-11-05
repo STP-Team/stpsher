@@ -268,7 +268,7 @@ async def sell_payment_timing_getter(
     shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     # Форматируем цену: цена за час (общая стоимость)
-    price_display = f"{price_per_hour} р./ч. ({total_price} р.)"
+    price_display = f"{price_per_hour} ₽/ч. ({total_price} ₽)"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -302,7 +302,7 @@ async def sell_payment_date_getter(
     shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     # Форматируем цену: цена за час (общая стоимость)
-    price_display = f"{price_per_hour} р./ч. ({total_price} р.)"
+    price_display = f"{price_per_hour} ₽/ч. ({total_price} ₽)"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -335,7 +335,7 @@ async def sell_comment_getter(
     shift_time = await _get_exchange_shift_time(start_time, end_time)
 
     # Форматируем цену: цена за час (общая стоимость)
-    price_display = f"{price_per_hour} р./ч. ({total_price} р.)"
+    price_display = f"{price_per_hour} ₽/ч. ({total_price} ₽)"
 
     if shift_date:
         date_obj = datetime.fromisoformat(shift_date).date()
@@ -396,7 +396,7 @@ async def sell_confirmation_getter(
         payment_info = f"До {formatted_payment_date}"
 
     # Форматируем цену: цена за час (общая стоимость)
-    price_display = f"{price_per_hour} р./ч. ({total_price} р.)"
+    price_display = f"{price_per_hour} ₽/ч. ({total_price} ₽)"
 
     result = {
         "shift_date": formatted_shift_date,
