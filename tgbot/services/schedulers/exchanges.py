@@ -25,12 +25,6 @@ SCHEDULER_CONFIG = {
         "id": "exchanges_check_expired_offers",
         "name": "Проверка истекших предложений",
     },
-    "subscription_matches": {
-        "interval_minutes": 2,
-        "misfire_grace_time": 300,
-        "id": "exchanges_check_subscription_matches",
-        "name": "Проверка совпадений подписок",
-    },
     "upcoming_1hour": {
         "interval_minutes": 10,
         "misfire_grace_time": 300,
@@ -125,7 +119,6 @@ BUTTONS = {
 
 # Time-related Constants
 TIME_CONSTANTS = {
-    "subscription_check_window_seconds": 300,  # 5 minutes
     "upcoming_notification_window_minutes": 5,
     "minimum_reschedule_minutes": 30,
 }
@@ -339,7 +332,6 @@ class ExchangesScheduler(BaseScheduler):
         # Конфигурация задач с их функциями
         job_configs = [
             ("expired_offers", self._check_expired_offers),
-            ("subscription_matches", self._check_subscription_matches),
             ("upcoming_1hour", self._check_upcoming_exchanges_1hour),
             ("upcoming_1day", self._check_upcoming_exchanges_1day),
             ("payment_notifications", self._check_payment_date_notifications),
@@ -382,15 +374,6 @@ class ExchangesScheduler(BaseScheduler):
             bot: Экземпляр бота
         """
         await check_expired_offers(session_pool, bot)
-
-    async def _check_subscription_matches(self, session_pool, bot: Bot) -> None:
-        """Проверка совпадений подписок с новыми обменами.
-
-        Args:
-            session_pool: Сессия с БД
-            bot: Экземпляр бота
-        """
-        await check_subscription_matches(session_pool, bot)
 
     async def _check_upcoming_exchanges_1hour(self, session_pool, bot: Bot) -> None:
         """Проверка обменов, начинающихся через 1 час.
@@ -533,116 +516,6 @@ async def notify_expire_offer(
     except Exception as e:
         logger.error(
             f"Ошибка отправки уведомления об истекшей сделке {exchange.id}: {e}"
-        )
-
-
-async def check_subscription_matches(session_pool, bot: Bot) -> None:
-    """Проверка новых обменов на совпадения с подписками.
-
-    Args:
-        session_pool: Пул сессий основной БД
-        bot: Экземпляр бота
-    """
-    try:
-        async with session_pool() as stp_session:
-            stp_repo = MainRequestsRepo(stp_session)
-
-            # Получаем новые обмены (созданные за последние несколько минут)
-            current_time = datetime.now(tz)
-            cutoff_time = current_time - timedelta(
-                seconds=TIME_CONSTANTS["subscription_check_window_seconds"]
-            )
-
-            # Оптимизация: получаем только обмены, созданные после cutoff_time
-            recent_exchanges = await stp_repo.exchange.get_recent_exchanges(
-                created_after=cutoff_time, include_private=False, limit=50
-            )
-
-            if not recent_exchanges:
-                return
-
-            matches_found = 0
-
-            for exchange in recent_exchanges:
-                try:
-                    # Находим все подписки, соответствующие этому обмену
-                    matching_subscriptions = (
-                        await stp_repo.exchange.find_matching_subscriptions(exchange)
-                    )
-
-                    for subscription in matching_subscriptions:
-                        await notify_subscription_match(
-                            bot, stp_repo, subscription, exchange
-                        )
-                        matches_found += 1
-
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка обработки совпадений для обмена {exchange.id}: {e}"
-                    )
-
-            if matches_found > 0:
-                logger.info(f"Найдено и обработано {matches_found} совпадений подписок")
-
-    except Exception as e:
-        logger.error(f"Ошибка проверки совпадений подписок: {e}")
-
-
-async def notify_subscription_match(
-    bot: Bot, stp_repo: MainRequestsRepo, subscription, exchange: Exchange
-) -> None:
-    """Отправка уведомления о совпадении подписки.
-
-    Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий базы данных
-        subscription: Подписка
-        exchange: Экземпляр сделки с моделью Exchange
-    """
-    try:
-        # Получаем данные пользователя
-        user = await stp_repo.employee.get_users(user_id=subscription.subscriber_id)
-        if not user:
-            logger.warning(
-                f"Не найден пользователь {subscription.subscriber_id} для подписки {subscription.id}"
-            )
-            return
-
-        # Формируем информацию об обмене
-        exchange_info = await get_exchange_text(
-            stp_repo, exchange, user_id=user.user_id
-        )
-
-        # Создаем deeplinks
-        exchange_deeplink = await create_exchange_deeplink(bot, exchange.id)
-        subscription_deeplink = await create_subscription_deeplink(bot, subscription.id)
-
-        # Формируем сообщение
-        message_text = MESSAGES["subscription_match"].format(
-            subscription_name=subscription.name, exchange_info=exchange_info
-        )
-
-        # Создаем клавиатуру
-        reply_markup = create_subscription_keyboard(
-            exchange_deeplink, subscription_deeplink
-        )
-
-        # Отправляем уведомление
-        success = await send_message(
-            bot=bot,
-            user_id=subscription.subscriber_id,
-            text=message_text,
-            reply_markup=reply_markup,
-        )
-
-        if success:
-            logger.info(
-                f"Отправлено уведомление о совпадении подписки {subscription.id} пользователю {subscription.subscriber_id}"
-            )
-
-    except Exception as e:
-        logger.error(
-            f"Ошибка отправки уведомления о совпадении подписки {subscription.id}: {e}"
         )
 
 

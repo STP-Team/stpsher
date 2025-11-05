@@ -1,5 +1,6 @@
 """Обработчики для диалога создания покупки на бирже."""
 
+import logging
 import re
 from datetime import datetime
 from typing import Any
@@ -11,6 +12,11 @@ from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy, Exchanges
+from tgbot.services.notifications.subscription_matcher import (
+    find_matching_subscriptions,
+)
+
+logger = logging.getLogger(__name__)
 
 
 async def on_buy_date_selected(
@@ -259,6 +265,21 @@ async def on_confirm_buy(
         )
 
         if exchange:
+            # Уведомляем подписчиков о новом запросе на покупку
+            bot = dialog_manager.middleware_data["bot"]
+            try:
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, exchange
+                )
+                if notifications_sent > 0:
+                    logger.info(
+                        f"Отправлено {notifications_sent} уведомлений о новом запросе на покупку {exchange.id}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Ошибка отправки уведомлений о новом запросе на покупку {exchange.id}: {e}"
+                )
+
             await event.answer(
                 "✅ Запрос на покупку добавлен на биржу!", show_alert=True
             )

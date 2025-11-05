@@ -445,7 +445,6 @@ async def on_confirm_subscription(
     try:
         # Собираем все данные подписки
         subscription_data = _collect_subscription_data(dialog_manager, user)
-        print(subscription_data)
         # Создаем подписку
         subscription = await stp_repo.exchange.create_subscription(**subscription_data)
         subscription_id = subscription.id if subscription else None
@@ -488,6 +487,9 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     price_data = dialog_manager.dialog_data.get("price_data", {})
     if "price" in selected_criteria:
         data["min_price"] = price_data.get("min_price")
+        # Добавляем поддержку max_price если есть в данных
+        if "max_price" in price_data:
+            data["max_price"] = price_data.get("max_price")
 
     # Время
     if "time" in selected_criteria:
@@ -510,16 +512,23 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
         days_widget: ManagedToggle = dialog_manager.find("days_of_week")
         selected_days = days_widget.get_checked() if days_widget else []
         if selected_days:
-            # Преобразуем строки в числа
+            # Преобразуем строки в числа для JSON поля
             data["days_of_week"] = [int(day) for day in selected_days]
-
-    # Уведомления: всегда включены мгновенные уведомления о новых/отредактированных обменах
-    data["notify_immediately"] = True
-    data["notify_daily_digest"] = False
-    data["notify_before_expire"] = False
 
     # Продавец (если выбран)
     if "seller" in selected_criteria:
         data["target_seller_id"] = dialog_manager.dialog_data.get("selected_seller_id")
+
+    # Даты (новые поля в схеме)
+    date_data = dialog_manager.dialog_data.get("date_data", {})
+    if "start_date" in date_data:
+        data["start_date"] = date_data["start_date"]
+    if "end_date" in date_data:
+        data["end_date"] = date_data["end_date"]
+
+    # Подразделения (новое поле target_divisions)
+    divisions_data = dialog_manager.dialog_data.get("target_divisions")
+    if divisions_data:
+        data["target_divisions"] = divisions_data
 
     return data

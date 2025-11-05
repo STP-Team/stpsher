@@ -25,6 +25,9 @@ from tgbot.dialogs.states.common.exchanges import (
 )
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.misc.helpers import format_fullname, tz
+from tgbot.services.notifications.subscription_matcher import (
+    find_matching_subscriptions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -554,9 +557,26 @@ async def on_activation_click(
         or dialog_manager.start_data["exchange_id"]
     )
 
-    await stp_repo.exchange.update_exchange(
-        exchange_id, status="canceled" if not widget.is_checked() else "active"
-    )
+    new_status = "canceled" if not widget.is_checked() else "active"
+    await stp_repo.exchange.update_exchange(exchange_id, status=new_status)
+
+    # Проверяем подписки только при активации (переводе в статус "active")
+    if new_status == "active":
+        try:
+            bot = dialog_manager.middleware_data["bot"]
+            updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+            if updated_exchange:
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, updated_exchange
+                )
+                if notifications_sent > 0:
+                    logger.info(
+                        f"Отправлено {notifications_sent} уведомлений о реактивированной сделке {exchange_id}"
+                    )
+        except Exception as e:
+            logger.error(
+                f"Ошибка отправки уведомлений о реактивированной сделке {exchange_id}: {e}"
+            )
 
 
 async def on_delete_exchange(
@@ -688,6 +708,24 @@ async def on_edit_price_input(
             return
 
         await stp_repo.exchange.update_exchange_price(exchange_id, price)
+
+        # Проверяем подписки после обновления цены
+        try:
+            bot = dialog_manager.middleware_data["bot"]
+            updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+            if updated_exchange and updated_exchange.status == "active":
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, updated_exchange
+                )
+                if notifications_sent > 0:
+                    logger.info(
+                        f"Отправлено {notifications_sent} уведомлений о обновленной сделке {exchange_id}"
+                    )
+        except Exception as e:
+            logger.error(
+                f"Ошибка отправки уведомлений об обновленной сделке {exchange_id}: {e}"
+            )
+
         await message.answer("✅ Цена успешно обновлена")
         await dialog_manager.switch_to(Exchanges.my_detail)
     except ValueError:
@@ -758,6 +796,24 @@ async def _update_payment_timing(
         await stp_repo.exchange.update_payment_timing(
             exchange_id, payment_type, payment_date
         )
+
+        # Проверяем подписки после обновления условий оплаты
+        try:
+            bot = dialog_manager.middleware_data["bot"]
+            updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+            if updated_exchange and updated_exchange.status == "active":
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, updated_exchange
+                )
+                if notifications_sent > 0:
+                    logger.info(
+                        f"Отправлено {notifications_sent} уведомлений о обновленной сделке {exchange_id}"
+                    )
+        except Exception as e:
+            logger.error(
+                f"Ошибка отправки уведомлений об обновленной сделке {exchange_id}: {e}"
+            )
+
         await dialog_manager.switch_to(Exchanges.my_detail)
     except Exception as e:
         logger.error(f"Error updating payment timing: {e}")
@@ -796,6 +852,24 @@ async def on_edit_comment_input(
 
     try:
         await stp_repo.exchange.update_exchange_comment(exchange_id, comment)
+
+        # Проверяем подписки после обновления комментария
+        try:
+            bot = dialog_manager.middleware_data["bot"]
+            updated_exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+            if updated_exchange and updated_exchange.status == "active":
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, updated_exchange
+                )
+                if notifications_sent > 0:
+                    logger.info(
+                        f"Отправлено {notifications_sent} уведомлений о обновленной сделке {exchange_id}"
+                    )
+        except Exception as e:
+            logger.error(
+                f"Ошибка отправки уведомлений об обновленной сделке {exchange_id}: {e}"
+            )
+
         await message.answer("✅ Комментарий успешно обновлен")
         await dialog_manager.switch_to(Exchanges.my_detail)
     except Exception as e:
@@ -1027,7 +1101,7 @@ async def on_buy_confirm(
         else:
             # Частичная покупка - обновляем существующий обмен и создаем новый
             new_exchanges = await _handle_partial_exchange(
-                dialog_manager, stp_repo, user_id
+                dialog_manager, stp_repo, user_id, bot
             )
             await event.answer(
                 "✅ Часть смены успешно куплена!\n\nНе забудь создать подмену в WFM!",
@@ -1124,7 +1198,7 @@ def _validate_time_limits(
 
 
 async def _handle_partial_exchange(
-    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int, bot: Bot
 ):
     """Обработка частичной покупки обмена."""
     from datetime import datetime
@@ -1181,6 +1255,23 @@ async def _handle_partial_exchange(
             owner_intent="sell",
         )
         new_exchanges.append(new_exchange)
+
+    # Уведомляем подписчиков о новых сделках
+    try:
+        total_notifications = 0
+        for new_exchange in new_exchanges:
+            if new_exchange:
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, new_exchange
+                )
+                total_notifications += notifications_sent
+        if total_notifications > 0:
+            logger.info(
+                f"Отправлено {total_notifications} уведомлений о новых сделках после частичной покупки"
+            )
+    except Exception as e:
+        logger.error(f"Ошибка отправки уведомлений о новых сделках: {e}")
+
     return new_exchanges
 
 
@@ -1311,7 +1402,7 @@ async def on_sell_confirm(
         else:
             # Частичное предложение времени - обновляем buy request и создаем новые для оставшегося времени
             new_exchanges = await _handle_partial_sell_offer_new(
-                dialog_manager, stp_repo, user_id
+                dialog_manager, stp_repo, user_id, bot
             )
             await event.answer(
                 "✅ Часы проданы!\n\nНе забудь создать подмену в WFM!",
@@ -1471,7 +1562,7 @@ def _is_full_time_offer(dialog_manager: DialogManager, buy_request: dict) -> boo
 
 
 async def _handle_partial_sell_offer_new(
-    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int, bot: Bot
 ):
     """Обработка частичного предложения времени продавцом (новая логика как в покупке)."""
     from datetime import datetime
@@ -1529,4 +1620,21 @@ async def _handle_partial_sell_offer_new(
             owner_intent="buy",
         )
         new_exchanges.append(new_exchange)
+
+    # Уведомляем подписчиков о новых запросах на покупку
+    try:
+        total_notifications = 0
+        for new_exchange in new_exchanges:
+            if new_exchange:
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, new_exchange
+                )
+                total_notifications += notifications_sent
+        if total_notifications > 0:
+            logger.info(
+                f"Отправлено {total_notifications} уведомлений о новых запросах на покупку после частичной продажи"
+            )
+    except Exception as e:
+        logger.error(f"Ошибка отправки уведомлений о новых запросах на покупку: {e}")
+
     return new_exchanges

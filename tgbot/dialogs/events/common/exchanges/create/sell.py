@@ -21,6 +21,9 @@ from tgbot.services.files_processing.parsers.schedule import (
     DutyScheduleParser,
     ScheduleParser,
 )
+from tgbot.services.notifications.subscription_matcher import (
+    find_matching_subscriptions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1037,6 +1040,21 @@ async def on_confirm_sell(
         )
 
         if exchange:
+            # Уведомляем подписчиков о новой сделке
+            bot = dialog_manager.middleware_data["bot"]
+            try:
+                notifications_sent = await find_matching_subscriptions(
+                    bot, stp_repo, exchange
+                )
+                if notifications_sent > 0:
+                    logger.info(
+                        f"Отправлено {notifications_sent} уведомлений о новой сделке {exchange.id}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Ошибка отправки уведомлений о новой сделке {exchange.id}: {e}"
+                )
+
             await event.answer("✅ Сделка добавлена на биржу!", show_alert=True)
             # Очищаем данные диалога
             dialog_manager.dialog_data.clear()
