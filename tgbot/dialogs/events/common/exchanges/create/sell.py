@@ -39,7 +39,9 @@ async def get_shift_info_from_calendar_data(
         selected_date: Выбранная дата
 
     Returns:
-        Кортеж (start_time, end_time, has_duty, duty_time, duty_type) или None если смена не найдена
+        Кортеж (shift_schedule, shift_end_fallback, has_duty, duty_time, duty_type) или None если смена не найдена
+        shift_schedule: Полный график смены (может содержать несколько диапазонов, например: "08:00-15:00 20:00-00:00")
+        shift_end_fallback: Время окончания последней смены (для обратной совместимости)
     """
     # Проверяем календарные данные
     shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
@@ -63,13 +65,16 @@ async def get_shift_info_from_calendar_data(
     # Извлекаем время из графика
     schedule_value = calendar_data["schedule"]
     time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
-    match = re.search(time_pattern, schedule_value)
+    matches = re.findall(time_pattern, schedule_value)
 
-    if not match:
+    if not matches:
         return None
 
-    shift_start = match.group(1)
-    shift_end = match.group(2)
+    # Сохраняем полный график смены
+    shift_schedule = schedule_value
+
+    # Для обратной совместимости - используем время окончания последнего диапазона
+    shift_end_fallback = matches[-1][1]
 
     # Получаем информацию о дежурствах из календарных данных
     duty_info = calendar_data.get("duty_info")
@@ -84,7 +89,7 @@ async def get_shift_info_from_calendar_data(
             duty_type = duty_parts[-1]
             duty_time = " ".join(duty_parts[:-1])
 
-    return shift_start, shift_end, has_duty, duty_time, duty_type
+    return shift_schedule, shift_end_fallback, has_duty, duty_time, duty_type
 
 
 async def get_user_shift_info(
@@ -142,20 +147,20 @@ async def get_user_shift_info(
 
         # Ищем смену на выбранную дату
         day_key = f"{date_obj.day:02d}"
-        shift_start = None
-        shift_end = None
+        shift_schedule = None
+        shift_end_fallback = None
 
         for day, schedule in schedule_data.items():
             if day_key in day and schedule:
                 # Проверяем, есть ли время в графике
                 time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
-                match = re.search(time_pattern, schedule)
-                if match:
-                    shift_start = match.group(1)
-                    shift_end = match.group(2)
+                matches = re.findall(time_pattern, schedule)
+                if matches:
+                    shift_schedule = schedule
+                    shift_end_fallback = matches[-1][1]  # Время окончания последнего диапазона
                     break
 
-        if not shift_start or not shift_end:
+        if not shift_schedule or not shift_end_fallback:
             return None
 
         # Проверяем реальные дежурства напрямую через DutyScheduleParser
@@ -182,7 +187,7 @@ async def get_user_shift_info(
             duty_time = None
             duty_type = None
 
-        return shift_start, shift_end, has_actual_duty, duty_time, duty_type
+        return shift_schedule, shift_end_fallback, has_actual_duty, duty_time, duty_type
 
     except Exception as e:
         logger.error(f"[Биржа] Ошибка получения смены: {e}")
@@ -339,6 +344,25 @@ def time_to_minutes(time_str: str) -> int:
         return 0
 
 
+def extract_first_start_time(schedule: str) -> Optional[str]:
+    """Извлекает время начала первой смены из графика.
+
+    Args:
+        schedule: График смены (может содержать несколько диапазонов)
+
+    Returns:
+        Время начала первой смены в формате HH:MM или None
+    """
+    try:
+        time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
+        match = re.search(time_pattern, schedule)
+        if match:
+            return match.group(1)
+        return None
+    except Exception:
+        return None
+
+
 def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
     """Проверяет, началась ли смена на указанную дату.
 
@@ -417,13 +441,14 @@ def validate_time_range(time_str: str) -> Tuple[bool, str]:
     return True, ""
 
 
-def is_time_within_shift(time_str: str, shift_start: str, shift_end: str) -> bool:
+def is_time_within_shift(time_str: str, shift_schedule: str, shift_end: str = None) -> bool:
     """Проверяет, находится ли время в пределах смены.
 
     Args:
         time_str: Временной диапазон в формате HH:MM-HH:MM
-        shift_start: Время начала смены HH:MM
-        shift_end: Время окончания смены HH:MM
+        shift_schedule: График смены - может содержать несколько диапазонов (например: "08:00-15:00 20:00-00:00")
+                       или одиночный диапазон (например: "08:00-15:00")
+        shift_end: Время окончания смены HH:MM (для обратной совместимости)
 
     Returns:
         True если время в пределах смены, False если нет
@@ -441,14 +466,53 @@ def is_time_within_shift(time_str: str, shift_start: str, shift_end: str) -> boo
 
         start_minutes = time_to_minutes(start_time)
         end_minutes = time_to_minutes(end_time)
-        shift_start_minutes = time_to_minutes(shift_start)
-        shift_end_minutes = time_to_minutes(shift_end)
 
-        # Обработка ночных смен
-        if shift_end_minutes < shift_start_minutes:
-            shift_end_minutes += 24 * 60
+        # Для обратной совместимости: если shift_end передан отдельно,
+        # создаем старый формат одного диапазона
+        if shift_end is not None:
+            shift_schedule = f"{shift_schedule}-{shift_end}"
 
-        return start_minutes >= shift_start_minutes and end_minutes <= shift_end_minutes
+        # Извлекаем все временные диапазоны из графика смены
+        time_ranges = []
+        time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
+        matches = re.findall(time_pattern, shift_schedule)
+
+        for match in matches:
+            range_start_minutes = time_to_minutes(match[0])
+            range_end_minutes = time_to_minutes(match[1])
+
+            # Обработка ночных смен (когда конец раньше начала)
+            if range_end_minutes < range_start_minutes:
+                range_end_minutes += 24 * 60
+
+            time_ranges.append((range_start_minutes, range_end_minutes))
+
+        # Если не найдено ни одного диапазона, возвращаем False
+        if not time_ranges:
+            return False
+
+        # Проверяем, помещается ли введенное время в любой из диапазонов смены
+        for range_start, range_end in time_ranges:
+            # Обработка ночных смен для введенного времени
+            check_start = start_minutes
+            check_end = end_minutes
+
+            # Если диапазон смены ночной и введенное время может быть частью ночного диапазона
+            if range_end > 24 * 60:  # Ночная смена
+                # Проверяем обычное время
+                if check_start >= range_start or check_end <= (range_end - 24 * 60):
+                    if check_end <= range_end and check_start >= range_start:
+                        return True
+                    # Для ночного времени, проверяем с добавлением 24 часов
+                    if check_start < range_start:
+                        check_start += 24 * 60
+                        check_end += 24 * 60
+
+            # Обычная проверка
+            if check_start >= range_start and check_end <= range_end:
+                return True
+
+        return False
 
     except Exception:
         return False
@@ -512,14 +576,16 @@ async def on_date_selected(
         await event.answer("❌ В выбранную дату у тебя нет смены", show_alert=True)
         return
 
-    shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
+    shift_schedule, shift_end, has_duty, duty_time, duty_type = shift_info
 
     # Форматируем дату для дальнейшего использования
     shift_date_iso = selected_date.isoformat()
 
     # Проверяем существующие продажи на эту дату
+    # Для совместимости с функцией получения продаж используем первый start и последний end
+    first_start_time = extract_first_start_time(shift_schedule) or "00:00"
     is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
-        dialog_manager, shift_date_iso, shift_start, shift_end
+        dialog_manager, shift_date_iso, first_start_time, shift_end
     )
 
     if is_full_sold:
@@ -531,7 +597,7 @@ async def on_date_selected(
     # Сохраняем данные о выбранной дате и смене
     dialog_manager.dialog_data["shift_date"] = shift_date_iso
     dialog_manager.dialog_data["is_today"] = selected_date == today
-    dialog_manager.dialog_data["shift_start"] = shift_start
+    dialog_manager.dialog_data["shift_schedule"] = shift_schedule
     dialog_manager.dialog_data["shift_end"] = shift_end
     dialog_manager.dialog_data["has_duty"] = has_duty
     dialog_manager.dialog_data["duty_time"] = duty_time
@@ -540,7 +606,8 @@ async def on_date_selected(
     dialog_manager.dialog_data["sold_time_strings"] = sold_strings
 
     # Определяем следующий шаг в зависимости от статуса смены
-    if selected_date == today and is_shift_started(shift_start, shift_date_iso):
+    first_start_time = extract_first_start_time(shift_schedule)
+    if selected_date == today and first_start_time and is_shift_started(first_start_time, shift_date_iso):
         # Смена уже началась, сразу переходим к вводу времени
         dialog_manager.dialog_data["is_remaining_today"] = True
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
@@ -571,11 +638,13 @@ async def on_today_selected(
         await event.answer("❌ Сегодня у тебя нет смены", show_alert=True)
         return
 
-    shift_start, shift_end, has_duty, duty_time, duty_type = shift_info
+    shift_schedule, shift_end, has_duty, duty_time, duty_type = shift_info
 
     # Проверяем существующие продажи на сегодня
+    # Для совместимости с функцией получения продаж используем первый start и последний end
+    first_start_time = extract_first_start_time(shift_schedule) or "00:00"
     is_full_sold, sold_ranges, sold_strings = await get_existing_sales_for_date(
-        dialog_manager, shift_date_iso, shift_start, shift_end
+        dialog_manager, shift_date_iso, first_start_time, shift_end
     )
 
     if is_full_sold:
@@ -587,7 +656,7 @@ async def on_today_selected(
     # Сохраняем данные о выбранной дате и смене
     dialog_manager.dialog_data["shift_date"] = shift_date_iso
     dialog_manager.dialog_data["is_today"] = True
-    dialog_manager.dialog_data["shift_start"] = shift_start
+    dialog_manager.dialog_data["shift_schedule"] = shift_schedule
     dialog_manager.dialog_data["shift_end"] = shift_end
     dialog_manager.dialog_data["has_duty"] = has_duty
     dialog_manager.dialog_data["duty_time"] = duty_time
@@ -596,7 +665,8 @@ async def on_today_selected(
     dialog_manager.dialog_data["sold_time_strings"] = sold_strings
 
     # Определяем следующий шаг в зависимости от статуса смены
-    if is_shift_started(shift_start, shift_date_iso):
+    first_start_time = extract_first_start_time(shift_schedule)
+    if first_start_time and is_shift_started(first_start_time, shift_date_iso):
         # Смена уже началась, сразу переходим к вводу времени
         dialog_manager.dialog_data["is_remaining_today"] = True
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
@@ -623,15 +693,16 @@ async def on_hours_selected(
         item_id: Идентификатор выбранного предмета
     """
     shift_date_str = dialog_manager.dialog_data["shift_date"]
-    shift_start = dialog_manager.dialog_data["shift_start"]
+    shift_schedule = dialog_manager.dialog_data["shift_schedule"]
     shift_end = dialog_manager.dialog_data["shift_end"]
 
     if item_id == "full":
         # Полная смена - используем полное время смены
         try:
             shift_date = datetime.fromisoformat(shift_date_str)
+            first_start_time = extract_first_start_time(shift_schedule) or "00:00"
             start_datetime = datetime.combine(
-                shift_date.date(), datetime.strptime(shift_start, "%H:%M").time()
+                shift_date.date(), datetime.strptime(first_start_time, "%H:%M").time()
             )
             end_datetime = datetime.combine(
                 shift_date.date(), datetime.strptime(shift_end, "%H:%M").time()
@@ -688,13 +759,13 @@ async def on_time_input(
         await message.answer(f"<b>❌ {error_message}</b>")
         return
 
-    shift_start = dialog_manager.dialog_data["shift_start"]
+    shift_schedule = dialog_manager.dialog_data["shift_schedule"]
     shift_end = dialog_manager.dialog_data["shift_end"]
 
     # Проверяем, что время в пределах смены пользователя
-    if not is_time_within_shift(data, shift_start, shift_end):
+    if not is_time_within_shift(data, shift_schedule):
         await message.answer(
-            f"❌ Время должно быть в пределах твоей смены: {shift_start}-{shift_end}"
+            f"❌ Время должно быть в пределах твоей смены: {shift_schedule}"
         )
         return
 
@@ -785,7 +856,7 @@ async def on_remaining_time_selected(
         _button: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    shift_start = dialog_manager.dialog_data["shift_start"]
+    shift_schedule = dialog_manager.dialog_data["shift_schedule"]
     shift_end = dialog_manager.dialog_data["shift_end"]
     shift_date_str = dialog_manager.dialog_data["shift_date"]
 
@@ -839,9 +910,9 @@ async def on_remaining_time_selected(
         time_range = f"{start_time_str}-{end_time_str}"
 
         # Проверяем, что время в пределах смены пользователя
-        if not is_time_within_shift(time_range, shift_start, shift_end):
+        if not is_time_within_shift(time_range, shift_schedule):
             await event.answer(
-                f"❌ Рассчитанное время не в пределах смены: {shift_start}-{shift_end}",
+                f"❌ Рассчитанное время не в пределах смены: {shift_schedule}",
                 show_alert=True,
             )
             return

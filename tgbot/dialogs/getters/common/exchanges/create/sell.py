@@ -35,14 +35,14 @@ async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
     data = dialog_manager.dialog_data
 
     shift_date = data.get("shift_date")
-    shift_start = data.get("shift_start")
+    shift_schedule = data.get("shift_schedule")
     shift_end = data.get("shift_end")
     has_duty = data.get("has_duty", False)
     duty_time = data.get("duty_time")
     duty_type = data.get("duty_type")
     is_remaining_today = data.get("is_remaining_today", False)
 
-    if not shift_date or not shift_start or not shift_end:
+    if not shift_date or not shift_schedule or not shift_end:
         return {
             "selected_date": "Не выбрана",
             "shift_options": [],
@@ -53,7 +53,7 @@ async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str
     try:
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
-        user_schedule = f"{shift_start}-{shift_end}"
+        user_schedule = shift_schedule
 
         # Формируем предупреждение о дежурстве
         duty_warning = ""
@@ -97,7 +97,7 @@ async def sell_time_input_getter(
     data = dialog_manager.dialog_data
 
     shift_date = data.get("shift_date")
-    shift_start = data.get("shift_start")
+    shift_schedule = data.get("shift_schedule")
     shift_end = data.get("shift_end")
     has_duty = data.get("has_duty", False)
     duty_time = data.get("duty_time")
@@ -105,7 +105,7 @@ async def sell_time_input_getter(
     sold_time_strings = data.get("sold_time_strings", [])
     is_today = data.get("is_today", False)
 
-    if not shift_date or not shift_start or not shift_end:
+    if not shift_date or not shift_schedule or not shift_end:
         return {
             "selected_date": "Не выбрана",
             "user_schedule": "Не найден",
@@ -117,7 +117,7 @@ async def sell_time_input_getter(
     try:
         date_obj = datetime.fromisoformat(shift_date).date()
         formatted_date = date_obj.strftime("%d.%m.%Y")
-        user_schedule = f"{shift_start}-{shift_end}"
+        user_schedule = shift_schedule
 
         # Формируем предупреждение о дежурстве
         duty_warning = ""
