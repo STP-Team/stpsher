@@ -92,7 +92,7 @@ async def send_activation_product_email(
 📝 Описание: {product.description}<br>
 📍 Активаций: <b>{purchase.usage_count + 1}</b> из <b>{product.count}</b><br><br>
 
-Для активации перейдите в <a href="https://t.me/{bot_username}">СТПшера</a>"""
+Для активации перейдите в <a href="https://t.me/{bot_username}">СТПшер</a>"""
 
     email = []
 
@@ -153,7 +153,7 @@ async def send_cancel_product_email(
 📝 Описание: {product.description}<br>
 📍 Активаций: <b>{purchase.usage_count}</b> из <b>{product.count}</b><br><br>
 
-Подробности можно посмотреть в <a href="https://t.me/{bot_username}">СТПшера</a>"""
+Подробности можно посмотреть в <a href="https://t.me/{bot_username}">СТПшере</a>"""
 
     email = []
     match product.manager_role:
