@@ -866,11 +866,15 @@ class DutyScheduleParser(BaseParser):
 
             # Добавляем старших дежурных
             for duty in group["seniors"]:
-                lines.append(f"Дежурный - {format_fullname(duty, True, True)}")
+                duty_user = await stp_repo.employee.get_users(user_id=duty.user_id)
+                duty_fullname = format_fullname(duty_user, True, True)
+                lines.append(f"Дежурный - {duty_fullname}")
 
             # Добавляем помощников
             for duty in group["helpers"]:
-                lines.append(f"Помощник - {format_fullname(duty, True, True)}")
+                duty_user = await stp_repo.employee.get_users(user_id=duty.user_id)
+                duty_fullname = format_fullname(duty_user, True, True)
+                lines.append(f"Помощник - {duty_fullname}")
 
             # Проверяем, является ли следующий слот текущим
             next_is_current = False
