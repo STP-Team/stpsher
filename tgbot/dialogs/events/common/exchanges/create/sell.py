@@ -157,7 +157,9 @@ async def get_user_shift_info(
                 matches = re.findall(time_pattern, schedule)
                 if matches:
                     shift_schedule = schedule
-                    shift_end_fallback = matches[-1][1]  # Время окончания последнего диапазона
+                    shift_end_fallback = matches[-1][
+                        1
+                    ]  # Время окончания последнего диапазона
                     break
 
         if not shift_schedule or not shift_end_fallback:
@@ -441,7 +443,9 @@ def validate_time_range(time_str: str) -> Tuple[bool, str]:
     return True, ""
 
 
-def is_time_within_shift(time_str: str, shift_schedule: str, shift_end: str = None) -> bool:
+def is_time_within_shift(
+    time_str: str, shift_schedule: str, shift_end: str = None
+) -> bool:
     """Проверяет, находится ли время в пределах смены.
 
     Args:
@@ -607,15 +611,19 @@ async def on_date_selected(
 
     # Определяем следующий шаг в зависимости от статуса смены
     first_start_time = extract_first_start_time(shift_schedule)
-    if selected_date == today and first_start_time and is_shift_started(first_start_time, shift_date_iso):
-        # Смена уже началась, сразу переходим к вводу времени
+    if (
+        selected_date == today
+        and first_start_time
+        and is_shift_started(first_start_time, shift_date_iso)
+    ):
+        # Смена уже началась СЕГОДНЯ, сразу переходим к вводу времени
         dialog_manager.dialog_data["is_remaining_today"] = True
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
     elif sold_strings:
         # У пользователя уже есть сделки на эту дату, пропускаем выбор типа смены
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
     else:
-        # Смена еще не началась и нет существующих сделок, показываем варианты
+        # Смена еще не началась или это будущая дата, показываем варианты полной/частичной смены
         await dialog_manager.switch_to(ExchangeCreateSell.shift_type)
 
 
@@ -667,14 +675,14 @@ async def on_today_selected(
     # Определяем следующий шаг в зависимости от статуса смены
     first_start_time = extract_first_start_time(shift_schedule)
     if first_start_time and is_shift_started(first_start_time, shift_date_iso):
-        # Смена уже началась, сразу переходим к вводу времени
+        # Смена уже началась СЕГОДНЯ, сразу переходим к вводу времени
         dialog_manager.dialog_data["is_remaining_today"] = True
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
     elif sold_strings:
         # У пользователя уже есть сделки на эту дату, пропускаем выбор типа смены
         await dialog_manager.switch_to(ExchangeCreateSell.hours)
     else:
-        # Смена еще не началась и нет существующих сделок, показываем варианты
+        # Смена еще не началась и нет существующих сделок, показываем варианты полной/частичной смены
         await dialog_manager.switch_to(ExchangeCreateSell.shift_type)
 
 
@@ -770,7 +778,11 @@ async def on_time_input(
         return
 
     # Если это продажа оставшегося времени сегодня, проверим что время в будущем
-    if dialog_manager.dialog_data.get("is_remaining_today"):
+    shift_date_str = dialog_manager.dialog_data["shift_date"]
+    shift_date = datetime.fromisoformat(shift_date_str).date()
+    today = datetime.now().date()
+
+    if dialog_manager.dialog_data.get("is_remaining_today") and shift_date == today:
         start_time_str = data.split("-")[0].strip()
         current_time = datetime.now(tz=tz)
         current_minutes = current_time.hour * 60 + current_time.minute
@@ -785,8 +797,6 @@ async def on_time_input(
             return
 
     # Создаем datetime объекты для проверки пересечений
-    shift_date_str = dialog_manager.dialog_data["shift_date"]
-    shift_date = datetime.fromisoformat(shift_date_str)
 
     start_time_str, end_time_str = data.split("-")
     start_time_str = start_time_str.strip()
