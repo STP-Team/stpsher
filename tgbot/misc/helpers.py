@@ -137,9 +137,12 @@ def short_name(full_name: str) -> str:
 
 
 def format_fullname(
-    user: Employee,
+    user: Employee = None,
     short: bool = True,
     gender_emoji: bool = False,
+    fullname: str = None,
+    username: str = None,
+    user_id: int = None,
 ) -> str:
     """Форматирует ФИО пользователя.
 
@@ -147,24 +150,42 @@ def format_fullname(
         user: Экземпляр пользователя с моделью Employee
         short: Нужно ли сократить до ФИ
         gender_emoji: Нужно ли добавлять эмодзи гендеры к ФИО
+        fullname: ФИО пользователя (используется когда user=None)
+        username: Username пользователя (используется когда user=None)
+        user_id: ID пользователя (используется когда user=None)
 
     Returns:
         Форматированная строка с указанными параметрами
     """
-    if short:
-        formatted_fullname = short_name(user.fullname)
+    # Определяем источник данных
+    if user is not None:
+        # Используем данные из объекта Employee
+        user_fullname = user.fullname
+        user_username = user.username
+        user_user_id = user.user_id
     else:
-        formatted_fullname = user.fullname
+        # Используем переданные параметры
+        user_fullname = fullname or ""
+        user_username = username
+        user_user_id = user_id
 
-    if user.username is not None:
-        formatted_fullname = f"<a href='t.me/{user.username}'>{formatted_fullname}</a>"
-    elif user.username is None and user.user_id is not None:
+    # Форматируем ФИО
+    if short and user_fullname:
+        formatted_fullname = short_name(user_fullname)
+    else:
+        formatted_fullname = user_fullname
+
+    # Добавляем ссылку, если есть username или user_id
+    if user_username is not None:
+        formatted_fullname = f"<a href='t.me/{user_username}'>{formatted_fullname}</a>"
+    elif user_username is None and user_user_id is not None:
         formatted_fullname = (
-            f"<a href='tg://user?id={user.user_id}'>{formatted_fullname}</a>"
+            f"<a href='tg://user?id={user_user_id}'>{formatted_fullname}</a>"
         )
 
-    if gender_emoji:
-        emoji = get_gender_emoji(user.fullname)
+    # Добавляем эмодзи гендера, если требуется
+    if gender_emoji and user_fullname:
+        emoji = get_gender_emoji(user_fullname)
         formatted_fullname = f"{emoji} {formatted_fullname}"
 
     return formatted_fullname

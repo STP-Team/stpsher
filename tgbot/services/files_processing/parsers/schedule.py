@@ -1078,7 +1078,7 @@ class HeadScheduleParser(BaseParser):
             lines.append(f"⏰ <b>{time_schedule}</b>")
 
             for head in group_heads:
-                head_line = f"{format_fullname(head, True, True)}"
+                head_line = f"{format_fullname(fullname=head.name, username=head.username, user_id=head.user_id, short=True, gender_emoji=True)}"
 
                 if head.duty_info:
                     head_line += f" ({head.duty_info})"
@@ -1146,7 +1146,13 @@ class GroupScheduleParser(BaseParser):
 
     def _format_member_with_link(self, member: GroupMemberInfo) -> str:
         """Format member name with link and working hours."""
-        user_link = format_fullname(member, True, True)
+        user_link = format_fullname(
+            fullname=member.name,
+            username=member.username,
+            user_id=member.user_id,
+            short=True,
+            gender_emoji=True,
+        )
 
         working_hours = member.working_hours or "Не указано"
         result = f"{user_link} <code>{working_hours}</code>"
