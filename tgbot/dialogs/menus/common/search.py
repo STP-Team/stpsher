@@ -358,6 +358,7 @@ details_window = Window(
             Const("🔴 Биржа подмен"),
             id="exchanges_access",
             on_click=on_exchanges_click,
+            when="searched_default_user",
         ),
         SwitchTo(
             Const("🛡️ Уровень доступа"),
