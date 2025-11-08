@@ -34,37 +34,60 @@ async def stats_getter(
 
     total_exchanges = len(user_exchanges)
 
-    # Подсчёт по типам
-    owned_exchanges = [ex for ex in user_exchanges if ex.owner_id == user.user_id]
-    owner_sell_count = len([ex for ex in owned_exchanges if ex.owner_intent == "sell"])
-    owner_buy_count = len([ex for ex in owned_exchanges if ex.owner_intent == "buy"])
-
-    participant_buy_count = len([
+    # Подсчёт общих покупок и продаж пользователя
+    # Покупки: когда пользователь создал сделку на покупку ИЛИ откликнулся на продажу
+    total_buy_count = len([
         ex
         for ex in user_exchanges
-        if ex.counterpart_id == user.user_id and ex.owner_intent == "sell"
-    ])
-    participant_sell_count = len([
-        ex
-        for ex in user_exchanges
-        if ex.counterpart_id == user.user_id and ex.owner_intent == "buy"
+        if (ex.owner_id == user.user_id and ex.owner_intent == "buy")
+        or (ex.counterpart_id == user.user_id and ex.owner_intent == "sell")
     ])
 
-    total_loss = await stp_repo.exchange.get_user_total_loss(user.user_id)
-    total_gain = await stp_repo.exchange.get_user_total_gain(user.user_id)
+    # Продажи: когда пользователь создал сделку на продажу ИЛИ откликнулся на покупку
+    total_sell_count = len([
+        ex
+        for ex in user_exchanges
+        if (ex.owner_id == user.user_id and ex.owner_intent == "sell")
+        or (ex.counterpart_id == user.user_id and ex.owner_intent == "buy")
+    ])
+
+    total_income = await stp_repo.exchange.get_user_total_gain(user.user_id)
+    total_expenses = await stp_repo.exchange.get_user_total_loss(user.user_id)
+    net_profit = total_income - total_expenses
+
+    # Получаем общее количество проданных и купленных часов
+    total_hours_sold = await stp_repo.exchange.get_user_total_hours_sold(user.user_id)
+    total_hours_bought = await stp_repo.exchange.get_user_total_hours_bought(
+        user.user_id
+    )
+    total_exchanged_hours = total_hours_bought + total_hours_sold
+
+    avg_sell_price = await stp_repo.exchange.get_user_overall_avg_sell_price(
+        user_id=user.user_id
+    )
+
+    avg_buy_price = await stp_repo.exchange.get_user_overall_avg_buy_price(
+        user_id=user.user_id
+    )
 
     # Возвращаем все данные
     result = {
         "total_exchanges": total_exchanges,
         "has_exchanges": total_exchanges > 0,
-        # Основные счетчики
-        "owner_sell": owner_sell_count,
-        "owner_buy": owner_buy_count,
-        "counterpart_buy": participant_buy_count,
-        "counterpart_sell": participant_sell_count,
+        # Общие счетчики покупок и продаж
+        "total_buy": total_buy_count,
+        "total_sell": total_sell_count,
         # Общие суммы
-        "total_loss": f"{total_loss:g}",
-        "total_gain": f"{total_gain:g}",
+        "total_income": f"{total_income:g}",
+        "total_expenses": f"{total_expenses:g}",
+        "net_profit": f"{net_profit:g}",
+        # Общее количество часов
+        "total_hours_sold": f"{total_hours_sold:g}",
+        "total_hours_bought": f"{total_hours_bought:g}",
+        "total_exchanged_hours": f"{total_exchanged_hours:g}",
+        # Средние значения
+        "avg_sell_price": f"{avg_sell_price:g}",
+        "avg_buy_price": f"{avg_buy_price:g}",
     }
 
     return result
@@ -133,15 +156,6 @@ async def finances_getter(
         "total_purchases", 0
     )
     net_profit = total_income - total_expenses
-
-    # Средняя сумма сделки
-    if total_deals > 0:
-        total_deal_amount = sales_stats.get("total_amount", 0) + purchases_stats.get(
-            "total_amount", 0
-        )
-        average_amount = total_deal_amount / total_deals
-    else:
-        average_amount = 0
 
     # Экстремальные сделки (найдем самые дорогие продажи и покупки)
     # Получаем все сделки за период для анализа экстремумов
@@ -251,9 +265,23 @@ async def finances_getter(
         "total_income": f"{total_income:g}",
         "total_expenses": f"{total_expenses:g}",
         "net_profit": f"{net_profit:g}",
-        "average_amount": f"{average_amount:g}",
         "top_sells_text": top_sells_text,
         "top_buys_text": top_buys_text,
     }
+
+    # Получаем средние цены за месяц
+    avg_sell_price = await stp_repo.exchange.get_user_monthly_avg_sell_price(
+        user_id=user.user_id, year=year, month=month_num
+    )
+
+    avg_buy_price = await stp_repo.exchange.get_user_monthly_avg_buy_price(
+        user_id=user.user_id, year=year, month=month_num
+    )
+
+    # Добавляем в результат
+    result.update({
+        "avg_sell_price": f"{avg_sell_price:g}",
+        "avg_buy_price": f"{avg_buy_price:g}",
+    })
 
     return result

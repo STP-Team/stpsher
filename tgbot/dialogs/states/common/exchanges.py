@@ -90,4 +90,3 @@ class ExchangesStats(StatesGroup):
 
     menu = State()
     finances = State()
-    partners = State()

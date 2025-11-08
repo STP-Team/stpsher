@@ -21,18 +21,23 @@ menu_window = Window(
     Const("📊 <b>Статистика сделок</b>"),
     Format(
         """
-Всего сделок совершенно: <b>{total_exchanges}</b>
+<blockquote>🧮 <b>Финансы:</b>
+<b>Чистая прибыль</b>: {net_profit} ₽
 
-📈 <b>Заработано:</b> {total_gain} ₽
-📉 <b>Потрачено:</b> {total_loss} ₽
+<b>Заработано:</b> {total_income} ₽
+<b>Потрачено:</b> {total_expenses} ₽</blockquote>
 
-<blockquote>💸 <b>Создано:</b>
-📈 <b>Покупок:</b> {owner_buy}
-📉 <b>Продаж:</b> {owner_sell}</blockquote>
+<blockquote>💱 <b>Сделки:</b>
+<b>Всего:</b> <b>{total_exchanges}</b> ({total_exchanged_hours} ч.)
 
-<blockquote>✍️ <b>Отклики:</b>
-📈 <b>На покупки:</b> {counterpart_sell}
-📉 <b>На продажи:</b> {counterpart_buy}</blockquote>""",
+<b>Покупок:</b> {total_buy} на {total_hours_bought} ч.
+<b>Продаж:</b> {total_sell} на {total_hours_sold} ч.
+
+Средняя цена покупки: {avg_buy_price} ₽/ч.
+Средняя цена продажи: {avg_sell_price} ₽/ч.</blockquote>
+
+<blockquote>🤝 <b>Партнеры:</b>
+</blockquote>""",
         when="has_exchanges",
     ),
     Format(
@@ -40,10 +45,7 @@ menu_window = Window(
 Пока нет сделок за выбранный период 🤷‍♂️""",
         when=~F["has_exchanges"],
     ),
-    Row(
-        SwitchTo(Const("💰 Финансы"), id="finances", state=ExchangesStats.finances),
-        SwitchTo(Const("🤝 Партнеры"), id="partners", state=ExchangesStats.partners),
-    ),
+    SwitchTo(Const("🗓️ По месяцам"), id="finances", state=ExchangesStats.finances),
     Row(
         Cancel(Const("↩️ Назад"), id="close_stats"),
         HOME_BTN,
@@ -53,15 +55,18 @@ menu_window = Window(
 )
 
 
-finances_window = Window(
-    Const("💰 <b>Финансы</b>"),
+month_stats_window = Window(
+    Const("🗓️ <b>По месяцам</b>"),
     Format(
         """
 <blockquote>📈 <b>Заработано:</b> <b>{total_income} ₽</b>
 📉 <b>Потрачено:</b> <b>{total_expenses} ₽</b>
 
-📊 Чистая прибыль: <b>{net_profit} ₽</b>
-⚖️ Средняя цена в час: <b>{average_amount} ₽/ч.</b></blockquote>""",
+🤑 Чистая прибыль: <b>{net_profit} ₽</b>
+
+💰 <b>Средние цены:</b>
+• Продажа: <b>{avg_sell_price} ₽/ч.</b>
+• Покупка: <b>{avg_buy_price} ₽/ч.</b></blockquote>""",
         when=F["stats_type_financial"] & F["has_exchanges"],
     ),
     # Топ продаж
@@ -101,36 +106,15 @@ finances_window = Window(
         ),
     ),
     Row(
-        Cancel(Const("↩️ Назад"), id="close_stats"),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesStats.menu),
         HOME_BTN,
     ),
     getter=finances_getter,
     state=ExchangesStats.finances,
 )
 
-partners_window = Window(
-    Const("🤝 Партнеры"),
-    Format(
-        """
-🤝 <b>Топ партнеров {period_text}:</b>
-{partners_financial_text}""",
-        when=F["stats_type_partners"] & F["has_partners"],
-    ),
-    Format(
-        """
-Пока нет сделок за выбранный период 🤷‍♂️""",
-        when=~F["has_exchanges"],
-    ),
-    Row(
-        Cancel(Const("↩️ Назад"), id="close_stats"),
-        HOME_BTN,
-    ),
-    state=ExchangesStats.partners,
-)
-
 
 exchanges_stats_dialog = Dialog(
     menu_window,
-    finances_window,
-    partners_window,
+    month_stats_window,
 )

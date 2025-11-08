@@ -525,10 +525,10 @@ async def get_exchange_detailed_text(
 
     if other_party_name != "Не указано":
         roles_info += f"""
-👥 <b>Партнер:</b> {other_party_role} - {other_party_name}"""
+🤝 <b>Партнер:</b> {other_party_role} - {other_party_name}"""
     else:
         roles_info += f"""
-👥 <b>Партнер:</b> {other_party_role} - <i>не назначен</i>"""
+🤝 <b>Партнер:</b> {other_party_role} - <i>не назначен</i>"""
 
     exchange_text = f"""<blockquote>{roles_info}
 
