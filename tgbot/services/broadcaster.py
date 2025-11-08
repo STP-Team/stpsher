@@ -183,10 +183,6 @@ async def broadcast_copy(
             else:
                 error_count += 1
 
-            # Call progress callback if provided
-            if progress_event:
-                await progress_callback(idx, total)
-
             await asyncio.sleep(
                 0.05
             )  # 20 messages per second (Limit: 30 messages per second)
