@@ -24,7 +24,7 @@ async def buy_settings_getter(
 
     shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
     shift_filter_value = (
-        shift_filter_checkbox.get_checked() if shift_filter_checkbox else "no_shift"
+        shift_filter_checkbox.get_checked() if shift_filter_checkbox else "all"
     )
 
     date_sort_toggle: ManagedToggle = dialog_manager.find("date_sort")
@@ -61,7 +61,7 @@ async def buy_settings_getter(
     # Определяем, отличаются ли настройки от значений по умолчанию
     is_default_settings = (
         day_filter_value == "all"
-        and shift_filter_value == "no_shift"
+        and shift_filter_value == "all"
         and date_sort_value == "nearest"
         and price_sort_value == "cheap"
     )
