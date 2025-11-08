@@ -153,7 +153,7 @@ async def buy_filters_shift_getter(
         filter_value = filter_checkbox.get_checked()
 
     # Определяем, отличается ли фильтр от значения по умолчанию
-    show_reset_filters = filter_value is not None and filter_value != "no_shift"
+    show_reset_filters = filter_value is not None and filter_value != "all"
 
     return {
         "shift_filter_options": shift_filter_options,
