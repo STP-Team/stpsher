@@ -878,6 +878,116 @@ async def on_edit_comment_input(
         await message.answer("❌ Ошибка при обновлении комментария")
 
 
+async def on_cancel_exchange(
+    event: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> None:
+    """Отправляет предложение об отмене сделки партнеру.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    bot: Bot = dialog_manager.middleware_data["bot"]
+    user: Employee = dialog_manager.middleware_data["user"]
+
+    exchange_id = dialog_manager.dialog_data.get(
+        "exchange_id", None
+    ) or dialog_manager.start_data.get("exchange_id")
+
+    if not exchange_id:
+        await event.answer("❌ Сделка не найдена", show_alert=True)
+        return
+
+    try:
+        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+        if not exchange:
+            await event.answer("❌ Сделка не найдена", show_alert=True)
+            return
+
+        # Проверяем статус сделки
+        if exchange.status != "sold":
+            await event.answer(
+                "❌ Отменить можно только завершенные сделки", show_alert=True
+            )
+            return
+
+        # Проверяем, не началось ли уже время сделки
+        if exchange.start_time and tz.localize(exchange.start_time) <= datetime.now(
+            tz=tz
+        ):
+            await event.answer(
+                "❌ Нельзя отменить сделку после наступления времени начала",
+                show_alert=True,
+            )
+            return
+
+        # Определяем контрагента
+        counterpart_id = (
+            exchange.counterpart_id
+            if exchange.owner_id == user.user_id
+            else exchange.owner_id
+        )
+
+        if not counterpart_id:
+            await event.answer("❌ Партнер не найден", show_alert=True)
+            return
+
+        # Создаем deeplink для просмотра сделки
+        exchange_deeplink = await create_start_link(
+            bot=bot, payload=f"exchange_{exchange.id}", encode=True
+        )
+
+        # Создаем deeplink для отмены сделки
+        cancel_deeplink = await create_start_link(
+            bot=bot, payload=f"cancel_{exchange.id}", encode=True
+        )
+
+        # Отправляем предложение об отмене контрагенту
+        user_fullname = format_fullname(user, True, True)
+        await bot.send_message(
+            chat_id=counterpart_id,
+            text=f"""✋ <b>Отмена сделки</b>
+
+🤝 Партнер: {user_fullname}
+🏷️ Номер сделки: #{exchange.id}
+
+Партнер предлагает отменить сделку №{exchange.id}
+
+⚠️ <i>Отмена возможна только до наступления времени начала сделки</i>""",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="🎭 Открыть сделку",
+                            url=exchange_deeplink,
+                        )
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            text="✋ Отменить сделку",
+                            url=cancel_deeplink,
+                        )
+                    ],
+                ]
+            ),
+        )
+
+        await event.answer(
+            "✅ Предложение об отмене отправлено партнеру", show_alert=True
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка отправки предложения об отмене сделки {exchange_id}: {e}")
+        await event.answer(
+            "❌ Произошла ошибка при отправке предложения", show_alert=True
+        )
+
+
 async def on_add_to_calendar(
     event: CallbackQuery,
     _widget: Button,
