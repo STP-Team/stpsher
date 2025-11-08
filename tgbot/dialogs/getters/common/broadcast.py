@@ -5,7 +5,7 @@ from sqlalchemy import distinct, select
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import format_fullname, strftime_date
+from tgbot.misc.helpers import format_fullname, short_name, strftime_date
 
 
 async def broadcast_select_getter(
@@ -45,7 +45,7 @@ async def broadcast_select_getter(
 
         items = []
         for head in heads:
-            display_name = format_fullname(head, True, True)
+            display_name = short_name(head)
             items.append((head.id, display_name))
 
         # Получаем уникальные направления руководителей для фильтрации
