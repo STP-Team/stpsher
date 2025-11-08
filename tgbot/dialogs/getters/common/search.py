@@ -19,6 +19,7 @@ from tgbot.misc.helpers import (
     format_fullname,
     get_role,
     get_status_emoji,
+    short_name,
     strftime_date,
 )
 
@@ -77,7 +78,7 @@ async def search_specialists_getter(
         role_info = get_role(specialist.role)
         formatted_specialists.append((
             specialist.id,
-            format_fullname(specialist, True, True),
+            short_name(specialist.fullname),
             role_info["emoji"],
         ))
 
@@ -127,7 +128,7 @@ async def search_heads_getter(
         role_info = get_role(head.role)
         formatted_heads.append((
             head.id,
-            format_fullname(head, True, True),
+            short_name(head.fullname),
             role_info["emoji"],
         ))
 
