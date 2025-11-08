@@ -79,7 +79,7 @@ async def on_user_select(
 
     # Получаем информацию о пользователе и устанавливаем состояние чекбоксов
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    searched_user = await stp_repo.employee.get_users(main_id=int(item_id))
+    searched_user = await stp_repo.employee.get_users(user_id=int(item_id))
 
     casino_checkbox: ManagedCheckbox = dialog_manager.find("casino_access")
     if casino_checkbox:
@@ -140,7 +140,7 @@ async def on_search_query(
 
         # Сохраняем результаты поиска в dialog_data
         dialog_manager.dialog_data["search_results"] = [
-            (user.id, user.fullname, user.position or "") for user in sorted_users
+            (user.user_id, user.fullname, user.position or "") for user in sorted_users
         ]
         dialog_manager.dialog_data["search_query"] = search_query
         dialog_manager.dialog_data["total_found"] = len(sorted_users)
@@ -237,11 +237,7 @@ async def on_role_change(
             return
 
         # Обновляем роль пользователя
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-        if not searched_user:
-            searched_user = await stp_repo.employee.get_users(
-                user_id=int(selected_user_id)
-            )
+        searched_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
         if not searched_user:
             await event.answer("❌ Пользователь не найден", show_alert=True)
@@ -253,7 +249,7 @@ async def on_role_change(
 
         # Обновляем роль в базе данных
         await stp_repo.employee.update_user(
-            user_id=searched_user.user_id, role=new_role_id
+            user_id=int(selected_user_id), role=new_role_id
         )
 
         # Показываем уведомление о смене роли

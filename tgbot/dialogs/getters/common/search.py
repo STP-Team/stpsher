@@ -77,7 +77,7 @@ async def search_specialists_getter(
     for specialist in sorted_specialists:
         role_info = get_role(specialist.role)
         formatted_specialists.append((
-            specialist.id,
+            specialist.user_id,
             short_name(specialist.fullname),
             role_info["emoji"],
         ))
@@ -127,7 +127,7 @@ async def search_heads_getter(
     for head in sorted_heads:
         role_info = get_role(head.role)
         formatted_heads.append((
-            head.id,
+            head.user_id,
             short_name(head.fullname),
             role_info["emoji"],
         ))
@@ -202,7 +202,7 @@ async def search_user_info_getter(
 
     try:
         # Получаем информацию о пользователе
-        searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+        searched_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
         if not searched_user:
             return {"user_info": "❌ Пользователь не найден"}
 
@@ -270,7 +270,7 @@ async def search_access_level_getter(
         Словарь со статусом ищущего сотрудника и доступных ролей для назначения
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     is_head = user.role == 2
     is_mip = user.role == 6
@@ -342,7 +342,7 @@ async def search_schedule_getter(
         Словарь с данными для отображения графика
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     schedule_data = await user_schedule_getter(
         user=selected_user, stp_repo=stp_repo, dialog_manager=dialog_manager
@@ -380,7 +380,7 @@ async def search_kpi_getter(
         Словарь с данными KPI
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Вызываем оригинальный геттер с выбранным пользователем
     kpi_data = await kpi_getter(user=selected_user, kpi_repo=kpi_repo)
@@ -417,7 +417,7 @@ async def search_kpi_requirements_getter(
         Словарь с данными нормативов
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
@@ -456,7 +456,7 @@ async def search_salary_getter(
         Словарь с данными зарплаты
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Вызываем оригинальный геттер с выбранным пользователем
     salary_data = await salary_getter(user=selected_user, kpi_repo=kpi_repo)
@@ -489,7 +489,7 @@ async def search_achievements_getter(
         Словарь с историей достижений пользователя
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Получаем все транзакции-достижения пользователя
     transactions = await stp_repo.transaction.get_user_transactions(
@@ -585,7 +585,7 @@ async def search_inventory_getter(
         Словарь с предметами инвентаря пользователя
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
-    selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
+    selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Получаем все покупки пользователя
     user_products = await stp_repo.purchase.get_user_purchases_with_details(
