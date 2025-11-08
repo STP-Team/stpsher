@@ -528,11 +528,35 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     # Подразделения (новое поле target_divisions)
     divisions_data = dialog_manager.dialog_data.get("target_divisions")
     if divisions_data:
-        # Preserve original strings without unnecessary conversion
+        # Fix Unicode encoding issue - decode escaped Unicode sequences
         if isinstance(divisions_data, list):
-            data["target_divisions"] = divisions_data
+            # Handle list of divisions, decode any Unicode escape sequences
+            decoded_divisions = []
+            for division in divisions_data:
+                if isinstance(division, str):
+                    try:
+                        # Try to decode Unicode escape sequences like \u041d\u0422\u041f
+                        if '\\u' in division:
+                            decoded = division.encode().decode('unicode_escape')
+                            decoded_divisions.append(decoded)
+                        else:
+                            decoded_divisions.append(division)
+                    except (UnicodeDecodeError, UnicodeEncodeError):
+                        # If decoding fails, use original string
+                        decoded_divisions.append(division)
+                else:
+                    decoded_divisions.append(division)
+            data["target_divisions"] = decoded_divisions
         elif isinstance(divisions_data, str):
-            data["target_divisions"] = [divisions_data]
+            # Handle single division string
+            try:
+                if '\\u' in divisions_data:
+                    decoded = divisions_data.encode().decode('unicode_escape')
+                    data["target_divisions"] = [decoded]
+                else:
+                    data["target_divisions"] = [divisions_data]
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                data["target_divisions"] = [divisions_data]
         else:
             data["target_divisions"] = divisions_data
 
