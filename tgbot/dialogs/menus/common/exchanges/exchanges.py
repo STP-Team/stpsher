@@ -21,6 +21,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     finish_exchanges_dialog,
     on_exchange_type_selected,
 )
+from tgbot.dialogs.events.common.exchanges.stats import start_stats_dialog
 from tgbot.dialogs.getters.common.exchanges.exchanges import exchanges_getter
 from tgbot.dialogs.menus.common.exchanges.buy import buy_detail_window, buy_window
 from tgbot.dialogs.menus.common.exchanges.my import (
@@ -54,14 +55,13 @@ menu_window = Window(
     Const("🎭 <b>Биржа подмен</b>"),
     Format("""
 Здесь ты можешь обменять свои рабочие часы, либо взять чужие"""),
-    Format("{market_stats}"),
     Row(
         SwitchTo(Const("📈 Купить"), id="exchanges_buy", state=Exchanges.buy),
         SwitchTo(Const("📉 Продать"), id="exchanges_sell", state=Exchanges.sell),
     ),
     SwitchTo(Const("🗳 Мои сделки"), id="exchanges_my", state=Exchanges.my),
     SwitchTo(Const("💸 Создать сделку"), id="exchanges_create", state=Exchanges.create),
-    SwitchTo(Const("📊 Статистика"), id="exchanges_stats", state=Exchanges.stats),
+    Button(Const("📊 Статистика"), id="exchanges_stats", on_click=start_stats_dialog),
     Group(
         Url(
             Const("📌 Регламент"),

@@ -102,7 +102,7 @@ specialists_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("ё"), id="menu", state=Search.menu),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
         HOME_BTN,
     ),
     getter=search_specialists_getter,

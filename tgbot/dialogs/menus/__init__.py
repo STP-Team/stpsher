@@ -5,6 +5,7 @@ from tgbot.dialogs.menus.common.broadcast import broadcast_dialog
 from tgbot.dialogs.menus.common.exchanges.create.buy import exchanges_buy_dialog
 from tgbot.dialogs.menus.common.exchanges.create.sell import exchanges_sell_dialog
 from tgbot.dialogs.menus.common.exchanges.exchanges import exchanges_dialog
+from tgbot.dialogs.menus.common.exchanges.stats import exchanges_stats_dialog
 from tgbot.dialogs.menus.common.exchanges.subscriptions import (
     exchanges_subscriptions_dialog,
 )
@@ -36,6 +37,7 @@ common_dialogs_list = [
     exchanges_dialog,
     exchanges_buy_dialog,
     exchanges_sell_dialog,
+    exchanges_stats_dialog,
     exchanges_subscriptions_dialog,
     kpi_dialog,
     game_dialog,
@@ -45,7 +47,4 @@ common_dialogs_list = [
     files_dialog,
 ]
 
-__all__ = [
-    "dialogs_list",
-    "common_dialogs_list",
-]
+__all__ = ["dialogs_list", "common_dialogs_list"]

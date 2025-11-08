@@ -118,7 +118,7 @@ async def play_casino_game(
     """Общая логика для запуска казино-игры.
 
     Args:
-        user: Экземпляр пользователя с моделью Employee.
+        user: Экземпляр пользователя с моделью Employee
         stp_repo: Репозиторий операций с базой STP
         event: Callback query от пользователя
         dialog_manager: Менеджер диалога

@@ -45,7 +45,7 @@ async def inline_handler(
 
     Args:
         inline_query: Inline запрос пользователя
-        user: Экземпляр пользователя с моделью Employee.
+        user: Экземпляр пользователя с моделью Employee
         stp_repo: Репозиторий операций с базой STP
         bot: Экземпляр бота
     """

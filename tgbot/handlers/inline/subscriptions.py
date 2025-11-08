@@ -93,9 +93,9 @@ def _format_subscription_criteria(subscription: ExchangeSubscription) -> str:
     criteria_parts = []
 
     if subscription.min_price:
-        criteria_parts.append(f"• Минимальная цена: {subscription.min_price} р.")
+        criteria_parts.append(f"• Минимальная цена: {subscription.min_price} ₽")
     if subscription.max_price:
-        criteria_parts.append(f"• Максимальная цена: {subscription.max_price} р.")
+        criteria_parts.append(f"• Максимальная цена: {subscription.max_price} ₽")
     if subscription.start_time and subscription.end_time:
         criteria_parts.append(
             f"• Время: с {subscription.start_time.strftime('%H:%M')} "

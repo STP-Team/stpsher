@@ -164,7 +164,7 @@ payment_date_window = Window(
     Const("📅 <b>Шаг 6: Дата платежа</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Оплата:</b> <code>{price} р.</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} ₽</code></blockquote>"""),
     Format("\nВыбери крайнюю дату для оплаты:"),
     Format("<i>Можно выбрать любую дату, начиная с сегодня</i>"),
     RussianCalendar(
@@ -184,7 +184,7 @@ comment_window = Window(
     Const("💬 <b>Шаг 7: Комментарий (необязательно)</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Оплата:</b> <code>{price} р. {payment_type}</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} ₽ {payment_type}</code></blockquote>"""),
     Format(
         "\nМожешь добавить комментарий к предложению продажи или нажать <b>➡️ Пропустить</b>:"
     ),
@@ -208,7 +208,7 @@ confirmation_window = Window(
     Const("✅ <b>Шаг 8: Подтверждение сделки</b>"),
     Format("""
 <blockquote>📅 <b>Предложение:</b> <code>{shift_time} {shift_date} ПРМ</code>
-💰 <b>Оплата:</b> <code>{price} р. {payment_info}</code></blockquote>"""),
+💰 <b>Оплата:</b> <code>{price} ₽ {payment_info}</code></blockquote>"""),
     Format(
         "\n💬 <b>Комментарий:</b>\n<blockquote expandable>{comment}</blockquote>",
         when="comment",

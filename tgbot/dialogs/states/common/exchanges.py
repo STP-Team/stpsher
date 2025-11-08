@@ -15,6 +15,8 @@ class Exchanges(StatesGroup):
 
     # Статистика
     stats = State()
+    finances = State()
+    partners = State()
 
     # Детальный просмотр обменов
     buy_detail = State()  # Детали обмена для покупки
@@ -81,3 +83,10 @@ class ExchangesSub(StatesGroup):
     create_seller_results = State()  # Результаты поиска продавца
     create_name = State()  # Название подписки
     create_confirmation = State()  # Подтверждение создания
+
+
+class ExchangesStats(StatesGroup):
+    """Группа состояний диалога для просмотра статистики сделок."""
+
+    menu = State()
+    finances = State()

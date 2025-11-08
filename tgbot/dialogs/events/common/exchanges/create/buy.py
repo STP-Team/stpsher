@@ -159,7 +159,7 @@ async def on_buy_price_input(
             await message.answer("❌ Цена должна быть больше 0")
             return
         if price_per_hour > 5000:
-            await message.answer("❌ Слишком большая цена за час (максимум 5,000 р.)")
+            await message.answer("❌ Слишком большая цена за час (максимум 5,000 ₽)")
             return
 
         # Сохраняем цену за час

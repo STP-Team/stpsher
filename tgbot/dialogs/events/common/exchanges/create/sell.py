@@ -920,7 +920,7 @@ async def on_price_input(
             return
         if price_per_hour > 10000:
             await message.answer(
-                "❌ Слишком большая цена за час (максимум 10,000 р./ч.)"
+                "❌ Слишком большая цена за час (максимум 10,000 ₽/ч.)"
             )
             return
 

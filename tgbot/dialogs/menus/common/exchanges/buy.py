@@ -48,7 +48,7 @@ buy_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("{item[time]}, {item[date]} | {item[price]} р./ч."),
+            Format("{item[time]}, {item[date]} | {item[price]} ₽/ч."),
             id="exchange_select",
             items="available_exchanges",
             item_id_getter=lambda item: item["id"],
