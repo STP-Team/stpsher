@@ -45,7 +45,7 @@ async def broadcast_select_getter(
 
         items = []
         for head in heads:
-            display_name = short_name(head)
+            display_name = short_name(head.fullname)
             items.append((head.id, display_name))
 
         # Получаем уникальные направления руководителей для фильтрации
