@@ -69,10 +69,10 @@ menu_window = Window(
             Const("📌 Регламент"),
             url=Const("clever.ertelecom.ru/content/space/4/article/12011/page/1"),
         ),
-        Url(
-            Const("🤝 Чат биржи"),
-            url=Const("t.me/+iKZ3Ve6IwwozYjVi"),
-        ),
+        # Url(
+        #     Const("🤝 Чат биржи"),
+        #     url=Const("t.me/+iKZ3Ve6IwwozYjVi"),
+        # ),
         width=2,
         when="is_nck",
     ),
