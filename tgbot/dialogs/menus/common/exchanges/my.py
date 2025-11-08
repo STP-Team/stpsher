@@ -81,7 +81,7 @@ my_window = Window(
     ),
     Row(
         SwitchInlineQueryChosenChatButton(
-            Const("🔗 В группе"),
+            Const("🔗 В группу"),
             query=Format("group_{exchanges_deeplink}"),
             allow_user_chats=False,
             allow_group_chats=True,
@@ -90,7 +90,7 @@ my_window = Window(
             id="group_exchanges_deeplink",
         ),
         SwitchInlineQueryChosenChatButton(
-            Const("📨 Пользователю"),
+            Const("🔗 В лс"),
             query=Format("dm_{exchanges_deeplink}"),
             allow_user_chats=True,
             allow_group_chats=False,

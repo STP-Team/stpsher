@@ -105,7 +105,7 @@ sell_detail_window = Window(
     Button(Const("✍️ Предложить сделку"), id="apply_sell", on_click=on_exchange_sell),
     Row(
         SwitchInlineQueryChosenChatButton(
-            Const("🔗 В группе"),
+            Const("🔗 В группу"),
             query=Format("group_{deeplink}"),
             allow_user_chats=False,
             allow_group_chats=True,
@@ -114,7 +114,7 @@ sell_detail_window = Window(
             id="group_share_deeplink",
         ),
         SwitchInlineQueryChosenChatButton(
-            Const("📨 Пользователю"),
+            Const("🔗 В лс"),
             query=Format("dm_{deeplink}"),
             allow_user_chats=True,
             allow_group_chats=False,
