@@ -132,7 +132,7 @@ my_detail_window = Window(
             id="group_share_deeplink",
         ),
         SwitchInlineQueryChosenChatButton(
-            Const("📨 В лс"),
+            Const("🔗 В лс"),
             query=Format("dm_{deeplink}"),
             allow_user_chats=True,
             allow_group_chats=False,
