@@ -235,9 +235,25 @@ async def on_confirm_buy(
                     today, datetime.strptime(end_time_str, "%H:%M").time()
                 )
         else:
-            # Если время не указано (любое время), используем None
-            start_time = None
-            end_time = None
+            # Если время не указано, устанавливаем весь день (00:00 - 23:59)
+            if data.get("buy_date"):
+                # Если есть конкретная дата
+                shift_date = datetime.fromisoformat(data["buy_date"])
+                start_time = datetime.combine(
+                    shift_date.date(), datetime.strptime("00:00", "%H:%M").time()
+                )
+                end_time = datetime.combine(
+                    shift_date.date(), datetime.strptime("23:59", "%H:%M").time()
+                )
+            else:
+                # Если дата не указана, используем сегодняшний день
+                today = datetime.now().date()
+                start_time = datetime.combine(
+                    today, datetime.strptime("00:00", "%H:%M").time()
+                )
+                end_time = datetime.combine(
+                    today, datetime.strptime("23:59", "%H:%M").time()
+                )
 
         # Цена за час
         price_per_hour = data["buy_price_per_hour"]
