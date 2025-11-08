@@ -100,9 +100,9 @@ async def subscription_detail_getter(
         # Форматируем критерии
         criteria_parts = []
         if subscription.min_price:
-            criteria_parts.append(f"• Минимальная цена: {subscription.min_price} р.")
+            criteria_parts.append(f"• Минимальная цена: {subscription.min_price} ₽")
         if subscription.max_price:
-            criteria_parts.append(f"• Максимальная цена: {subscription.max_price} р.")
+            criteria_parts.append(f"• Максимальная цена: {subscription.max_price} ₽")
         if subscription.start_time and subscription.end_time:
             criteria_parts.append(
                 f"• Время: с {subscription.start_time.strftime('%H:%M')} до {subscription.end_time.strftime('%H:%M')}"
@@ -275,9 +275,9 @@ async def subscription_create_price_getter(
     # Формируем отображение настроек цены
     price_settings = []
     if price_data.get("min_price"):
-        price_settings.append(f"от {price_data['min_price']} р.")
+        price_settings.append(f"от {price_data['min_price']} ₽")
     if price_data.get("max_price"):
-        price_settings.append(f"до {price_data['max_price']} р.")
+        price_settings.append(f"до {price_data['max_price']} ₽")
 
     if price_settings:
         price_settings_display = "\n💰 <b>Цена:</b> " + " ".join(price_settings)
@@ -340,9 +340,9 @@ async def subscription_create_time_getter(
     if price_data.get("min_price") or price_data.get("max_price"):
         price_parts = []
         if price_data.get("min_price"):
-            price_parts.append(f"от {price_data['min_price']} р.")
+            price_parts.append(f"от {price_data['min_price']} ₽")
         if price_data.get("max_price"):
-            price_parts.append(f"до {price_data['max_price']} р.")
+            price_parts.append(f"до {price_data['max_price']} ₽")
         settings_parts.append("💰 Цена: " + " ".join(price_parts))
 
     # Время (текущий этап)
@@ -428,9 +428,9 @@ async def subscription_create_date_getter(
     if price_data.get("min_price") or price_data.get("max_price"):
         price_parts = []
         if price_data.get("min_price"):
-            price_parts.append(f"от {price_data['min_price']} р.")
+            price_parts.append(f"от {price_data['min_price']} ₽")
         if price_data.get("max_price"):
-            price_parts.append(f"до {price_data['max_price']} р.")
+            price_parts.append(f"до {price_data['max_price']} ₽")
         settings_parts.append("💰 Цена: " + " ".join(price_parts))
 
     # Время
@@ -594,9 +594,9 @@ def _get_criteria_summary(dialog_manager: DialogManager) -> str:
     # Добавляем уже настроенные значения
     price_data = dialog_manager.dialog_data.get("price_data", {})
     if price_data.get("min_price"):
-        criteria_parts.append(f"от {price_data['min_price']} р.")
+        criteria_parts.append(f"от {price_data['min_price']} ₽")
     if price_data.get("max_price"):
-        criteria_parts.append(f"до {price_data['max_price']} р.")
+        criteria_parts.append(f"до {price_data['max_price']} ₽")
 
     # Добавляем выбранного сотрудника
     selected_seller_name = dialog_manager.dialog_data.get("selected_seller_name")
@@ -626,9 +626,9 @@ def _get_detailed_criteria_summary(dialog_manager: DialogManager) -> str:
     if price_data.get("min_price") or price_data.get("max_price"):
         price_parts = []
         if price_data.get("min_price"):
-            price_parts.append(f"от {price_data['min_price']} р.")
+            price_parts.append(f"от {price_data['min_price']} ₽")
         if price_data.get("max_price"):
-            price_parts.append(f"до {price_data['max_price']} р.")
+            price_parts.append(f"до {price_data['max_price']} ₽")
         criteria_parts.append(f"• Цена: {' '.join(price_parts)}")
 
     # Время

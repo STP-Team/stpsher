@@ -106,7 +106,7 @@ comment_window = Window(
     Format("Дата: Любая", when="any_date"),
     Format("Время: <code>{hours_range}</code>", when="hours_range"),
     Format("Время: Любое", when="any_hours"),
-    Format("Цена за час: <code>{price_per_hour} р.</code>"),
+    Format("Цена за час: <code>{price_per_hour} ₽</code>"),
     Format("\nМожешь добавить комментарий к запросу или нажать <b>➡️ Пропустить</b>"),
     TextInput(
         id="buy_comment_input",
@@ -130,7 +130,7 @@ confirmation_window = Window(
 Проверь данные перед публикацией:
 
 📅 <b>Предложение:</b> <code>{date_info} {time_info} ПРМ</code>
-💰 <b>Цена за час:</b> <code>{price_per_hour} р.</code>"""),
+💰 <b>Цена за час:</b> <code>{price_per_hour} ₽</code>"""),
     Format(
         "💬 <b>Комментарий:</b>\n<blockquote expandable>{comment}</blockquote>",
         when="comment",

@@ -13,10 +13,6 @@ from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
 from tgbot.misc.helpers import format_fullname, strftime_date, tz
-from tgbot.services.exchange_stats import (
-    format_combined_market_stats_text,
-    get_combined_market_stats,
-)
 from tgbot.services.files_processing.parsers.schedule import (
     DutyScheduleParser,
     ScheduleParser,
@@ -366,26 +362,6 @@ async def _get_exchange_button_text(
             return f"📉 Продал {date_str}"
 
 
-async def get_exchange_hours(exchange: Exchange) -> float | None:
-    """Расчет кол-ва часов сделки.
-
-    Args:
-        exchange: Экземпляр сделки с моделью Exchange
-
-    Returns:
-        Кол-во часов или None
-    """
-    if exchange.start_time and exchange.end_time:
-        try:
-            # Рассчитываем продолжительность из TIMESTAMP полей
-            duration = exchange.end_time - exchange.start_time
-            exchange_hours = duration.total_seconds() / 3600  # Переводим в часы
-            return exchange_hours
-        except Exception as e:
-            logger.error(f"[Биржа] Ошибка расчета часов сделки: {e}")
-            return None
-
-
 async def get_exchange_text(
     stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
 ) -> str:
@@ -415,23 +391,9 @@ async def get_exchange_text(
         end_time_str = "Не указано"
 
     shift_time = f"{start_time_str}-{end_time_str}"
-    shift_hours = await get_exchange_hours(exchange)
-
-    # Защита от None значений в часах
-    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
-
-    # Общая логика для расчета цены
-    price_per_hour = exchange.price
-    price_per_hour_text = (
-        f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
-    )
-
-    # Рассчитываем общую стоимость (цена за час * количество часов)
-    if shift_hours is not None and price_per_hour is not None:
-        total_price = int(price_per_hour * shift_hours)
-        price_display = f"{price_per_hour_text} ({total_price:g} р.)"
-    else:
-        price_display = price_per_hour_text
+    hours_text = f"{exchange.working_hours:g} ч."
+    price_per_hour_text = f"{exchange.price:g} ₽/ч."
+    price_display = f"{price_per_hour_text} ({exchange.total_price:g} ₽)"
 
     # Форматируем дату оплаты
     payment_date_str = (
@@ -498,8 +460,11 @@ async def get_exchange_detailed_text(
         end_time_str = "Не указано"
 
     shift_time = f"{start_time_str}-{end_time_str}"
-    shift_hours = await get_exchange_hours(exchange)
-    hours_text = f"{shift_hours:g} ч." if shift_hours is not None else "Не указано"
+    hours_text = (
+        f"{exchange.working_hours:g} ч."
+        if exchange.working_hours is not None
+        else "Не указано"
+    )
 
     # Получаем информацию о продавце
     seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
@@ -541,17 +506,8 @@ async def get_exchange_detailed_text(
         operation_type = "📈 Покупка смены"
 
     # Расчет цены
-    price_per_hour = exchange.price
-    price_per_hour_text = (
-        f"{price_per_hour:g} р./ч." if price_per_hour is not None else "Не указано"
-    )
-
-    # Рассчитываем общую стоимость
-    if shift_hours is not None and price_per_hour is not None:
-        total_price = int(price_per_hour * shift_hours)
-        price_display = f"{price_per_hour_text} ({total_price:g} р.)"
-    else:
-        price_display = price_per_hour_text
+    price_per_hour_text = f"{exchange.price:g} ₽/ч."
+    price_display = f"{price_per_hour_text} ({exchange.total_price:g} ₽)"
 
     # Форматируем дату оплаты
     payment_date_str = (
@@ -569,10 +525,10 @@ async def get_exchange_detailed_text(
 
     if other_party_name != "Не указано":
         roles_info += f"""
-👥 <b>Партнер:</b> {other_party_role} - {other_party_name}"""
+🤝 <b>Партнер:</b> {other_party_role} - {other_party_name}"""
     else:
         roles_info += f"""
-👥 <b>Партнер:</b> {other_party_role} - <i>не назначен</i>"""
+🤝 <b>Партнер:</b> {other_party_role} - <i>не назначен</i>"""
 
     exchange_text = f"""<blockquote>{roles_info}
 
@@ -588,17 +544,13 @@ async def exchanges_getter(user: Employee, stp_repo: MainRequestsRepo, **_kwargs
     """Геттер для главного меню подмен.
 
     Args:
-        user: Экземпляр пользователя с моделью Employee.
-        stp_repo: Репозиторий для работы с базой данных.
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий для работы с базой данных
 
     Returns:
         Словарь с информацией о дивизионе и рыночной статистике
     """
-    # Получаем комбинированную рыночную статистику
-    combined_stats = await get_combined_market_stats(stp_repo)
-    market_stats_text = format_combined_market_stats_text(combined_stats)
-
-    return {"is_nck": user.division == "НЦК", "market_stats": market_stats_text}
+    return {"is_nck": user.division == "НЦК"}
 
 
 async def exchange_buy_getter(

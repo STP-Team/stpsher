@@ -322,7 +322,7 @@ async def on_price_input(
         await message.answer("✅ Минимальная цена: не ограничена")
     else:
         price_data["min_price"] = data
-        await message.answer(f"✅ Минимальная цена: {data} р./час")
+        await message.answer(f"✅ Минимальная цена: {data} ₽/час")
 
     price_data["completed"] = True
 

@@ -54,7 +54,7 @@ sell_window = Window(
     ),
     ScrollingGroup(
         Select(
-            Format("{item[time]}, {item[date]} | {item[price]} р./ч."),
+            Format("{item[time]}, {item[date]} | {item[price]} ₽/ч."),
             id="buy_request_select",
             items="available_buy_requests",
             item_id_getter=lambda item: item["id"],
@@ -106,7 +106,7 @@ buy_time_selection_window = Window(
     Format("""
 📅 <b>Дата:</b> {date_str}
 ⏱️ <b>Доступное время:</b> {time_range} ({total_hours} ч.)
-💰 <b>Оплата:</b> {price_per_hour} р./ч. (общая стоимость: {total_price} р.)
+💰 <b>Оплата:</b> {price_per_hour} ₽/ч. (общая стоимость: {total_price} ₽)
 
 Выбери нужное время:"""),
     Button(
@@ -132,7 +132,7 @@ buy_confirmation_window = Window(
 
 📅 <b>Дата:</b> 
 ⏱️ <b>Время:</b> {time_range} ({hours} ч.) {date_str}
-💰 <b>Оплата:</b> {price_per_hour} р./ч. ({total_price} р.)
+💰 <b>Оплата:</b> {price_per_hour} ₽/ч. ({total_price} ₽)
 👤 <b>Продавец:</b> {seller_name}"""),
     Row(
         SwitchTo(Const("✋ Отмена"), id="cancel_buy", state=Exchanges.sell),
@@ -148,7 +148,7 @@ sell_time_selection_window = Window(
     Format("""
 <blockquote>👤 <b>Покупатель:</b> {buyer_name}
 ⏱️ <b>Время:</b> {requested_time_range} ({requested_hours} ч.) {date_str}
-💰 <b>Оплата:</b> {price_per_hour} р./ч.</blockquote>
+💰 <b>Оплата:</b> {price_per_hour} ₽/ч.</blockquote>
 
 Введи часы, которые хочешь продать
 
@@ -171,7 +171,7 @@ sell_confirmation_window = Window(
     Const("✅ <b>Сделка: Подтверждение</b>"),
     Format("""
 <blockquote>🕐 <b>Время:</b> {time_range} ({offered_hours} ч.) {date_str}
-💰 <b>Оплата:</b> {price_per_hour} р./ч. ({total_price} р.)
+💰 <b>Оплата:</b> {price_per_hour} ₽/ч. ({total_price} ₽)
 👤 <b>Покупатель:</b> {buyer_name}</blockquote>"""),
     Row(
         SwitchTo(Const("✋ Отмена"), id="cancel_sell", state=Exchanges.sell),

@@ -1083,7 +1083,7 @@ async def on_buy_confirm(
                     text=f"""🎉<b>Сделка полностью закрыта</b>
 
 🏷️ Номер сделки: #{original_exchange["id"]}
-👥 Партнер: {formatted_buyer}
+🤝 Партнер: {formatted_buyer}
 
 <i>Не забудьте создать подмену на <b>WFM</b></i>""",
                     reply_markup=InlineKeyboardMarkup(
@@ -1140,7 +1140,7 @@ async def on_buy_confirm(
                 text=f"""🎉 <b>Сделка частично закрыта</b>
 
 🏷️ Номер сделки: #{original_exchange["id"]}
-👥 Партнер: {formatted_buyer}
+🤝 Партнер: {formatted_buyer}
 
 {new_exchanges_text}
 
@@ -1387,7 +1387,7 @@ async def on_sell_confirm(
                 text=f"""🎉 <b>Запрос покупки принят</b>
 
 🏷️ Номер сделки: #{buy_request["id"]}
-👥 Партнер: {formatted_seller}
+🤝 Партнер: {formatted_seller}
 
 <i>Не забудьте создать подмену на <b>WFM</b></i>""",
                 reply_markup=InlineKeyboardMarkup(
@@ -1443,7 +1443,7 @@ async def on_sell_confirm(
                 text=f"""🎉 <b>Запрос покупки частично принят</b>
 
 🏷️ Номер сделки: #{buy_request["id"]}
-👥 Партнер: {formatted_seller}
+🤝 Партнер: {formatted_seller}
 
 {new_exchanges_text}
 
