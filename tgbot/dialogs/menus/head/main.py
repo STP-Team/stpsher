@@ -27,7 +27,7 @@ menu_window = Window(
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
     Row(
-        Button(Const("📅 Графики"), id="schedules", on_click=start_schedules_dialog),
+        Button(Const("📅 Графики"), id="exchanges", on_click=start_schedules_dialog),
         Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
     ),
     Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),

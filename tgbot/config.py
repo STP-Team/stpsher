@@ -9,6 +9,7 @@ from sqlalchemy import URL
 class TgBot:
     """Creates the TgBot object from environment variables."""
 
+    environment: str
     token: str
     use_redis: bool
     use_webhook: bool
@@ -20,6 +21,7 @@ class TgBot:
     @staticmethod
     def from_env(env: Env):
         """Creates the TgBot object from environment variables."""
+        environment = env.str("ENVIRONMENT")
         token = env.str("BOT_TOKEN")
         use_redis = env.bool("USE_REDIS")
         use_webhook = env.bool("USE_WEBHOOK", False)
@@ -29,6 +31,7 @@ class TgBot:
         webhook_port = env.int("WEBHOOK_PORT", 8443)
 
         return TgBot(
+            environment=environment,
             token=token,
             use_redis=use_redis,
             use_webhook=use_webhook,
@@ -256,3 +259,8 @@ def load_config(path: str = None) -> Config:
         redis=RedisConfig.from_env(env),
         misc=Miscellaneous(),
     )
+
+
+# Global config instance for IS_DEVELOPMENT access
+_global_config = load_config(".env")
+IS_DEVELOPMENT = _global_config.tg_bot.environment == "dev"

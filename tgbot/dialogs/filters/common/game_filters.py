@@ -75,7 +75,7 @@ def get_position_callback_key(position: str) -> str:
 
 
 def get_position_from_callback(callback_key: str) -> str:
-    """Возвращает оригинальную позицию по ключу callback.
+    """Возвращает оригинальную позицию по ключу event.
 
     Args:
         callback_key: Ключ callback

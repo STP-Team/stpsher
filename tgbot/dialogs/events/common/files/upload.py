@@ -51,9 +51,9 @@ async def on_document_uploaded(
         return
 
     document: Document = message.document
-    bot: Bot = dialog_manager.middleware_data.get("bot")
-    stp_repo: MainRequestsRepo = dialog_manager.middleware_data.get("stp_repo")
-    main_db: Session = dialog_manager.middleware_data.get("main_db")
+    bot: Bot = dialog_manager.middleware_data["bot"]
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    main_db: Session = dialog_manager.middleware_data["main_db"]
 
     if not bot or not stp_repo:
         await message.answer("❌ Ошибка инициализации")
@@ -206,11 +206,9 @@ async def on_document_uploaded(
                             if user:
                                 formatted_fired.append(
                                     format_fullname(
-                                        user.fullname,
+                                        user,
                                         short=True,
                                         gender_emoji=True,
-                                        username=user.username,
-                                        user_id=user.user_id,
                                     )
                                 )
                             else:
@@ -225,11 +223,9 @@ async def on_document_uploaded(
                             if user:
                                 formatted_updated.append(
                                     format_fullname(
-                                        user.fullname,
+                                        user,
                                         short=True,
                                         gender_emoji=True,
-                                        username=user.username,
-                                        user_id=user.user_id,
                                     )
                                 )
                             else:
@@ -243,11 +239,9 @@ async def on_document_uploaded(
                         if user:
                             formatted_new.append(
                                 format_fullname(
-                                    user.fullname,
+                                    user,
                                     short=True,
                                     gender_emoji=True,
-                                    username=user.username,
-                                    user_id=user.user_id,
                                 )
                             )
                         else:
@@ -305,11 +299,9 @@ async def on_document_uploaded(
                                     formatted_name = None
                                     if user:
                                         formatted_name = format_fullname(
-                                            user.fullname,
+                                            user,
                                             short=True,
                                             gender_emoji=True,
-                                            username=user.username,
-                                            user_id=user.user_id,
                                         )
                                     else:
                                         formatted_name = fullname
@@ -421,15 +413,15 @@ async def on_document_uploaded(
 
 
 async def on_upload_retry(
-    _callback: CallbackQuery,
-    _button: Button,
+    _event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной попытки загрузки файла.
 
     Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
+        _event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Очищаем данные предыдущей загрузки
@@ -443,15 +435,15 @@ async def on_upload_retry(
 
 
 async def on_upload_complete(
-    _callback: CallbackQuery,
-    _button: Button,
+    _event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик завершения процесса загрузки (возврат в меню).
 
     Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
+        _event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Очищаем данные загрузки
@@ -465,15 +457,15 @@ async def on_upload_complete(
 
 
 async def on_view_uploaded_file(
-    _callback: CallbackQuery,
-    _button: Button,
+    _event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик просмотра загруженного файла.
 
     Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
+        _event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     file_name = dialog_manager.dialog_data.get("upload_file_name")
@@ -481,5 +473,5 @@ async def on_view_uploaded_file(
         dialog_manager.dialog_data["selected_file"] = file_name
         await dialog_manager.switch_to(Files.local_details)
     else:
-        await _callback.answer("Файл не найден", show_alert=True)
+        await _event.answer("Файл не найден", show_alert=True)
         await dialog_manager.switch_to(Files.menu)

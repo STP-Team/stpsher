@@ -8,6 +8,7 @@ from stp_database.models.KPI.head_premium import HeadPremium
 from stp_database.models.KPI.spec_premium import SpecPremium
 from stp_database.repo.KPI.requests import KPIRequestsRepo
 
+from tgbot.misc.helpers import strftime_date
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 
@@ -57,12 +58,12 @@ async def kpi_getter(
         updated_at_str = (
             premium.updated_at.replace(tzinfo=datetime.timezone.utc)
             .astimezone(datetime.timezone(datetime.timedelta(hours=5)))
-            .strftime("%d.%m.%y %H:%M")
+            .strftime(strftime_date)
         )
 
     current_time_str = datetime.datetime.now(
         datetime.timezone(datetime.timedelta(hours=5))
-    ).strftime("%d.%m.%y %H:%M")
+    ).strftime(strftime_date)
 
     if user.role == 2:
         kpi_text = f"""🌟 <b>Показатели</b>
@@ -82,8 +83,8 @@ async def kpi_getter(
 
 {"📈 Всего чатов: " + SalaryFormatter.format_value(premium.contacts_count) if user.division == "НЦК" else "📈 Всего звонков: " + SalaryFormatter.format_value(premium.contacts_count)}
 
-<i>Выгружено: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>
-<i>Обновлено: {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M")}</i>"""
+<i>Выгружено: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date) if premium.updated_at else "—"}</i>
+<i>Обновлено: {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</i>"""
 
     else:
         contacts_text = (

@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict
 
+from aiogram import Bot
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
@@ -14,8 +15,29 @@ from tgbot.services.files_processing.formatters.schedule import (
 from tgbot.services.files_processing.handlers.schedule import schedule_service
 
 
+async def schedules_getter(
+    user: Employee, stp_repo: MainRequestsRepo, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для главного меню графиков.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+
+    Returns:
+        Словарь с доступом сотрудника к бирже
+    """
+    is_banned = await stp_repo.exchange.is_user_exchange_banned(user.user_id)
+    has_access = user.role in [1, 3] and not is_banned
+    return {"has_access": has_access}
+
+
 async def user_schedule_getter(
-    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    bot: Bot,
+    user: Employee,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер навигации по месяцам для расписания сотрудника.
 
@@ -25,9 +47,8 @@ async def user_schedule_getter(
         dialog_manager: Менеджер диалога
 
     Returns:
-        Возвращает словарь для смены месяца графика
+        Словарь для смены месяца графика
     """
-    # Get month from dialog_data or use current month as default
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
@@ -42,7 +63,11 @@ async def user_schedule_getter(
     ]
 
     schedule_text = await schedule_service.get_user_schedule_response(
-        user=user, month=current_month, compact=not is_detailed_mode, stp_repo=stp_repo
+        user=user,
+        month=current_month,
+        compact=not is_detailed_mode,
+        stp_repo=stp_repo,
+        bot=bot,
     )
 
     return {

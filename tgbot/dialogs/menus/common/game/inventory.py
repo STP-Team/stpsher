@@ -1,5 +1,7 @@
 """Генерация общих функций для просмотра инвентаря."""
 
+import operator
+
 from aiogram import F
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
@@ -43,7 +45,7 @@ inventory_window = Window(
             Format("{item[1]}"),
             id="inventory_product",
             items="products",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_inventory_product_click,
         ),
         width=2,
@@ -55,7 +57,7 @@ inventory_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="inventory_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[
             ("all", "📋 Все"),
             ("stored", f"{get_status_emoji('stored')}"),
@@ -125,13 +127,13 @@ inventory_activation_comment_window = Window(
 Ты можешь добавить комментарий к активации
 Этот комментарий увидит менеджер при проверке
 
-Напиши комментарий или нажми <b>⏩ Пропустить</b>"""),
+Напиши комментарий или нажми <b>➡️ Пропустить</b>"""),
     TextInput(
         id="activation_comment_input",
         on_success=on_inventory_activation_comment_input,
     ),
     Button(
-        Const("⏩ Пропустить"),
+        Const("➡️ Пропустить"),
         id="skip_comment",
         on_click=on_skip_activation_comment,
     ),

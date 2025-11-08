@@ -13,13 +13,13 @@ from tgbot.dialogs.states.common.game import Game
 
 
 async def check_casino_access(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     dialog_manager: DialogManager,
 ) -> bool:
     """Проверить доступ пользователя к казино.
 
     Args:
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -28,7 +28,7 @@ async def check_casino_access(
     user: Employee = dialog_manager.middleware_data["user"]
 
     if user is None or not user.is_casino_allowed:
-        await callback.answer(
+        await event.answer(
             "Казино недоступно. Обратитесь к руководителю если считаешь это ошибкой",
             show_alert=True,
         )
@@ -38,20 +38,20 @@ async def check_casino_access(
 
 
 async def change_rate(
-    _callback: CallbackQuery,
-    button: Button,
+    _event: CallbackQuery,
+    widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик изменения ставки.
 
     Args:
-        _callback: Callback query от пользователя
-        button: Button виджет
+        _event: Callback query от пользователя
+        widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     # Получаем значение изменения из button.widget_id
     # Формат: rate_minus_50 или rate_plus_50
-    widget_id = button.widget_id
+    widget_id = widget.widget_id
     if "minus" in widget_id:
         delta = -int(widget_id.split("_")[-1])
     else:  # "plus" in widget_id
@@ -108,7 +108,7 @@ def calculate_simple_multiplier(value: int) -> float:
 
 
 async def play_casino_game(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     dialog_manager: DialogManager,
     stp_repo: MainRequestsRepo,
     user: Employee,
@@ -118,9 +118,9 @@ async def play_casino_game(
     """Общая логика для запуска казино-игры.
 
     Args:
-        user: Экземпляр пользователя с моделью Employee.
+        user: Экземпляр пользователя с моделью Employee
         stp_repo: Репозиторий операций с базой STP
-        callback: Callback query от пользователя
+        event: Callback query от пользователя
         dialog_manager: Менеджер диалога
         game_type: Тип игры (slots, dice, darts, bowling)
         dice_emoji: Emoji для dice API
@@ -131,7 +131,7 @@ async def play_casino_game(
 
     # Проверяем баланс
     if user_balance < current_rate:
-        await callback.answer("Недостаточно баллов для игры!", show_alert=True)
+        await event.answer("Недостаточно баллов для игры!", show_alert=True)
         return
 
     # Сохраняем тип игры и старый баланс
@@ -139,10 +139,10 @@ async def play_casino_game(
     dialog_manager.dialog_data["old_balance"] = user_balance
 
     # Убираем кнопки с текущего сообщения перед отправкой dice
-    await callback.message.edit_reply_markup(reply_markup=None)
+    await event.message.edit_reply_markup(reply_markup=None)
 
     # Отправляем dice и ждем результата
-    dice_message = await callback.message.answer_dice(emoji=dice_emoji)
+    dice_message = await event.message.answer_dice(emoji=dice_emoji)
     dice_value = dice_message.dice.value
 
     # Ждем анимацию (3 секунды)
@@ -260,110 +260,110 @@ def format_result(game_type: str, value: int, multiplier: float, net_win: int) -
 
 
 async def start_slots(
-    callback: CallbackQuery,
-    button: Button,
+    event: CallbackQuery,
+    widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в слоты.
 
     Args:
-        callback: Callback query от пользователя
-        button: Button виджет
+        event: Callback query от пользователя
+        widget: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "slots", DiceEmoji.SLOT_MACHINE
+        event, dialog_manager, stp_repo, user, "slots", DiceEmoji.SLOT_MACHINE
     )
 
 
 async def start_dice(
-    callback: CallbackQuery,
-    _button: Button,
+    event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в кости.
 
     Args:
-        callback: Callback query от пользователя
-        _button: Button виджет
+        event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "dice", DiceEmoji.DICE
+        event, dialog_manager, stp_repo, user, "dice", DiceEmoji.DICE
     )
 
 
 async def start_darts(
-    callback: CallbackQuery,
-    _button: Button,
+    event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в дартс.
 
     Args:
-        callback: Callback query от пользователя
-        _button: Button виджет
+        event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "darts", DiceEmoji.DART
+        event, dialog_manager, stp_repo, user, "darts", DiceEmoji.DART
     )
 
 
 async def start_bowling(
-    callback: CallbackQuery,
-    _button: Button,
+    event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в боулинг.
 
     Args:
-        callback: Callback query от пользователя
-        _button: Button виджет
+        event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
 
     await play_casino_game(
-        callback, dialog_manager, stp_repo, user, "bowling", DiceEmoji.BOWLING
+        event, dialog_manager, stp_repo, user, "bowling", DiceEmoji.BOWLING
     )
 
 
 async def play_again(
-    callback: CallbackQuery,
-    _button: Button,
+    event: CallbackQuery,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик повторной игры - сразу запускает ту же игру.
 
     Args:
-        callback: Callback query от пользователя
-        _button: Button виджет
+        event: Callback query от пользователя
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
-    if not await check_casino_access(callback, dialog_manager):
+    if not await check_casino_access(event, dialog_manager):
         return
 
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
@@ -382,7 +382,7 @@ async def play_again(
 
     # Запускаем игру снова с теми же параметрами
     await play_casino_game(
-        callback,
+        event,
         dialog_manager,
         stp_repo,
         user,

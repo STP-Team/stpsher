@@ -3,6 +3,7 @@ from typing import Optional
 
 from stp_database import Employee, HeadPremium, SpecPremium
 
+from tgbot.misc.helpers import strftime_date
 from tgbot.services.salary import SalaryFormatter
 
 
@@ -451,7 +452,7 @@ class KPICalculator:
 <b>Для премии:</b>
 {target_calculation}</blockquote>
 
-<i>Данные от: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>"""
+<i>Данные от: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date) if premium.updated_at else "—"}</i>"""
         else:
             message_text = f"""🧮 <b>Калькулятор KPI</b>
 
@@ -485,5 +486,5 @@ class KPICalculator:
 <b>Для премии:</b>
 {target_calculation}</blockquote>
 
-<i>Данные от: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime("%d.%m.%y %H:%M") if premium.updated_at else "—"}</i>"""
+<i>Данные от: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date) if premium.updated_at else "—"}</i>"""
         return message_text

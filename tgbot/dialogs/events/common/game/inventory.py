@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database import Employee, MainRequestsRepo, Product, Purchase
 
 from tgbot.dialogs.states.common.game import Game
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import strftime_date, tz
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.files_processing.parsers.schedule import DutyScheduleParser
 from tgbot.services.mailing import (
@@ -175,7 +175,7 @@ async def send_product_cancellation_notifications(
 
 
 async def on_inventory_product_click(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id,
@@ -184,7 +184,7 @@ async def on_inventory_product_click(
     """Обработчик перехода к детальному просмотру информации о предмете из инвентаря.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор предмета в инвентаре
@@ -193,15 +193,12 @@ async def on_inventory_product_click(
 
     try:
         user_product_detail = await stp_repo.purchase.get_purchase_details(item_id)
-    except Exception as e:
-        print(e)
-        await callback.answer(
-            "❌ Ошибка получения информации о предмете", show_alert=True
-        )
+    except Exception:
+        await event.answer("❌ Ошибка получения информации о предмете", show_alert=True)
         return
 
     if not user_product_detail:
-        await callback.answer("❌ Предмет не найден", show_alert=True)
+        await event.answer("❌ Предмет не найден", show_alert=True)
         return
 
     # Сохраняем информацию о выбранном предмете из инвентаря в dialog_data
@@ -220,10 +217,10 @@ async def on_inventory_product_click(
         "usage_count": user_product.usage_count,
         "current_usages": user_product_detail.current_usages,
         "max_usages": user_product_detail.max_usages,
-        "bought_at": user_product.bought_at.strftime("%d.%m.%Y в %H:%M"),
+        "bought_at": user_product.bought_at.strftime(strftime_date),
         "comment": user_product.user_comment,
         "updated_by_user_id": user_product.updated_by_user_id,
-        "updated_at": user_product.updated_at.strftime("%d.%m.%Y в %H:%M")
+        "updated_at": user_product.updated_at.strftime(strftime_date)
         if user_product.updated_at
         else None,
     }
@@ -233,14 +230,14 @@ async def on_inventory_product_click(
 
 
 async def use_product(
-    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Универсальный обработчик отправки предмета на активацию.
 
     Обработчик поддерживает использование как из инвентаря, так и из магазина сразу после приобретения предмета
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -264,7 +261,7 @@ async def use_product(
             if current_day not in activate_days:
                 # Форматируем список доступных дней
                 days_str = ", ".join(str(day) for day in sorted(activate_days))
-                await callback.answer(
+                await event.answer(
                     f"❌ Предмет '{product_name}' нельзя активировать сегодня.\n"
                     f"Доступные дни месяца: {days_str}",
                     show_alert=True,
@@ -305,7 +302,7 @@ async def use_product(
         logger.error(
             f"[Активация предметов] Ошибка при отправке предмета на активацию: {e}"
         )
-        await callback.answer("❌ Ошибка при использовании предмета", show_alert=True)
+        await event.answer("❌ Ошибка при использовании предмета", show_alert=True)
 
 
 async def on_inventory_activation_comment_input(
@@ -373,12 +370,12 @@ async def on_inventory_activation_comment_input(
 
 
 async def on_skip_activation_comment(
-    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик пропуска комментария при активации предмета.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -413,7 +410,7 @@ async def on_skip_activation_comment(
                     stp_repo=stp_repo,
                 )
 
-            await callback.answer(
+            await event.answer(
                 f"✅ Предмет {product_name} отправлен на рассмотрение!",
                 show_alert=True,
             )
@@ -424,22 +421,22 @@ async def on_skip_activation_comment(
             else:
                 await dialog_manager.switch_to(Game.inventory)
         else:
-            await callback.answer("❌ Невозможно использовать предмет", show_alert=True)
+            await event.answer("❌ Невозможно использовать предмет", show_alert=True)
 
     except Exception as e:
         logger.error(
             f"[Активация предметов] Ошибка при отправке предмета на активацию: {e}"
         )
-        await callback.answer("❌ Ошибка при использовании предмета", show_alert=True)
+        await event.answer("❌ Ошибка при использовании предмета", show_alert=True)
 
 
 async def on_inventory_sell_product(
-    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик продажи предмета из инвентаря.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -460,26 +457,26 @@ async def on_inventory_sell_product(
         )
 
         if success:
-            await callback.answer(
+            await event.answer(
                 f"✅ Продано: {product_info['product_name']}.\nВозвращено: {product_info['product_cost']} баллов"
             )
             # Возвращаемся к инвентарю
             await dialog_manager.switch_to(Game.inventory)
         else:
-            await callback.answer("❌ Ошибка при продаже предмета", show_alert=True)
+            await event.answer("❌ Ошибка при продаже предмета", show_alert=True)
 
     except Exception as e:
         logger.error(f"[Продажа предмета] Произошла ошибка при продаже предмета: {e}")
-        await callback.answer("❌ Ошибка при продаже предмета", show_alert=True)
+        await event.answer("❌ Ошибка при продаже предмета", show_alert=True)
 
 
 async def on_inventory_cancel_activation(
-    callback: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+    event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
 ) -> None:
     """Обработчик отмены активации предмета из инвентаря.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
     """
@@ -514,14 +511,14 @@ async def on_inventory_cancel_activation(
                     stp_repo=stp_repo,
                 )
 
-            await callback.answer(
+            await event.answer(
                 f"✅ Активация предмета '{product_info['product_name']}' отменена!"
             )
             # Возвращаемся к инвентарю
             await dialog_manager.switch_to(Game.inventory)
         else:
-            await callback.answer("❌ Ошибка при отмене активации", show_alert=True)
+            await event.answer("❌ Ошибка при отмене активации", show_alert=True)
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
-        await callback.answer("❌ Ошибка при отмене активации", show_alert=True)
+        await event.answer("❌ Ошибка при отмене активации", show_alert=True)

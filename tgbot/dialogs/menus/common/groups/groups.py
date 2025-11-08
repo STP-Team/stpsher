@@ -5,7 +5,6 @@ from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
-    Button,
     Checkbox,
     ManagedRadio,
     Radio,
@@ -19,10 +18,9 @@ from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
 from tgbot.dialogs.events.common.groups import (
-    close_groups_dialog,
     on_group_selected,
-    on_toggle_is_casino_allowed,
-    on_toggle_new_user_notify,
+    on_is_casino_allowed_click,
+    on_new_user_notify_click,
 )
 from tgbot.dialogs.getters.common.groups import (
     groups_details_getter,
@@ -35,6 +33,7 @@ from tgbot.dialogs.menus.common.groups.settings import (
     groups_service_messages_window,
 )
 from tgbot.dialogs.states.common.groups import Groups
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 groups_window = Window(
     Const("""👯‍♀️ <b>Группы</b>
@@ -61,7 +60,7 @@ groups_window = Window(
         ),
         SwitchTo(Const("💡 Команды"), id="groups_cmds", state=Groups.cmds),
     ),
-    Button(Const("🏠 Домой"), id="menu", on_click=close_groups_dialog),
+    HOME_BTN,
     getter=groups_getter,
     state=Groups.menu,
 )
@@ -117,10 +116,10 @@ groups_cmds_window = Window(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
         id="groups_cmds_filter",
-        item_id_getter=lambda item: item[0],
+        item_id_getter=operator.itemgetter(0),
         items=[("user", "Пользователь"), ("admin", "Администратор")],
     ),
-    SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu), HOME_BTN),
     state=Groups.cmds,
 )
 
@@ -159,7 +158,7 @@ groups_list_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Groups.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
+        HOME_BTN,
     ),
     getter=groups_list_getter,
     state=Groups.list,
@@ -186,13 +185,13 @@ groups_list_detail_window = Window(
             Const("🟢 Приветствие"),
             Const("🔴 Приветствие"),
             id="new_user_notify",
-            on_state_changed=on_toggle_new_user_notify,
+            on_click=on_new_user_notify_click,
         ),
         Checkbox(
             Const("🟢 Казино"),
             Const("🔴 Казино"),
             id="is_casino_allowed",
-            on_state_changed=on_toggle_is_casino_allowed,
+            on_click=on_is_casino_allowed_click,
         ),
     ),
     Row(
@@ -205,7 +204,7 @@ groups_list_detail_window = Window(
     SwitchTo(Const("♻️ Удалить бота"), id="remove_bot", state=Groups.settings_remove),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back_to_list", state=Groups.list),
-        Button(Const("🏠 Домой"), id="home", on_click=close_groups_dialog),
+        HOME_BTN,
     ),
     state=Groups.group_details,
     getter=groups_details_getter,

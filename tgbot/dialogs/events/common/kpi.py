@@ -8,7 +8,7 @@ from tgbot.dialogs.states.common.kpi import KPI
 
 
 async def start_kpi_dialog(
-    _callback: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Button,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -16,25 +16,10 @@ async def start_kpi_dialog(
     """Обработчик перехода в диалог KPI.
 
     Args:
-        _callback: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.start(
         KPI.menu,
     )
-
-
-async def close_kpi_dialog(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Обработчик возврата к главному диалогу из диалога KPI.
-
-    Args:
-        _callback: Callback query от пользователя
-        _button: Button виджет
-        dialog_manager: Менеджер диалога
-    """
-    await dialog_manager.done()

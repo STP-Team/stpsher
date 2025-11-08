@@ -41,7 +41,7 @@ async def group_members_getter(
         role_info = get_role(member.role)
         formatted_members.append((
             member.id,
-            format_fullname(member.fullname, True, True),
+            format_fullname(member, True, True),
             role_info["emoji"] if role_info else "",
         ))
 
@@ -67,9 +67,6 @@ async def member_info_getter(
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_member_id")
 
-    if not selected_user_id:
-        return {"user_info": "❌ Пользователь не выбран"}
-
     try:
         # Получаем информацию о пользователе
         searched_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
@@ -81,18 +78,16 @@ async def member_info_getter(
         if searched_user.head:
             user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        user_info = f"""<b>{format_fullname(searched_user.fullname, False, True, searched_user.username, searched_user.user_id)}</b>
+        user_info = f"""<b>{format_fullname(searched_user, False, True)}</b>
 
 <b>💼 Должность:</b> {searched_user.position} {searched_user.division}"""
 
         if user_head:
             user_info += f"\n<b>👑 Руководитель:</b> {
                 format_fullname(
-                    user_head.fullname,
+                    user_head,
                     True,
                     True,
-                    user_head.username,
-                    user_head.user_id,
                 )
             }"
 
@@ -144,11 +139,9 @@ async def member_access_level_getter(
         try:
             if selected_user:
                 selected_user_name = format_fullname(
-                    selected_user.fullname,
+                    selected_user,
                     short=False,
                     gender_emoji=True,
-                    username=selected_user.username,
-                    user_id=selected_user.user_id,
                 )
                 role_info = get_role(selected_user.role)
                 if role_info:
@@ -184,7 +177,7 @@ async def member_schedule_getter(
 
     # Добавляем информацию о пользователе в начало текста графика
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
     )
@@ -225,7 +218,7 @@ async def member_kpi_getter(
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
     )
@@ -268,7 +261,7 @@ async def member_kpi_requirements_getter(
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
     )
@@ -309,7 +302,7 @@ async def member_salary_getter(
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
-        selected_user.fullname,
+        selected_user,
         short=False,
         gender_emoji=True,
     )
@@ -405,7 +398,7 @@ async def member_achievements_getter(
         ("A", "Ручные"),
     ]
 
-    user_name = format_fullname(selected_user.fullname, short=False, gender_emoji=True)
+    user_name = format_fullname(selected_user, short=False, gender_emoji=True)
 
     return {
         "achievements": formatted_achievements,
@@ -468,7 +461,7 @@ async def member_inventory_getter(
             product.max_usages,
         ))
 
-    user_name = format_fullname(selected_user.fullname, short=False, gender_emoji=True)
+    user_name = format_fullname(selected_user, short=False, gender_emoji=True)
 
     return {
         "products": formatted_products,

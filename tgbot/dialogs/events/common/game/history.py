@@ -6,10 +6,11 @@ from aiogram_dialog.widgets.kbd import Select
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
+from tgbot.misc.helpers import strftime_date
 
 
 async def on_transaction_click(
-    callback: CallbackQuery,
+    event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id,
@@ -18,7 +19,7 @@ async def on_transaction_click(
     """Переход к детальному просмотру информации о выбранной транзакции.
 
     Args:
-        callback: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Данные виджета
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранной транзакции
@@ -27,15 +28,14 @@ async def on_transaction_click(
 
     try:
         transaction = await stp_repo.transaction.get_transaction(item_id)
-    except Exception as e:
-        print(e)
-        await callback.answer(
+    except Exception:
+        await event.answer(
             "❌ Ошибка получения информации о транзакции", show_alert=True
         )
         return
 
     if not transaction:
-        await callback.answer("❌ Транзакция не найдена", show_alert=True)
+        await event.answer("❌ Транзакция не найдена", show_alert=True)
         return
 
     # Сохраняем информацию о выбранной транзакции в dialog_data
@@ -46,7 +46,7 @@ async def on_transaction_click(
         "source_type": transaction.source_type,
         "source_id": transaction.source_id,
         "comment": transaction.comment or "",
-        "created_at": transaction.created_at.strftime("%d.%m.%Y в %H:%M"),
+        "created_at": transaction.created_at.strftime(strftime_date),
     }
 
     # Переходим к окну детального просмотра транзакции

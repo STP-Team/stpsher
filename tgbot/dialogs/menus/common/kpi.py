@@ -3,16 +3,16 @@
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager, Window
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.events.common.kpi import close_kpi_dialog
 from tgbot.dialogs.getters.common.game.kpi import (
     kpi_getter,
     kpi_requirements_getter,
     salary_getter,
 )
 from tgbot.dialogs.states.common.kpi import KPI
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 menu_window = Window(
     Format("{kpi_text}"),
@@ -29,7 +29,7 @@ menu_window = Window(
         ),
     ),
     SwitchTo(Const("🔄 Обновить"), id="update", state=KPI.menu),
-    Button(Const("↩️ Назад"), id="menu", on_click=close_kpi_dialog),
+    HOME_BTN,
     getter=kpi_getter,
     state=KPI.menu,
 )
@@ -45,7 +45,7 @@ requirements_window = Window(
         ),
     ),
     SwitchTo(Const("🔄 Обновить"), id="update", state=KPI.requirements),
-    Button(Const("↩️ Назад"), id="menu", on_click=close_kpi_dialog),
+    HOME_BTN,
     getter=kpi_requirements_getter,
     state=KPI.requirements,
 )
@@ -61,7 +61,7 @@ salary_window = Window(
         ),
     ),
     SwitchTo(Const("🔄 Обновить"), id="update", state=KPI.salary),
-    Button(Const("↩️ Назад"), id="menu", on_click=close_kpi_dialog),
+    HOME_BTN,
     getter=salary_getter,
     state=KPI.salary,
 )

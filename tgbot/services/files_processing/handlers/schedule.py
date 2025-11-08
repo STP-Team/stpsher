@@ -8,8 +8,9 @@ import datetime
 import logging
 from typing import Optional, Tuple
 
+from aiogram import Bot
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
-from stp_database import Employee
+from stp_database import Employee, MainRequestsRepo
 
 from tgbot.keyboards.auth import auth_kb
 
@@ -43,18 +44,18 @@ class ScheduleHandlerService:
         self.analyzer = ScheduleAnalyzer()
 
     @staticmethod
-    async def check_user_auth(callback: CallbackQuery, user: Employee) -> bool:
+    async def check_user_auth(event: CallbackQuery, user: Employee) -> bool:
         """Проверяет авторизацию пользователя.
 
         Args:
-            callback: Callback query от Telegram
+            event: Callback query от Telegram
             user: Экземпляр пользователя с моделью Employee
 
         Returns:
             Статус авторизации пользователя
         """
         if not user:
-            await callback.message.answer(
+            await event.message.answer(
                 """👋 Привет
 
 Я - бот-помощник СТП
@@ -67,14 +68,14 @@ class ScheduleHandlerService:
 
     @staticmethod
     async def handle_schedule_error(
-        callback: CallbackQuery,
+        event: CallbackQuery,
         error: Exception,
         fallback_markup: Optional[InlineKeyboardMarkup] = None,
     ) -> None:
         """Обработка ошибок расписания.
 
         Args:
-            callback: Callback query от Telegram
+            event: Callback query от Telegram
             error: Ошибка от Python
             fallback_markup: Клавиатура для отображения при ошибке
 
@@ -93,16 +94,21 @@ class ScheduleHandlerService:
         logger.error(f"Schedule error: {error}", exc_info=True)
 
         try:
-            await callback.message.edit_text(
+            await event.message.edit_text(
                 text=error_msg,
                 reply_markup=fallback_markup,
             )
         except Exception as edit_error:
             logger.error(f"Failed to edit message: {edit_error}")
-            await callback.answer(error_msg, show_alert=True)
+            await event.answer(error_msg, show_alert=True)
 
     async def get_user_schedule_response(
-        self, user: Employee, month: str, compact: bool = True, stp_repo=None
+        self,
+        user: Employee,
+        month: str,
+        compact: bool = True,
+        stp_repo: MainRequestsRepo = None,
+        bot: Bot = None,
     ) -> str:
         """Получает расписание пользователя.
 
@@ -111,6 +117,7 @@ class ScheduleHandlerService:
             month: Название месяца
             compact: Использовать компактный формат
             stp_repo: Репозиторий базы данных
+            bot: Экземпляр бота для создания ссылок
 
         Returns:
             Отформатированная строка с расписанием
@@ -125,6 +132,7 @@ class ScheduleHandlerService:
                         division=user.division,
                         compact=compact,
                         stp_repo=stp_repo,
+                        bot=bot,
                     )
                 )
             else:
@@ -157,10 +165,6 @@ class ScheduleHandlerService:
             date = get_current_date()
 
         duties = await self.duty_parser.get_duties_for_date(date, division, stp_repo)
-
-        # OPTIMIZATION: Removed redundant employee validation loop
-        # Employee validation already happens in get_duties_for_month()
-        # which only includes employees found in the database
 
         # Check if today's date is selected to highlight current duties
         today = get_current_date()

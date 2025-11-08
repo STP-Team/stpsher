@@ -4,7 +4,7 @@ from typing import Any
 
 from aiogram import F
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Back, Button, Row, SwitchTo, Url
+from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo, Url
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
@@ -15,7 +15,7 @@ from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
 from tgbot.dialogs.states.user import UserSG
-from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
+from tgbot.dialogs.widgets.buttons import HOME_BTN, SUPPORT_BTN
 
 menu_window = Window(
     Format("""👋 <b>Привет</b>!
@@ -24,7 +24,7 @@ menu_window = Window(
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
     Row(
-        Button(Const("📅 Графики"), id="schedules", on_click=start_schedules_dialog),
+        Button(Const("📅 Графики"), id="exchanges", on_click=start_schedules_dialog),
         Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
     ),
     Row(
@@ -58,7 +58,7 @@ horn_window = Window(
 Кроме того, если твоя идея поможет развитию отдела или компании – ты можешь получить дополнительную прибавку к премии</blockquote>"""),
     Row(
         Url(Const("💡 Задать вопрос"), url=Const("forms.gle/krFwo1Q16sTStMxHA")),
-        Back(Const("↩️ Назад"), id="back"),
+        HOME_BTN,
     ),
     state=UserSG.horn,
 )
@@ -73,4 +73,8 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     """
 
 
-user_dialog = Dialog(menu_window, horn_window, on_start=on_start)
+user_dialog = Dialog(
+    menu_window,
+    horn_window,
+    on_start=on_start,
+)

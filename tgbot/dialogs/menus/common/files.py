@@ -1,5 +1,7 @@
 """Генерация диалога для управления файлами."""
 
+import operator
+
 from aiogram import F
 from aiogram.enums import ContentType
 from aiogram_dialog import Dialog, Window
@@ -9,7 +11,6 @@ from aiogram_dialog.widgets.kbd import Button, Row, ScrollingGroup, Select, Swit
 from aiogram_dialog.widgets.text import Const, Format, List
 
 from tgbot.dialogs.events.common.files.files import (
-    close_files_dialog,
     on_download_history_file,
     on_download_local_file,
     on_file_selected,
@@ -35,6 +36,7 @@ from tgbot.dialogs.getters.common.files import (
     get_upload_status,
 )
 from tgbot.dialogs.states.common.files import Files
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 files_window = Window(
     Const("""📂 <b>Файлы</b>
@@ -45,7 +47,7 @@ files_window = Window(
         SwitchTo(Const("🗃️ Загруженные"), id="local", state=Files.local),
         SwitchTo(Const("📜 История"), id="history", state=Files.history),
     ),
-    Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+    HOME_BTN,
     state=Files.menu,
 )
 
@@ -66,7 +68,7 @@ local_window = Window(
             Format("{pos}. {item[0]}"),
             id="file",
             items="files",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_file_selected,
         ),
         width=2,
@@ -77,7 +79,7 @@ local_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     getter=get_local_files,
     state=Files.local,
@@ -107,7 +109,7 @@ local_details_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.local),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     getter=get_local_file_details,
     state=Files.local_details,
@@ -121,7 +123,7 @@ rename_window = Window(
     TextInput(id="new_name", on_success=process_rename),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.local_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     state=Files.rename,
 )
@@ -142,7 +144,7 @@ restore_window = Window(
             Format("{pos}. {item[3]}"),
             id="history_item",
             items="history",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_restore_selected,
         ),
         width=2,
@@ -154,7 +156,7 @@ restore_window = Window(
     Const("<i>Выбери версию файла для восстановления</i>"),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.local_details),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     getter=get_file_history,
     state=Files.restore,
@@ -177,7 +179,7 @@ history_window = Window(
             Format("{pos}. {item[1]}"),
             id="history_file",
             items="files",
-            item_id_getter=lambda item: item[0],
+            item_id_getter=operator.itemgetter(0),
             on_click=on_history_file_selected,
         ),
         width=2,
@@ -188,7 +190,7 @@ history_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     getter=get_all_files_history,
     state=Files.history,
@@ -208,7 +210,7 @@ history_details_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.history),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     getter=get_history_file_details,
     state=Files.history_details,
@@ -241,7 +243,7 @@ upload_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back", state=Files.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     state=Files.upload,
 )
@@ -292,12 +294,7 @@ upload_processing_window = Window(
             on_click=on_upload_complete,
             when="processing_complete",
         ),
-        Button(
-            Const("🏠 Домой"),
-            id="home",
-            on_click=close_files_dialog,
-            when="processing_complete",
-        ),
+        HOME_BTN,
     ),
     state=Files.upload_processing,
     getter=get_upload_status,
@@ -334,7 +331,7 @@ upload_success_window = Window(
     ),
     Row(
         Button(Const("↩️ В меню"), id="menu", on_click=on_upload_complete),
-        Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+        HOME_BTN,
     ),
     state=Files.upload_success,
     getter=get_upload_status,
@@ -355,7 +352,7 @@ upload_error_window = Window(
         Button(Const("🔄 Попробовать снова"), id="retry", on_click=on_upload_retry),
         Button(Const("↩️ В меню"), id="menu", on_click=on_upload_complete),
     ),
-    Button(Const("🏠 Домой"), id="home", on_click=close_files_dialog),
+    HOME_BTN,
     state=Files.upload_error,
     getter=get_upload_status,
 )

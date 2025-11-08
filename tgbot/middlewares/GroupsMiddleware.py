@@ -541,11 +541,9 @@ class GroupsMiddleware(BaseMiddleware):
                     f"👋 <b>Добро пожаловать в группу!</b>\n\n"
                     f"{
                         format_fullname(
-                            employee.fullname,
+                            employee,
                             True,
                             True,
-                            employee.username,
-                            employee.user_id,
                         )
                     } присоединился к группе\n"
                     f"<i>Должность: {employee.position + ' ' + employee.division or 'Не указана'}</i>"
@@ -609,7 +607,7 @@ class GroupsMiddleware(BaseMiddleware):
             if user:
                 notification_text = (
                     f"🚫 <b>Пользователь заблокирован</b>\n\n"
-                    f"{format_fullname(user.fullname, True, user.username, user.user_id)} {reason_text}\n\n"
+                    f"{format_fullname(user, True)} {reason_text}\n\n"
                     f"<i>Причина: недостаточно прав доступа к группе</i>"
                 )
             else:
