@@ -103,14 +103,25 @@ sell_detail_window = Window(
     Format("""
 {exchange_info}"""),
     Button(Const("✍️ Предложить сделку"), id="apply_sell", on_click=on_exchange_sell),
-    SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться"),
-        query=Format("{deeplink}"),
-        allow_user_chats=True,
-        allow_group_chats=True,
-        allow_channel_chats=False,
-        allow_bot_chats=False,
-        id="buy_request_deeplink",
+    Row(
+        SwitchInlineQueryChosenChatButton(
+            Const("🔗 В группе"),
+            query=Format("group_{deeplink}"),
+            allow_user_chats=False,
+            allow_group_chats=True,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="group_share_deeplink",
+        ),
+        SwitchInlineQueryChosenChatButton(
+            Const("📨 Пользователю"),
+            query=Format("dm_{deeplink}"),
+            allow_user_chats=True,
+            allow_group_chats=False,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="dm_share_deeplink",
+        ),
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
     getter=exchange_sell_detail_getter,

@@ -66,10 +66,18 @@ async def inline_handler(
             ]
         else:
             # Роутинг специфичных запросов
-            if "exchange_" in query_text:
+            if (
+                query_text.startswith("group_exchange_")
+                or query_text.startswith("dm_exchange_")
+                or "exchange_" in query_text
+            ):
                 results = await handle_exchange_query(query_text, stp_repo, user, bot)
-            elif "my_exchanges" in query_text:
-                results = await handle_user_exchanges(stp_repo, user, bot)
+            elif (
+                query_text.startswith("group_my_exchanges")
+                or query_text.startswith("dm_my_exchanges")
+                or "my_exchanges" in query_text
+            ):
+                results = await handle_user_exchanges(query_text, stp_repo, user, bot)
             elif "subscription_" in query_text:
                 results = await handle_subscription_query(query_text, stp_repo, bot)
             else:

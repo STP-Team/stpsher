@@ -18,7 +18,7 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.states.user import UserSG
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import format_currency_price, tz
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +38,37 @@ async def handle_exchange_query(
         Список найденных сделок
     """
     try:
+        # Определяем тип чата из префикса
+        use_random_currency_in_content = False
+        if query_text.startswith("group_"):
+            use_random_currency_in_content = True
+            # Убираем префикс group_
+            query_text = query_text[6:]
+        elif query_text.startswith("dm_"):
+            use_random_currency_in_content = False
+            # Убираем префикс dm_
+            query_text = query_text[3:]
+        else:
+            # Старый формат без префикса - используем случайную валюту (для обратной совместимости)
+            use_random_currency_in_content = True
+
         exchange_id = query_text.split("_")[1]
         exchange = await stp_repo.exchange.get_exchange_by_id(int(exchange_id))
         if not exchange:
             return []
 
-        # Форматирование информации о сделке
-        shift_date, shift_time, price_text = await _format_exchange_info(exchange)
+        # Форматирование информации о сделке для описания (с рублями)
+        shift_date, shift_time, description_price_text = await _format_exchange_info(
+            exchange, use_random_currency=False
+        )
 
-        exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
+        # Форматирование информации о сделке для сообщения (валюта зависит от типа чата)
+        exchange_info = await get_exchange_text(
+            stp_repo,
+            exchange,
+            user.user_id,
+            use_random_currency=use_random_currency_in_content,
+        )
         message_text = f"🔍 <b>Детали сделки</b>\n\n{exchange_info}"
 
         deeplink = await create_start_link(
@@ -57,7 +79,7 @@ async def handle_exchange_query(
             InlineQueryResultArticle(
                 id=f"exchange_{exchange.id}",
                 title=f"Сделка #{exchange.id}",
-                description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {price_text}",
+                description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {description_price_text}",
                 input_message_content=InputTextMessageContent(
                     message_text=message_text, parse_mode="HTML"
                 ),
@@ -78,11 +100,14 @@ async def handle_exchange_query(
         return []
 
 
-async def _format_exchange_info(exchange: Exchange) -> tuple[str, str, str]:
+async def _format_exchange_info(
+    exchange: Exchange, use_random_currency: bool = False
+) -> tuple[str, str, str]:
     """Форматирование информации о сделке в удобочитаемый вид.
 
     Args:
         exchange: Экземпляр сделки с моделью Exchange
+        use_random_currency: Использовать случайную валюту вместо рублей
 
     Returns:
         Форматированная информация о сделке
@@ -104,17 +129,20 @@ async def _format_exchange_info(exchange: Exchange) -> tuple[str, str, str]:
         end_time_str = "??:??"
 
     shift_time = f"{start_time_str}-{end_time_str}"
-    price_display = f"{exchange.price:g} ₽/ч. ({exchange.total_price:g} ₽)"
+    price_display = format_currency_price(
+        exchange.price, exchange.total_price, use_random_currency
+    )
 
     return shift_date, shift_time, price_display
 
 
 async def handle_user_exchanges(
-    stp_repo: MainRequestsRepo, user: Employee, bot: Bot
+    query_text: str, stp_repo: MainRequestsRepo, user: Employee, bot: Bot
 ) -> List[InlineQueryResultArticle]:
     """Обработка inline запросов пользовательских сделок.
 
     Args:
+        query_text: Текст запроса
         stp_repo: Репозиторий операций с базой STP
         user: Экземпляр пользователя с моделью Employee
         bot: Экземпляр бота
@@ -123,6 +151,16 @@ async def handle_user_exchanges(
         Список активных сделок пользователя
     """
     try:
+        # Определяем тип чата из префикса
+        use_random_currency_in_content = False
+        if query_text.startswith("group_"):
+            use_random_currency_in_content = True
+        elif query_text.startswith("dm_"):
+            use_random_currency_in_content = False
+        else:
+            # Старый формат без префикса - используем случайную валюту (для обратной совместимости)
+            use_random_currency_in_content = True
+
         # Получаем активные сделки пользователя
         exchanges = await stp_repo.exchange.get_user_exchanges(
             user.user_id, status="active"
@@ -143,10 +181,20 @@ async def handle_user_exchanges(
 
         results = []
         for exchange in exchanges:
-            # Форматирование информации о сделке
-            shift_date, shift_time, price_text = await _format_exchange_info(exchange)
+            # Форматирование информации о сделке для описания (с рублями)
+            (
+                shift_date,
+                shift_time,
+                description_price_text,
+            ) = await _format_exchange_info(exchange, use_random_currency=False)
 
-            exchange_info = await get_exchange_text(stp_repo, exchange, user.user_id)
+            # Форматирование информации о сделке для сообщения (валюта зависит от типа чата)
+            exchange_info = await get_exchange_text(
+                stp_repo,
+                exchange,
+                user.user_id,
+                use_random_currency=use_random_currency_in_content,
+            )
             message_text = f"🔍 <b>Детали сделки</b>\n\n{exchange_info}"
 
             deeplink = await create_start_link(
@@ -160,7 +208,7 @@ async def handle_user_exchanges(
                 InlineQueryResultArticle(
                     id=f"user_exchange_{exchange.id}",
                     title=f"{status_icon} Сделка #{exchange.id}",
-                    description=f"📅 {shift_time} {shift_date} ПРМ\n💰 {price_text}",
+                    description=f"📅 {shift_time} {shift_date} ПРМ\n💰 {description_price_text}",
                     input_message_content=InputTextMessageContent(
                         message_text=message_text, parse_mode="HTML"
                     ),

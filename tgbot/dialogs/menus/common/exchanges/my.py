@@ -79,14 +79,25 @@ my_window = Window(
         item_id_getter=operator.itemgetter(0),
         items="exchanges_types",
     ),
-    SwitchInlineQueryChosenChatButton(
-        Const("🔗 Поделиться"),
-        query=Format("{exchanges_deeplink}"),
-        allow_user_chats=True,
-        allow_group_chats=True,
-        allow_channel_chats=False,
-        allow_bot_chats=False,
-        id="active_exchanges_deeplink",
+    Row(
+        SwitchInlineQueryChosenChatButton(
+            Const("🔗 В группе"),
+            query=Format("group_{exchanges_deeplink}"),
+            allow_user_chats=False,
+            allow_group_chats=True,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="group_exchanges_deeplink",
+        ),
+        SwitchInlineQueryChosenChatButton(
+            Const("📨 Пользователю"),
+            query=Format("dm_{exchanges_deeplink}"),
+            allow_user_chats=True,
+            allow_group_chats=False,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="dm_exchanges_deeplink",
+        ),
     ),
     Row(
         Button(Const("👔 Мой график"), id="my_schedule", on_click=open_my_schedule),
@@ -112,14 +123,24 @@ my_detail_window = Window(
     # Кнопки активных обменов
     Group(
         SwitchInlineQueryChosenChatButton(
-            Const("🔗 Поделиться"),
-            query=Format("{deeplink}"),
-            allow_user_chats=True,
+            Const("🔗 В группу"),
+            query=Format("group_{deeplink}"),
+            allow_user_chats=False,
             allow_group_chats=True,
             allow_channel_chats=False,
             allow_bot_chats=False,
-            id="buy_request_deeplink",
+            id="group_share_deeplink",
         ),
+        SwitchInlineQueryChosenChatButton(
+            Const("📨 В лс"),
+            query=Format("dm_{deeplink}"),
+            allow_user_chats=True,
+            allow_group_chats=False,
+            allow_channel_chats=False,
+            allow_bot_chats=False,
+            id="dm_share_deeplink",
+        ),
+        width=2,
         when=F["status"] == "active",  # noqa
     ),
     SwitchTo(

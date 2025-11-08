@@ -12,7 +12,7 @@ from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio
 from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
-from tgbot.misc.helpers import format_fullname, strftime_date, tz
+from tgbot.misc.helpers import format_currency_price, format_fullname, strftime_date, tz
 from tgbot.services.files_processing.parsers.schedule import (
     DutyScheduleParser,
     ScheduleParser,
@@ -334,7 +334,10 @@ async def _get_exchange_button_text(
 
 
 async def get_exchange_text(
-    stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
+    stp_repo: MainRequestsRepo,
+    exchange: Exchange,
+    user_id: int,
+    use_random_currency: bool = False,
 ) -> str:
     """Форматирует текст для отображения базовой информации о сделке.
 
@@ -342,6 +345,7 @@ async def get_exchange_text(
         stp_repo: Репозиторий операций с базой STP
         exchange: Экземпляр сделки с моделью Exchange
         user_id: Идентификатор Telegram
+        use_random_currency: Использовать случайную валюту вместо рублей
 
     Returns:
         Форматированная строка
@@ -363,8 +367,9 @@ async def get_exchange_text(
 
     shift_time = f"{start_time_str}-{end_time_str}"
     hours_text = f"{exchange.working_hours:g} ч."
-    price_per_hour_text = f"{exchange.price:g} ₽/ч."
-    price_display = f"{price_per_hour_text} ({exchange.total_price:g} ₽)"
+    price_display = format_currency_price(
+        exchange.price, exchange.total_price, use_random_currency
+    )
 
     # Форматируем дату оплаты
     payment_date_str = (
@@ -402,7 +407,10 @@ async def get_exchange_text(
 
 
 async def get_exchange_detailed_text(
-    stp_repo: MainRequestsRepo, exchange: Exchange, user_id: int
+    stp_repo: MainRequestsRepo,
+    exchange: Exchange,
+    user_id: int,
+    use_random_currency: bool = False,
 ) -> str:
     """Форматирует детальный текст для отображения информации о сделке с четким указанием ролей.
 
@@ -410,6 +418,7 @@ async def get_exchange_detailed_text(
         stp_repo: Репозиторий операций с базой STP
         exchange: Экземпляр сделки с моделью Exchange
         user_id: Идентификатор Telegram текущего пользователя
+        use_random_currency: Использовать случайную валюту вместо рублей
 
     Returns:
         Форматированная строка с четким указанием ролей продавца и покупателя
@@ -477,8 +486,9 @@ async def get_exchange_detailed_text(
         operation_type = "📈 Покупка смены"
 
     # Расчет цены
-    price_per_hour_text = f"{exchange.price:g} ₽/ч."
-    price_display = f"{price_per_hour_text} ({exchange.total_price:g} ₽)"
+    price_display = format_currency_price(
+        exchange.price, exchange.total_price, use_random_currency
+    )
 
     # Форматируем дату оплаты
     payment_date_str = (
