@@ -528,9 +528,9 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     # Подразделения (новое поле target_divisions)
     divisions_data = dialog_manager.dialog_data.get("target_divisions")
     if divisions_data:
-        # Ensure proper UTF-8 encoding for Cyrillic characters
+        # Preserve original strings without unnecessary conversion
         if isinstance(divisions_data, list):
-            data["target_divisions"] = [str(division) for division in divisions_data]
+            data["target_divisions"] = divisions_data
         elif isinstance(divisions_data, str):
             data["target_divisions"] = [divisions_data]
         else:
