@@ -26,15 +26,30 @@ class ShiftDateText(Text):
         selected_date: date = data["date"]
         day = selected_date.day
         month = selected_date.month
+        year = selected_date.year
 
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
-        # Проверяем есть ли смена на эту дату (сначала с месяцем, потом без)
+        # Проверяем есть ли смена на эту дату
         month_day_key = f"{month:02d}_{day:02d}"
+
+        # Для текущего месяца также проверяем простой ключ дня (обратная совместимость)
+        from datetime import datetime
+
+        current_date = datetime.now().date()
         day_key = f"{day:02d}"
 
-        if month_day_key in shift_dates or day_key in shift_dates:
+        # Сначала проверяем специфичный ключ месяца и дня
+        if month_day_key in shift_dates:
+            return f"·{day}·"
+
+        # Только для текущего месяца и года проверяем простой ключ дня
+        if (
+            month == current_date.month
+            and year == current_date.year
+            and day_key in shift_dates
+        ):
             return f"·{day}·"
 
         return str(day)
@@ -52,15 +67,30 @@ class TodayShiftDateText(Text):
         selected_date: date = data["date"]
         day = selected_date.day
         month = selected_date.month
+        year = selected_date.year
 
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
-        # Проверяем есть ли смена на эту дату (сначала с месяцем, потом без)
+        # Проверяем есть ли смена на эту дату
         month_day_key = f"{month:02d}_{day:02d}"
+
+        # Для текущего месяца также проверяем простой ключ дня (обратная совместимость)
+        from datetime import datetime
+
+        current_date = datetime.now().date()
         day_key = f"{day:02d}"
 
-        if month_day_key in shift_dates or day_key in shift_dates:
+        # Сначала проверяем специфичный ключ месяца и дня
+        if month_day_key in shift_dates:
+            return f"·︎︎{day}·"
+
+        # Только для текущего месяца и года проверяем простой ключ дня
+        if (
+            month == current_date.month
+            and year == current_date.year
+            and day_key in shift_dates
+        ):
             return f"·︎︎{day}·"
 
         return f"{day}"

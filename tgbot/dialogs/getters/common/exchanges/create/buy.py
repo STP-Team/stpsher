@@ -4,16 +4,22 @@ from datetime import datetime
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
-from stp_database import MainRequestsRepo
+from stp_database import Employee, MainRequestsRepo
 
+from tgbot.dialogs.getters.common.exchanges.exchanges import (
+    prepare_calendar_data_for_exchange,
+)
 from tgbot.services.exchange_stats import (
     format_intent_specific_stats_text,
     get_market_average_prices,
 )
 
 
-async def buy_date_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
+async def buy_date_getter(
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
     """Геттер для окна выбора даты покупки."""
+    await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
     return {}
 
 

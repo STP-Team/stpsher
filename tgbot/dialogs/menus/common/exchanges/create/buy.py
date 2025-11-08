@@ -4,6 +4,7 @@ from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
+    Cancel,
     Row,
     SwitchTo,
 )
@@ -30,14 +31,15 @@ from tgbot.dialogs.getters.common.exchanges.create.buy import (
     buy_price_getter,
 )
 from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy
-from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.buttons import HOME_BTN
+from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 date_window = Window(
     Const("📅 <b>Шаг 1: Выбор даты (необязательно)</b>"),
     Format("Выбери дату, когда хочешь купить смену, или пропусти этот шаг:"),
+    Format("\n<i>Значком · · помечены дни, когда у тебя есть смена</i>"),
     Format("\n<i>Если пропустишь, запрос будет действовать для любой даты</i>"),
-    RussianCalendar(
+    ExchangeCalendar(
         id="buy_date_calendar",
         on_click=on_buy_date_selected,
     ),
@@ -46,7 +48,7 @@ date_window = Window(
         Button(Const("➡️ Пропустить"), id="skip_date", on_click=on_buy_date_skip),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateBuy.date),
+        Cancel(Const("↩️ Назад"), id="back"),
         HOME_BTN,
     ),
     getter=buy_date_getter,
