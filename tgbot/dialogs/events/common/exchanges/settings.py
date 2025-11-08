@@ -49,7 +49,7 @@ async def on_reset_shift_filters(
         # Сбрасываем фильтр смены к значению по умолчанию
         shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
         if shift_filter_checkbox:
-            await shift_filter_checkbox.set_checked("no_shift")
+            await shift_filter_checkbox.set_checked("all")
 
     except Exception as e:
         logger.error(f"[Биржа] Ошибка при сбросе фильтров по смене: {e}")

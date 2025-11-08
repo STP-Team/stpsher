@@ -64,9 +64,9 @@ buy_window = Window(
         Button(Const("🔄 Обновить"), id="refresh_exchange_buy"),
         Button(
             Const("♻️ Сбросить"),
-            id="reset_filters_buy",
+            id="reset_filters",
             on_click=on_reset_filters,
-            when=F["show_reset_button"],
+            when="show_reset_button",
         ),
     ),
     SwitchTo(

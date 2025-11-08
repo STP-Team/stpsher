@@ -14,10 +14,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.exchanges import on_reset_filters
-from tgbot.dialogs.events.common.exchanges.settings import (
-    on_reset_day_filters,
-    on_reset_shift_filters,
-)
 from tgbot.dialogs.getters.common.exchanges.settings import (
     buy_filters_day_getter,
     buy_filters_shift_getter,
@@ -95,12 +91,6 @@ buy_filters_day_window = Window(
         width=3,
     ),
     SwitchTo(Const("🎭 К бирже"), id="to_buy_exchanges", state=Exchanges.buy),
-    Button(
-        Const("♻️ Сбросить фильтры"),
-        id="reset_day_filters",
-        on_click=on_reset_day_filters,
-        when="show_reset_filters",
-    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy_settings), HOME_BTN),
     getter=buy_filters_day_getter,
     state=Exchanges.buy_filters_day,
@@ -118,12 +108,6 @@ buy_filters_shift_window = Window(
         ),
     ),
     SwitchTo(Const("🎭 К бирже"), id="to_buy_exchanges", state=Exchanges.buy),
-    Button(
-        Const("♻️ Сбросить фильтры"),
-        id="reset_shift_filters",
-        on_click=on_reset_shift_filters,
-        when="show_reset_filters",
-    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.buy_settings), HOME_BTN),
     getter=buy_filters_shift_getter,
     state=Exchanges.buy_filters_shift,

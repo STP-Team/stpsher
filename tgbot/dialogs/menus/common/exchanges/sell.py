@@ -20,6 +20,7 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_exchange_sell_selected,
     # New seller event handlers
     on_offer_full_time,
+    on_reset_filters,
     on_sell_confirm,
     on_seller_time_input,
     on_time_input,
@@ -66,7 +67,15 @@ sell_window = Window(
         id="buy_request_scrolling",
         when="has_buy_requests",
     ),
-    Button(Const("🔄 Обновить"), id="refresh_exchange_sell"),
+    Row(
+        Button(Const("🔄 Обновить"), id="refresh_exchange_sell"),
+        Button(
+            Const("♻️ Сбросить"),
+            id="reset_filters",
+            on_click=on_reset_filters,
+            when="show_reset_button",
+        ),
+    ),
     SwitchTo(
         Const("💡 Фильтры и сортировка"),
         id="exchanges_sell_settings",

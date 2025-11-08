@@ -974,7 +974,7 @@ async def on_reset_filters(
 
         shift_filter_checkbox: ManagedRadio = dialog_manager.find("shift_filter")
         if shift_filter_checkbox:
-            await shift_filter_checkbox.set_checked("no_shift")
+            await shift_filter_checkbox.set_checked("all")
 
         date_sort_toggle: ManagedToggle = dialog_manager.find("date_sort")
         if date_sort_toggle:
