@@ -9,6 +9,7 @@ from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges, ExchangesSub
 from tgbot.dialogs.states.user import UserSG
+from tgbot.handlers.inline.exchanges import handle_exchange_cancellation
 from tgbot.keyboards.auth import auth_kb
 from tgbot.services.event_logger import EventLogger
 
@@ -107,6 +108,14 @@ async def start_deeplink(
                         mode=StartMode.RESET_STACK,
                         data={"exchange_id": subscription_id},
                     )
+            return
+        elif payload.startswith("cancel_"):
+            exchange_id = int(payload.split("_", 1)[1])
+
+            # Обрабатываем запрос на отмену сделки
+            await handle_exchange_cancellation(
+                message, user, stp_repo, dialog_manager, exchange_id
+            )
             return
         elif payload.startswith("subscription_"):
             subscription_id = int(payload.split("_", 1)[1])

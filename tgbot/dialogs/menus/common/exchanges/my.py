@@ -21,6 +21,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_activation_click,
     on_add_to_calendar,
+    on_cancel_exchange,
     on_delete_exchange,
     on_edit_comment_input,
     on_edit_offer_comment,
@@ -148,6 +149,12 @@ my_detail_window = Window(
                 id="exchange_to_calendar",
                 on_click=on_add_to_calendar,
             ),
+        ),
+        Button(
+            Const("✋ Предложить отмену"),
+            id="cancel_exchange",
+            on_click=on_cancel_exchange,
+            when="can_cancel",
         ),
         when=F["status"] == "sold",  # noqa
     ),

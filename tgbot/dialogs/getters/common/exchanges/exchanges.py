@@ -1029,6 +1029,12 @@ async def my_detail_getter(
         "expired",
     ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
 
+    can_cancel = (
+        exchange.status == "sold"
+        and exchange.start_time
+        and tz.localize(exchange.start_time) > datetime.now(tz=tz)
+    )
+
     return {
         "exchange_info": exchange_text,
         "comment": exchange.comment,
@@ -1048,6 +1054,7 @@ async def my_detail_getter(
         "could_activate": could_activate,
         "is_seller": is_seller,
         "current_user_should_get_paid": current_user_should_get_paid,
+        "can_cancel": can_cancel,
     }
 
 
