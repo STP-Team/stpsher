@@ -46,6 +46,8 @@ from tgbot.dialogs.menus.common.exchanges.settings import (
     buy_filters_day_window,
     buy_filters_shift_window,
     buy_settings_window,
+    sell_filters_day_window,
+    sell_filters_shift_window,
     sell_settings_window,
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
@@ -157,6 +159,8 @@ exchanges_dialog = Dialog(
     buy_filters_shift_window,
     # Настройки продаж
     sell_settings_window,
+    sell_filters_day_window,
+    sell_filters_shift_window,
     # Меню своих сделок
     my_window,
     my_detail_window,

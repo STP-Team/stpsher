@@ -18,6 +18,9 @@ from tgbot.dialogs.getters.common.exchanges.settings import (
     buy_filters_day_getter,
     buy_filters_shift_getter,
     buy_settings_getter,
+    sell_filters_day_getter,
+    sell_filters_shift_getter,
+    sell_settings_getter,
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -114,7 +117,92 @@ buy_filters_shift_window = Window(
 )
 
 sell_settings_window = Window(
-    Const("💡 <b>Биржа: Настройки продаж </b>"),
+    Const("💡 <b>Биржа: Настройки продаж</b>"),
+    Format("""\n<b>🔀 Сортировка</b>
+По дням: {day_filter}
+По сменам: {shift_filter}
+
+<b>🔍 Фильтры</b>
+По дате: {date_sort}
+По цене: {price_sort}"""),
+    Row(
+        SwitchTo(
+            Const("🔍︎ По дням"),
+            id="exchange_sell_day_filters",
+            state=Exchanges.sell_filters_day,
+        ),
+        SwitchTo(
+            Const("🔍 По смене"),
+            id="exchange_sell_shift_filters",
+            state=Exchanges.sell_filters_shift,
+        ),
+    ),
+    Row(
+        Toggle(
+            Format("{item[1]}"),
+            id="date_sort",
+            items=[
+                ("nearest", "🔼 С ближайших"),
+                ("far", "🔽 С дальних"),
+            ],
+            item_id_getter=operator.itemgetter(0),
+        ),
+        Toggle(
+            Format("{item[1]}"),
+            id="price_sort",
+            items=[
+                ("cheap", "🔼 С дешевых"),
+                ("expensive", "🔽 С дорогих"),
+            ],
+            item_id_getter=operator.itemgetter(0),
+        ),
+    ),
+    Button(
+        Const("♻️ Сбросить"),
+        id="reset_filters",
+        on_click=on_reset_filters,
+        when="show_reset_button",
+    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell), HOME_BTN),
+    getter=sell_settings_getter,
     state=Exchanges.sell_settings,
+)
+
+
+sell_filters_day_window = Window(
+    Const("🔍 <b>Фильтр по дням</b>"),
+    Format(
+        "\nИспользуй этот фильтр для ограничения запросов покупок по дню\n\n{filter_description}"
+    ),
+    Group(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="day_filter",
+            item_id_getter=operator.itemgetter(0),
+            items="day_filter_options",
+        ),
+        width=3,
+    ),
+    SwitchTo(Const("🎭 К бирже"), id="to_sell_exchanges", state=Exchanges.sell),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_settings), HOME_BTN),
+    getter=sell_filters_day_getter,
+    state=Exchanges.sell_filters_day,
+)
+
+sell_filters_shift_window = Window(
+    Const("🔍︎ <b>Фильтр по смене</b>"),
+    Row(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="shift_filter",
+            item_id_getter=operator.itemgetter(0),
+            items="shift_filter_options",
+        ),
+    ),
+    SwitchTo(Const("🎭 К бирже"), id="to_sell_exchanges", state=Exchanges.sell),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.sell_settings), HOME_BTN),
+    getter=sell_filters_shift_getter,
+    state=Exchanges.sell_filters_shift,
 )

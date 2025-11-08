@@ -34,7 +34,6 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
     exchange_sell_detail_getter,
     exchange_sell_getter,
     sell_confirmation_getter,
-    # New seller getters
     sell_time_selection_getter,
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
@@ -46,6 +45,14 @@ sell_window = Window(
 Здесь ты можешь найти людей, которые хотят купить смены, и продать им свои часы.
 
 💰 <b>Запросы на покупку:</b> {buy_requests_length}"""),
+    Format(
+        "\n<blockquote>🔍 <b>Фильтры:</b>\n{active_filters}</blockquote>",
+        when="has_active_filters",
+    ),
+    Format(
+        "\n<blockquote>🔀 <b>Сортировка:</b>\n{active_sorting}</blockquote>",
+        when="has_active_sorting",
+    ),
     Format(
         "\n🔍 <i>Нажми на запрос для просмотра деталей</i>", when="has_buy_requests"
     ),

@@ -37,6 +37,8 @@ class Exchanges(StatesGroup):
     buy_filters_shift = State()
 
     sell_settings = State()
+    sell_filters_day = State()
+    sell_filters_shift = State()
 
     # Изменение сделки
     edit_offer = State()
