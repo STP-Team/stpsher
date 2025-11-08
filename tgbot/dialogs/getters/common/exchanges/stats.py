@@ -9,6 +9,7 @@ from aiogram.utils.deep_linking import create_start_link
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months
+from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.formatters.schedule import get_current_month
 
 logger = logging.getLogger(__name__)
@@ -28,8 +29,7 @@ async def stats_getter(
     """
     # Получаем все обмены пользователя
     user_exchanges = await stp_repo.exchange.get_user_exchanges(
-        user_id=user.user_id,
-        limit=1000,
+        user_id=user.user_id, limit=1000, status="sold"
     )
 
     total_exchanges = len(user_exchanges)
@@ -70,6 +70,38 @@ async def stats_getter(
         user_id=user.user_id
     )
 
+    # Получаем топ-5 покупателей и продавцов за все время
+    top_buyers_data = await stp_repo.exchange.get_user_top_buyers(
+        user_id=user.user_id, limit=5
+    )
+    top_sellers_data = await stp_repo.exchange.get_user_top_sellers(
+        user_id=user.user_id, limit=5
+    )
+
+    # Форматируем информацию о покупателях
+    top_buyers_text = ""
+    if top_buyers_data:
+        buyers_list = []
+        for i, buyer in enumerate(top_buyers_data, 1):
+            buyer_user = await stp_repo.employee.get_users(user_id=buyer["buyer_id"])
+            buyer_name = format_fullname(buyer_user, True, True)
+            buyers_list.append(
+                f"{i}. <b>{buyer_name}</b>: {buyer['total_amount']:g} ₽ ({buyer['total_purchases']} сделок)"
+            )
+        top_buyers_text = "\n".join(buyers_list)
+
+    # Форматируем информацию о продавцах
+    top_sellers_text = ""
+    if top_sellers_data:
+        sellers_list = []
+        for i, seller in enumerate(top_sellers_data, 1):
+            seller_user = await stp_repo.employee.get_users(user_id=seller["seller_id"])
+            seller_name = format_fullname(seller_user, True, True)
+            sellers_list.append(
+                f"{i}. <b>{seller_name}</b>: {seller['total_amount']:g} ₽ ({seller['total_sales_to_user']} сделок)"
+            )
+        top_sellers_text = "\n".join(sellers_list)
+
     # Возвращаем все данные
     result = {
         "total_exchanges": total_exchanges,
@@ -88,6 +120,11 @@ async def stats_getter(
         # Средние значения
         "avg_sell_price": f"{avg_sell_price:g}",
         "avg_buy_price": f"{avg_buy_price:g}",
+        # Топ партнеры
+        "top_buyers": top_buyers_text,
+        "top_sellers": top_sellers_text,
+        "has_top_buyers": len(top_buyers_data) > 0,
+        "has_top_sellers": len(top_sellers_data) > 0,
     }
 
     return result
@@ -278,10 +315,47 @@ async def finances_getter(
         user_id=user.user_id, year=year, month=month_num
     )
 
+    # Получаем топ-5 покупателей и продавцов за выбранный месяц
+    top_buyers_month_data = await stp_repo.exchange.get_user_top_buyers(
+        user_id=user.user_id, start_date=start_date, end_date=end_date, limit=5
+    )
+    top_sellers_month_data = await stp_repo.exchange.get_user_top_sellers(
+        user_id=user.user_id, start_date=start_date, end_date=end_date, limit=5
+    )
+
+    # Форматируем информацию о покупателях за месяц
+    top_buyers_month_text = ""
+    if top_buyers_month_data:
+        buyers_list = []
+        for i, buyer in enumerate(top_buyers_month_data, 1):
+            buyer_user = await stp_repo.employee.get_users(user_id=buyer["buyer_id"])
+            buyer_name = format_fullname(buyer_user, True, True)
+            buyers_list.append(
+                f"{i}. <b>{buyer_name}</b>: {buyer['total_amount']:g} ₽ ({buyer['total_purchases']} сделок)"
+            )
+        top_buyers_month_text = "\n".join(buyers_list)
+
+    # Форматируем информацию о продавцах за месяц
+    top_sellers_month_text = ""
+    if top_sellers_month_data:
+        sellers_list = []
+        for i, seller in enumerate(top_sellers_month_data, 1):
+            seller_user = await stp_repo.employee.get_users(user_id=seller["seller_id"])
+            seller_name = format_fullname(seller_user, True, True)
+            sellers_list.append(
+                f"{i}. <b>{seller_name}</b>: {seller['total_amount']:g} ₽ ({seller['total_sales_to_user']} сделок)"
+            )
+        top_sellers_month_text = "\n".join(sellers_list)
+
     # Добавляем в результат
     result.update({
         "avg_sell_price": f"{avg_sell_price:g}",
         "avg_buy_price": f"{avg_buy_price:g}",
+        # Топ партнеры за месяц
+        "top_buyers_month": top_buyers_month_text,
+        "top_sellers_month": top_sellers_month_text,
+        "has_top_buyers_month": len(top_buyers_month_data) > 0,
+        "has_top_sellers_month": len(top_sellers_month_data) > 0,
     })
 
     return result
