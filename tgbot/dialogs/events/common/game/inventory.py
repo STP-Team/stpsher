@@ -401,7 +401,7 @@ async def on_skip_activation_comment(
 
                 # Отправляем уведомления (email + broadcast) без комментария
                 await send_product_activation_notifications(
-                    bot=callback.bot,
+                    bot=event.bot,
                     user=user,
                     product=product,
                     purchase=purchase,
@@ -503,7 +503,7 @@ async def on_inventory_cancel_activation(
 
                 # Отправляем уведомления об отмене (email + broadcast)
                 await send_product_cancellation_notifications(
-                    bot=callback.bot,
+                    bot=event.bot,
                     user=user,
                     product=product,
                     purchase=purchase,
