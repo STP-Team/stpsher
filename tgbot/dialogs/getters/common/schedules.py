@@ -28,8 +28,7 @@ async def schedules_getter(
         Словарь с доступом сотрудника к бирже
     """
     is_banned = await stp_repo.exchange.is_user_exchange_banned(user.user_id)
-    has_access = user.role in [1, 3] and not is_banned
-    return {"has_access": has_access}
+    return {"is_banned": is_banned}
 
 
 async def user_schedule_getter(
