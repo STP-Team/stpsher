@@ -15,7 +15,6 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.game.game import close_game_dialog
 from tgbot.dialogs.events.common.game.inventory import (
     on_inventory_activation_comment_input,
     on_inventory_cancel_activation,
@@ -27,6 +26,7 @@ from tgbot.dialogs.events.common.game.inventory import (
 from tgbot.dialogs.filters.user.game.inventory import inventory_filter_getter
 from tgbot.dialogs.getters.common.game.inventory import inventory_detail_getter
 from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.misc.helpers import get_status_emoji
 
 inventory_window = Window(
@@ -67,7 +67,7 @@ inventory_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+        HOME_BTN,
     ),
     getter=inventory_filter_getter,
     state=Game.inventory,
@@ -113,7 +113,7 @@ inventory_details_window = Window(
     ),
     Row(
         SwitchTo(Const("↩️ Назад"), id="back_to_inventory", state=Game.inventory),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+        HOME_BTN,
     ),
     getter=inventory_detail_getter,
     state=Game.inventory_details,
@@ -150,7 +150,7 @@ inventory_activation_comment_window = Window(
             state=Game.products_success,
             when="came_from_products",
         ),
-        Button(Const("🏠 Домой"), id="home", on_click=close_game_dialog),
+        HOME_BTN,
     ),
     getter=inventory_detail_getter,
     state=Game.inventory_activation_comment,
