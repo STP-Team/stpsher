@@ -16,7 +16,7 @@ from tgbot.dialogs.states.common.exchanges import (
     ExchangeCreateSell,
     Exchanges,
 )
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import tz_perm
 from tgbot.services.files_processing.parsers.schedule import (
     DutyScheduleParser,
     ScheduleParser,
@@ -376,7 +376,7 @@ def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
         True если смена началась, False если нет
     """
     try:
-        current_time = datetime.now(tz=tz)
+        current_time = datetime.now(tz=tz_perm)
         shift_date_obj = datetime.fromisoformat(shift_date).date()
 
         # Если дата не сегодня, то смена не может быть начата
@@ -389,8 +389,8 @@ def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
         )
 
         # Добавляем часовой пояс
-        shift_start = shift_start.replace(tzinfo=tz)
-        current_time = current_time.replace(tzinfo=tz)
+        shift_start = shift_start.replace(tzinfo=tz_perm)
+        current_time = current_time.replace(tzinfo=tz_perm)
 
         return current_time >= shift_start
 
@@ -784,7 +784,7 @@ async def on_time_input(
 
     if dialog_manager.dialog_data.get("is_remaining_today") and shift_date == today:
         start_time_str = data.split("-")[0].strip()
-        current_time = datetime.now(tz=tz)
+        current_time = datetime.now(tz=tz_perm)
         current_minutes = current_time.hour * 60 + current_time.minute
 
         start_hour, start_min = map(int, start_time_str.split(":"))
@@ -872,7 +872,7 @@ async def on_remaining_time_selected(
 
     try:
         # Получаем текущее время
-        current_time = datetime.now(tz=tz)
+        current_time = datetime.now(tz=tz_perm)
         current_minutes = current_time.hour * 60 + current_time.minute
 
         # Рассчитываем ближайшее время :00 или :30

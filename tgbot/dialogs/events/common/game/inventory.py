@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database import Employee, MainRequestsRepo, Product, Purchase
 
 from tgbot.dialogs.states.common.game import Game
-from tgbot.misc.helpers import strftime_date, tz
+from tgbot.misc.helpers import strftime_date, tz_perm
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.files_processing.parsers.schedule import DutyScheduleParser
 from tgbot.services.mailing import (
@@ -256,7 +256,7 @@ async def use_product(
     try:
         # Проверяем ограничения дня активации предмета
         if activate_days is not None and len(activate_days) > 0:
-            current_day = datetime.now(tz).day
+            current_day = datetime.now(tz_perm).day
 
             if current_day not in activate_days:
                 # Форматируем список доступных дней
@@ -331,7 +331,7 @@ async def on_inventory_activation_comment_input(
             purchase_id=user_product_id,
             status="review",
             user_comment=comment,
-            updated_at=datetime.now(tz),
+            updated_at=datetime.now(tz_perm),
         )
 
         # Получаем полную информацию о предмете и покупке для отправки уведомлений

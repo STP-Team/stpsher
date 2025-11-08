@@ -448,7 +448,29 @@ async def on_confirm_subscription(
         subscription = await stp_repo.exchange.create_subscription(**subscription_data)
         subscription_id = subscription.id if subscription else None
 
-        if subscription_id:
+        if subscription_id and subscription:
+            # Fix Unicode encoding issue in target_divisions if present
+            if hasattr(subscription, 'target_divisions') and subscription.target_divisions:
+                # Decode any Unicode escape sequences in the division names
+                fixed_divisions = []
+                for division in subscription.target_divisions:
+                    if isinstance(division, str) and '\\u' in division:
+                        try:
+                            # Decode Unicode escape sequences like \u041d\u0422\u041f
+                            decoded = division.encode('latin-1').decode('unicode_escape')
+                            fixed_divisions.append(decoded)
+                        except (UnicodeDecodeError, UnicodeEncodeError):
+                            # If decoding fails, use original string
+                            fixed_divisions.append(division)
+                    else:
+                        fixed_divisions.append(division)
+
+                # Update the subscription with properly encoded divisions
+                if fixed_divisions != subscription.target_divisions:
+                    await stp_repo.exchange.update_subscription(
+                        subscription_id, target_divisions=fixed_divisions
+                    )
+
             await event.answer("✅ Подписка создана успешно!", show_alert=True)
             dialog_manager.dialog_data.clear()
             await dialog_manager.switch_to(ExchangesSub.menu)
@@ -525,39 +547,7 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     if "end_date" in date_data:
         data["end_date"] = date_data["end_date"]
 
-    # Подразделения (новое поле target_divisions)
-    divisions_data = dialog_manager.dialog_data.get("target_divisions")
-    if divisions_data:
-        # Fix Unicode encoding issue - decode escaped Unicode sequences
-        if isinstance(divisions_data, list):
-            # Handle list of divisions, decode any Unicode escape sequences
-            decoded_divisions = []
-            for division in divisions_data:
-                if isinstance(division, str):
-                    try:
-                        # Try to decode Unicode escape sequences like \u041d\u0422\u041f
-                        if '\\u' in division:
-                            decoded = division.encode().decode('unicode_escape')
-                            decoded_divisions.append(decoded)
-                        else:
-                            decoded_divisions.append(division)
-                    except (UnicodeDecodeError, UnicodeEncodeError):
-                        # If decoding fails, use original string
-                        decoded_divisions.append(division)
-                else:
-                    decoded_divisions.append(division)
-            data["target_divisions"] = decoded_divisions
-        elif isinstance(divisions_data, str):
-            # Handle single division string
-            try:
-                if '\\u' in divisions_data:
-                    decoded = divisions_data.encode().decode('unicode_escape')
-                    data["target_divisions"] = [decoded]
-                else:
-                    data["target_divisions"] = [divisions_data]
-            except (UnicodeDecodeError, UnicodeEncodeError):
-                data["target_divisions"] = [divisions_data]
-        else:
-            data["target_divisions"] = divisions_data
+    # Note: target_divisions is automatically set by the repository based on user's division
+    # The repository logic handles this field, so we don't collect it from dialog_data
 
     return data

@@ -7,7 +7,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import tz_perm
 from tgbot.services.files_processing.core.models import DayInfo
 
 # Маппинг названий месяцев (Английский -> Русский)
@@ -83,7 +83,7 @@ def get_current_date() -> datetime:
     Returns:
         Текущая дата и время с учетом временной зоны
     """
-    return datetime.now(tz)
+    return datetime.now(tz_perm)
 
 
 class ScheduleFormatter:

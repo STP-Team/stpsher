@@ -26,7 +26,7 @@ from tgbot.dialogs.states.common.exchanges import (
     Exchanges,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
-from tgbot.misc.helpers import format_fullname, tz
+from tgbot.misc.helpers import format_fullname, tz_perm
 from tgbot.services.notifications.subscription_matcher import (
     notify_matching_subscriptions,
 )
@@ -218,7 +218,7 @@ def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
         True если смена началась, False если нет
     """
     try:
-        current_time = datetime.now(tz=tz)
+        current_time = datetime.now(tz=tz_perm)
         shift_date_obj = datetime.fromisoformat(shift_date).date()
 
         # Если дата не сегодня, то смена не может быть начата
@@ -231,8 +231,8 @@ def is_shift_started(shift_start_time: str, shift_date: str) -> bool:
         )
 
         # Добавляем часовой пояс
-        shift_start = shift_start.replace(tzinfo=tz)
-        current_time = current_time.replace(tzinfo=tz)
+        shift_start = shift_start.replace(tzinfo=tz_perm)
+        current_time = current_time.replace(tzinfo=tz_perm)
 
         return current_time >= shift_start
 
@@ -917,9 +917,9 @@ async def on_cancel_exchange(
             return
 
         # Проверяем, не началось ли уже время сделки
-        if exchange.start_time and tz.localize(exchange.start_time) <= datetime.now(
-            tz=tz
-        ):
+        if exchange.start_time and tz_perm.localize(
+            exchange.start_time
+        ) <= datetime.now(tz=tz_perm):
             await event.answer(
                 "❌ Нельзя отменить сделку после наступления времени начала",
                 show_alert=True,

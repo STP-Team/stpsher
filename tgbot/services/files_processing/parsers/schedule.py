@@ -19,7 +19,7 @@ from aiogram.utils.deep_linking import create_start_link
 from openpyxl import load_workbook
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname, tz
+from tgbot.misc.helpers import format_fullname, tz_perm
 
 from ..core.analyzers import ScheduleAnalyzer
 from ..core.excel import ExcelReader
@@ -695,7 +695,7 @@ class DutyScheduleParser(BaseParser):
         Returns:
             Информация о текущем старшем дежурном или None
         """
-        date = datetime.now(tz)
+        date = datetime.now(tz_perm)
 
         try:
             duties = await self.get_duties_for_date(date, division, stp_repo)
@@ -739,7 +739,7 @@ class DutyScheduleParser(BaseParser):
         Returns:
             Информация о текущем помощнике дежурного или None
         """
-        date = datetime.now(tz)
+        date = datetime.now(tz_perm)
 
         try:
             duties = await self.get_duties_for_date(date, division, stp_repo)

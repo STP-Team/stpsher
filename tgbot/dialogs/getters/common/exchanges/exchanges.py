@@ -12,7 +12,13 @@ from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio
 from stp_database import Employee, Exchange, MainRequestsRepo
 
 from tgbot.misc.dicts import exchange_emojis
-from tgbot.misc.helpers import format_currency_price, format_fullname, strftime_date, tz
+from tgbot.misc.helpers import (
+    format_currency_price,
+    format_fullname,
+    strftime_date,
+    tz_moscow,
+    tz_perm,
+)
 from tgbot.services.files_processing.parsers.schedule import (
     DutyScheduleParser,
     ScheduleParser,
@@ -356,16 +362,27 @@ async def get_exchange_text(
     if exchange.start_time:
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
         start_time_str = exchange.start_time.strftime("%H:%M")
+
+        # Конвертируем время в московскую зону
+        start_time_moscow = exchange.start_time.astimezone(tz_moscow)
+        start_time_moscow_str = start_time_moscow.strftime("%H:%M")
     else:
         shift_date = "Не указано"
         start_time_str = "Не указано"
+        start_time_moscow_str = "Не указано"
 
     if exchange.end_time:
         end_time_str = exchange.end_time.strftime("%H:%M")
+
+        # Конвертируем время в московскую зону
+        end_time_moscow = exchange.end_time.astimezone(tz_moscow)
+        end_time_moscow_str = end_time_moscow.strftime("%H:%M")
     else:
         end_time_str = "Не указано"
+        end_time_moscow_str = "Не указано"
 
     shift_time = f"{start_time_str}-{end_time_str}"
+    shift_time_moscow = f"{start_time_moscow_str}-{end_time_moscow_str}"
     hours_text = f"{exchange.working_hours:g} ч."
     price_display = format_currency_price(
         exchange.price, exchange.total_price, use_random_currency
@@ -400,6 +417,7 @@ async def get_exchange_text(
 
 <b>{exchange_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
+<code>{shift_time_moscow} МСК</code>
 💰 <b>Оплата:</b>
 <code>{price_display}</code> - {payment_date_str}{comment_block}</blockquote>"""
 
@@ -430,16 +448,27 @@ async def get_exchange_detailed_text(
     if exchange.start_time:
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
         start_time_str = exchange.start_time.strftime("%H:%M")
+
+        # Конвертируем время в московскую зону
+        start_time_moscow = exchange.start_time.astimezone(tz_moscow)
+        start_time_moscow_str = start_time_moscow.strftime("%H:%M")
     else:
         shift_date = "Не указано"
         start_time_str = "Не указано"
+        start_time_moscow_str = "Не указано"
 
     if exchange.end_time:
         end_time_str = exchange.end_time.strftime("%H:%M")
+
+        # Конвертируем время в московскую зону
+        end_time_moscow = exchange.end_time.astimezone(tz_moscow)
+        end_time_moscow_str = end_time_moscow.strftime("%H:%M")
     else:
         end_time_str = "Не указано"
+        end_time_moscow_str = "Не указано"
 
     shift_time = f"{start_time_str}-{end_time_str}"
+    shift_time_moscow = f"{start_time_moscow_str}-{end_time_moscow_str}"
     hours_text = (
         f"{exchange.working_hours:g} ч."
         if exchange.working_hours is not None
@@ -515,6 +544,7 @@ async def get_exchange_detailed_text(
 
 <b>{operation_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
+<code>{shift_time_moscow} МСК</code>
 💰 <b>Оплата:</b>
 <code>{price_display}</code> - {payment_date_str}</blockquote>"""
 
@@ -1175,12 +1205,12 @@ async def my_detail_getter(
         "inactive",
         "canceled",
         "expired",
-    ] and tz.localize(exchange.start_time) > datetime.now(tz=tz)
+    ] and tz_perm.localize(exchange.start_time) > datetime.now(tz=tz_perm)
 
     can_cancel = (
         exchange.status == "sold"
         and exchange.start_time
-        and tz.localize(exchange.start_time) > datetime.now(tz=tz)
+        and tz_perm.localize(exchange.start_time) > datetime.now(tz=tz_perm)
     )
 
     return {

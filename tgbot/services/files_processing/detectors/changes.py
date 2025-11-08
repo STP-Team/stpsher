@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.keyboards.schedule import changed_schedule_kb
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import tz_perm
 from tgbot.services.broadcaster import send_message
 from tgbot.services.files_processing.formatters.notifications import (
     ScheduleChangeFormatter,
@@ -170,7 +170,7 @@ class ScheduleChangeDetector:
 
             from datetime import datetime
 
-            current_time = datetime.now(tz)
+            current_time = datetime.now(tz_perm)
 
             # Используем форматтер для генерации сообщения
             message = self.formatter.format_change_notification(

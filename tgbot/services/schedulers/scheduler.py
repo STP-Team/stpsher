@@ -10,7 +10,7 @@ from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from tgbot.config import IS_DEVELOPMENT, load_config
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import tz_perm
 from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.exchanges import ExchangesScheduler
 from tgbot.services.schedulers.hr import HRScheduler
@@ -67,7 +67,7 @@ class SchedulerManager:
         self.scheduler.configure(
             jobstores=jobstores,
             job_defaults=job_defaults,
-            timezone=tz,
+            timezone=tz_perm,
         )
 
     def setup_jobs(self, session_pool, bot: Bot, kpi_session_pool) -> None:

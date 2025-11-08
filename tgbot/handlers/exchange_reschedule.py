@@ -7,7 +7,7 @@ from aiogram_dialog import DialogManager, StartMode
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import tz_perm
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ async def handle_exchange_reschedule(
             return
 
         # Получаем текущее время в локальной зоне
-        current_local_time = datetime.now(tz)
+        current_local_time = datetime.now(tz_perm)
 
         # Проверяем наличие времени окончания
         if not exchange.end_time:
@@ -94,7 +94,7 @@ async def handle_exchange_reschedule(
         # Убеждаемся, что end_time timezone-aware для проверок
         original_end = exchange.end_time
         if original_end.tzinfo is None:
-            original_end = tz.localize(original_end)
+            original_end = tz_perm.localize(original_end)
 
         # Проверяем, что сделка сегодня
         today = current_local_time.date()

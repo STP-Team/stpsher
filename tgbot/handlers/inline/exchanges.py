@@ -18,7 +18,7 @@ from tgbot.dialogs.getters.common.exchanges.exchanges import (
 )
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.states.user import UserSG
-from tgbot.misc.helpers import format_currency_price, tz
+from tgbot.misc.helpers import format_currency_price, tz_perm
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ async def _format_exchange_info(
     # Обрабатываем время
     start_time = exchange.start_time
     if start_time.tzinfo is None:
-        start_time = tz.localize(start_time)
+        start_time = tz_perm.localize(start_time)
 
     shift_date = start_time.strftime("%d.%m.%Y")
     start_time_str = start_time.strftime("%H:%M")
@@ -123,7 +123,7 @@ async def _format_exchange_info(
     if exchange.end_time:
         end_time = exchange.end_time
         if end_time.tzinfo is None:
-            end_time = tz.localize(end_time)
+            end_time = tz_perm.localize(end_time)
         end_time_str = end_time.strftime("%H:%M")
     else:
         end_time_str = "??:??"
@@ -264,7 +264,7 @@ async def handle_exchange_cancellation(
     from aiogram.utils.deep_linking import create_start_link
     from aiogram_dialog import StartMode
 
-    from tgbot.misc.helpers import format_fullname, tz
+    from tgbot.misc.helpers import format_fullname, tz_perm
 
     try:
         # Получаем информацию о сделке
@@ -292,9 +292,9 @@ async def handle_exchange_cancellation(
             return
 
         # Проверяем, не наступило ли время начала сделки
-        if exchange.start_time and tz.localize(exchange.start_time) <= datetime.now(
-            tz=tz
-        ):
+        if exchange.start_time and tz_perm.localize(
+            exchange.start_time
+        ) <= datetime.now(tz=tz_perm):
             await message.answer(
                 "❌ Нельзя отменить сделку после наступления времени начала"
             )

@@ -11,7 +11,7 @@ from stp_database import Exchange, MainRequestsRepo
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     get_exchange_text,
 )
-from tgbot.misc.helpers import tz
+from tgbot.misc.helpers import tz_perm
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedulers.base import BaseScheduler
 
@@ -268,7 +268,7 @@ def normalize_timezone(dt: datetime) -> datetime:
         datetime в локальной временной зоне
     """
     if dt.tzinfo is None:
-        return tz.localize(dt)
+        return tz_perm.localize(dt)
     return dt
 
 
@@ -285,7 +285,7 @@ def can_reschedule_exchange(exchange: Exchange) -> bool:
         return False
 
     # Получаем текущее время в локальной зоне
-    current_local_time = datetime.now(tz)
+    current_local_time = datetime.now(tz_perm)
 
     # Проверяем, что сделка сегодня
     today = current_local_time.date()
@@ -355,7 +355,7 @@ class ExchangesScheduler(BaseScheduler):
                 job_kwargs["trigger"] = "cron"
                 job_kwargs["hour"] = config["hour"]
                 job_kwargs["minute"] = config["minute"]
-                job_kwargs["timezone"] = tz  # Используем локальную временную зону
+                job_kwargs["timezone"] = tz_perm  # Используем локальную временную зону
             else:
                 job_kwargs["trigger"] = "interval"
                 # Добавляем интервал в зависимости от конфигурации
@@ -430,7 +430,7 @@ async def check_expired_offers(session_pool, bot: Bot) -> None:
             if not active_exchanges:
                 return
 
-            current_local_time = datetime.now(tz)
+            current_local_time = datetime.now(tz_perm)
             expired_count = 0
 
             for exchange in active_exchanges:
@@ -531,7 +531,7 @@ async def check_upcoming_exchanges(session_pool, bot: Bot, hours_before: int) ->
         async with session_pool() as stp_session:
             stp_repo = MainRequestsRepo(stp_session)
 
-            current_local_time = datetime.now(tz)
+            current_local_time = datetime.now(tz_perm)
             target_time = current_local_time + timedelta(hours=hours_before)
 
             # Определяем временное окно для уведомлений
@@ -658,7 +658,7 @@ async def check_payment_date_notifications(session_pool, bot: Bot) -> None:
         async with session_pool() as stp_session:
             stp_repo = MainRequestsRepo(stp_session)
 
-            current_local_time = datetime.now(tz)
+            current_local_time = datetime.now(tz_perm)
             today = current_local_time.date()
 
             # Получаем проданные неоплаченные обмены с наступившей датой оплаты

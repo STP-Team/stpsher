@@ -8,7 +8,8 @@ from stp_database import Employee
 
 from tgbot.misc.dicts import roles, russian_weekdays_short
 
-tz = pytz.timezone("Asia/Yekaterinburg")
+tz_perm = pytz.timezone("Asia/Yekaterinburg")
+tz_moscow = pytz.timezone("Europe/Moscow")
 strftime_date = "%H:%M %d.%m.%Y"
 
 # Convert 0-6 indexing from russian_weekdays_short to 1-7 indexing for compatibility
