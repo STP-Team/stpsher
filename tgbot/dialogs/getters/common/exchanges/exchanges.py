@@ -215,12 +215,12 @@ async def _get_exchange_type(exchange: Exchange) -> str:
         exchange: Экземпляр сделки с моделью Exchange
 
     Returns:
-        Тип сделки: "📉 Продам" или "📈 Куплю"
+        Тип сделки: "📉 Отдам" или "📈 Возьму"
     """
     if exchange.owner_intent == "sell":
-        operation_type = "📉 Продам"
+        operation_type = "📉 Отдам"
     else:
-        operation_type = "📈 Куплю"
+        operation_type = "📈 Возьму"
 
     return operation_type
 
