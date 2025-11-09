@@ -145,10 +145,6 @@ async def prepare_calendar_data_for_exchange(
                     if day_match:
                         work_days.append(int(day_match.group(1)))
 
-            logger.info(
-                f"[Биржа] {month_name} {displayed_year}: рабочие дни = {sorted(work_days)}"
-            )
-
             # Извлекаем дни когда есть смены
             for day, (schedule, duty_info) in schedule_dict.items():
                 if schedule and schedule not in ["Не указано", "В", "О"]:
