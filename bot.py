@@ -35,6 +35,7 @@ from tgbot.middlewares.GroupsMiddleware import GroupsMiddleware
 from tgbot.middlewares.UsersMiddleware import UsersMiddleware
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import short_name
+from tgbot.services.files_processing.core.cache import warm_cache_on_startup
 from tgbot.services.logger import setup_logging
 from tgbot.services.schedulers.scheduler import SchedulerManager
 
@@ -45,7 +46,32 @@ logger = logging.getLogger(__name__)
 
 async def on_startup():
     """Функция, активируемая при запуске основного процесса бота."""
-    pass
+    logger.info("[Startup] Начинаем прогрев кэша Excel файлов...")
+
+    try:
+        # Запускаем прогрев кэша в отдельной задаче
+        def run_cache_warming():
+            try:
+                stats = warm_cache_on_startup("uploads")
+                logger.info(
+                    f"[Startup] Прогрев кэша завершен: {stats['processed_files']} файлов обработано, "
+                    f"{stats['successful_sheets']} листов загружено успешно"
+                )
+                if stats["errors"]:
+                    logger.warning(
+                        f"[Startup] Ошибки при прогреве кэша: {len(stats['errors'])} шт."
+                    )
+            except Exception as e:
+                logger.error(f"[Startup] Ошибка при прогреве кэша: {e}")
+
+        # Запускаем в отдельном потоке, чтобы не блокировать запуск бота
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, run_cache_warming)
+
+        logger.info("[Startup] Прогрев кэша запущен в фоновом режиме")
+
+    except Exception as e:
+        logger.error(f"[Startup] Не удалось запустить прогрев кэша: {e}")
 
 
 async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):

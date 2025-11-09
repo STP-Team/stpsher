@@ -155,6 +155,20 @@ class ExcelFileCache:
             return df
 
         except Exception as e:
+            # Обновляем метадату файла даже при неудачной загрузке листа,
+            # чтобы не повторять проверку модификации для того же файла
+            if file_key not in self._file_metadata:
+                try:
+                    self._file_metadata[file_key] = {
+                        "mtime": file_path.stat().st_mtime,
+                        "hash": self._get_file_hash(file_path),
+                        "loaded_at": datetime.now(),
+                    }
+                except Exception as meta_error:
+                    logger.warning(
+                        f"[Cache] Не удалось обновить метадату для {file_path.name}: {meta_error}"
+                    )
+
             # Проверяем если ошибка отсутствия листа
             error_msg = str(e).lower()
             is_worksheet_not_found = (
@@ -391,6 +405,119 @@ class ExcelFileCache:
             "indexed_dates": sum(len(idx) for idx in self._date_indexes.values()),
         }
 
+    def warm_cache(self, uploads_directory: str = "uploads") -> Dict[str, Any]:
+        """Прогревает кэш путем загрузки всех Excel файлов из директории uploads.
+
+        Args:
+            uploads_directory: Путь к директории с загруженными файлами
+
+        Returns:
+            Словарь со статистикой прогрева кэша
+        """
+        uploads_path = Path(uploads_directory)
+
+        if not uploads_path.exists():
+            logger.warning(f"[Cache Warm] Директория {uploads_path} не существует")
+            return {
+                "processed_files": 0,
+                "successful_sheets": 0,
+                "failed_sheets": 0,
+                "errors": ["Directory not found"],
+            }
+
+        stats = {
+            "processed_files": 0,
+            "successful_sheets": 0,
+            "failed_sheets": 0,
+            "errors": [],
+        }
+
+        # Ищем все Excel файлы в директории
+        excel_patterns = ["*.xlsx", "*.xls"]
+        excel_files = []
+
+        for pattern in excel_patterns:
+            excel_files.extend(uploads_path.glob(pattern))
+
+        if not excel_files:
+            logger.info(f"[Cache Warm] Не найдено Excel файлов в {uploads_path}")
+            return stats
+
+        logger.info(
+            f"[Cache Warm] Найдено {len(excel_files)} Excel файлов для прогрева кэша"
+        )
+
+        # Список листов для прогрева
+        sheet_names_to_warm = ["ГРАФИК"]
+
+        # Добавляем листы дежурств для каждого месяца (в правильном регистре)
+        months = [
+            "Январь",
+            "Февраль",
+            "Март",
+            "Апрель",
+            "Май",
+            "Июнь",
+            "Июль",
+            "Август",
+            "Сентябрь",
+            "Октябрь",
+            "Ноябрь",
+            "Декабрь",
+        ]
+
+        for month in months:
+            sheet_names_to_warm.append(f"Дежурство {month}")
+
+        # Прогреваем кэш для каждого файла
+        for excel_file in excel_files:
+            try:
+                stats["processed_files"] += 1
+                logger.info(f"[Cache Warm] Обрабатываем файл: {excel_file.name}")
+
+                # Пытаемся загрузить каждый лист
+                for sheet_name in sheet_names_to_warm:
+                    try:
+                        df = self.get_dataframe(excel_file, sheet_name)
+                        if df is not None:
+                            stats["successful_sheets"] += 1
+                            logger.debug(
+                                f"[Cache Warm] Успешно загружен лист {sheet_name} из {excel_file.name}"
+                            )
+                        else:
+                            stats["failed_sheets"] += 1
+
+                    except Exception as e:
+                        stats["failed_sheets"] += 1
+                        error_msg = (
+                            f"Ошибка загрузки {excel_file.name}:{sheet_name}: {e}"
+                        )
+                        stats["errors"].append(error_msg)
+                        logger.debug(f"[Cache Warm] {error_msg}")
+
+            except Exception as e:
+                error_msg = f"Общая ошибка обработки файла {excel_file.name}: {e}"
+                stats["errors"].append(error_msg)
+                logger.error(f"[Cache Warm] {error_msg}")
+
+        logger.info(
+            f"[Cache Warm] Завершен прогрев кэша: {stats['processed_files']} файлов, "
+            f"{stats['successful_sheets']} листов загружено успешно, "
+            f"{stats['failed_sheets']} неудачно"
+        )
+
+        # Выводим финальную статистику кэша
+        final_stats = self.get_stats()
+        logger.info(
+            f"[Cache Warm] Финальная статистика кэша: "
+            f"{final_stats['cached_files']} файлов, "
+            f"{final_stats['cached_dataframes']} листов, "
+            f"{final_stats['indexed_users']} пользователей, "
+            f"{final_stats['indexed_dates']} дат в индексе"
+        )
+
+        return stats
+
 
 # Global cache instance
 _global_cache: Optional[ExcelFileCache] = None
@@ -456,3 +583,16 @@ def normalize_month(month: str) -> str:
         "december": "ДЕКАБРЬ",
     }
     return month_mapping.get(month.lower(), month.upper())
+
+
+def warm_cache_on_startup(uploads_directory: str = "uploads") -> Dict[str, Any]:
+    """Прогревает глобальный кэш при запуске бота.
+
+    Args:
+        uploads_directory: Путь к директории с загруженными файлами
+
+    Returns:
+        Словарь со статистикой прогрева кэша
+    """
+    cache = get_cache()
+    return cache.warm_cache(uploads_directory)
