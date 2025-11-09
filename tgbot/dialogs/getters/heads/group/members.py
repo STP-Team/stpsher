@@ -14,7 +14,7 @@ from tgbot.dialogs.getters.common.game.kpi import (
 )
 from tgbot.dialogs.getters.common.schedules import user_schedule_getter
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import format_fullname, get_role
+from tgbot.misc.helpers import format_fullname, get_role, short_name
 
 
 async def group_members_getter(
@@ -41,7 +41,7 @@ async def group_members_getter(
         role_info = get_role(member.role)
         formatted_members.append((
             member.id,
-            format_fullname(member, True, True),
+            short_name(member.fullname),
             role_info["emoji"] if role_info else "",
         ))
 
