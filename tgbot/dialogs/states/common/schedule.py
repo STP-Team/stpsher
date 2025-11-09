@@ -14,6 +14,7 @@ class Schedules(StatesGroup):
     group = State()  # График группы
 
     # Вид календаря
+    my_calendar = State()  # Календарь для моего графика
     duties_calendar = State()  # Календарь для дежурных
     group_calendar = State()  # Календарь для группы
     heads_calendar = State()  # Календарь для руководителей

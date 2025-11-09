@@ -208,3 +208,60 @@ async def on_date_selected(
         await dialog_manager.switch_to(Schedules.group)
     elif current_state == Schedules.heads_calendar:
         await dialog_manager.switch_to(Schedules.heads)
+
+
+async def switch_to_calendar_view(
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Переключение в календарный вид с синхронизацией месяца.
+
+    Args:
+        _event: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    # Получаем текущий месяц из текстового вида
+    current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
+
+    # Переключаемся в календарный вид
+    await dialog_manager.switch_to(Schedules.my_calendar)
+
+    # Синхронизируем месяц в календаре
+    calendar_widget = dialog_manager.find("my_schedule_calendar")
+    if calendar_widget and current_month:
+        # Находим номер месяца
+        month_to_num = {name.lower(): num for num, name in russian_months.items()}
+        month_num = month_to_num.get(current_month.lower())
+        if month_num:
+            from datetime import date
+
+            # Устанавливаем offset календаря на нужный месяц
+            target_date = date(date.today().year, month_num, 1)
+            calendar_widget.set_offset(target_date)
+
+
+async def switch_to_text_view(
+    _event: CallbackQuery, _widget: Button, dialog_manager: DialogManager, **_kwargs
+) -> None:
+    """Переключение в текстовый вид с синхронизацией месяца.
+
+    Args:
+        _event: Callback query от Telegram
+        _widget: Виджет кнопки
+        dialog_manager: Менеджер диалога
+    """
+    # Получаем текущий месяц из календарного вида
+    calendar_widget = dialog_manager.find("my_schedule_calendar")
+    if calendar_widget:
+        try:
+            current_offset = calendar_widget.get_offset()
+            if current_offset:
+                displayed_month_name = russian_months.get(current_offset.month)
+                if displayed_month_name:
+                    # Сохраняем выбранный месяц для текстового вида
+                    dialog_manager.dialog_data["current_month"] = displayed_month_name
+        except Exception:
+            pass
+
+    # Переключаемся в текстовый вид
+    await dialog_manager.switch_to(Schedules.my)

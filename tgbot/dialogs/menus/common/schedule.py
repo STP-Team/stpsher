@@ -24,18 +24,22 @@ from tgbot.dialogs.events.common.schedules import (
     open_my_exchanges,
     prev_day,
     prev_month,
+    switch_to_calendar_view,
+    switch_to_text_view,
     today,
 )
 from tgbot.dialogs.getters.common.schedules import (
     duty_schedule_getter,
     group_schedule_getter,
     head_schedule_getter,
+    my_schedule_calendar_getter,
     schedules_getter,
     user_schedule_getter,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.buttons import HOME_BTN
+from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 menu_window = Window(
     Format("""<b>📅 Меню графиков</b>
@@ -95,6 +99,9 @@ my_window = Window(
             on_click=next_month,
         ),
     ),
+    Button(
+        Const("📅 Вид календаря"), id="calendar_view", on_click=switch_to_calendar_view
+    ),
     Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
     Row(
         Radio(
@@ -110,6 +117,19 @@ my_window = Window(
     state=Schedules.my,
 )
 
+my_schedule_calendar_window = Window(
+    Format("<b>👔 Мой график • {month}</b>\n\n· Точками отмечены рабочие дни"),
+    ExchangeCalendar(id="my_schedule_calendar"),
+    Button(
+        Const("📝 Вид текста"),
+        id="text_view",
+        on_click=switch_to_text_view,
+    ),
+    Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.my), HOME_BTN),
+    getter=my_schedule_calendar_getter,
+    state=Schedules.my_calendar,
+)
 
 duties_window = Window(
     Format("{duties_text}"),
@@ -263,6 +283,7 @@ schedules_dialog = Dialog(
     group_window,
     duties_window,
     heads_window,
+    my_schedule_calendar_window,
     duties_calendar_window,
     group_calendar_window,
     heads_calendar_window,

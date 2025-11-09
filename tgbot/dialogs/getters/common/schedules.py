@@ -1,5 +1,6 @@
 """Геттеры для функций графиков."""
 
+import re
 from datetime import datetime
 from typing import Any, Dict
 
@@ -7,12 +8,13 @@ from aiogram import Bot
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.dicts import months_emojis
+from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
     get_current_month,
 )
 from tgbot.services.files_processing.handlers.schedule import schedule_service
+from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 
 async def schedules_getter(
@@ -187,4 +189,154 @@ async def group_schedule_getter(
         "group_text": group_text,
         "date_display": date_display,
         "is_today": is_today,
+    }
+
+
+async def prepare_schedule_calendar_data(
+    stp_repo: MainRequestsRepo,
+    user: Employee,
+    dialog_manager: DialogManager,
+    target_month: str = None,
+) -> None:
+    """Подготавливает данные календаря для отображения рабочих дней в графике.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Пользователь
+        dialog_manager: Менеджер диалога
+        target_month: Целевой месяц для загрузки (если None, то текущий)
+    """
+    try:
+        # Получаем календарный виджет
+        calendar_widget = dialog_manager.find("my_schedule_calendar")
+
+        # Определяем месяц для загрузки
+        if target_month:
+            month_name = target_month
+        elif calendar_widget:
+            current_offset = calendar_widget.get_offset()
+            if current_offset:
+                month_name = russian_months.get(
+                    current_offset.month, get_current_month()
+                )
+            else:
+                month_name = get_current_month()
+        else:
+            month_name = get_current_month()
+
+        # Проверяем, не загружали ли мы уже данные для этого месяца
+        # Если loaded_schedule_month пустой, значит нужно загрузить данные заново
+        loaded_month = dialog_manager.dialog_data.get("loaded_schedule_month", "")
+        if loaded_month and loaded_month == month_name:
+            return
+
+        # Очищаем предыдущие данные при смене месяца
+        dialog_manager.dialog_data["shift_dates"] = {}
+
+        # Загружаем данные расписания
+        parser = ScheduleParser()
+        all_shift_dates = {}
+        current_date = datetime.now().date()
+
+        try:
+            # Получаем базовое расписание для месяца
+            base_schedule = parser.get_user_schedule(
+                user.fullname, month_name, user.division
+            )
+
+            # Получаем расписание с дежурствами
+            schedule_dict = await parser.get_user_schedule_with_duties(
+                user.fullname,
+                month_name,
+                user.division,
+                stp_repo,
+                current_day_only=False,
+            )
+
+            if not schedule_dict:
+                dialog_manager.dialog_data["shift_dates"] = {}
+                dialog_manager.dialog_data["loaded_schedule_month"] = month_name
+                return
+
+            # Получаем номер месяца
+            month_to_num = {name.lower(): num for num, name in russian_months.items()}
+            month_num = month_to_num.get(month_name.lower())
+            if not month_num:
+                return
+
+            # Извлекаем рабочие дни
+            for day, (schedule, duty_info) in schedule_dict.items():
+                if schedule and schedule not in ["Не указано", "В", "О"]:
+                    # Извлекаем номер дня
+                    day_match = re.search(r"(\d{1,2})", day)
+                    if day_match:
+                        day_num = f"{int(day_match.group(1)):02d}"
+                        # Создаем ключ для месяца и дня
+                        month_day_key = f"{month_num:02d}_{day_num}"
+                        all_shift_dates[month_day_key] = {
+                            "schedule": schedule,
+                            "duty_info": duty_info,
+                            "month": month_num,
+                            "day": int(day_num),
+                            "year": current_date.year,
+                        }
+
+                        # Для текущего месяца сохраняем также простой ключ
+                        if month_name.lower() == get_current_month().lower():
+                            all_shift_dates[day_num] = {
+                                "schedule": schedule,
+                                "duty_info": duty_info,
+                            }
+
+        except Exception:
+            all_shift_dates = {}
+
+        # Сохраняем данные в dialog_data
+        dialog_manager.dialog_data["shift_dates"] = all_shift_dates
+        dialog_manager.dialog_data["loaded_schedule_month"] = month_name
+
+    except Exception:
+        dialog_manager.dialog_data["shift_dates"] = {}
+
+
+async def my_schedule_calendar_getter(
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для календарного вида моего расписания.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными для календарного отображения
+    """
+    # Получаем отображаемый месяц из календаря
+    calendar_widget = dialog_manager.find("my_schedule_calendar")
+    displayed_month_name = get_current_month()
+
+    if calendar_widget:
+        try:
+            current_offset = calendar_widget.get_offset()
+            if current_offset:
+                displayed_month_name = russian_months.get(
+                    current_offset.month, get_current_month()
+                )
+        except Exception:
+            pass
+
+    # Подготавливаем данные календаря для отображения рабочих дней
+    # Форсируем перезагрузку данных при каждом вызове геттера
+    dialog_manager.dialog_data["loaded_schedule_month"] = ""
+    await prepare_schedule_calendar_data(
+        stp_repo, user, dialog_manager, displayed_month_name
+    )
+
+    month_emoji = months_emojis.get(displayed_month_name.lower(), "📅")
+
+    return {
+        "month": displayed_month_name.capitalize(),
+        "month_emoji": month_emoji,
+        "month_display": f"{month_emoji} {displayed_month_name.capitalize()}",
     }
