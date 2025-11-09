@@ -443,10 +443,6 @@ class ExcelFileCache:
             logger.info(f"[Cache Warm] Не найдено Excel файлов в {uploads_path}")
             return stats
 
-        logger.info(
-            f"[Cache Warm] Найдено {len(excel_files)} Excel файлов для прогрева кэша"
-        )
-
         # Список листов для прогрева
         sheet_names_to_warm = ["ГРАФИК"]
 
@@ -473,7 +469,7 @@ class ExcelFileCache:
         for excel_file in excel_files:
             try:
                 stats["processed_files"] += 1
-                logger.info(f"[Cache Warm] Обрабатываем файл: {excel_file.name}")
+                logger.debug(f"[Cache Warm] Обрабатываем файл: {excel_file.name}")
 
                 # Пытаемся загрузить каждый лист
                 for sheet_name in sheet_names_to_warm:
@@ -500,7 +496,7 @@ class ExcelFileCache:
                 stats["errors"].append(error_msg)
                 logger.error(f"[Cache Warm] {error_msg}")
 
-        logger.info(
+        logger.debug(
             f"[Cache Warm] Завершен прогрев кэша: {stats['processed_files']} файлов, "
             f"{stats['successful_sheets']} листов загружено успешно, "
             f"{stats['failed_sheets']} неудачно"
@@ -508,7 +504,7 @@ class ExcelFileCache:
 
         # Выводим финальную статистику кэша
         final_stats = self.get_stats()
-        logger.info(
+        logger.debug(
             f"[Cache Warm] Финальная статистика кэша: "
             f"{final_stats['cached_files']} файлов, "
             f"{final_stats['cached_dataframes']} листов, "
