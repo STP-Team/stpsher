@@ -130,9 +130,6 @@ class GroupsMiddleware(BaseMiddleware):
                 await GroupsMiddleware._ban_user_from_group(
                     event, user_id, group_id, stp_repo
                 )
-                logger.info(
-                    f"[Группы] Пользователь {user_id} забанен в группе {group_id} (не найден в employees)"
-                )
                 return
 
             # Проверяем, является ли пользователь уже участником
@@ -292,9 +289,6 @@ class GroupsMiddleware(BaseMiddleware):
                 # Пользователь не найден в таблице employees - банить
                 await GroupsMiddleware._ban_user_from_group_by_update(
                     event, user_id, group_id, stp_repo
-                )
-                logger.info(
-                    f"[Группы] Пользователь {user_id} забанен при добавлении в группу {group_id} (не найден в employees)"
                 )
                 return
 
