@@ -772,29 +772,57 @@ async def on_hours_selected(
     shift_end = dialog_manager.dialog_data["shift_end"]
 
     if item_id == "full":
-        # Полная смена - используем полное время смены
+        # Полная смена - извлекаем все временные диапазоны для создания отдельных сделок
         try:
             shift_date = datetime.fromisoformat(shift_date_str)
-            first_start_time = extract_first_start_time(shift_schedule) or "00:00"
 
-            # Используем helper функцию для правильного создания datetime объектов для ночных смен
-            start_datetime, end_datetime = create_datetime_for_shift(
-                shift_date, first_start_time, shift_end
-            )
+            # Извлекаем все временные диапазоны из графика смены
+            time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
+            matches = re.findall(time_pattern, shift_schedule)
 
-            # Проверяем на пересечение с существующими обменами
-            has_overlap = await check_existing_exchanges_overlap(
-                dialog_manager, start_datetime, end_datetime
-            )
-
-            if has_overlap:
+            if not matches:
                 await event.answer(
-                    "❌ У тебя уже есть активный обмен в это время", show_alert=True
+                    "❌ Не удалось извлечь временные диапазоны из графика смены",
+                    show_alert=True,
                 )
                 return
 
-            dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
-            dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
+            # Создаем список временных диапазонов для создания отдельных сделок
+            time_ranges = []
+
+            for start_time_str, end_time_str in matches:
+                # Создаем datetime объекты для каждого диапазона
+                start_datetime, end_datetime = create_datetime_for_shift(
+                    shift_date, start_time_str, end_time_str
+                )
+
+                # Проверяем на пересечение с существующими обменами
+                has_overlap = await check_existing_exchanges_overlap(
+                    dialog_manager, start_datetime, end_datetime
+                )
+
+                if has_overlap:
+                    await event.answer(
+                        f"❌ У тебя уже есть активный обмен в период {start_time_str}-{end_time_str}",
+                        show_alert=True,
+                    )
+                    return
+
+                time_ranges.append({
+                    "start_time": start_datetime.isoformat(),
+                    "end_time": end_datetime.isoformat(),
+                    "start_time_str": start_time_str,
+                    "end_time_str": end_time_str,
+                })
+
+            # Сохраняем список временных диапазонов
+            dialog_manager.dialog_data["time_ranges"] = time_ranges
+            dialog_manager.dialog_data["is_multiple_ranges"] = len(time_ranges) > 1
+
+            # Для обратной совместимости также сохраняем первый диапазон в старом формате
+            if time_ranges:
+                dialog_manager.dialog_data["start_time"] = time_ranges[0]["start_time"]
+                dialog_manager.dialog_data["end_time"] = time_ranges[0]["end_time"]
 
             # Переходим к вводу цены
             await dialog_manager.switch_to(ExchangeCreateSell.price)
@@ -1150,10 +1178,6 @@ async def on_confirm_sell(
         # Получаем данные из диалога
         data = dialog_manager.dialog_data
         price_per_hour = data["price_per_hour"]
-        start_time = datetime.fromisoformat(data["start_time"])
-        end_time = (
-            datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None
-        )
         payment_type = data.get("payment_type", "immediate")
         payment_date = None
 
@@ -1168,45 +1192,120 @@ async def on_confirm_sell(
         # Получаем комментарий
         comment = data.get("comment")
 
-        # Создаем обмен
-        exchange = await stp_repo.exchange.create_exchange(
-            owner_id=user_id,
-            start_time=start_time,
-            end_time=end_time,
-            price=price_per_hour,
-            payment_type=payment_type,
-            payment_date=payment_date,
-            comment=comment,
-            owner_intent="sell",  # Указываем тип обмена - продажа смены
-            is_private=False,  # По умолчанию создаем публичные обмены
-        )
+        # Проверяем, есть ли несколько временных диапазонов
+        time_ranges = data.get("time_ranges", [])
+        is_multiple_ranges = data.get("is_multiple_ranges", False)
 
-        if exchange:
-            # Уведомляем подписчиков о новой сделке
-            bot = dialog_manager.middleware_data["bot"]
-            try:
-                notifications_sent = await notify_matching_subscriptions(
-                    bot, stp_repo, exchange
-                )
-                if notifications_sent > 0:
-                    logger.info(
-                        f"Отправлено {notifications_sent} уведомлений о новой сделке {exchange.id}"
-                    )
-            except Exception as e:
-                logger.error(
-                    f"Ошибка отправки уведомлений о новой сделке {exchange.id}: {e}"
+        created_exchanges = []
+        total_notifications = 0
+
+        if is_multiple_ranges and time_ranges:
+            # Создаем отдельную сделку для каждого временного диапазона
+            for i, time_range in enumerate(time_ranges):
+                start_time = datetime.fromisoformat(time_range["start_time"])
+                end_time = datetime.fromisoformat(time_range["end_time"])
+
+                # Создаем обмен для текущего диапазона
+                exchange = await stp_repo.exchange.create_exchange(
+                    owner_id=user_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                    price=price_per_hour,
+                    payment_type=payment_type,
+                    payment_date=payment_date,
+                    comment=comment,
+                    owner_intent="sell",
+                    is_private=False,
                 )
 
-            await event.answer("✅ Сделка добавлена на биржу!", show_alert=True)
-            # Очищаем данные диалога
-            dialog_manager.dialog_data.clear()
-            await dialog_manager.start(
-                Exchanges.my_detail, data={"exchange_id": exchange.id}
-            )
+                if exchange:
+                    created_exchanges.append(exchange)
+
+                    # Уведомляем подписчиков о новой сделке
+                    bot = dialog_manager.middleware_data["bot"]
+                    try:
+                        notifications_sent = await notify_matching_subscriptions(
+                            bot, stp_repo, exchange
+                        )
+                        total_notifications += notifications_sent
+                        if notifications_sent > 0:
+                            logger.info(
+                                f"Отправлено {notifications_sent} уведомлений о новой сделке {exchange.id}"
+                            )
+                    except Exception as e:
+                        logger.error(
+                            f"Ошибка отправки уведомлений о новой сделке {exchange.id}: {e}"
+                        )
+
+            if created_exchanges:
+                count = len(created_exchanges)
+                if count == 1:
+                    message = "✅ Сделка добавлена на биржу!"
+                else:
+                    message = f"✅ {count} сделки добавлены на биржу!"
+
+                await event.answer(message, show_alert=True)
+
+                # Очищаем данные диалога
+                dialog_manager.dialog_data.clear()
+
+                # Переходим к детальной информации первой созданной сделки
+                await dialog_manager.start(
+                    Exchanges.my_detail, data={"exchange_id": created_exchanges[0].id}
+                )
+            else:
+                await event.answer(
+                    "❌ Не удалось создать сделки. Попробуйте позже.", show_alert=True
+                )
+
         else:
-            await event.answer(
-                "❌ Не удалось создать сделку. Попробуйте позже.", show_alert=True
+            # Обычная логика для одного временного диапазона (обратная совместимость)
+            start_time = datetime.fromisoformat(data["start_time"])
+            end_time = (
+                datetime.fromisoformat(data["end_time"])
+                if data.get("end_time")
+                else None
             )
+
+            # Создаем обмен
+            exchange = await stp_repo.exchange.create_exchange(
+                owner_id=user_id,
+                start_time=start_time,
+                end_time=end_time,
+                price=price_per_hour,
+                payment_type=payment_type,
+                payment_date=payment_date,
+                comment=comment,
+                owner_intent="sell",
+                is_private=False,
+            )
+
+            if exchange:
+                # Уведомляем подписчиков о новой сделке
+                bot = dialog_manager.middleware_data["bot"]
+                try:
+                    notifications_sent = await notify_matching_subscriptions(
+                        bot, stp_repo, exchange
+                    )
+                    if notifications_sent > 0:
+                        logger.info(
+                            f"Отправлено {notifications_sent} уведомлений о новой сделке {exchange.id}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка отправки уведомлений о новой сделке {exchange.id}: {e}"
+                    )
+
+                await event.answer("✅ Сделка добавлена на биржу!", show_alert=True)
+                # Очищаем данные диалога
+                dialog_manager.dialog_data.clear()
+                await dialog_manager.start(
+                    Exchanges.my_detail, data={"exchange_id": exchange.id}
+                )
+            else:
+                await event.answer(
+                    "❌ Не удалось создать сделку. Попробуйте позже.", show_alert=True
+                )
 
     except Exception as e:
         logger.error(f"[Биржа - Создание сделки] Произошла ошибка при публикации: {e}")
