@@ -2,7 +2,7 @@
 
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from aiogram.types import CallbackQuery, Message
@@ -346,6 +346,34 @@ def time_to_minutes(time_str: str) -> int:
         return 0
 
 
+def create_datetime_for_shift(
+    shift_date: datetime, start_time_str: str, end_time_str: str
+) -> Tuple[datetime, datetime]:
+    """Создает datetime объекты для смены, учитывая ночные смены.
+
+    Args:
+        shift_date: Дата смены
+        start_time_str: Время начала в формате HH:MM
+        end_time_str: Время окончания в формате HH:MM
+
+    Returns:
+        Кортеж (start_datetime, end_datetime) где end_datetime может быть на следующий день
+    """
+    # Создаем базовые datetime объекты
+    start_time = datetime.strptime(start_time_str, "%H:%M").time()
+    end_time = datetime.strptime(end_time_str, "%H:%M").time()
+
+    start_datetime = datetime.combine(shift_date.date(), start_time)
+    end_datetime = datetime.combine(shift_date.date(), end_time)
+
+    # Если время окончания меньше или равно времени начала,
+    # значит это ночная смена и конец на следующий день
+    if end_time <= start_time:
+        end_datetime = end_datetime + timedelta(days=1)
+
+    return start_datetime, end_datetime
+
+
 def extract_first_start_time(schedule: str) -> Optional[str]:
     """Извлекает время начала первой смены из графика.
 
@@ -429,16 +457,34 @@ def validate_time_range(time_str: str) -> Tuple[bool, str]:
     if (start_min not in (0, 30)) or (end_min not in (0, 30)):
         return False, "Время должно начинаться и заканчиваться на 00 или 30 минутах"
 
-    # Проверяем что время начала раньше времени окончания
+    # Рассчитываем время в минутах от начала дня
     start_minutes = start_hour * 60 + start_min
     end_minutes = end_hour * 60 + end_min
 
-    if start_minutes >= end_minutes:
-        return False, "Время начала должно быть раньше времени окончания"
+    # Определяем продолжительность с учетом ночных смен
+    if end_minutes <= start_minutes:
+        # Проверяем что это реальная ночная смена (начинается вечером)
+        # Ночные смены обычно начинаются после 16:00
+        if start_hour < 16:
+            return False, "Некорректное время. Если смена пересекает полночь, она должна начинаться вечером (после 16:00)"
+
+        # Ночная смена - конец на следующий день
+        duration_minutes = (24 * 60 + end_minutes) - start_minutes
+
+        # Для ночных смен время окончания не может быть равно времени начала
+        if end_minutes == start_minutes:
+            return False, "Время начала не может быть равно времени окончания"
+    else:
+        # Обычная смена - в рамках одного дня
+        duration_minutes = end_minutes - start_minutes
 
     # Проверяем минимальную продолжительность
-    if end_minutes - start_minutes < 30:
+    if duration_minutes < 30:
         return False, "Подмена может составлять не менее 30 минут"
+
+    # Проверяем максимальную продолжительность (не более 24 часов)
+    if duration_minutes > 24 * 60:
+        return False, "Подмена не может длиться более 24 часов"
 
     return True, ""
 
@@ -468,8 +514,11 @@ def is_time_within_shift(
             h, m = map(int, time_str.split(":"))
             return h * 60 + m
 
-        start_minutes = time_to_minutes(start_time)
-        end_minutes = time_to_minutes(end_time)
+        input_start = time_to_minutes(start_time)
+        input_end = time_to_minutes(end_time)
+
+        # Определяем если введенное время ночное (пересекает полночь)
+        input_is_overnight = input_end <= input_start
 
         # Для обратной совместимости: если shift_end передан отдельно,
         # создаем старый формат одного диапазона
@@ -477,44 +526,57 @@ def is_time_within_shift(
             shift_schedule = f"{shift_schedule}-{shift_end}"
 
         # Извлекаем все временные диапазоны из графика смены
-        time_ranges = []
         time_pattern = r"(\d{1,2}:\d{2})-(\d{1,2}:\d{2})"
         matches = re.findall(time_pattern, shift_schedule)
 
-        for match in matches:
-            range_start_minutes = time_to_minutes(match[0])
-            range_end_minutes = time_to_minutes(match[1])
-
-            # Обработка ночных смен (когда конец раньше начала)
-            if range_end_minutes < range_start_minutes:
-                range_end_minutes += 24 * 60
-
-            time_ranges.append((range_start_minutes, range_end_minutes))
-
-        # Если не найдено ни одного диапазона, возвращаем False
-        if not time_ranges:
+        if not matches:
             return False
 
-        # Проверяем, помещается ли введенное время в любой из диапазонов смены
-        for range_start, range_end in time_ranges:
-            # Обработка ночных смен для введенного времени
-            check_start = start_minutes
-            check_end = end_minutes
+        # Проверяем каждый диапазон смены
+        for match in matches:
+            shift_start_minutes = time_to_minutes(match[0])
+            shift_end_minutes = time_to_minutes(match[1])
 
-            # Если диапазон смены ночной и введенное время может быть частью ночного диапазона
-            if range_end > 24 * 60:  # Ночная смена
-                # Проверяем обычное время
-                if check_start >= range_start or check_end <= (range_end - 24 * 60):
-                    if check_end <= range_end and check_start >= range_start:
-                        return True
-                    # Для ночного времени, проверяем с добавлением 24 часов
-                    if check_start < range_start:
-                        check_start += 24 * 60
-                        check_end += 24 * 60
+            # Определяем если смена ночная (пересекает полночь)
+            shift_is_overnight = shift_end_minutes <= shift_start_minutes
 
-            # Обычная проверка
-            if check_start >= range_start and check_end <= range_end:
-                return True
+            if not shift_is_overnight and not input_is_overnight:
+                # Случай 1: И смена и введенное время обычные (в рамках одного дня)
+                if (input_start >= shift_start_minutes and
+                    input_end <= shift_end_minutes):
+                    return True
+
+            elif shift_is_overnight and not input_is_overnight:
+                # Случай 2: Смена ночная, введенное время обычное
+                # Проверяем если время попадает в начальную часть смены (до полночи)
+                if (input_start >= shift_start_minutes and
+                    input_end <= 24 * 60):
+                    return True
+                # Проверяем если время попадает в конечную часть смены (после полночи)
+                if (input_start >= 0 and
+                    input_end <= shift_end_minutes):
+                    return True
+
+            elif not shift_is_overnight and input_is_overnight:
+                # Случай 3: Смена обычная, введенное время ночное - не поддерживается
+                continue
+
+            elif shift_is_overnight and input_is_overnight:
+                # Случай 4: И смена и введенное время ночные
+                # Преобразуем все в "линейное" время где ночная смена это один непрерывный интервал
+
+                # Смена: shift_start_minutes до (24*60 + shift_end_minutes)
+                shift_linear_start = shift_start_minutes
+                shift_linear_end = 24 * 60 + shift_end_minutes
+
+                # Введенное время: input_start до (24*60 + input_end)
+                input_linear_start = input_start
+                input_linear_end = 24 * 60 + input_end
+
+                # Проверяем помещается ли линейное введенное время в линейную смену
+                if (input_linear_start >= shift_linear_start and
+                    input_linear_end <= shift_linear_end):
+                    return True
 
         return False
 
@@ -709,11 +771,10 @@ async def on_hours_selected(
         try:
             shift_date = datetime.fromisoformat(shift_date_str)
             first_start_time = extract_first_start_time(shift_schedule) or "00:00"
-            start_datetime = datetime.combine(
-                shift_date.date(), datetime.strptime(first_start_time, "%H:%M").time()
-            )
-            end_datetime = datetime.combine(
-                shift_date.date(), datetime.strptime(shift_end, "%H:%M").time()
+
+            # Используем helper функцию для правильного создания datetime объектов для ночных смен
+            start_datetime, end_datetime = create_datetime_for_shift(
+                shift_date, first_start_time, shift_end
             )
 
             # Проверяем на пересечение с существующими обменами
@@ -802,11 +863,10 @@ async def on_time_input(
     start_time_str = start_time_str.strip()
     end_time_str = end_time_str.strip()
 
-    start_datetime = datetime.combine(
-        shift_date.date(), datetime.strptime(start_time_str, "%H:%M").time()
-    )
-    end_datetime = datetime.combine(
-        shift_date.date(), datetime.strptime(end_time_str, "%H:%M").time()
+    # Используем helper функцию для правильного создания datetime объектов для ночных смен
+    shift_date_obj = datetime.fromisoformat(shift_date_str)
+    start_datetime, end_datetime = create_datetime_for_shift(
+        shift_date_obj, start_time_str, end_time_str
     )
 
     # Проверяем пересечение с уже проданным временем на эту дату
@@ -953,13 +1013,10 @@ async def on_remaining_time_selected(
             )
             return
 
-        # Создаем datetime объекты
-        shift_date = datetime.fromisoformat(shift_date_str)
-        start_datetime = datetime.combine(
-            shift_date.date(), datetime.strptime(start_time_str, "%H:%M").time()
-        )
-        end_datetime = datetime.combine(
-            shift_date.date(), datetime.strptime(end_time_str, "%H:%M").time()
+        # Создаем datetime объекты с учетом ночных смен
+        shift_date_obj = datetime.fromisoformat(shift_date_str)
+        start_datetime, end_datetime = create_datetime_for_shift(
+            shift_date_obj, start_time_str, end_time_str
         )
 
         # Проверяем на пересечение с другими активными обменами
