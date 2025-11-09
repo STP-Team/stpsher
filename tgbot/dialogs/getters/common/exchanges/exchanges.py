@@ -363,8 +363,13 @@ async def get_exchange_text(
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
         start_time_str = exchange.start_time.strftime("%H:%M")
 
-        # Конвертируем время в московскую зону
-        start_time_moscow = exchange.start_time.astimezone(tz_moscow)
+        # Правильно конвертируем время в московскую зону
+        # Сначала локализуем как пермское время (если нет timezone info), затем конвертируем в московское
+        if exchange.start_time.tzinfo is None:
+            start_time_perm = tz_perm.localize(exchange.start_time)
+        else:
+            start_time_perm = exchange.start_time
+        start_time_moscow = start_time_perm.astimezone(tz_moscow)
         start_time_moscow_str = start_time_moscow.strftime("%H:%M")
     else:
         shift_date = "Не указано"
@@ -374,8 +379,13 @@ async def get_exchange_text(
     if exchange.end_time:
         end_time_str = exchange.end_time.strftime("%H:%M")
 
-        # Конвертируем время в московскую зону
-        end_time_moscow = exchange.end_time.astimezone(tz_moscow)
+        # Правильно конвертируем время в московскую зону
+        # Сначала локализуем как пермское время (если нет timezone info), затем конвертируем в московское
+        if exchange.end_time.tzinfo is None:
+            end_time_perm = tz_perm.localize(exchange.end_time)
+        else:
+            end_time_perm = exchange.end_time
+        end_time_moscow = end_time_perm.astimezone(tz_moscow)
         end_time_moscow_str = end_time_moscow.strftime("%H:%M")
     else:
         end_time_str = "Не указано"
@@ -491,32 +501,6 @@ async def get_exchange_text(
 <code>{price_display}</code> - {payment_date_str}{comment_block}</blockquote>"""
 
     return exchange_text
-
-
-async def get_exchange_detailed_text(
-    stp_repo: MainRequestsRepo,
-    exchange: Exchange,
-    user_id: int,
-    use_random_currency: bool = False,
-) -> str:
-    """Форматирует детальный текст для отображения информации о сделке с четким указанием ролей.
-
-    Args:
-        stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки с моделью Exchange
-        user_id: Идентификатор Telegram текущего пользователя
-        use_random_currency: Использовать случайную валюту вместо рублей
-
-    Returns:
-        Форматированная строка с четким указанием ролей продавца и покупателя
-    """
-    return await get_exchange_text(
-        stp_repo=stp_repo,
-        exchange=exchange,
-        user_id=user_id,
-        use_random_currency=use_random_currency,
-        show_detailed_roles=True,
-    )
 
 
 async def exchanges_getter(user: Employee, stp_repo: MainRequestsRepo, **_kwargs):
@@ -1158,7 +1142,9 @@ async def my_detail_getter(
         exchange, user.user_id, stp_repo
     )
 
-    exchange_text = await get_exchange_detailed_text(stp_repo, exchange, user.user_id)
+    exchange_text = await get_exchange_text(
+        stp_repo, exchange, user.user_id, show_detailed_roles=True
+    )
     exchange_status = await _get_exchange_status(exchange)
     exchange_type = await _get_exchange_type(exchange)
 
