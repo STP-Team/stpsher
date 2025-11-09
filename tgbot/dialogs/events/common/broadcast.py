@@ -140,6 +140,11 @@ async def on_broadcast_text_input(
         _widget: Виджет ввода сообщения
         dialog_manager: Менеджер диалога
     """
+    if len(message.text) > 4096:
+        await message.answer(
+            "Слишком длинное сообщение. Максимальное кол-во символов - 4096"
+        )
+        return
     dialog_manager.dialog_data["broadcast_text"] = message.html_text
     dialog_manager.dialog_data["broadcast_message_id"] = message.message_id
     dialog_manager.dialog_data["broadcast_from_chat_id"] = message.chat.id
