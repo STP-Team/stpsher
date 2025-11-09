@@ -344,106 +344,20 @@ async def get_exchange_text(
     exchange: Exchange,
     user_id: int,
     use_random_currency: bool = False,
+    show_detailed_roles: bool = False,
 ) -> str:
-    """Форматирует текст для отображения базовой информации о сделке.
+    """Форматирует текст для отображения информации о сделке.
 
     Args:
         stp_repo: Репозиторий операций с базой STP
         exchange: Экземпляр сделки с моделью Exchange
         user_id: Идентификатор Telegram
         use_random_currency: Использовать случайную валюту вместо рублей
+        show_detailed_roles: Показать детальную информацию о ролях
 
     Returns:
         Форматированная строка
     """
-    exchange_type = await _get_exchange_type(exchange)
-
-    # Защита от None значений в датах/времени
-    if exchange.start_time:
-        shift_date = exchange.start_time.strftime("%d.%m.%Y")
-        start_time_str = exchange.start_time.strftime("%H:%M")
-
-        # Конвертируем время в московскую зону
-        start_time_moscow = exchange.start_time.astimezone(tz_moscow)
-        start_time_moscow_str = start_time_moscow.strftime("%H:%M")
-    else:
-        shift_date = "Не указано"
-        start_time_str = "Не указано"
-        start_time_moscow_str = "Не указано"
-
-    if exchange.end_time:
-        end_time_str = exchange.end_time.strftime("%H:%M")
-
-        # Конвертируем время в московскую зону
-        end_time_moscow = exchange.end_time.astimezone(tz_moscow)
-        end_time_moscow_str = end_time_moscow.strftime("%H:%M")
-    else:
-        end_time_str = "Не указано"
-        end_time_moscow_str = "Не указано"
-
-    shift_time = f"{start_time_str}-{end_time_str}"
-    shift_time_moscow = f"{start_time_moscow_str}-{end_time_moscow_str}"
-    hours_text = f"{exchange.working_hours:g} ч."
-    price_display = format_currency_price(
-        exchange.price, exchange.total_price, use_random_currency
-    )
-
-    # Форматируем дату оплаты
-    payment_date_str = (
-        "сразу"
-        if exchange.payment_type == "immediate"
-        else (
-            exchange.payment_date.strftime("%d.%m.%Y")
-            if exchange.payment_date
-            else "по договоренности"
-        )
-    )
-
-    # Получаем информацию о пользователе
-    if exchange.owner_intent == "sell":
-        user_info = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-    else:
-        user_info = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-
-    user_name = format_fullname(user_info, True, True)
-
-    # Формируем блок комментария если он есть
-    comment_block = ""
-    if exchange.comment:
-        comment_block = f"\n💬 <b>Комментарий:</b>\n<blockquote expandable>{exchange.comment}</blockquote>"
-
-    # Формируем основной текст
-    exchange_text = f"""<blockquote>{user_name}
-
-<b>{exchange_type}:</b>
-<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
-<code>{shift_time_moscow} МСК</code>
-💰 <b>Оплата:</b>
-<code>{price_display}</code> - {payment_date_str}{comment_block}</blockquote>"""
-
-    return exchange_text
-
-
-async def get_exchange_detailed_text(
-    stp_repo: MainRequestsRepo,
-    exchange: Exchange,
-    user_id: int,
-    use_random_currency: bool = False,
-) -> str:
-    """Форматирует детальный текст для отображения информации о сделке с четким указанием ролей.
-
-    Args:
-        stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки с моделью Exchange
-        user_id: Идентификатор Telegram текущего пользователя
-        use_random_currency: Использовать случайную валюту вместо рублей
-
-    Returns:
-        Форматированная строка с четким указанием ролей продавца и покупателя
-    """
-    # Определяем роль текущего пользователя
-    is_current_user_seller = exchange.owner_id == user_id
-
     # Защита от None значений в датах/времени
     if exchange.start_time:
         shift_date = exchange.start_time.strftime("%d.%m.%Y")
@@ -474,47 +388,6 @@ async def get_exchange_detailed_text(
         if exchange.working_hours is not None
         else "Не указано"
     )
-
-    # Получаем информацию о продавце
-    seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
-    seller_name = format_fullname(seller, True, True) if seller else "Не указано"
-
-    # Получаем информацию о покупателе (если есть)
-    buyer_name = "Не указано"
-    if exchange.counterpart_id:
-        buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
-        buyer_name = format_fullname(buyer, True, True) if buyer else "Не указано"
-
-    # Определяем роли для отображения в зависимости от типа сделки
-    # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
-    if exchange.owner_intent == "sell":
-        # Для продажи: seller_id - отдает смену и платит, buyer_id - берет смену и получает оплату
-        if is_current_user_seller:
-            current_user_role = "Продавец (оплата)"
-            other_party_role = "Покупатель"
-            other_party_name = buyer_name
-        else:
-            current_user_role = "Покупатель"
-            other_party_role = "Продавец (оплата)"
-            other_party_name = seller_name
-    else:
-        # Для запроса покупки: seller_id - хочет взять смену (получить оплату), buyer_id - отдает смену (платит)
-        if is_current_user_seller:
-            current_user_role = "Покупатель"  # Создатель запроса хочет взять смену
-            other_party_role = "Продавец (оплата)"
-            other_party_name = buyer_name
-        else:
-            current_user_role = "Продавец (оплата)"  # Исполнитель отдает смену
-            other_party_role = "Покупатель"
-            other_party_name = seller_name
-
-    # Определяем тип операции для заголовка
-    if exchange.owner_intent == "sell":
-        operation_type = "📉 Продажа смены"
-    else:
-        operation_type = "📈 Покупка смены"
-
-    # Расчет цены
     price_display = format_currency_price(
         exchange.price, exchange.total_price, use_random_currency
     )
@@ -530,25 +403,120 @@ async def get_exchange_detailed_text(
         )
     )
 
-    # Формируем детальную информацию о ролях
-    roles_info = f"""👤 <b>Ты:</b> {current_user_role}"""
+    # Формируем блок комментария если он есть
+    comment_block = ""
+    if exchange.comment:
+        comment_block = f"\n💬 <b>Комментарий:</b>\n<blockquote expandable>{exchange.comment}</blockquote>"
 
-    if other_party_name != "Не указано":
-        roles_info += f"""
+    if show_detailed_roles:
+        # Детальный режим с указанием ролей
+        is_current_user_seller = exchange.owner_id == user_id
+
+        # Получаем информацию о продавце
+        seller = await stp_repo.employee.get_users(user_id=exchange.owner_id)
+        seller_name = format_fullname(seller, True, True) if seller else "Не указано"
+
+        # Получаем информацию о покупателе (если есть)
+        buyer_name = "Не указано"
+        if exchange.counterpart_id:
+            buyer = await stp_repo.employee.get_users(user_id=exchange.counterpart_id)
+            buyer_name = format_fullname(buyer, True, True) if buyer else "Не указано"
+
+        # Определяем роли для отображения в зависимости от типа сделки
+        # ВАЖНО: Продавец = тот кто отдает смену и ПЛАТИТ, Покупатель = тот кто берет смену и ПОЛУЧАЕТ оплату
+        if exchange.owner_intent == "sell":
+            # Для продажи: seller_id - отдает смену и платит, buyer_id - берет смену и получает оплату
+            if is_current_user_seller:
+                current_user_role = "Продавец (оплата)"
+                other_party_role = "Покупатель"
+                other_party_name = buyer_name
+            else:
+                current_user_role = "Покупатель"
+                other_party_role = "Продавец (оплата)"
+                other_party_name = seller_name
+        else:
+            # Для запроса покупки: seller_id - хочет взять смену (получить оплату), buyer_id - отдает смену (платит)
+            if is_current_user_seller:
+                current_user_role = "Покупатель"  # Создатель запроса хочет взять смену
+                other_party_role = "Продавец (оплата)"
+                other_party_name = buyer_name
+            else:
+                current_user_role = "Продавец (оплата)"  # Исполнитель отдает смену
+                other_party_role = "Покупатель"
+                other_party_name = seller_name
+
+        # Определяем тип операции для заголовка
+        if exchange.owner_intent == "sell":
+            operation_type = "📉 Продажа смены"
+        else:
+            operation_type = "📈 Покупка смены"
+
+        # Формируем детальную информацию о ролях
+        roles_info = f"""👤 <b>Ты:</b> {current_user_role}"""
+
+        if other_party_name != "Не указано":
+            roles_info += f"""
 🤝 <b>Партнер:</b> {other_party_role} - {other_party_name}"""
-    else:
-        roles_info += f"""
+        else:
+            roles_info += f"""
 🤝 <b>Партнер:</b> {other_party_role} - <i>не назначен</i>"""
 
-    exchange_text = f"""<blockquote>{roles_info}
+        exchange_text = f"""<blockquote>{roles_info}
 
 <b>{operation_type}:</b>
 <code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
 <code>{shift_time_moscow} МСК</code>
 💰 <b>Оплата:</b>
-<code>{price_display}</code> - {payment_date_str}</blockquote>"""
+<code>{price_display}</code> - {payment_date_str}{comment_block}</blockquote>"""
+
+    else:
+        # Базовый режим
+        exchange_type = await _get_exchange_type(exchange)
+
+        # Получаем информацию о пользователе
+        if exchange.owner_intent == "sell":
+            user_info = await stp_repo.employee.get_users(user_id=exchange.owner_id)
+        else:
+            user_info = await stp_repo.employee.get_users(user_id=exchange.owner_id)
+
+        user_name = format_fullname(user_info, True, True)
+
+        # Формируем основной текст
+        exchange_text = f"""<blockquote>{user_name}
+
+<b>{exchange_type}:</b>
+<code>{shift_time} ({hours_text}) {shift_date} ПРМ</code>
+<code>{shift_time_moscow} МСК</code>
+💰 <b>Оплата:</b>
+<code>{price_display}</code> - {payment_date_str}{comment_block}</blockquote>"""
 
     return exchange_text
+
+
+async def get_exchange_detailed_text(
+    stp_repo: MainRequestsRepo,
+    exchange: Exchange,
+    user_id: int,
+    use_random_currency: bool = False,
+) -> str:
+    """Форматирует детальный текст для отображения информации о сделке с четким указанием ролей.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        exchange: Экземпляр сделки с моделью Exchange
+        user_id: Идентификатор Telegram текущего пользователя
+        use_random_currency: Использовать случайную валюту вместо рублей
+
+    Returns:
+        Форматированная строка с четким указанием ролей продавца и покупателя
+    """
+    return await get_exchange_text(
+        stp_repo=stp_repo,
+        exchange=exchange,
+        user_id=user_id,
+        use_random_currency=use_random_currency,
+        show_detailed_roles=True,
+    )
 
 
 async def exchanges_getter(user: Employee, stp_repo: MainRequestsRepo, **_kwargs):

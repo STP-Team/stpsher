@@ -466,7 +466,10 @@ def validate_time_range(time_str: str) -> Tuple[bool, str]:
         # Проверяем что это реальная ночная смена (начинается вечером)
         # Ночные смены обычно начинаются после 16:00
         if start_hour < 16:
-            return False, "Некорректное время. Если смена пересекает полночь, она должна начинаться вечером (после 16:00)"
+            return (
+                False,
+                "Некорректное время. Если смена пересекает полночь, она должна начинаться вечером (после 16:00)",
+            )
 
         # Ночная смена - конец на следующий день
         duration_minutes = (24 * 60 + end_minutes) - start_minutes
@@ -542,19 +545,19 @@ def is_time_within_shift(
 
             if not shift_is_overnight and not input_is_overnight:
                 # Случай 1: И смена и введенное время обычные (в рамках одного дня)
-                if (input_start >= shift_start_minutes and
-                    input_end <= shift_end_minutes):
+                if (
+                    input_start >= shift_start_minutes
+                    and input_end <= shift_end_minutes
+                ):
                     return True
 
             elif shift_is_overnight and not input_is_overnight:
                 # Случай 2: Смена ночная, введенное время обычное
                 # Проверяем если время попадает в начальную часть смены (до полночи)
-                if (input_start >= shift_start_minutes and
-                    input_end <= 24 * 60):
+                if input_start >= shift_start_minutes and input_end <= 24 * 60:
                     return True
                 # Проверяем если время попадает в конечную часть смены (после полночи)
-                if (input_start >= 0 and
-                    input_end <= shift_end_minutes):
+                if input_start >= 0 and input_end <= shift_end_minutes:
                     return True
 
             elif not shift_is_overnight and input_is_overnight:
@@ -574,8 +577,10 @@ def is_time_within_shift(
                 input_linear_end = 24 * 60 + input_end
 
                 # Проверяем помещается ли линейное введенное время в линейную смену
-                if (input_linear_start >= shift_linear_start and
-                    input_linear_end <= shift_linear_end):
+                if (
+                    input_linear_start >= shift_linear_start
+                    and input_linear_end <= shift_linear_end
+                ):
                     return True
 
         return False
