@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from aiogram import Bot
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 from stp_database.repo.KPI.requests import KPIRequestsRepo
@@ -157,11 +158,12 @@ async def member_access_level_getter(
 
 
 async def member_schedule_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    bot: Bot, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> dict:
     """Геттер для получения графика выбранного члена группы.
 
     Args:
+        bot: Экземпляр бота
         stp_repo: Репозиторий операций с базой STP
         dialog_manager: Менеджер диалога
 
@@ -172,7 +174,7 @@ async def member_schedule_getter(
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
     schedule_data = await user_schedule_getter(
-        user=selected_user, stp_repo=stp_repo, dialog_manager=dialog_manager
+        bot=bot, user=selected_user, stp_repo=stp_repo, dialog_manager=dialog_manager
     )
 
     # Добавляем информацию о пользователе в начало текста графика
@@ -214,7 +216,7 @@ async def member_kpi_getter(
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    kpi_data = await kpi_getter(user=selected_user, premium=premium)
+    kpi_data = await kpi_getter(user=selected_user, kpi_repo=kpi_repo)
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
@@ -256,7 +258,7 @@ async def member_kpi_requirements_getter(
 
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
-        user=selected_user, premium=premium
+        user=selected_user, kpi_repo=kpi_repo
     )
 
     # Добавляем информацию о пользователе в начало текста
@@ -298,7 +300,7 @@ async def member_salary_getter(
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    salary_data = await salary_getter(user=selected_user, premium=premium)
+    salary_data = await salary_getter(user=selected_user, kpi_repo=kpi_repo)
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
