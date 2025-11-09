@@ -19,9 +19,11 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format
 
 from tgbot.dialogs.events.common.exchanges.subscriptions import (
+    on_clear_dates,
     on_confirm_subscription,
     on_create_subscription,
     on_criteria_next,
+    on_date_selected,
     on_delete_subscription,
     on_price_input,
     on_seller_search_query,
@@ -42,6 +44,9 @@ from tgbot.dialogs.getters.common.exchanges.subscriptions import (
 )
 from tgbot.dialogs.states.common.exchanges import ExchangesSub
 from tgbot.dialogs.widgets.buttons import HOME_BTN
+from tgbot.dialogs.widgets.exchange_calendar import (
+    SubscriptionCalendar,
+)
 
 menu_window = Window(
     Const("🔔 <b>Подписки</b>"),
@@ -225,26 +230,31 @@ create_time_window = Window(
 
 # Настройка дат (если выбрана)
 create_date_window = Window(
-    Const("📅 <b>Шаг 4: Выбор дней недели</b>"),
+    Const("📅 <b>Шаг 4: Выбор конкретных дат</b>"),
     Format("""
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
 {current_settings_display}</blockquote>"""),
-    Group(
-        Multiselect(
-            Format("✅ {item[1]}"),
-            Format("☑️ {item[1]}"),
-            id="days_of_week",
-            item_id_getter=lambda item: item[0],
-            items="weekdays",
-        ),
-        width=2,
-    ),
     Format(
-        "\n💡 Выбери подходящие дни недели",
+        "\n📅 <b>Выбранные даты:</b>\n{selected_dates_display}",
+        when="has_selected_dates",
+    ),
+    SubscriptionCalendar(
+        id="subscription_dates",
+        on_click=on_date_selected,
+    ),
+    Format("\n💡 Нажми на дату в календаре, чтобы добавить/убрать её из подписки"),
+    Format(
+        "\n<i>👉 - выбранные даты, · · - дни со сменами</i>",
     ),
     Row(
         Button(Const("⬅️ Назад"), id="back_step", on_click=on_criteria_next),
+        Button(
+            Const("🗑️ Очистить"),
+            id="clear_dates",
+            on_click=on_clear_dates,
+            when="has_selected_dates",
+        ),
         Button(
             Const("➡️ Далее"),
             id="next_step",

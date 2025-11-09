@@ -506,13 +506,13 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
                 data["start_time"] = time_ranges[selected_time][0]
                 data["end_time"] = time_ranges[selected_time][1]
 
-    # Дни недели
+    # Конкретные даты
     if "days" in selected_criteria:
-        days_widget: ManagedToggle = dialog_manager.find("days_of_week")
-        selected_days = days_widget.get_checked() if days_widget else []
-        if selected_days:
-            # Преобразуем строки в числа для JSON поля
-            data["days_of_week"] = [int(day) for day in selected_days]
+        selected_dates = dialog_manager.dialog_data.get("selected_dates", [])
+        if selected_dates:
+            # Сохраняем даты в том же поле days_of_week для совместимости
+            # Но теперь это будет список дат в формате ISO (YYYY-MM-DD)
+            data["days_of_week"] = selected_dates
 
     # Продавец (если выбран)
     if "seller" in selected_criteria:
@@ -526,3 +526,70 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
         data["end_date"] = date_data["end_date"]
 
     return data
+
+
+async def on_date_selected(
+    event: CallbackQuery,
+    _widget,
+    dialog_manager: DialogManager,
+    selected_date,
+    **_kwargs,
+) -> None:
+    """Обработчик выбора даты в календаре для подписки.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Виджет календаря
+        dialog_manager: Менеджер диалога
+        selected_date: Выбранная дата
+    """
+    try:
+        from datetime import date, datetime
+
+        # Проверяем, не является ли выбранная дата прошедшей
+        current_date = datetime.now().date()
+        if isinstance(selected_date, date) and selected_date < current_date:
+            await event.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
+            return
+
+        # Конвертируем дату в строку ISO формата
+        if isinstance(selected_date, date):
+            date_str = selected_date.strftime("%Y-%m-%d")
+        else:
+            date_str = str(selected_date)
+
+        # Получаем текущий список выбранных дат
+        selected_dates = dialog_manager.dialog_data.get("selected_dates", [])
+
+        # Если дата уже выбрана, убираем её, иначе добавляем
+        if date_str in selected_dates:
+            selected_dates.remove(date_str)
+            await event.answer(f"❌ Убрана дата {selected_date.strftime('%d.%m.%Y')}")
+        else:
+            selected_dates.append(date_str)
+            await event.answer(
+                f"✅ Добавлена дата {selected_date.strftime('%d.%m.%Y')}"
+            )
+
+        # Сохраняем обновленный список
+        dialog_manager.dialog_data["selected_dates"] = selected_dates
+
+    except Exception as e:
+        logger.error(f"Ошибка при выборе даты для подписки: {e}")
+        await event.answer("❌ Ошибка выбора даты")
+
+
+async def on_clear_dates(
+    event: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик очистки всех выбранных дат.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Кнопка очистки
+        dialog_manager: Менеджер диалога
+    """
+    dialog_manager.dialog_data["selected_dates"] = []
+    await event.answer("🗑️ Все даты очищены")

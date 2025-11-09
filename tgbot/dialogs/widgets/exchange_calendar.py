@@ -142,3 +142,166 @@ class ExchangeCalendar(Calendar):
                 prev_year_text="⏪ " + Format("{date:%Y}"),
             ),
         }
+
+
+class SubscriptionDateText(Text):
+    """Виджет для отображения даты в календаре подписок с выделением выбранных дат."""
+
+    def __init__(self):
+        """Инициализация виджета отображения даты для подписок."""
+        super().__init__()
+
+    async def _render_text(self, data, dialog_manager: DialogManager) -> str:
+        """Рендер даты с эмодзи для выбранных дат и блокировкой прошедших дат."""
+        selected_date: date = data["date"]
+        day = selected_date.day
+        month = selected_date.month
+        year = selected_date.year
+
+        # Проверяем, является ли дата прошедшей
+        from datetime import datetime
+
+        current_date = datetime.now().date()
+        is_past = selected_date < current_date
+
+        # Получаем данные о сменах из dialog_data
+        shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
+
+        # Получаем список выбранных дат для подписки
+        selected_dates = dialog_manager.dialog_data.get("selected_dates", [])
+        date_str = selected_date.strftime("%Y-%m-%d")
+        is_selected = date_str in selected_dates
+
+        # Проверяем есть ли смена на эту дату
+        month_day_key = f"{month:02d}_{day:02d}"
+        day_key = f"{day:02d}"
+
+        has_shift = False
+        # Сначала проверяем специфичный ключ месяца и дня
+        if month_day_key in shift_dates:
+            has_shift = True
+        # Только для текущего месяца и года проверяем простой ключ дня
+        elif (
+            month == current_date.month
+            and year == current_date.year
+            and day_key in shift_dates
+        ):
+            has_shift = True
+
+        # Формируем отображение даты
+        if is_selected:
+            # Выбранные даты показываем с зеленым кружком
+            if has_shift:
+                return f"👉{day}·"
+            else:
+                return f"👉{day}"
+        elif has_shift:
+            # Дни со сменами показываем с точками
+            return f"·{day}·"
+        else:
+            # Обычные дни
+            return str(day)
+
+
+class SubscriptionTodayDateText(Text):
+    """Виджет для отображения сегодняшней даты в календаре подписок."""
+
+    def __init__(self):
+        """Инициализация виджета сегодняшней даты для подписок."""
+        super().__init__()
+
+    async def _render_text(self, data, dialog_manager: DialogManager) -> str:
+        """Рендер сегодняшней даты с выделением если она выбрана."""
+        selected_date: date = data["date"]
+        day = selected_date.day
+        month = selected_date.month
+        year = selected_date.year
+
+        # Получаем данные о сменах из dialog_data
+        shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
+
+        # Получаем список выбранных дат для подписки
+        selected_dates = dialog_manager.dialog_data.get("selected_dates", [])
+        date_str = selected_date.strftime("%Y-%m-%d")
+        is_selected = date_str in selected_dates
+
+        # Проверяем есть ли смена на эту дату
+        month_day_key = f"{month:02d}_{day:02d}"
+        day_key = f"{day:02d}"
+
+        has_shift = False
+        # Сначала проверяем специфичный ключ месяца и дня
+        if month_day_key in shift_dates:
+            has_shift = True
+        # Для текущего месяца также проверяем простой ключ дня (обратная совместимость)
+        from datetime import datetime
+
+        current_date = datetime.now().date()
+        if (
+            month == current_date.month
+            and year == current_date.year
+            and day_key in shift_dates
+        ):
+            has_shift = True
+
+        # Формируем отображение сегодняшней даты
+        if is_selected:
+            # Выбранная сегодняшняя дата
+            if has_shift:
+                return f"🟢{day}·"
+            else:
+                return f"🟢{day}"
+        elif has_shift:
+            # Сегодня со сменой
+            return f"·{day}·"
+        else:
+            # Обычное сегодня
+            return f"{day}"
+
+
+class SubscriptionCalendar(Calendar):
+    """Календарь для подписок с выделением выбранных дат и блокировкой прошедших."""
+
+    def __init__(
+        self,
+        id: str,
+        on_click=None,
+        config: CalendarConfig = None,
+    ):
+        """Инициализация календаря подписок.
+
+        Args:
+            id: Идентификатор виджета
+            on_click: Обработчик выбора даты
+            config: Конфигурация календаря
+        """
+        if config is None:
+            config = CalendarConfig(
+                firstweekday=0,  # Понедельник первый день недели
+            )
+        super().__init__(id=id, on_click=on_click, config=config)
+
+    def _init_views(self) -> dict[CalendarScope, CalendarScopeView]:
+        """Инициализация кастомных представлений календаря для подписок."""
+        return {
+            CalendarScope.DAYS: CalendarDaysView(
+                self._item_callback_data,
+                date_text=SubscriptionDateText(),
+                today_text=SubscriptionTodayDateText(),
+                header_text="📅 "
+                + RussianMonthNominative()
+                + " "
+                + Format("{date:%Y}"),
+                weekday_text=RussianWeekday(),
+                next_month_text=RussianMonthNominative() + " ⏩",
+                prev_month_text="⏪ " + RussianMonthNominative(),
+            ),
+            CalendarScope.MONTHS: CalendarMonthView(
+                self._item_callback_data,
+                month_text=RussianMonthNominative(),
+                header_text="📅 Выбор месяца " + Format("{date:%Y}"),
+                this_month_text="· " + RussianMonthNominative() + " ·",
+                next_year_text=Format("{date:%Y}") + " ⏩",
+                prev_year_text="⏪ " + Format("{date:%Y}"),
+            ),
+        }

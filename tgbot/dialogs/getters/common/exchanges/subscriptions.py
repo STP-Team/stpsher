@@ -108,10 +108,38 @@ async def subscription_detail_getter(
                 f"• Время: с {subscription.start_time.strftime('%H:%M')} до {subscription.end_time.strftime('%H:%M')}"
             )
         if subscription.days_of_week:
-            days_text = ", ".join([
-                DAY_NAMES.get(d, str(d)) for d in subscription.days_of_week
-            ])
-            criteria_parts.append(f"• Дни: {days_text}")
+            # Проверяем, содержит ли список конкретные даты (строки) или дни недели (числа)
+            if subscription.days_of_week and isinstance(
+                subscription.days_of_week[0], str
+            ):
+                # Новый формат: конкретные даты
+                from datetime import datetime
+
+                formatted_dates = []
+                for date_str in subscription.days_of_week:
+                    try:
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                        formatted_date = date_obj.strftime("%d.%m.%Y")
+                        formatted_dates.append(formatted_date)
+                    except ValueError:
+                        formatted_dates.append(date_str)
+
+                formatted_dates.sort()
+                if len(formatted_dates) <= 3:
+                    dates_text = ", ".join(formatted_dates)
+                else:
+                    dates_text = (
+                        ", ".join(formatted_dates[:3])
+                        + f" и ещё {len(formatted_dates) - 3}"
+                    )
+
+                criteria_parts.append(f"• Даты: {dates_text}")
+            else:
+                # Старый формат: дни недели
+                days_text = ", ".join([
+                    DAY_NAMES.get(d, str(d)) for d in subscription.days_of_week
+                ])
+                criteria_parts.append(f"• Дни: {days_text}")
 
         # Проверяем наличие выбранного сотрудника
         if subscription.target_seller_id:
@@ -203,7 +231,7 @@ async def subscription_create_criteria_getter(
     criteria_options = [
         ("price", "💰 По цене"),
         ("time", "⏰ По времени"),
-        ("days", "📅 По дням недели"),
+        ("days", "📅 По дате"),
         ("seller", "👤 По сотруднику"),
     ]
 
@@ -215,7 +243,7 @@ async def subscription_create_criteria_getter(
     criteria_names = {
         "price": "💰 По цене",
         "time": "⏰ По времени",
-        "days": "📅 По дням недели",
+        "days": "📅 По дате",
         "seller": "👤 По сотруднику",
     }
 
@@ -260,7 +288,7 @@ async def subscription_create_price_getter(
     criteria_names = {
         "price": "💰 По цене",
         "time": "⏰ По времени",
-        "days": "📅 По дням недели",
+        "days": "📅 По дате",
         "seller": "👤 По сотруднику",
     }
 
@@ -324,7 +352,7 @@ async def subscription_create_time_getter(
     criteria_names = {
         "price": "💰 По цене",
         "time": "⏰ По времени",
-        "days": "📅 По дням недели",
+        "days": "📅 По дате",
         "seller": "👤 По сотруднику",
     }
 
@@ -387,16 +415,24 @@ async def subscription_create_time_getter(
 
 
 async def subscription_create_date_getter(
-    dialog_manager: DialogManager, **_kwargs
+    stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
-    """Геттер для настройки дней недели.
+    """Геттер для настройки конкретных дат.
 
     Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
         dialog_manager: Менеджер диалога
 
     Returns:
-        Словарь с днями недели
+        Словарь с данными для выбора дат
     """
+    # Подготавливаем данные календаря с информацией о сменах
+    from tgbot.dialogs.getters.common.exchanges.exchanges import (
+        prepare_calendar_data_for_exchange,
+    )
+
+    await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
     sub_type = dialog_manager.dialog_data.get("type")
 
     type_names = {
@@ -412,7 +448,7 @@ async def subscription_create_date_getter(
     criteria_names = {
         "price": "💰 По цене",
         "time": "⏰ По времени",
-        "days": "📅 По дням недели",
+        "days": "📅 По дате",
         "seller": "👤 По сотруднику",
     }
 
@@ -449,37 +485,63 @@ async def subscription_create_date_getter(
             f"⏰ Время: {time_names.get(selected_time, selected_time)}"
         )
 
-    # Дни недели (текущий этап)
-    days_widget: ManagedToggle = dialog_manager.find("days_of_week")
-    selected_days = days_widget.get_checked() if days_widget else []
-    if selected_days:
-        # Convert string keys to int for DAY_NAMES lookup
-        days_text = ", ".join([DAY_NAMES.get(int(d), d) for d in selected_days])
-        settings_parts.append(f"📅 <b>Дни:</b> {days_text}")
+    # Получаем выбранные даты (текущий этап)
+    selected_dates = dialog_manager.dialog_data.get("selected_dates", [])
+    if selected_dates:
+        # Форматируем даты для отображения
+        from datetime import datetime
+
+        dates_display = []
+        for date_str in selected_dates:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                formatted_date = date_obj.strftime("%d.%m.%Y")
+                dates_display.append(formatted_date)
+            except ValueError:
+                dates_display.append(date_str)
+
+        # Сортируем даты
+        dates_display.sort()
+
+        if len(dates_display) <= 5:
+            dates_text = ", ".join(dates_display)
+        else:
+            dates_text = (
+                ", ".join(dates_display[:5]) + f" и ещё {len(dates_display) - 5}"
+            )
+
+        settings_parts.append(f"📅 <b>Даты:</b> {dates_text}")
     else:
-        settings_parts.append("📅 <b>Дни:</b> настраиваем сейчас")
+        settings_parts.append("📅 <b>Даты:</b> настраиваем сейчас")
 
     current_settings_display = (
         "\n" + "\n".join(settings_parts) if settings_parts else ""
     )
 
-    weekdays = [
-        ("1", "Понедельник"),
-        ("2", "Вторник"),
-        ("3", "Среда"),
-        ("4", "Четверг"),
-        ("5", "Пятница"),
-        ("6", "Суббота"),
-        ("7", "Воскресенье"),
-    ]
+    # Форматируем выбранные даты для отображения в окне
+    selected_dates_display = ""
+    if selected_dates:
+        from datetime import datetime
+
+        formatted_dates = []
+        for date_str in selected_dates:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                formatted_date = date_obj.strftime("%d.%m.%Y")
+                formatted_dates.append(formatted_date)
+            except ValueError:
+                formatted_dates.append(date_str)
+
+        formatted_dates.sort()
+        selected_dates_display = "\n".join([f"• {date}" for date in formatted_dates])
 
     return {
         "exchange_type_display": type_names.get(sub_type, "Не выбрано"),
         "criteria_display": criteria_display,
         "current_settings_display": current_settings_display,
         "selected_criteria": _get_criteria_summary(dialog_manager),
-        "weekdays": weekdays,
-        "days_selected": len(selected_days) > 0,
+        "selected_dates_display": selected_dates_display,
+        "has_selected_dates": len(selected_dates) > 0,
     }
 
 
@@ -585,7 +647,7 @@ def _get_criteria_summary(dialog_manager: DialogManager) -> str:
     criteria_names = {
         "price": "💰 Цена",
         "time": "⏰ Время",
-        "days": "📅 Дни недели",
+        "days": "📅 Даты",
         "seller": "👤 Продавец",
     }
 
@@ -647,13 +709,29 @@ def _get_detailed_criteria_summary(dialog_manager: DialogManager) -> str:
             f"• Время: {time_names.get(selected_time, selected_time)}"
         )
 
-    # Дни недели
-    days_widget: ManagedToggle = dialog_manager.find("days_of_week")
-    selected_days = days_widget.get_checked() if days_widget else []
-    if selected_days:
-        # Convert string keys to int for DAY_NAMES lookup
-        days_text = ", ".join([DAY_NAMES.get(int(d), d) for d in selected_days])
-        criteria_parts.append(f"• Дни: {days_text}")
+    # Конкретные даты
+    selected_dates = dialog_manager.dialog_data.get("selected_dates", [])
+    if selected_dates:
+        from datetime import datetime
+
+        formatted_dates = []
+        for date_str in selected_dates:
+            try:
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                formatted_date = date_obj.strftime("%d.%m.%Y")
+                formatted_dates.append(formatted_date)
+            except ValueError:
+                formatted_dates.append(date_str)
+
+        formatted_dates.sort()
+        if len(formatted_dates) <= 3:
+            dates_text = ", ".join(formatted_dates)
+        else:
+            dates_text = (
+                ", ".join(formatted_dates[:3]) + f" и ещё {len(formatted_dates) - 3}"
+            )
+
+        criteria_parts.append(f"• Даты: {dates_text}")
 
     # Сотрудник
     selected_seller_name = dialog_manager.dialog_data.get("selected_seller_name")
@@ -696,7 +774,7 @@ async def subscription_create_seller_search_getter(
     criteria_names = {
         "price": "💰 По цене",
         "time": "⏰ По времени",
-        "days": "📅 По дням недели",
+        "days": "📅 По дате",
         "seller": "👤 По сотруднику",
     }
 

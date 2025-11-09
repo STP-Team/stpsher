@@ -39,6 +39,7 @@ async def notify_matching_subscriptions(
     """
     try:
         # Находим все подписки, соответствующие новому обмену
+        # Используем функцию из репозитория для поддержки конкретных дат
         current_matching_subscriptions = (
             await stp_repo.exchange.find_matching_subscriptions(exchange)
         )
@@ -51,6 +52,7 @@ async def notify_matching_subscriptions(
 
         if old_exchange is not None:
             # Находим подписки, которые соответствовали старой версии
+            # Также используем функцию из репозитория для обратной совместимости
             old_matching_subscriptions = (
                 await stp_repo.exchange.find_matching_subscriptions(old_exchange)
             )

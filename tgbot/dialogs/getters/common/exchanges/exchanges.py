@@ -53,9 +53,11 @@ async def prepare_calendar_data_for_exchange(
     """Подготавливает данные календаря ТОЛЬКО для текущего отображаемого месяца."""
     try:
         # Получаем календарный виджет и определяем отображаемый месяц
-        calendar_widget = dialog_manager.find(
-            "sell_date_calendar"
-        ) or dialog_manager.find("buy_date_calendar")
+        calendar_widget = (
+            dialog_manager.find("sell_date_calendar")
+            or dialog_manager.find("buy_date_calendar")
+            or dialog_manager.find("subscription_dates")
+        )
 
         # Определяем месяц для загрузки
         if calendar_widget:
