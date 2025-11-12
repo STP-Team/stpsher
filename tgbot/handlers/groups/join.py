@@ -28,7 +28,7 @@ async def got_auto_admin_rights(
 
     if not group:
         group = await stp_repo.group.add_group(
-            group_id=event.chat.id, invited_by=event.from_user.id
+            group_id=event.chat.id, group_type="group", invited_by=event.from_user.id
         )
         if group:
             logger.info(
@@ -39,7 +39,7 @@ async def got_auto_admin_rights(
     else:
         logger.info(f"[БД] Группа {event.chat.id} уже существует в базе данных")
 
-    await event.answer("""<b>Спасибо за приглашение!</b>
+    await event.answer("""👋 <b>Спасибо за приглашение!</b>
 
 Бот получил права администратора и готов к работе
 
@@ -55,7 +55,7 @@ async def bot_added_to_group(event: ChatMemberUpdated) -> None:
     Args:
         event: Callback query от Telegram
     """
-    await event.answer("""<b>Спасибо за приглашение! 👋</b>
+    await event.answer("""👋 <b>Спасибо за приглашение!</b>
 
 Чтобы эффективно использовать мои возможности, пожалуйста, назначь меня администратором""")
 
@@ -74,7 +74,7 @@ async def got_manual_admin_rights(event: ChatMemberUpdated, stp_repo: MainReques
 
     if not group:
         group = await stp_repo.group.add_group(
-            group_id=event.chat.id, invited_by=event.from_user.id
+            group_id=event.chat.id, group_type="group", invited_by=event.from_user.id
         )
         if group:
             logger.info(
@@ -85,7 +85,7 @@ async def got_manual_admin_rights(event: ChatMemberUpdated, stp_repo: MainReques
     else:
         logger.info(f"[БД] Группа {event.chat.id} уже существует в базе данных")
 
-    await event.answer("""<b>Спасибо! 🙏🏻</b>
+    await event.answer("""🙏🏻 <b>Спасибо!</b>
 
 Права администратора успешно выданы, и бот готов к работе
 

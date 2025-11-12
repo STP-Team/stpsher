@@ -914,7 +914,7 @@ class GroupsMiddleware(BaseMiddleware):
         try:
             # Добавляем группу с дефолтными настройками
             group = await stp_repo.group.add_group(
-                group_id=group_id, invited_by=invited_by
+                group_id=group_id, group_type="group", invited_by=invited_by
             )
 
             if group:

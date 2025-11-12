@@ -61,7 +61,7 @@ async def got_auto_admin_rights_channel(
 
     if not channel:
         channel = await stp_repo.group.add_group(
-            group_id=event.chat.id, invited_by=event.from_user.id
+            group_id=event.chat.id, group_type="channel", invited_by=event.from_user.id
         )
         if channel:
             logger.info(
@@ -72,11 +72,14 @@ async def got_auto_admin_rights_channel(
     else:
         logger.info(f"[БД] Канал {event.chat.id} уже существует в базе данных")
 
-    await event.answer("""<b>Спасибо за добавление!</b>
+    await event.bot.send_message(
+        event.from_user.id,
+        """👋 <b>Спасибо за приглашение!</b>
 
 Бот получил права администратора и готов к работе
 
-Для проверки и изменения настроек канала используй раздел <b>👯‍♀️ Группы</b>""")
+Для проверки и изменения настроек канала используй раздел <b>👯‍♀️ Группы</b>""",
+    )
 
 
 @channels_router.my_chat_member(
@@ -95,7 +98,7 @@ async def got_manual_admin_rights_channel(
 
     if not channel:
         channel = await stp_repo.group.add_group(
-            group_id=event.chat.id, invited_by=event.from_user.id
+            group_id=event.chat.id, group_type="channel", invited_by=event.from_user.id
         )
         if channel:
             logger.info(
