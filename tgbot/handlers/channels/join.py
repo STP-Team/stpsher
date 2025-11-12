@@ -8,6 +8,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
+from aiogram.utils.deep_linking import create_start_link
 from stp_database import Employee, MainRequestsRepo
 
 logger = logging.getLogger(__name__)
@@ -129,6 +130,11 @@ async def got_auto_admin_rights_channel(
     else:
         logger.info(f"[БД] Канал {event.chat.id} уже существует в базе данных")
 
+    settings_deeplink = await create_start_link(
+        event.bot, payload=f"group_{channel.group_id}", encode=True
+    )
+    channel_link = f"t.me/c/{str(event.chat.id).replace('-100', '')}"
+
     await event.bot.send_message(
         event.from_user.id,
         """👋 <b>Спасибо за приглашение!</b>
@@ -136,44 +142,16 @@ async def got_auto_admin_rights_channel(
 Бот получил права администратора и готов к работе
 
 Для проверки и изменения настроек канала используй раздел <b>👯‍♀️ Группы</b>""",
-    )
-
-
-@channels_router.my_chat_member(
-    ChatMemberUpdatedFilter(member_status_changed=IS_MEMBER >> IS_ADMIN)
-)
-async def got_manual_admin_rights_channel(
-    event: ChatMemberUpdated, stp_repo: MainRequestsRepo
-):
-    """Обработчик ручного получения прав администратора для бота в канале.
-
-    Args:
-        event: Событие изменения статуса участника чата от Telegram
-        stp_repo: Репозиторий базы данных
-    """
-    channel = await stp_repo.group.get_groups(event.chat.id)
-
-    if not channel:
-        channel = await stp_repo.group.add_group(
-            group_id=event.chat.id, group_type="channel", invited_by=event.from_user.id
-        )
-        await stp_repo.group_member.add_member(event.chat.id, event.from_user.id)
-        if channel:
-            logger.info(
-                f"[БД] Канал {event.chat.id} добавлен в базу данных пользователем {event.from_user.id}"
-            )
-        else:
-            logger.error(f"[БД] Ошибка добавления канала {event.chat.id} в базу данных")
-    else:
-        logger.info(f"[БД] Канал {event.chat.id} уже существует в базе данных")
-
-    await event.bot.send_message(
-        event.from_user.id,
-        """<b>Спасибо! 🙏🏻</b>
-
-Права администратора успешно выданы, и бот готов к работе
-
-Для проверки и изменения настроек канала используй раздел <b>👯‍♀️ Группы</b>""",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="👀 Открыть канал", url=channel_link)],
+                [
+                    InlineKeyboardButton(
+                        text="⚙️ Настройки канала", url=settings_deeplink
+                    )
+                ],
+            ]
+        ),
     )
 
 
