@@ -23,6 +23,98 @@ from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
 
+# Константы для KPI маппинга
+KPI_MAPPING = {
+    "AHT": {"attribute": "aht", "display_name": "AHT"},
+    "CC": {"attribute": "contacts_count", "display_name": "Контактов"},
+    "FLR": {"attribute": "flr", "display_name": "FLR"},
+    "CSI": {"attribute": "csi", "display_name": "Оценка"},
+    "POK": {"attribute": "pok", "display_name": "Отклик"},
+    "DELAY": {"attribute": "delay", "display_name": "Задержка"},
+    "SalesCount": {"attribute": "sales_count", "display_name": "Продаж"},
+    "SalesPotential": {
+        "attribute": "sales_potential",
+        "display_name": "Потенциальных продаж",
+    },
+}
+
+
+def _get_kpi_value(user_kpi, kpi_name: str):
+    """Получает значение KPI по имени.
+
+    Args:
+        user_kpi: Объект KPI пользователя
+        kpi_name: Имя KPI показателя
+
+    Returns:
+        Значение KPI или None если не найдено
+    """
+    if kpi_name not in KPI_MAPPING:
+        return None
+
+    attribute_name = KPI_MAPPING[kpi_name]["attribute"]
+    return getattr(user_kpi, attribute_name, None)
+
+
+async def _query_user_transactions(
+    stp_repo: MainRequestsRepo, user_id: int, additional_filters: list = None
+) -> Sequence[Transaction] | list:
+    """Универсальная функция для запроса транзакций пользователя.
+
+    Args:
+        stp_repo: Репозиторий БД
+        user_id: ID пользователя
+        additional_filters: Дополнительные фильтры для запроса
+
+    Returns:
+        Список транзакций
+    """
+    try:
+        # Базовые фильтры
+        filters = [
+            Transaction.user_id == user_id,
+            Transaction.source_type == "achievement",
+        ]
+
+        # Добавляем дополнительные фильтры если есть
+        if additional_filters:
+            filters.extend(additional_filters)
+
+        query = select(Transaction).filter(and_(*filters))
+        result = await stp_repo.session.execute(query)
+        return result.scalars().all()
+
+    except Exception as e:
+        logger.error(
+            f"[Достижения] Ошибка выполнения запроса транзакций для пользователя {user_id}: {e}"
+        )
+        return []
+
+
+def _matches_division_criteria(user_division: str, achievement_division: str) -> bool:
+    """Проверяет соответствие направления пользователя критериям достижения.
+
+    Args:
+        user_division: Направление пользователя
+        achievement_division: Требуемое направление для достижения
+
+    Returns:
+        True если пользователь подходит под критерии направления
+    """
+    if achievement_division == "ALL":
+        return True
+
+    # Если достижение для НЦК - пользователь должен быть только из НЦК
+    if achievement_division == "НЦК":
+        return user_division == "НЦК"
+
+    # Если достижение для НТП - пользователь может быть из НТП1, НТП2
+    if achievement_division == "НТП":
+        return user_division in ["НТП1", "НТП2"]
+
+    # Для других направлений - точное совпадение
+    return user_division == achievement_division
+
 
 class AchievementPeriod(Enum):
     """Периоды для проверки достижений."""
@@ -437,24 +529,8 @@ async def _get_user_achievements_by_kpi_date(
     Returns:
         Список транзакций-достижений с указанным kpi_extracted_at
     """
-    try:
-        # Получаем транзакции-достижения с указанным kpi_extracted_at
-        query = select(Transaction).filter(
-            and_(
-                Transaction.user_id == user_id,
-                Transaction.source_type == "achievement",
-                Transaction.kpi_extracted_at == kpi_extract_date,
-            )
-        )
-
-        result = await stp_repo.session.execute(query)
-        return result.scalars().all()
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Ошибка получения достижений по kpi_extract_date {kpi_extract_date} для пользователя {user_id}: {e}"
-        )
-        return []
+    additional_filters = [Transaction.kpi_extracted_at == kpi_extract_date]
+    return await _query_user_transactions(stp_repo, user_id, additional_filters)
 
 
 async def _get_user_achievements_last_n_days(
@@ -470,27 +546,10 @@ async def _get_user_achievements_last_n_days(
     Returns:
         Список транзакций-достижений за последние n дней
     """
-    try:
-        # Вычисляем дату n дней назад
-        cutoff_date = date.today() - timedelta(days=n_days)
-
-        # Получаем транзакции-достижения за последние n дней
-        query = select(Transaction).filter(
-            and_(
-                Transaction.user_id == user_id,
-                Transaction.source_type == "achievement",
-                func.date(Transaction.created_at) >= cutoff_date,
-            )
-        )
-
-        result = await stp_repo.session.execute(query)
-        return result.scalars().all()
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Ошибка получения достижений за последние {n_days} дней для пользователя {user_id}: {e}"
-        )
-        return []
+    # Вычисляем дату n дней назад
+    cutoff_date = date.today() - timedelta(days=n_days)
+    additional_filters = [func.date(Transaction.created_at) >= cutoff_date]
+    return await _query_user_transactions(stp_repo, user_id, additional_filters)
 
 
 def _user_matches_achievement_criteria(user, achievement) -> bool:
@@ -504,23 +563,9 @@ def _user_matches_achievement_criteria(user, achievement) -> bool:
         True если пользователь подходит под критерии
     """
     try:
-        # Проверяем направление (division)
-        if achievement.division != "ALL":
-            user_division = user.division
-            achievement_division = achievement.division
-
-            # Если достижение для НЦК - пользователь должен быть только из НЦК
-            if achievement_division == "НЦК":
-                if user_division != "НЦК":
-                    return False
-            # Если достижение для НТП - пользователь может быть из НТП1, НТП2
-            elif achievement_division == "НТП":
-                if user_division not in ["НТП1", "НТП2"]:
-                    return False
-            # Для других направлений - точное совпадение
-            else:
-                if user_division != achievement_division:
-                    return False
+        # Проверяем направление через унифицированную функцию
+        if not _matches_division_criteria(user.division, achievement.division):
+            return False
 
         # Проверяем позицию (точное совпадение)
         if achievement.position != "ALL" and user.position != achievement.position:
@@ -551,25 +596,8 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
         for kpi_name, criteria_range in kpi_criteria.items():
             min_val, max_val = criteria_range[0], criteria_range[1]
 
-            # Получаем значение KPI пользователя
-            user_value = None
-
-            if kpi_name == "AHT":
-                user_value = user_kpi.aht
-            elif kpi_name == "CC":
-                user_value = user_kpi.contacts_count
-            elif kpi_name == "FLR":
-                user_value = user_kpi.flr
-            elif kpi_name == "CSI":
-                user_value = user_kpi.csi
-            elif kpi_name == "POK":
-                user_value = user_kpi.pok
-            elif kpi_name == "DELAY":
-                user_value = user_kpi.delay
-            elif kpi_name == "SalesCount":
-                user_value = user_kpi.sales_count
-            elif kpi_name == "SalesPotential":
-                user_value = user_kpi.sales_potential
+            # Получаем значение KPI пользователя через унифицированную функцию
+            user_value = _get_kpi_value(user_kpi, kpi_name)
 
             if user_value is None:
                 logger.debug(
@@ -604,22 +632,12 @@ def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
         kpi_criteria = json.loads(kpi_criteria_str)
 
         for kpi_name in kpi_criteria.keys():
-            if kpi_name == "AHT":
-                kpi_values["AHT"] = user_kpi.aht
-            elif kpi_name == "CC" or kpi_name == "TC":
-                kpi_values["Контактов"] = user_kpi.contacts_count
-            elif kpi_name == "FLR":
-                kpi_values["FLR"] = user_kpi.flr
-            elif kpi_name == "CSI":
-                kpi_values["CSI"] = user_kpi.csi
-            elif kpi_name == "POK":
-                kpi_values["POK"] = user_kpi.pok
-            elif kpi_name == "DELAY":
-                kpi_values["DELAY"] = user_kpi.delay
-            elif kpi_name == "SalesCount":
-                kpi_values["SalesCount"] = user_kpi.sales_count
-            elif kpi_name == "SalesPotential":
-                kpi_values["SalesPotential"] = user_kpi.sales_potential
+            # Получаем отображаемое название и значение через унифицированные функции
+            display_name = KPI_MAPPING.get(kpi_name, {}).get("display_name", kpi_name)
+            kpi_value = _get_kpi_value(user_kpi, kpi_name)
+
+            if kpi_value is not None:
+                kpi_values[display_name] = kpi_value
 
     except Exception as e:
         logger.error(f"[Достижения] Ошибка получения значений KPI: {e}")
@@ -640,11 +658,31 @@ def _format_kpi_values(kpi_values: Dict) -> str:
     for kpi_name, value in kpi_values.items():
         if value is not None:
             if isinstance(value, float):
-                formatted_value = f"{value:g}"
+                # Убираем лишние нули после запятой для целых чисел
+                if value.is_integer():
+                    formatted_value = str(int(value))
+                else:
+                    formatted_value = f"{value:g}"
             else:
                 formatted_value = str(value)
             kpi_parts.append(f"{kpi_name} {formatted_value}")
     return ", ".join(kpi_parts)
+
+
+def _add_kpi_info_to_message(
+    message_parts: List[str], achievement: Dict, prefix: str = "Твои показатели: "
+) -> None:
+    """Добавляет информацию о KPI в сообщение.
+
+    Args:
+        message_parts: Список частей сообщения для изменения
+        achievement: Достижение с KPI значениями
+        prefix: Префикс для отображения KPI
+    """
+    if achievement.get("kpi_values"):
+        formatted_kpi = _format_kpi_values(achievement["kpi_values"])
+        if formatted_kpi:
+            message_parts.append(f"{prefix}{formatted_kpi}")
 
 
 def _create_achievement_message(achievement: Dict, new_balance: int = None) -> str:
@@ -663,10 +701,7 @@ def _create_achievement_message(achievement: Dict, new_balance: int = None) -> s
     ]
 
     # Показываем KPI показатели
-    if achievement.get("kpi_values"):
-        formatted_kpi = _format_kpi_values(achievement["kpi_values"])
-        if formatted_kpi:
-            message_parts.append(f"Твои показатели: {formatted_kpi}")
+    _add_kpi_info_to_message(message_parts, achievement)
 
     if new_balance is not None:
         message_parts.append(f"Новый баланс: {new_balance} баллов")
@@ -703,11 +738,8 @@ def _create_batch_achievements_message(
         if achievement.get("description"):
             message_parts.append(f"   📝 {achievement['description']}")
 
-        # Показываем KPI показатели
-        if achievement.get("kpi_values"):
-            formatted_kpi = _format_kpi_values(achievement["kpi_values"])
-            if formatted_kpi:
-                message_parts.append(f"   📊 Твои показатели: {formatted_kpi}")
+        # Показываем KPI показатели через унифицированную функцию
+        _add_kpi_info_to_message(message_parts, achievement, "   📊 Твои показатели: ")
 
         message_parts.append("")  # Пустая строка между достижениями
 
