@@ -1,4 +1,4 @@
-"""Планировщик достижений и наград
+"""Планировщик достижений и наград.
 
 Содержит задачи по проверке и вручению достижений пользователям,
 обработке игровых механик и периодических наград.
@@ -6,8 +6,10 @@
 
 import json
 import logging
+import time
 from datetime import date, timedelta
-from typing import Any, Dict, List, Sequence
+from enum import Enum
+from typing import Dict, List, Sequence
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,8 +24,24 @@ from tgbot.services.schedulers.base import BaseScheduler
 logger = logging.getLogger(__name__)
 
 
+class AchievementPeriod(Enum):
+    """Периоды для проверки достижений."""
+
+    DAILY = ("d", "spec_day_kpi", 1, "ежедневных")
+    WEEKLY = ("w", "spec_week_kpi", 7, "еженедельных")
+    MONTHLY = ("m", "spec_month_kpi", 30, "ежемесячных")
+
+    def __init__(
+        self, period_code: str, kpi_method: str, days_check: int, description: str
+    ):
+        self.period_code = period_code
+        self.kpi_method = kpi_method
+        self.days_check = days_check
+        self.description = description
+
+
 class AchievementScheduler(BaseScheduler):
-    """Планировщик достижений и наград
+    """Планировщик достижений и наград.
 
     Управляет задачами связанными с игровыми механиками:
     - Проверка новых достижений
@@ -33,330 +51,178 @@ class AchievementScheduler(BaseScheduler):
     """
 
     def __init__(self):
+        """Инициализация планировщика достижений."""
         super().__init__("Достижения")
 
     def setup_jobs(
         self, scheduler: AsyncIOScheduler, session_pool, bot: Bot, kpi_session_pool=None
-    ):
-        """Настройка всех задач достижений"""
+    ) -> None:
+        """Настройка всех задач достижений.
+
+        Args:
+            scheduler: Экземпляр планировщика
+            session_pool: Сессия с БД
+            bot: Экземпляр бота
+            kpi_session_pool:
+        """
         self.logger.info("Настройка задач достижений...")
 
-        # Проверка ежедневных достижений - раз в 12 часов, запускать при старте
-        scheduler.add_job(
-            func=self._check_daily_achievements_job,
-            args=[session_pool, kpi_session_pool, bot],
-            trigger="interval",
-            id="achievements_check_daily_achievements",
-            name="Проверка ежедневных достижений",
-            hours=12,
-            coalesce=True,
-            misfire_grace_time=300,
-            replace_existing=True,
-        )
+        # Настройка задач для каждого периода достижений
+        for period in AchievementPeriod:
+            # Основная периодическая задача
+            scheduler.add_job(
+                func=self._check_achievements_job,
+                args=[session_pool, kpi_session_pool, bot, period],
+                trigger="interval",
+                id=f"achievements_check_{period.name.lower()}",
+                name=f"Проверка {period.description} достижений",
+                hours=12,
+                coalesce=True,
+                misfire_grace_time=300,
+                replace_existing=True,
+            )
 
-        # Проверка еженедельных достижений - раз в 12 часов, запускать при старте
-        scheduler.add_job(
-            func=self._check_weekly_achievements_job,
-            args=[session_pool, kpi_session_pool, bot],
-            trigger="interval",
-            id="achievements_check_weekly_achievements",
-            name="Проверка еженедельных достижений",
-            hours=12,
-            coalesce=True,
-            misfire_grace_time=300,
-            replace_existing=True,
-        )
+            # Запуск при старте (используем run_date=None для немедленного выполнения)
+            scheduler.add_job(
+                func=self._check_achievements_job,
+                args=[session_pool, kpi_session_pool, bot, period],
+                trigger="date",
+                id=f"achievements_startup_{period.name.lower()}",
+                name=f"Запуск при старте: Проверка {period.description} достижений",
+                run_date=None,
+            )
 
-        # Проверка ежемесячных достижений - раз в 12 часов, запускать при старте
-        scheduler.add_job(
-            func=self._check_monthly_achievements_job,
-            args=[session_pool, kpi_session_pool, bot],
-            trigger="interval",
-            id="achievements_check_monthly_achievements",
-            name="Проверка ежемесячных достижений",
-            hours=12,
-            coalesce=True,
-            misfire_grace_time=300,
-            replace_existing=True,
-        )
+    async def _check_achievements_job(
+        self, session_pool, kpi_session_pool, bot: Bot, period: AchievementPeriod
+    ) -> None:
+        """Универсальная проверка достижений для любого периода.
 
-        # Запуск задач при старте
-        scheduler.add_job(
-            func=self._check_daily_achievements_job,
-            args=[session_pool, kpi_session_pool, bot],
-            trigger="date",
-            id="achievements_startup_daily_achievements",
-            name="Запуск при старте: Проверка ежедневных достижений",
-            run_date=None,
-        )
+        Args:
+            session_pool: Сессия с основной БД
+            kpi_session_pool: Сессия с БД показателей
+            bot: Экземпляр бота
+            period: Период достижений для проверки
+        """
+        job_name = f"Проверка {period.description} достижений"
+        start_time = time.time()
 
-        scheduler.add_job(
-            func=self._check_weekly_achievements_job,
-            args=[session_pool, kpi_session_pool, bot],
-            trigger="date",
-            id="achievements_startup_weekly_achievements",
-            name="Запуск при старте: Проверка еженедельных достижений",
-            run_date=None,
-        )
-
-        scheduler.add_job(
-            func=self._check_monthly_achievements_job,
-            args=[session_pool, kpi_session_pool, bot],
-            trigger="date",
-            id="achievements_startup_monthly_achievements",
-            name="Запуск при старте: Проверка ежемесячных достижений",
-            run_date=None,
-        )
-
-    async def _check_daily_achievements_job(
-        self, session_pool, kpi_session_pool, bot: Bot
-    ):
-        """Проверка ежедневных достижений"""
-        self._log_job_execution_start("Ежедневная проверка достижений")
+        self._log_job_execution_start(job_name)
         try:
-            await check_daily_achievements(session_pool, kpi_session_pool, bot)
-            self._log_job_execution_end("Ежедневная проверка достижений", success=True)
+            stats = await check_achievements(
+                session_pool, kpi_session_pool, bot, period
+            )
+            execution_time = time.time() - start_time
+
+            logger.info(
+                f"[Достижения] {job_name} завершена за {execution_time:.2f}с. "
+                f"Пользователей: {stats['users_processed']}, "
+                f"Достижений вручено: {stats['achievements_awarded']}, "
+                f"Ошибок: {stats['errors']}"
+            )
+
+            self._log_job_execution_end(job_name, success=True)
         except Exception as e:
-            self._log_job_execution_end(
-                "Ежедневная проверка достижений", success=False, error=str(e)
-            )
-
-    async def _check_weekly_achievements_job(
-        self, session_pool, kpi_session_pool, bot: Bot
-    ):
-        """Проверка еженедельных достижений"""
-        self._log_job_execution_start("Еженедельная проверка достижений")
-        try:
-            await check_weekly_achievements(session_pool, kpi_session_pool, bot)
-            self._log_job_execution_end(
-                "Еженедельная проверка достижений", success=True
-            )
-        except Exception as e:
-            self._log_job_execution_end(
-                "Еженедельная проверка достижений", success=False, error=str(e)
-            )
-
-    async def _check_monthly_achievements_job(
-        self, session_pool, kpi_session_pool, bot: Bot
-    ):
-        """Проверка ежемесячных достижений"""
-        self._log_job_execution_start("Ежемесячная проверка достижений")
-        try:
-            await check_monthly_achievements(session_pool, kpi_session_pool, bot)
-            self._log_job_execution_end("Ежемесячная проверка достижений", success=True)
-        except Exception as e:
-            self._log_job_execution_end(
-                "Ежемесячная проверка достижений", success=False, error=str(e)
-            )
+            self._log_job_execution_end(job_name, success=False, error=str(e))
 
 
-# Функции для работы с достижениями
-async def check_daily_achievements(session_pool, kpi_session_pool, bot: Bot):
-    """Проверка и вручение ежедневных достижений
+async def check_achievements(
+    session_pool, kpi_session_pool, bot: Bot, period: AchievementPeriod
+) -> Dict[str, int]:
+    """Универсальная проверка и вручение достижений для любого периода.
 
     Args:
         session_pool: Пул сессий основной БД
         kpi_session_pool: Пул сессий KPI БД
         bot: Экземпляр бота
+        period: Период для проверки достижений
+
+    Returns:
+        Статистика выполнения: users_processed, achievements_awarded, errors
     """
+    stats = {"users_processed": 0, "achievements_awarded": 0, "errors": 0}
+
     try:
         async with session_pool() as stp_session, kpi_session_pool() as kpi_session:
             stp_repo = MainRequestsRepo(stp_session)
             kpi_repo = KPIRequestsRepo(kpi_session)
 
-            # Получаем всех пользователей
+            # Получаем всех пользователей одним запросом
             playing_users = await stp_repo.employee.get_users(roles=[1, 3, 10])
-
             if not playing_users:
                 logger.info("[Достижения] Нет пользователей в базе данных")
-                return
+                return stats
 
-            # Получаем все ежедневные достижения
-            daily_achievements_list = await stp_repo.achievement.get_achievements()
-            daily_achievements_list = [
-                ach for ach in daily_achievements_list if ach.period == "d"
+            # Получаем все достижения для периода одним запросом
+            all_achievements = await stp_repo.achievement.get_achievements()
+            period_achievements = [
+                ach for ach in all_achievements if ach.period == period.period_code
             ]
 
-            if not daily_achievements_list:
-                logger.info("[Достижения] Нет ежедневных достижений в базе данных")
-                return
+            if not period_achievements:
+                logger.info(
+                    f"[Достижения] Нет {period.description} достижений в базе данных"
+                )
+                return stats
 
             logger.info(
-                f"[Достижения] Проверка {len(daily_achievements_list)} ежедневных достижений для {len(playing_users)} пользователей"
+                f"[Достижения] Проверка {len(period_achievements)} {period.description} достижений "
+                f"для {len(playing_users)} пользователей"
             )
 
-            new_achievements_count = 0
-
+            # Обрабатываем всех пользователей
             for user in playing_users:
                 try:
+                    stats["users_processed"] += 1
+
                     # Проверяем достижения для пользователя
-                    earned_achievements = await _check_user_daily_achievements(
-                        stp_repo, kpi_repo, user, daily_achievements_list
+                    earned_achievements = await _check_user_achievements(
+                        stp_repo, kpi_repo, user, period_achievements, period
                     )
 
                     if earned_achievements:
                         await _award_achievements(
                             stp_repo, user, earned_achievements, bot
                         )
-                        new_achievements_count += len(earned_achievements)
+                        stats["achievements_awarded"] += len(earned_achievements)
 
                 except Exception as e:
+                    stats["errors"] += 1
                     logger.error(
-                        f"[Достижения] Ошибка проверки достижений для пользователя {user.fullname}: {e}"
+                        f"[Достижения] Ошибка проверки {period.description} достижений "
+                        f"для пользователя {user.fullname}: {e}"
                     )
                     continue
 
             logger.info(
-                f"[Достижения] Вручено {new_achievements_count} ежедневных достижений"
+                f"[Достижения] Вручено {stats['achievements_awarded']} {period.description} достижений"
             )
 
     except Exception as e:
+        stats["errors"] += 1
         logger.error(
-            f"[Достижения] Критическая ошибка при проверке ежедневных достижений: {e}"
+            f"[Достижения] Критическая ошибка при проверке {period.description} достижений: {e}"
         )
+        raise
 
-
-async def check_weekly_achievements(session_pool, kpi_session_pool, bot: Bot):
-    """Проверка и вручение еженедельных достижений
-
-    Args:
-        session_pool: Пул сессий основной БД
-        kpi_session_pool: Пул сессий KPI БД
-        bot: Экземпляр бота
-    """
-    try:
-        async with session_pool() as stp_session, kpi_session_pool() as kpi_session:
-            stp_repo = MainRequestsRepo(stp_session)
-            kpi_repo = KPIRequestsRepo(kpi_session)
-
-            # Получаем всех пользователей
-            playing_users = await stp_repo.employee.get_users(roles=[1, 3, 10])
-
-            if not playing_users:
-                logger.info("[Достижения] Нет пользователей в базе данных")
-                return
-
-            # Получаем все еженедельные достижения
-            weekly_achievements_list = await stp_repo.achievement.get_achievements()
-            weekly_achievements_list = [
-                ach for ach in weekly_achievements_list if ach.period == "w"
-            ]
-
-            if not weekly_achievements_list:
-                logger.info("[Достижения] Нет еженедельных достижений в базе данных")
-                return
-
-            logger.info(
-                f"[Достижения] Проверка {len(weekly_achievements_list)} еженедельных достижений для {len(playing_users)} пользователей"
-            )
-
-            new_achievements_count = 0
-
-            for user in playing_users:
-                try:
-                    # Проверяем достижения для пользователя
-                    earned_achievements = await _check_user_weekly_achievements(
-                        stp_repo, kpi_repo, user, weekly_achievements_list
-                    )
-
-                    if earned_achievements:
-                        await _award_achievements(
-                            stp_repo, user, earned_achievements, bot
-                        )
-                        new_achievements_count += len(earned_achievements)
-
-                except Exception as e:
-                    logger.error(
-                        f"[Достижения] Ошибка проверки еженедельных достижений для пользователя {user.fullname}: {e}"
-                    )
-                    continue
-
-            logger.info(
-                f"[Достижения] Вручено {new_achievements_count} еженедельных достижений"
-            )
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Критическая ошибка при проверке еженедельных достижений: {e}"
-        )
-
-
-async def check_monthly_achievements(session_pool, kpi_session_pool, bot: Bot):
-    """Проверка и вручение ежемесячных достижений
-
-    Args:
-        session_pool: Пул сессий основной БД
-        kpi_session_pool: Пул сессий KPI БД
-        bot: Экземпляр бота
-    """
-    try:
-        async with session_pool() as stp_session, kpi_session_pool() as kpi_session:
-            stp_repo = MainRequestsRepo(stp_session)
-            kpi_repo = KPIRequestsRepo(kpi_session)
-
-            # Получаем всех пользователей
-            playing_users = await stp_repo.employee.get_users(roles=[1, 3, 10])
-
-            if not playing_users:
-                logger.info("[Достижения] Нет пользователей в базе данных")
-                return
-
-            # Получаем все ежемесячные достижения
-            monthly_achievements_list = await stp_repo.achievement.get_achievements()
-            monthly_achievements_list = [
-                ach for ach in monthly_achievements_list if ach.period == "m"
-            ]
-
-            if not monthly_achievements_list:
-                logger.info("[Достижения] Нет ежемесячных достижений в базе данных")
-                return
-
-            logger.info(
-                f"[Достижения] Проверка {len(monthly_achievements_list)} ежемесячных достижений для {len(playing_users)} пользователей"
-            )
-
-            new_achievements_count = 0
-
-            for user in playing_users:
-                try:
-                    # Проверяем достижения для пользователя
-                    earned_achievements = await _check_user_monthly_achievements(
-                        stp_repo, kpi_repo, user, monthly_achievements_list
-                    )
-
-                    if earned_achievements:
-                        await _award_achievements(
-                            stp_repo, user, earned_achievements, bot
-                        )
-                        new_achievements_count += len(earned_achievements)
-
-                except Exception as e:
-                    logger.error(
-                        f"[Достижения] Ошибка проверки ежемесячных достижений для пользователя {user.fullname}: {e}"
-                    )
-                    continue
-
-            logger.info(
-                f"[Достижения] Вручено {new_achievements_count} ежемесячных достижений"
-            )
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Критическая ошибка при проверке ежемесячных достижений: {e}"
-        )
+    return stats
 
 
 # Вспомогательные функции
-async def _check_user_daily_achievements(
-    stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo, user, achievements_list: List
+async def _check_user_achievements(
+    stp_repo: MainRequestsRepo,
+    kpi_repo: KPIRequestsRepo,
+    user,
+    achievements_list: List,
+    period: AchievementPeriod,
 ) -> List[Dict]:
-    """Проверка ежедневных достижений для конкретного пользователя
+    """Проверка достижений для конкретного пользователя.
 
     Args:
         stp_repo: Репозиторий основной БД
         kpi_repo: Репозиторий KPI БД
-        user: Пользователь
-        achievements_list: Список доступных ежедневных достижений
+        user: Экземпляр пользователя с моделью Employee
+        achievements_list: Список доступных достижений
+        period: Период для проверки
 
     Returns:
         Список новых достижений для вручения
@@ -367,11 +233,19 @@ async def _check_user_daily_achievements(
         if not user.user_id:
             return earned_achievements
 
-        # Получаем KPI пользователя за сегодня
-        user_kpi = await kpi_repo.spec_day_kpi.get_kpi(user.fullname)
+        # Динамически получаем нужный KPI метод
+        kpi_method = getattr(kpi_repo, period.kpi_method, None)
+        if not kpi_method:
+            logger.error(
+                f"[Достижения] Метод KPI {period.kpi_method} не найден для периода {period.name}"
+            )
+            return earned_achievements
+
+        # Получаем KPI пользователя за период
+        user_kpi = await kpi_method.get_kpi(user.fullname)
         if not user_kpi:
             logger.debug(
-                f"[Достижения] Нет KPI данных для пользователя {user.fullname}"
+                f"[Достижения] Нет {period.description} KPI данных для пользователя {user.fullname}"
             )
             return earned_achievements
 
@@ -379,22 +253,21 @@ async def _check_user_daily_achievements(
         kpi_extract_date = user_kpi.kpi_extract_date
         if not kpi_extract_date:
             logger.debug(
-                f"[Достижения] Нет kpi_extract_date в KPI данных для пользователя {user.fullname}"
+                f"[Достижения] Нет kpi_extract_date в {period.description} KPI данных для пользователя {user.fullname}"
             )
             return earned_achievements
 
-        # Проверяем, есть ли уже достижения с этим kpi_extracted_at
-        existing_transactions = await _get_user_achievements_by_kpi_date(
-            stp_repo, user.user_id, kpi_extract_date
+        # Получаем существующие достижения одним запросом
+        (
+            existing_transactions,
+            recent_transactions,
+        ) = await _get_user_achievement_history(
+            stp_repo, user.user_id, kpi_extract_date, period.days_check
         )
+
         existing_achievement_ids = {
             t.source_id for t in existing_transactions if t.source_id
         }
-
-        # Также проверяем достижения за последний день (для предотвращения дублирования)
-        recent_transactions = await _get_user_achievements_last_n_days(
-            stp_repo, user.user_id, 1
-        )
         recent_achievement_ids = {
             t.source_id for t in recent_transactions if t.source_id
         }
@@ -409,10 +282,10 @@ async def _check_user_daily_achievements(
                     )
                     continue
 
-                # Пропускаем если достижение было получено за последний день
+                # Пропускаем если достижение было получено за последний период
                 if achievement.id in recent_achievement_ids:
                     logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено за последний день"
+                        f"[Достижения] Достижение {achievement.name} уже получено за последний период ({period.description})"
                     )
                     continue
 
@@ -428,10 +301,10 @@ async def _check_user_daily_achievements(
                         "description": achievement.description,
                         "reward_points": achievement.reward,
                         "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
-                        "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
+                        "kpi_extract_date": kpi_extract_date,
                     })
                     logger.info(
-                        f"[Достижения] Пользователь {user.fullname} заработал достижение '{achievement.name}'"
+                        f"[Достижения] Пользователь {user.fullname} заработал {period.description[:-2]}ое достижение '{achievement.name}'"
                     )
 
             except Exception as e:
@@ -442,218 +315,50 @@ async def _check_user_daily_achievements(
 
     except Exception as e:
         logger.error(
-            f"[Достижения] Ошибка проверки достижений пользователя {user.fullname}: {e}"
+            f"[Достижения] Ошибка проверки {period.description} достижений пользователя {user.fullname}: {e}"
         )
 
     return earned_achievements
 
 
-async def _check_user_weekly_achievements(
-    stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo, user, achievements_list: List
-) -> List[Dict]:
-    """Проверка еженедельных достижений для конкретного пользователя
+async def _get_user_achievement_history(
+    stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date, days_check: int
+) -> tuple[Sequence[Transaction], Sequence[Transaction]]:
+    """Получает историю достижений пользователя одним запросом.
 
     Args:
-        stp_repo: Репозиторий основной БД
-        kpi_repo: Репозиторий KPI БД
-        user: Пользователь
-        achievements_list: Список доступных еженедельных достижений
+        stp_repo: Репозиторий БД
+        user_id: ID пользователя
+        kpi_extract_date: Дата извлечения KPI
+        days_check: Количество дней для проверки дублирования
 
     Returns:
-        Список новых достижений для вручения
+        Tuple из существующих достижений с той же датой KPI и недавних достижений
     """
-    earned_achievements = []
-
     try:
-        if not user.user_id:
-            return earned_achievements
-
-        # Получаем KPI пользователя за неделю
-        user_kpi = await kpi_repo.spec_week_kpi.get_kpi(user.fullname)
-        if not user_kpi:
-            logger.debug(
-                f"[Достижения] Нет недельных KPI данных для пользователя {user.fullname}"
-            )
-            return earned_achievements
-
-        # Получаем kpi_extract_date из KPI данных
-        kpi_extract_date = user_kpi.kpi_extract_date
-        if not kpi_extract_date:
-            logger.debug(
-                f"[Достижения] Нет kpi_extract_date в недельных KPI данных для пользователя {user.fullname}"
-            )
-            return earned_achievements
-
-        # Проверяем, есть ли уже достижения с этим kpi_extracted_at
+        # Получаем достижения с определенной датой KPI
         existing_transactions = await _get_user_achievements_by_kpi_date(
-            stp_repo, user.user_id, kpi_extract_date
+            stp_repo, user_id, kpi_extract_date
         )
-        existing_achievement_ids = {
-            t.source_id for t in existing_transactions if t.source_id
-        }
 
-        # Также проверяем достижения за последнюю неделю (для предотвращения дублирования)
+        # Получаем достижения за последние N дней
         recent_transactions = await _get_user_achievements_last_n_days(
-            stp_repo, user.user_id, 7
+            stp_repo, user_id, days_check
         )
-        recent_achievement_ids = {
-            t.source_id for t in recent_transactions if t.source_id
-        }
 
-        # Проверяем каждое доступное достижение
-        for achievement in achievements_list:
-            try:
-                # Пропускаем достижение если уже получено с этим kpi_extracted_at
-                if achievement.id in existing_achievement_ids:
-                    logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
-                    )
-                    continue
-
-                # Пропускаем если достижение было получено за последнюю неделю
-                if achievement.id in recent_achievement_ids:
-                    logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено за последнюю неделю"
-                    )
-                    continue
-
-                # Проверяем соответствие пользователя критериям достижения
-                if not _user_matches_achievement_criteria(user, achievement):
-                    continue
-
-                # Проверяем KPI критерии
-                if await _check_kpi_criteria(user_kpi, achievement.kpi):
-                    earned_achievements.append({
-                        "id": achievement.id,
-                        "name": achievement.name,
-                        "description": achievement.description,
-                        "reward_points": achievement.reward,
-                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
-                        "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
-                    })
-                    logger.info(
-                        f"[Достижения] Пользователь {user.fullname} заработал еженедельное достижение '{achievement.name}'"
-                    )
-
-            except Exception as e:
-                logger.error(
-                    f"[Достижения] Ошибка проверки еженедельного достижения {achievement.name} для {user.fullname}: {e}"
-                )
-                continue
+        return existing_transactions, recent_transactions
 
     except Exception as e:
         logger.error(
-            f"[Достижения] Ошибка проверки еженедельных достижений пользователя {user.fullname}: {e}"
+            f"[Достижения] Ошибка получения истории достижений для пользователя {user_id}: {e}"
         )
-
-    return earned_achievements
-
-
-async def _check_user_monthly_achievements(
-    stp_repo: MainRequestsRepo, kpi_repo: KPIRequestsRepo, user, achievements_list: List
-) -> List[Dict]:
-    """Проверка ежемесячных достижений для конкретного пользователя
-
-    Args:
-        stp_repo: Репозиторий основной БД
-        kpi_repo: Репозиторий KPI БД
-        user: Пользователь
-        achievements_list: Список доступных ежемесячных достижений
-
-    Returns:
-        Список новых достижений для вручения
-    """
-    earned_achievements = []
-
-    try:
-        if not user.user_id:
-            return earned_achievements
-
-        # Получаем KPI пользователя за месяц
-        user_kpi = await kpi_repo.spec_month_kpi.get_kpi(user.fullname)
-        if not user_kpi:
-            logger.debug(
-                f"[Достижения] Нет месячных KPI данных для пользователя {user.fullname}"
-            )
-            return earned_achievements
-
-        # Получаем kpi_extract_date из KPI данных
-        kpi_extract_date = user_kpi.kpi_extract_date
-        if not kpi_extract_date:
-            logger.debug(
-                f"[Достижения] Нет kpi_extract_date в месячных KPI данных для пользователя {user.fullname}"
-            )
-            return earned_achievements
-
-        # Проверяем, есть ли уже достижения с этим kpi_extracted_at
-        existing_transactions = await _get_user_achievements_by_kpi_date(
-            stp_repo, user.user_id, kpi_extract_date
-        )
-        existing_achievement_ids = {
-            t.source_id for t in existing_transactions if t.source_id
-        }
-
-        # Также проверяем достижения за последний месяц (для предотвращения дублирования)
-        recent_transactions = await _get_user_achievements_last_n_days(
-            stp_repo, user.user_id, 30
-        )
-        recent_achievement_ids = {
-            t.source_id for t in recent_transactions if t.source_id
-        }
-
-        # Проверяем каждое доступное достижение
-        for achievement in achievements_list:
-            try:
-                # Пропускаем достижение если уже получено с этим kpi_extracted_at
-                if achievement.id in existing_achievement_ids:
-                    logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
-                    )
-                    continue
-
-                # Пропускаем если достижение было получено за последний месяц
-                if achievement.id in recent_achievement_ids:
-                    logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено за последний месяц"
-                    )
-                    continue
-
-                # Проверяем соответствие пользователя критериям достижения
-                if not _user_matches_achievement_criteria(user, achievement):
-                    continue
-
-                # Проверяем KPI критерии
-                if await _check_kpi_criteria(user_kpi, achievement.kpi):
-                    earned_achievements.append({
-                        "id": achievement.id,
-                        "name": achievement.name,
-                        "description": achievement.description,
-                        "reward_points": achievement.reward,
-                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
-                        "kpi_extract_date": kpi_extract_date,  # Добавляем дату KPI
-                    })
-                    logger.info(
-                        f"[Достижения] Пользователь {user.fullname} заработал ежемесячное достижение '{achievement.name}'"
-                    )
-
-            except Exception as e:
-                logger.error(
-                    f"[Достижения] Ошибка проверки ежемесячного достижения {achievement.name} для {user.fullname}: {e}"
-                )
-                continue
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Ошибка проверки ежемесячных достижений пользователя {user.fullname}: {e}"
-        )
-
-    return earned_achievements
+        return [], []
 
 
 async def _award_achievements(
     stp_repo: MainRequestsRepo, user, achievements: List[Dict], bot: Bot
 ):
-    """Вручение достижений пользователю
+    """Вручение достижений пользователю.
 
     Args:
         stp_repo: Репозиторий БД
@@ -719,117 +424,10 @@ async def _award_achievements(
         )
 
 
-async def _get_user_achievements_today(
-    stp_repo: MainRequestsRepo, user_id: int
-) -> Sequence[Transaction] | list[Any]:
-    """Получает достижения пользователя за сегодня
-
-    Args:
-        stp_repo: Репозиторий БД
-        user_id: ID пользователя
-
-    Returns:
-        Список транзакций-достижений за сегодня
-    """
-    try:
-        today = date.today()
-
-        # Получаем транзакции-достижения за сегодня
-        query = select(Transaction).filter(
-            and_(
-                Transaction.user_id == user_id,
-                Transaction.source_type == "achievement",
-                func.date(Transaction.created_at) == today,
-            )
-        )
-
-        result = await stp_repo.session.execute(query)
-        return result.scalars().all()
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Ошибка получения достижений сегодня для пользователя {user_id}: {e}"
-        )
-        return []
-
-
-async def _get_user_achievements_this_week(
-    stp_repo: MainRequestsRepo, user_id: int
-) -> Sequence[Transaction] | list[Any]:
-    """Получает достижения пользователя за текущую неделю
-
-    Args:
-        stp_repo: Репозиторий БД
-        user_id: ID пользователя
-
-    Returns:
-        Список транзакций-достижений за текущую неделю
-    """
-    try:
-        # Вычисляем начало недели (понедельник)
-        today = date.today()
-        days_since_monday = today.weekday()
-        week_start = today - timedelta(days=days_since_monday)
-
-        # Получаем транзакции-достижения за текущую неделю
-        query = select(Transaction).filter(
-            and_(
-                Transaction.user_id == user_id,
-                Transaction.source_type == "achievement",
-                func.date(Transaction.created_at) >= week_start,
-            )
-        )
-
-        result = await stp_repo.session.execute(query)
-        return result.scalars().all()
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Ошибка получения достижений на этой неделе для пользователя {user_id}: {e}"
-        )
-        return []
-
-
-async def _get_user_achievements_this_month(
-    stp_repo: MainRequestsRepo, user_id: int
-) -> Sequence[Transaction] | list[Any]:
-    """Получает достижения пользователя за текущий месяц
-
-    Args:
-        stp_repo: Репозиторий БД
-        user_id: ID пользователя
-
-    Returns:
-        Список транзакций-достижений за текущий месяц
-    """
-    try:
-        # Вычисляем начало месяца
-        today = date.today()
-        month_start = today.replace(day=1)
-
-        # Получаем транзакции-достижения за текущий месяц
-        query = select(Transaction).filter(
-            and_(
-                Transaction.user_id == user_id,
-                Transaction.source_type == "achievement",
-                func.date(Transaction.created_at) >= month_start,
-            )
-        )
-
-        result = await stp_repo.session.execute(query)
-        return result.scalars().all()
-
-    except Exception as e:
-        logger.error(
-            f"[Достижения] Ошибка получения достижений в этом месяце для пользователя {user_id}: {e}"
-        )
-        return []
-
-
 async def _get_user_achievements_by_kpi_date(
     stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date
 ) -> Sequence[Transaction] | list:
-    """Получает достижения пользователя с определенным kpi_extracted_at
+    """Получает достижения пользователя с определенным kpi_extracted_at.
 
     Args:
         stp_repo: Репозиторий БД
@@ -862,7 +460,7 @@ async def _get_user_achievements_by_kpi_date(
 async def _get_user_achievements_last_n_days(
     stp_repo: MainRequestsRepo, user_id: int, n_days: int
 ) -> Sequence[Transaction] | list:
-    """Получает достижения пользователя за последние n дней
+    """Получает достижения пользователя за последние n дней.
 
     Args:
         stp_repo: Репозиторий БД
@@ -896,11 +494,11 @@ async def _get_user_achievements_last_n_days(
 
 
 def _user_matches_achievement_criteria(user, achievement) -> bool:
-    """Проверяет соответствие пользователя критериям достижения
+    """Проверяет соответствие пользователя критериям достижения.
 
     Args:
-        user: Пользователь
-        achievement: Достижение
+        user: Экземпляр пользователя с моделью Employee
+        achievement:
 
     Returns:
         True если пользователь подходит под критерии
@@ -938,7 +536,7 @@ def _user_matches_achievement_criteria(user, achievement) -> bool:
 
 
 async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
-    """Проверяет соответствие KPI пользователя критериям достижения
+    """Проверяет соответствие KPI пользователя критериям достижения.
 
     Args:
         user_kpi: KPI пользователя за день
@@ -958,7 +556,7 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
 
             if kpi_name == "AHT":
                 user_value = user_kpi.aht
-            elif kpi_name == "CC" or kpi_name == "TC":  # TC - это contacts_count
+            elif kpi_name == "CC":
                 user_value = user_kpi.contacts_count
             elif kpi_name == "FLR":
                 user_value = user_kpi.flr
@@ -991,7 +589,7 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
 
 
 def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
-    """Получает актуальные значения KPI пользователя согласно критериям
+    """Получает актуальные значения KPI пользователя согласно критериям.
 
     Args:
         user_kpi: KPI пользователя за день
@@ -1030,7 +628,7 @@ def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
 
 
 def _format_kpi_values(kpi_values: Dict) -> str:
-    """Форматирует KPI значения в читаемую строку
+    """Форматирует KPI значения в читаемую строку.
 
     Args:
         kpi_values: Словарь с KPI значениями
@@ -1046,10 +644,10 @@ def _format_kpi_values(kpi_values: Dict) -> str:
 
 
 def _create_achievement_message(achievement: Dict, new_balance: int = None) -> str:
-    """Создание сообщения о получении достижения
+    """Создание сообщения о получении достижения.
 
     Args:
-        achievement: Данные о достижении
+        achievement: Достижение с моделью Achievement
         new_balance: Новый баланс пользователя
 
     Returns:
@@ -1069,7 +667,7 @@ def _create_achievement_message(achievement: Dict, new_balance: int = None) -> s
     if new_balance is not None:
         message_parts.append(f"Новый баланс: {new_balance} баллов")
 
-    message_parts.append("\n✨  Поздравляем с новым достижением!")
+    message_parts.append("\n✨ Поздравляем с новым достижением!")
 
     return "\n".join(message_parts)
 
@@ -1077,7 +675,7 @@ def _create_achievement_message(achievement: Dict, new_balance: int = None) -> s
 def _create_batch_achievements_message(
     achievements: List[Dict], total_reward: int, final_balance: int = None
 ) -> str:
-    """Создание сообщения о получении нескольких достижений
+    """Создание сообщения о получении нескольких достижений.
 
     Args:
         achievements: Список достижений
