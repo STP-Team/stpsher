@@ -46,13 +46,16 @@ async def groups_list_getter(
 
     for group in user_groups:
         try:
+            chat = await bot.get_chat(chat_id=group.group_id)
             group_admins = await bot.get_chat_administrators(chat_id=group.group_id)
             admin_ids = [admin.user.id for admin in group_admins]
-
             if user.user_id in admin_ids:
                 # Получаем информацию о чате для отображения названия
-                chat = await bot.get_chat(chat_id=group.group_id)
-                group_name = chat.title or "Без названия"
+                group = await stp_repo.group.get_groups(group.group_id)
+                group_name = (
+                    f"{'👥' if group.group_type == 'group' else '📢'} {chat.title}"
+                    or "Без названия"
+                )
                 managed_groups.append((group_name, str(group.group_id)))
         except TelegramBadRequest:
             # Пропускаем группы, где бот больше не имеет доступа
@@ -104,7 +107,12 @@ async def groups_details_getter(
     # Сброс флага инициализации
     dialog_manager.dialog_data["initializing_checkboxes"] = False
 
-    return {"group_name": chat.title, "group_id": chat.id}
+    return {
+        "group_name": chat.title,
+        "group_id": chat.id,
+        "is_channel": settings.group_type == "channel",
+        "group_type": "канала" if settings.group_type == "channel" else "группы",
+    }
 
 
 async def group_details_access_getter(

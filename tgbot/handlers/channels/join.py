@@ -119,6 +119,7 @@ async def got_auto_admin_rights_channel(
         channel = await stp_repo.group.add_group(
             group_id=event.chat.id, group_type="channel", invited_by=event.from_user.id
         )
+        await stp_repo.group_member.add_member(event.chat.id, event.from_user.id)
         if channel:
             logger.info(
                 f"[БД] Канал {event.chat.id} добавлен в базу данных пользователем {event.from_user.id}"
@@ -156,6 +157,7 @@ async def got_manual_admin_rights_channel(
         channel = await stp_repo.group.add_group(
             group_id=event.chat.id, group_type="channel", invited_by=event.from_user.id
         )
+        await stp_repo.group_member.add_member(event.chat.id, event.from_user.id)
         if channel:
             logger.info(
                 f"[БД] Канал {event.chat.id} добавлен в базу данных пользователем {event.from_user.id}"
@@ -207,8 +209,9 @@ async def bot_get_kicked_from_channel(
         chat_id=event.from_user.id,
         text=f"""🔥 <b>Бот удален из канала</b> <code>{event.chat.title}</code>
 
-Настройки канала сброшены до стандартных
+Настройки канала сброшены до стандартных, сохраненные участники удалены из базы
 
 <i>При добавлении бота обратно нужно будет настроить его обратно</i>""",
     )
     await stp_repo.group.delete_group(event.chat.id)
+    await stp_repo.group_member.remove_all_members(event.chat.id)

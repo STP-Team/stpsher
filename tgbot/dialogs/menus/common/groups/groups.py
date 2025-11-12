@@ -6,6 +6,7 @@ from typing import Any
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Checkbox,
+    Group,
     ManagedRadio,
     Radio,
     Row,
@@ -166,40 +167,41 @@ groups_list_window = Window(
 
 
 groups_list_detail_window = Window(
-    Format("""⚙️ <b>Настройки группы</b>: {group_name}
+    Format("""⚙️ <b>Настройки {group_type}</b>: {group_name}
     
 <b>Обозначения</b>
 - 🟢 Опция включена
 - 🔴 Опция выключена
 
-Идентификатор группы: <code>{group_id}</code>
-
-<i>Используй меню для управления функциями бота в группе</i>"""),
+Идентификатор {group_type}: <code>{group_id}</code>"""),
     SwitchTo(
         Const("🛡️ Уровень доступа"),
         id="access_level",
         state=Groups.settings_access,
     ),
-    Row(
-        Checkbox(
-            Const("🟢 Приветствие"),
-            Const("🔴 Приветствие"),
-            id="new_user_notify",
-            on_click=on_new_user_notify_click,
+    Group(
+        Row(
+            Checkbox(
+                Const("🟢 Приветствие"),
+                Const("🔴 Приветствие"),
+                id="new_user_notify",
+                on_click=on_new_user_notify_click,
+            ),
+            Checkbox(
+                Const("🟢 Казино"),
+                Const("🔴 Казино"),
+                id="is_casino_allowed",
+                on_click=on_is_casino_allowed_click,
+            ),
         ),
-        Checkbox(
-            Const("🟢 Казино"),
-            Const("🔴 Казино"),
-            id="is_casino_allowed",
-            on_click=on_is_casino_allowed_click,
+        Row(
+            SwitchTo(
+                Const("🗑️ Сервисные сообщения"),
+                id="service_messages",
+                state=Groups.settings_services,
+            ),
         ),
-    ),
-    Row(
-        SwitchTo(
-            Const("🗑️ Сервисные сообщения"),
-            id="service_messages",
-            state=Groups.settings_services,
-        ),
+        when=~F["is_channel"],
     ),
     SwitchTo(Const("♻️ Удалить бота"), id="remove_bot", state=Groups.settings_remove),
     Row(
