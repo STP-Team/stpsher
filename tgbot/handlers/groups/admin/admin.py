@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 group_admin_router = Router()
 group_admin_router.message.filter(
-    F.chat.type.in_(("group", "supergroup")), GroupAdminFilter()
+    F.chat.type.in_(("groups", "supergroup")), GroupAdminFilter()
 )
 
 

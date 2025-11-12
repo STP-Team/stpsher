@@ -244,7 +244,7 @@ async def on_broadcast_send(
         db_type = "division"
         target = ", ".join(broadcast_items)
     elif broadcast_type == "by_group":
-        db_type = "group"
+        db_type = "groups"
         # Получаем ФИО руководителей для target
         head_names = []
         for head_id in broadcast_items:

@@ -7,7 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.handlers.group.whois import create_user_info_message
+from tgbot.handlers.groups.whois import create_user_info_message
 from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)
@@ -119,7 +119,7 @@ async def private_whois_command(
         chat_type_name = {
             "channel": "канала",
             "supergroup": "супергруппы",
-            "group": "группы",
+            "groups": "группы",
         }.get(forward_info.get("chat_type"), "чата")
 
         await message.reply(
@@ -484,7 +484,7 @@ async def handle_forwarded_message_from_chat(message: Message, user: Employee):
     chat_type_name = {
         "channel": "канала",
         "supergroup": "супергруппы",
-        "group": "группы",
+        "groups": "группы",
     }.get(message.forward_from_chat.type, "чата")
 
     await message.reply(

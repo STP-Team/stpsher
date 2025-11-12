@@ -16,7 +16,7 @@ from tgbot.services.leveling import LevelingSystem
 logger = logging.getLogger(__name__)
 
 group_user_router = Router()
-group_user_router.message.filter(F.chat.type.in_(("group", "supergroup")))
+group_user_router.message.filter(F.chat.type.in_(("groups", "supergroup")))
 
 
 @group_user_router.message(Command("admins"))

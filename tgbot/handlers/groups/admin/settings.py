@@ -6,12 +6,12 @@ from aiogram.utils.deep_linking import create_start_link
 from tgbot.filters.group import GroupAdminFilter
 
 group_settings_router = Router()
-group_settings_router.message.filter(F.chat.type.in_(("group", "supergroup")))
+group_settings_router.message.filter(F.chat.type.in_(("groups", "supergroup")))
 
 
 @group_settings_router.message(Command("settings"), GroupAdminFilter())
 async def group_settings(message: Message):
-    """Handle /settings command for group admins."""
+    """Handle /settings command for groups admins."""
     # Создаем deeplink для открытия настроек группы в личке
     settings_deeplink = await create_start_link(
         message.bot, payload=f"group_{message.chat.id}", encode=True

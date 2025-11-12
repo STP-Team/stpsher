@@ -36,7 +36,7 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo = data.get("stp_repo")
 
         # Обрабатываем разные типы событий
-        if isinstance(event, Message) and event.chat.type in ["group", "supergroup"]:
+        if isinstance(event, Message) and event.chat.type in ["groups", "supergroup"]:
             # Проверяем является ли сообщение командой в незарегистрированной группе
             command_handled = await self._handle_unregistered_group_command(
                 event, stp_repo
@@ -53,7 +53,7 @@ class GroupsMiddleware(BaseMiddleware):
 
             await self._update_group(event, stp_repo)
         elif isinstance(event, ChatMemberUpdated) and event.chat.type in [
-            "group",
+            "groups",
             "supergroup",
         ]:
             await self._handle_group_membership_change(event, stp_repo)

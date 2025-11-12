@@ -23,7 +23,7 @@ class GroupAdminFilter(BaseFilter):
             True если пользователь является администратором или создателем,
             False в остальных случаях (включая приватные чаты).
         """
-        if message.chat.type not in ["group", "supergroup"]:
+        if message.chat.type not in ["groups", "supergroup"]:
             return False
 
         member: ChatMember = await bot.get_chat_member(

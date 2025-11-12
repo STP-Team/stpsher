@@ -4,11 +4,11 @@ from tgbot.handlers.auth import user_auth_router
 from tgbot.handlers.common.whois import whois_router
 from tgbot.handlers.deeplinks import deeplink_router
 from tgbot.handlers.exchange_reschedule import exchange_reschedule_router
-from tgbot.handlers.group.admin.admin import group_admin_router
-from tgbot.handlers.group.admin.settings import group_settings_router
-from tgbot.handlers.group.group_join import chat_member
-from tgbot.handlers.group.user.main import group_user_router
-from tgbot.handlers.group.whois import group_whois_router
+from tgbot.handlers.groups.admin.admin import group_admin_router
+from tgbot.handlers.groups.admin.settings import group_settings_router
+from tgbot.handlers.groups.join import groups_router
+from tgbot.handlers.groups.user.main import group_user_router
+from tgbot.handlers.groups.whois import group_whois_router
 from tgbot.handlers.inline.inline import user_inline_router
 from tgbot.handlers.start import start_router
 
@@ -23,7 +23,7 @@ routers_list = [
     group_admin_router,
     group_user_router,
     group_settings_router,
-    chat_member,
+    groups_router,
 ]
 
 __all__ = [

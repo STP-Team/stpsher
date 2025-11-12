@@ -244,7 +244,7 @@ async def broadcast_detail_getter(
             broadcast_type = "🌎 Всем"
         else:
             broadcast_type = "🔰 По направлению"
-    elif broadcast.type == "group":
+    elif broadcast.type == "groups":
         broadcast_type = "👔 По группам"
     elif broadcast.type == "role":
         broadcast_type = "🛡️ По уровню доступа"

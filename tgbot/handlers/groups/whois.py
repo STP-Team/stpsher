@@ -10,7 +10,7 @@ from tgbot.misc.helpers import format_fullname, get_role
 logger = logging.getLogger(__name__)
 
 group_whois_router = Router()
-group_whois_router.message.filter(F.chat.type.in_(("group", "supergroup")))
+group_whois_router.message.filter(F.chat.type.in_(("groups", "supergroup")))
 
 
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
