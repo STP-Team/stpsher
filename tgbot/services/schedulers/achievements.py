@@ -639,7 +639,11 @@ def _format_kpi_values(kpi_values: Dict) -> str:
     kpi_parts = []
     for kpi_name, value in kpi_values.items():
         if value is not None:
-            kpi_parts.append(f"{kpi_name} {value}")
+            if isinstance(value, float):
+                formatted_value = f"{value:g}"
+            else:
+                formatted_value = str(value)
+            kpi_parts.append(f"{kpi_name} {formatted_value}")
     return ", ".join(kpi_parts)
 
 
