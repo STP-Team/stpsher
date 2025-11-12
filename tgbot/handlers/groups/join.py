@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import IS_ADMIN, IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter
 from aiogram.types import ChatMemberUpdated
 from stp_database import MainRequestsRepo
@@ -9,20 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 groups_router = Router()
-
-
-@groups_router.my_chat_member(
-    ChatMemberUpdatedFilter(member_status_changed=IS_NOT_MEMBER >> IS_MEMBER)
-)
-async def bot_added_to_group(event: ChatMemberUpdated) -> None:
-    """Обработчик добавления бота в группу.
-
-    Args:
-        event: Callback query от Telegram
-    """
-    await event.answer("""<b>Спасибо за приглашение! 👋</b>
-
-Чтобы эффективно использовать мои возможности, пожалуйста, назначь меня администратором""")
+groups_router.my_chat_member.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @groups_router.my_chat_member(
@@ -56,7 +43,21 @@ async def got_auto_admin_rights(
 
 Бот получил права администратора и готов к работе
 
-Для проверки и изменения настроек группы используй команду /settings""")
+Для проверки и изменения настроек группы используй раздел <b>👯‍♀️ Группы</b>""")
+
+
+@groups_router.my_chat_member(
+    ChatMemberUpdatedFilter(member_status_changed=IS_NOT_MEMBER >> IS_MEMBER)
+)
+async def bot_added_to_group(event: ChatMemberUpdated) -> None:
+    """Обработчик добавления бота в группу.
+
+    Args:
+        event: Callback query от Telegram
+    """
+    await event.answer("""<b>Спасибо за приглашение! 👋</b>
+
+Чтобы эффективно использовать мои возможности, пожалуйста, назначь меня администратором""")
 
 
 @groups_router.my_chat_member(
@@ -88,7 +89,7 @@ async def got_manual_admin_rights(event: ChatMemberUpdated, stp_repo: MainReques
 
 Права администратора успешно выданы, и бот готов к работе
 
-Для проверки и изменения настроек группы используй команду /settings""")
+Для проверки и изменения настроек группы используй раздел <b>👯‍♀️ Группы</b>""")
 
 
 @groups_router.my_chat_member(
@@ -119,7 +120,7 @@ async def bot_get_kicked(event: ChatMemberUpdated, stp_repo: MainRequestsRepo) -
     """
     await event.bot.send_message(
         chat_id=event.from_user.id,
-        text="""🔥 <b>Бот удален из группы</b>
+        text=f"""🔥 <b>Бот удален из группы</b> {event.chat.title}
         
 Настройки группы сброшены до стандартных
 

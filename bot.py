@@ -220,6 +220,7 @@ def register_middlewares(
         dp.inline_query.outer_middleware(middleware)
         dp.my_chat_member.outer_middleware(middleware)
         dp.chat_member.outer_middleware(middleware)
+        dp.chat_join_request.outer_middleware(middleware)
 
 
 def get_storage(config) -> RedisStorage | MemoryStorage:
@@ -258,6 +259,7 @@ async def on_startup_webhook(bot: Bot, config: Config) -> None:
             "inline_query",
             "my_chat_member",
             "chat_member",
+            "chat_join_request",
         ],
         drop_pending_updates=True,
         secret_token=config.tg_bot.webhook_secret,
@@ -378,6 +380,7 @@ async def main() -> None:
                     "inline_query",
                     "my_chat_member",
                     "chat_member",
+                    "chat_join_request",
                 ],
             )
     finally:
