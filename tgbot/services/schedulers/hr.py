@@ -286,10 +286,6 @@ async def remove_fired_users_from_groups(
         fired_users: Список ФИО уволенных сотрудников
     """
     try:
-        if not fired_users:
-            logger.info("[Увольнения] Нет сотрудников для удаления из групп")
-            return
-
         async with session_pool() as session:
             stp_repo = MainRequestsRepo(session)
 
@@ -356,10 +352,13 @@ async def remove_fired_users_from_groups(
                                     chat_id=group_membership.group_id,
                                     user_id=employee.user_id,
                                 )
-                                groups_banned_from += 1
-                                logger.info(
-                                    f"[Увольнения] Сотрудник {fullname} заблокирован в группе {group_membership.group_id}"
+                                chat = await bot.get_chat(group_membership.group_id)
+                                group = await stp_repo.group.get_groups(chat.id)
+                                await bot.send_message(
+                                    employee.user_id,
+                                    text=f"✋ Ты был исключен из {'группы' if group.group_type == 'group' else 'канала'} <code>{chat.title}</code>. Доступ есть только у сотрудников",
                                 )
+                                groups_banned_from += 1
                             except Exception as telegram_error:
                                 logger.warning(
                                     f"[Увольнения] Не удалось заблокировать {fullname} в группе {group_membership.group_id}: {telegram_error}"

@@ -19,30 +19,86 @@ channels_router.my_chat_member.filter(F.chat.type == "channel")
 @channels_router.chat_join_request()
 async def channel_join_request(
     request: ChatJoinRequest, user: Employee, stp_repo: MainRequestsRepo
-):
-    """Handle new channel join requests"""
-    chat = request.chat
+) -> None:
+    """Обработчик новых запросов на вход в канал.
 
-    channel = await stp_repo.group.get_groups(chat.id)
+    Args:
+        request: Запрос входа
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
+    try:
+        chat = request.chat
 
-    if channel.remove_unemployed:
-        if not user:
+        # Получаем настройки канала из БД
+        channel = await stp_repo.group.get_groups(chat.id)
+
+        # Проверяем, что канал существует в БД
+        if not channel:
+            logger.warning(f"Канал {chat.id} не найден в базе данных")
             await request.decline()
-            await request.answer_pm(
-                text=f"✋ Запрос на вступление в канал <b>{chat.title}</b> отклонен\n\nДоступ к каналу разрешен только сотрудникам"
-            )
-    else:
-        await request.approve()
+            return
 
         channel_link = f"t.me/c/{str(chat.id).replace('-100', '')}"
-        await request.answer_pm(
-            text=f"👌 Запрос на вступление в канал <b>{chat.title}</b> принят",
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="👀 Открыть канал", url=channel_link)]
-                ]
-            ),
-        )
+
+        # Проверка на удаление уволенных
+        if channel.remove_unemployed:
+            if not user:
+                await request.decline()
+                await stp_repo.group_member.remove_member(chat.id, request.from_user.id)
+                await request.answer_pm(
+                    text=f"✋ Запрос на вступление в канал <b>{chat.title}</b> отклонен\n\nДоступ к каналу разрешен только сотрудникам"
+                )
+                return
+            # Если пользователь есть и remove_unemployed=True, проверяем роли дальше
+
+        # Проверка ролей
+        if channel.allowed_roles:
+            if user and user.role in channel.allowed_roles:
+                await request.approve()
+                await stp_repo.group_member.add_member(chat.id, request.from_user.id)
+                await request.answer_pm(
+                    text=f"👌 Запрос на вступление в канал <b>{chat.title}</b> принят",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text="👀 Открыть канал", url=channel_link
+                                )
+                            ]
+                        ]
+                    ),
+                )
+            else:
+                await request.decline()
+                await stp_repo.group_member.remove_member(chat.id, request.from_user.id)
+                await request.answer_pm(
+                    text=f"✋ Запрос на вступление в канал <b>{chat.title}</b> отклонен\n\nДоступ к каналу с твоим уровнем доступа запрещен"
+                )
+        else:
+            # Нет ограничений по ролям - одобряем всех (кроме уже отфильтрованных безработных)
+            await request.approve()
+            await stp_repo.group_member.add_member(chat.id, request.from_user.id)
+            await request.answer_pm(
+                text=f"👌 Запрос на вступление в канал <b>{chat.title}</b> принят",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="👀 Открыть канал", url=channel_link
+                            )
+                        ]
+                    ]
+                ),
+            )
+
+    except Exception as e:
+        logger.error(f"Ошибка при обработке запроса входа в канал {chat.id}: {e}")
+        try:
+            await request.decline()
+            await stp_repo.group_member.remove_member(chat.id, request.from_user.id)
+        except Exception as decline_error:
+            logger.error(f"Ошибка при отклонении запроса: {decline_error}")
 
 
 @channels_router.my_chat_member(
