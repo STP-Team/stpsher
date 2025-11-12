@@ -8,7 +8,7 @@ from tgbot.handlers.groups.admin.admin import group_admin_router
 from tgbot.handlers.groups.admin.settings import group_settings_router
 from tgbot.handlers.groups.join import groups_router
 from tgbot.handlers.groups.user.main import group_user_router
-from tgbot.handlers.groups.whois import group_whois_router
+from tgbot.handlers.groups.user.whois import group_whois_router
 from tgbot.handlers.inline.inline import user_inline_router
 from tgbot.handlers.start import start_router
 

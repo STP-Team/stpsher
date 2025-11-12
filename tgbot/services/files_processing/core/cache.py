@@ -126,7 +126,7 @@ class ExcelFileCache:
             return self._df_cache[cache_key]
 
         # Загрузка из файла
-        logger.info(f"[Cache] Промах для {file_path.name}:{sheet_name}, загрузка...")
+        logger.debug(f"[Cache] Промах для {file_path.name}:{sheet_name}, загрузка...")
         try:
             # Используем pandas
             df = pd.read_excel(
@@ -382,7 +382,7 @@ class ExcelFileCache:
         if file_key in self._date_indexes:
             del self._date_indexes[file_key]
 
-        logger.info(f"[Cache] Invalidated cache for {file_path.name}")
+        logger.debug(f"[Cache] Invalidated cache for {file_path.name}")
 
     def clear(self):
         """Очищает все кэши."""

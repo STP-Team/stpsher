@@ -12,7 +12,7 @@ from aiogram.types import (
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.filters.group import GroupAdminFilter
-from tgbot.misc.helpers import short_name
+from tgbot.misc.helpers import format_fullname, short_name
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,15 @@ group_admin_router.message.filter(
 
 
 def parse_duration(duration_str: str) -> Optional[timedelta]:
-    """Парсит строку длительности в timedelta
+    """Парсит строку длительности в timedelta.
+
     Поддерживает форматы: 1h, 30m, 7d, 1ч, 30м, 7д
+
+    Args:
+        duration_str: Строка с длительностью
+
+    Returns:
+        Обработанный timedelta
     """
     if not duration_str:
         return None
@@ -54,12 +61,16 @@ def parse_duration(duration_str: str) -> Optional[timedelta]:
 
 
 @group_admin_router.message(Command("pin"))
-async def pin_cmd(message: Message, user: Employee):
-    """/pin для закрепления сообщения"""
-    # Проверяем, что команда используется в ответ на сообщение
+async def pin_cmd(message: Message, user: Employee) -> None:
+    """Обработчик команды /pin для групп.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+    """
     if not message.reply_to_message:
         await message.reply(
-            "❌ Для закрепления используй команду /pin в ответ на сообщение, которое нужно закрепить"
+            "🤔 Для закрепления используй команду <code>/pin</code> в ответ на сообщение, которое нужно закрепить"
         )
         return
 
@@ -74,7 +85,7 @@ async def pin_cmd(message: Message, user: Employee):
         # Формируем ссылку на закрепленное сообщение
         chat_id_str = str(message.chat.id).replace("-100", "")
         message_link = f"t.me/c/{chat_id_str}/{message.reply_to_message.message_id}"
-        await message.reply(f"✅ Закрепил <a href='{message_link}'>сообщение</a>")
+        await message.reply(f"👌 Закрепил <a href='{message_link}'>сообщение</a>")
 
         # Логируем использование команды
         logger.info(
@@ -84,17 +95,21 @@ async def pin_cmd(message: Message, user: Employee):
     except Exception as e:
         logger.error(f"Ошибка при закреплении сообщения: {e}")
         await message.reply(
-            "❌ Произошла ошибка при закреплении сообщения. Возможно, у бота недостаточно прав."
+            "🚨 Не смог закрепить сообщение. Возможно, у меня недостаточно прав"
         )
 
 
 @group_admin_router.message(Command("unpin"))
 async def unpin_cmd(message: Message, user: Employee):
-    """/unpin для открепления сообщения"""
-    # Проверяем, что команда используется в ответ на сообщение
+    """Обработчик команды /unpin для групп.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+    """
     if not message.reply_to_message:
         await message.reply(
-            "❌ Для открепления используй команду /unpin в ответ на закрепленное сообщение, которое нужно открепить"
+            "🤔 Командой <code>/unpin</code> нужно отвечать на закрепленное сообщение, которое нужно открепить"
         )
         return
 
@@ -104,7 +119,7 @@ async def unpin_cmd(message: Message, user: Employee):
             chat_id=message.chat.id, message_id=message.reply_to_message.message_id
         )
 
-        await message.reply("✅ Сообщение откреплено")
+        await message.reply("👌 Закрепленное сообщение откреплено")
 
         # Логируем использование команды
         logger.info(
@@ -114,63 +129,45 @@ async def unpin_cmd(message: Message, user: Employee):
     except Exception as e:
         logger.error(f"Ошибка при откреплении сообщения: {e}")
         await message.reply(
-            "❌ Произошла ошибка при откреплении сообщения. Возможно, у бота недостаточно прав."
+            "🚨 Не смог открепить сообщение. Возможно, у меня недостаточно прав"
         )
 
 
 @group_admin_router.message(Command("mute"))
 async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/mute для заглушения пользователя"""
-    target_user_name = "Пользователь"
+    """Обработчик команды /mute для групп.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+    """
+    if not message.reply_to_message:
+        await message.reply(
+            "🤔 Командой <code>/mute</code> нужно отвечать на сообщение пользователя, которого нужно заглушить"
+        )
+        return
+
     duration = None
     unmute_at = None
 
     # Парсим аргументы команды
     command_args = message.text.split()[1:] if message.text else []
 
-    # Проверяем способы указания пользователя
-    if message.reply_to_message:
-        # Заглушение через ответ на сообщение
-        target_user_id = message.reply_to_message.from_user.id
-        target_user_name = (
-            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
-        )
+    target_user_id = message.reply_to_message.from_user.id
+    target_user_name = (
+        message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    )
 
-        # Проверяем наличие длительности в аргументах
-        if command_args:
-            duration_str = command_args[0]
-            duration = parse_duration(duration_str)
-            if duration is None and duration_str:
-                await message.reply(
-                    "Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мута"
-                )
-                return
-    else:
-        # Заглушение по user_id из текста команды
-        if not command_args:
+    # Проверяем наличие длительности в аргументах
+    if command_args:
+        duration_str = command_args[0]
+        duration = parse_duration(duration_str)
+        if duration is None and duration_str:
             await message.reply(
-                "Используй команду в ответ на сообщение пользователя, которого хочешь замутить"
+                "🤔 Используй команду <code>/mute</code> с одним из аргументов: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного заглушения"
             )
             return
-
-        # Первый аргумент - user_id
-        try:
-            target_user_id = int(command_args[0])
-        except ValueError:
-            await message.reply(
-                "Используй команду /mute <user_id> [время] или ответом на сообщение пользователя"
-            )
-            return
-
-        # Второй аргумент - длительность (если есть)
-        if len(command_args) > 1:
-            duration_str = command_args[1]
-            duration = parse_duration(duration_str)
-            if duration is None:
-                await message.reply(
-                    "Неверный формат времени. Используй формат: 1h, 30m, 7d, 1ч, 30м, 7д или оставь пустым для постоянного мута"
-                )
-                return
 
     # Если указана длительность, вычисляем время размута
     if duration:
@@ -196,14 +193,13 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
             until_date=unmute_at,
         )
 
-        # Получаем информацию о заглушенном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
-            display_name = short_name(employee.fullname)
+            display_name = format_fullname(employee, True, True)
         else:
             display_name = target_user_name
 
-        # Формируем сообщение с информацией о мьюте
+        # Формируем сообщение с информацией о заглушении
         if duration:
             if duration.days > 0:
                 duration_text = f"{duration.days} дн."
@@ -211,9 +207,9 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
                 duration_text = f"{duration.seconds // 3600} ч."
             else:
                 duration_text = f"{duration.seconds // 60} мин."
-            mute_message = f" {display_name} замьючен в группе на {duration_text}"
+            mute_message = f"👌 {display_name} заглушен в группе на {duration_text}"
         else:
-            mute_message = f"{display_name} замьючен в группе навсегда"
+            mute_message = f"👌 {display_name} заглушен в группе навсегда"
 
         await message.reply(mute_message)
 
@@ -225,37 +221,30 @@ async def mute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
 
     except Exception as e:
         logger.error(f"Ошибка при муте пользователя: {e}")
-        await message.reply("❌ Произошла ошибка при муте пользователя")
+        await message.reply(
+            "🚨 Не смог заглушить пользователя. Возможно, у меня недостаточно прав"
+        )
 
 
 @group_admin_router.message(Command("unmute"))
 async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/unmute для разглушения пользователя"""
-    target_user_name = "Пользователь"
+    """Обработчик команды /unmute для групп.
 
-    # Проверяем способы указания пользователя
-    if message.reply_to_message:
-        # Разглушение через ответ на сообщение
-        target_user_id = message.reply_to_message.from_user.id
-        target_user_name = (
-            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+    """
+    if not message.reply_to_message:
+        await message.reply(
+            "🤔 Командой <code>/unmute</code> нужно отвечать на сообщение пользователя, которого нужно разглушить"
         )
-    else:
-        # Разглушение по user_id из текста команды
-        command_args = message.text.split()[1:] if message.text else []
-        if command_args:
-            try:
-                target_user_id = int(command_args[0])
-            except ValueError:
-                await message.reply(
-                    "Используй команду /unmute <user_id> или ответом на сообщение пользователя"
-                )
-                return
-        else:
-            await message.reply(
-                "Используй команду в ответ на сообщение пользователя, которого хочешь размутить"
-            )
-            return
+        return
+
+    target_user_id = message.reply_to_message.from_user.id
+    target_user_name = (
+        message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    )
 
     try:
         # Восстанавливаем права пользователя в Telegram
@@ -276,69 +265,60 @@ async def unmute_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
             permissions=normal_permissions,
         )
 
-        # Получаем информацию о разглушенном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
-            display_name = short_name(employee.fullname)
+            display_name = format_fullname(employee, True, True)
         else:
             display_name = target_user_name
 
-        await message.reply(f"{display_name} размьючен в группе")
+        await message.reply(f"👌 {display_name} разглушен в группе")
 
         # Логируем использование команды
         logger.info(
-            f"[/unmute] {user.fullname} ({message.from_user.id}) размутил пользователя {target_user_id} в группе {message.chat.id}"
+            f"[/unmute] {user.fullname} ({message.from_user.id}) разглушил пользователя {target_user_id} в группе {message.chat.id}"
         )
 
     except Exception as e:
         logger.error(f"Ошибка при размуте пользователя: {e}")
-        await message.reply("❌ Произошла ошибка при размуте пользователя")
+        await message.reply(
+            "🚨 Не смог разглушить пользователя. Возможно, у меня недостаточно прав"
+        )
 
 
 @group_admin_router.message(Command("ban"))
 async def ban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/ban для бана пользователя"""
-    target_user_name = "Пользователь"
+    """Обработчик команды /ban для групп.
 
-    # Проверяем способы указания пользователя
-    if message.reply_to_message:
-        # Бан через ответ на сообщение
-        target_user_id = message.reply_to_message.from_user.id
-        target_user_name = (
-            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+    """
+    if not message.reply_to_message:
+        await message.reply(
+            "🤔 Командой <code>/ban</code> нужно отвечать на сообщение пользователя, которого нужно заблокировать"
         )
-    else:
-        # Бан по user_id из текста команды
-        command_args = message.text.split()[1:] if message.text else []
-        if command_args:
-            try:
-                target_user_id = int(command_args[0])
-            except ValueError:
-                await message.reply(
-                    "Используй команду /ban <user_id> или ответом на сообщение пользователя"
-                )
-                return
-        else:
-            await message.reply(
-                "Используй команду в ответ на сообщение пользователя, которого хочешь забанить"
-            )
-            return
+        return
+
+    target_user_id = message.reply_to_message.from_user.id
+    target_user_name = (
+        message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    )
 
     try:
-        # Банируем пользователя в Telegram
+        # Блокируем пользователя
         await message.bot.ban_chat_member(
             chat_id=message.chat.id,
             user_id=target_user_id,
         )
 
-        # Получаем информацию о забаненном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
             display_name = short_name(employee.fullname)
         else:
             display_name = target_user_name
 
-        await message.reply(f"{display_name} забанен в группе")
+        await message.reply(f"👌 {display_name} заблокирован в группе")
 
         # Логируем использование команды
         logger.info(
@@ -347,40 +327,33 @@ async def ban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
 
     except Exception as e:
         logger.error(f"Ошибка при бане пользователя: {e}")
-        await message.reply("❌ Произошла ошибка при бане пользователя")
+        await message.reply(
+            "🚨 Не смог заблокировать пользователя. Возможно, у меня недостаточно прав"
+        )
 
 
 @group_admin_router.message(Command("unban"), GroupAdminFilter())
 async def unban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/unban для разбана пользователя"""
-    target_user_name = "Пользователь"
+    """Обработчик команды /unban для групп.
 
-    # Проверяем способы указания пользователя
-    if message.reply_to_message:
-        # Разбан через ответ на сообщение
-        target_user_id = message.reply_to_message.from_user.id
-        target_user_name = (
-            message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+    """
+    if not message.reply_to_message:
+        await message.reply(
+            "🤔 Командой <code>/unban</code> нужно отвечать на сообщение пользователя, которого нужно разблокировать"
         )
-    else:
-        # Разбан по user_id из текста команды
-        command_args = message.text.split()[1:] if message.text else []
-        if command_args:
-            try:
-                target_user_id = int(command_args[0])
-            except ValueError:
-                await message.reply(
-                    "Используй команду /unban <user_id> или ответом на сообщение пользователя"
-                )
-                return
-        else:
-            await message.reply(
-                "Используй команду в ответ на сообщение пользователя, которого хочешь разбанить"
-            )
-            return
+        return
+
+    target_user_id = message.reply_to_message.from_user.id
+    target_user_name = (
+        message.reply_to_message.from_user.full_name or f"#{target_user_id}"
+    )
 
     try:
-        # Разбаниваем пользователя в Telegram
+        # Разблокируем пользователя
         await message.bot.unban_chat_member(
             chat_id=message.chat.id,
             user_id=target_user_id,
@@ -388,13 +361,13 @@ async def unban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo
         )
 
         # Получаем информацию о разбаненном пользователе для красивого отображения
-        employee = await stp_repo.employee.get_user(user_id=target_user_id)
+        employee = await stp_repo.employee.get_users(user_id=target_user_id)
         if employee:
             display_name = short_name(employee.fullname)
         else:
             display_name = target_user_name
 
-        await message.reply(f"{display_name} разбанен в группе")
+        await message.reply(f"👌 {display_name} разбанен в группе")
 
         # Логируем использование команды
         logger.info(
@@ -403,4 +376,6 @@ async def unban_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo
 
     except Exception as e:
         logger.error(f"Ошибка при разбане пользователя: {e}")
-        await message.reply("❌ Произошла ошибка при разбане пользователя")
+        await message.reply(
+            "🚨 Не смог разблокировать пользователя. Возможно, у меня недостаточно прав"
+        )

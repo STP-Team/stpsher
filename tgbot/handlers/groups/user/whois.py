@@ -14,7 +14,15 @@ group_whois_router.message.filter(F.chat.type.in_(("groups", "supergroup")))
 
 
 def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
-    """Создание сообщения с информацией о пользователе (аналогично inline search)"""
+    """Форматирование информации о пользователе.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        user_head: Руководитель сотрудника
+
+    Returns:
+        Форматированный вид информации о пользователе
+    """
     # Определяем уровень доступа и эмодзи
     role_info = get_role(user.role)
 
@@ -51,12 +59,19 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
 
 
 @group_whois_router.message(Command("whois"))
-async def whois_command(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """Команда /whois для получения информации о пользователе"""
-    # Проверяем авторизацию пользователя
+async def whois_command(
+    message: Message, user: Employee, stp_repo: MainRequestsRepo
+) -> None:
+    """Обработчик команды /whois в группе.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
     if not user:
         await message.reply(
-            "❌ Для использования команды /whois необходимо авторизоваться в боте"
+            "🚨 Для использования команд необходимо авторизоваться в боте"
         )
         return
 
@@ -87,7 +102,7 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
 
         if not target_user:
             await message.reply(
-                f"""<b>❌ Пользователь не найден</b>
+                f"""🤷🏻‍♂️ <b>Никого не нашел</b>
 
 Пользователь с ID <code>{replied_user_id}</code> не найден в базе
 
@@ -113,31 +128,39 @@ async def whois_command(message: Message, user: Employee, stp_repo: MainRequests
 
         # Логируем использование команды
         logger.info(
-            f"[WHOIS] {user.fullname} ({message.from_user.id}) запросил информацию о {target_user.fullname} ({target_user.user_id})"
+            f"[/whois] {user.fullname} ({message.from_user.id}) запросил информацию о {target_user.fullname} ({target_user.user_id})"
         )
 
     except Exception as e:
         logger.error(f"Ошибка при выполнении команды /whois: {e}")
         await message.reply(
-            "❌ Произошла ошибка при получении информации о пользователе. Попробуйте позже."
+            "🚨 Произошла ошибка при поиске сотрудника. Напиши в @stp_helpbot"
         )
 
 
-# Дополнительный хэндлер для команды /whois с аргументом (поиск по имени)
 @group_whois_router.message(Command("whois", magic=F.args))
-async def whois_with_args(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """Команда /whois с аргументом для поиска по имени"""
-    # Проверяем авторизацию пользователя
+async def whois_with_args(
+    message: Message, user: Employee, stp_repo: MainRequestsRepo
+) -> None:
+    """Обработчик команды /whois с аргументами.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
     if not user:
         await message.reply(
-            "❌ Для использования команды /whois необходимо авторизоваться в боте"
+            "🚨 Для использования команд необходимо авторизоваться в боте"
         )
         return
 
     search_query = message.text.split(maxsplit=1)[1].strip()
 
     if len(search_query) < 2:
-        await message.reply("❌ Поисковый запрос слишком короткий (минимум 2 символа)")
+        await message.reply(
+            "🤔 Не могу найти пользователя. Попробуй увеличить количество символов в запросе"
+        )
         return
 
     try:
@@ -148,7 +171,7 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
 
         if not found_users:
             await message.reply(
-                f"""<b>❌ Пользователи не найдены</b>
+                f"""🤷🏻‍♂️ <b>Никого не нашел</b>
 
 По запросу "<code>{search_query}</code>" ничего не найдено.
 
@@ -204,7 +227,7 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
         users_text = "\n\n".join(user_list)
 
         await message.reply(
-            f"""<b>🔍 Найдено пользователей: {len(sorted_users)}</b>
+            f"""<b>🔍 Нашел сотрудников: {len(sorted_users)}</b>
 
 По запросу "<code>{search_query}</code>":
 
@@ -217,15 +240,11 @@ async def whois_with_args(message: Message, user: Employee, stp_repo: MainReques
 
         # Логируем использование команды
         logger.info(
-            f"[WHOIS] {user.fullname} ({message.from_user.id}) нашел {len(sorted_users)} пользователей по запросу '{search_query}'"
+            f"[/whois] {user.fullname} ({message.from_user.id}) нашел {len(sorted_users)} сотрудников по запросу '{search_query}'"
         )
 
     except Exception as e:
         logger.error(f"Ошибка при поиске пользователей для команды /whois: {e}")
         await message.reply(
-            "❌ Произошла ошибка при поиске пользователей. Попробуйте позже."
+            "🚨 Произошла ошибка при поиске сотрудника. Напиши в @stp_helpbot"
         )
-
-
-# Если создаете новый файл, экспортируйте роутер
-__all__ = ["group_whois_router"]

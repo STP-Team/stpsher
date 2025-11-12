@@ -20,26 +20,29 @@ group_user_router.message.filter(F.chat.type.in_(("groups", "supergroup")))
 
 
 @group_user_router.message(Command("admins"))
-async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/admins для получения списка администраторов группы"""
+async def admins_cmd(
+    message: Message, user: Employee, stp_repo: MainRequestsRepo
+) -> None:
+    """Обработчик команды /admins для групп.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
     try:
-        # Получаем список администраторов чата
         chat_administrators = await message.bot.get_chat_administrators(message.chat.id)
 
-        # Обрабатываем каждого администратора и проверяем их в базе данных
         admin_list = []
         owner = None
 
         for admin in chat_administrators:
             user_info = admin.user
 
-            # Проверяем администратора в базе данных
             db_user = await stp_repo.employee.get_users(user_id=user_info.id)
             if db_user:
-                # Если есть в БД, используем данные из БД с ссылкой
                 display_name = format_fullname(db_user, True, True)
             else:
-                # Если нет в БД, используем данные из Telegram
                 display_name = (
                     f"@{user_info.username}"
                     if user_info.username
@@ -78,7 +81,7 @@ async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
     except Exception as e:
         logger.error(f"Ошибка при получении списка администраторов: {e}")
         await message.reply(
-            "❌ Произошла ошибка при получении списка администраторов. Возможно, у бота недостаточно прав."
+            "🚨 Не смог найти администраторов. Возможно, у меня недостаточно прав"
         )
 
 
@@ -86,7 +89,13 @@ async def admins_cmd(message: Message, user: Employee, stp_repo: MainRequestsRep
     Command("balance"), MultiRoleFilter(SpecialistFilter(), DutyFilter())
 )
 async def balance_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/balance для получения своего баланса"""
+    """Обработчик команды /balance для групп.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
     try:
         user_balance = await stp_repo.transaction.get_user_balance(user_id=user.user_id)
         achievements_sum = await stp_repo.transaction.get_user_achievements_sum(
@@ -105,12 +114,18 @@ async def balance_cmd(message: Message, user: Employee, stp_repo: MainRequestsRe
 
     except Exception as e:
         logger.error(f"Ошибка при получении баланса: {e}")
-        await message.reply("❌ Произошла ошибка при получении баланса")
+        await message.reply("🚨 Не смог получить твой баланс. Напиши в @stp_helpbot")
 
 
 @group_user_router.message(Command("top"))
 async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
-    """/top для получения рейтинга группы"""
+    """Обработчик команды /top для групп.
+
+    Args:
+        message: Сообщение от пользователя
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
     try:
         # Получаем участников группы из базы
         group_members_data = await stp_repo.group_member.get_group_members(
@@ -171,4 +186,6 @@ async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
 
     except Exception as e:
         logger.error(f"Ошибка при получении рейтинга группы: {e}")
-        await message.reply("❌ Произошла ошибка при получении рейтинга группы")
+        await message.reply(
+            "🚨 Не смог посчитать рейтинг группы. Напиши в @stp_helpbot"
+        )

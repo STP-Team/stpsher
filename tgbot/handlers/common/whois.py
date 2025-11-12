@@ -7,7 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.handlers.groups.whois import create_user_info_message
+from tgbot.handlers.groups.user.whois import create_user_info_message
 from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ async def private_whois_command(
     # Проверяем авторизацию пользователя
     if not user:
         await message.reply(
-            "❌ Для использования команды /whois необходимо авторизоваться в боте"
+            "🚨 Для использования команд необходимо авторизоваться в боте"
         )
         return
 
