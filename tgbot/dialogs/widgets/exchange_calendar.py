@@ -12,6 +12,8 @@ from aiogram_dialog.widgets.kbd.calendar_kbd import (
 from aiogram_dialog.widgets.text import Format, Text
 
 from tgbot.dialogs.widgets.calendars import RussianMonthNominative, RussianWeekday
+from tgbot.misc.dicts import schedule_category_emojis
+from tgbot.services.files_processing.core.analyzers import ScheduleAnalyzer
 
 
 class ShiftDateText(Text):
@@ -22,7 +24,7 @@ class ShiftDateText(Text):
         super().__init__()
 
     async def _render_text(self, data, dialog_manager: DialogManager) -> str:
-        """Рендер даты с эмодзи смены если она есть."""
+        """Рендер даты с эмодзи в зависимости от типа записи в расписании."""
         selected_date: date = data["date"]
         day = selected_date.day
         month = selected_date.month
@@ -31,7 +33,7 @@ class ShiftDateText(Text):
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
-        # Проверяем есть ли смена на эту дату
+        # Проверяем есть ли запись на эту дату
         month_day_key = f"{month:02d}_{day:02d}"
 
         # Для текущего месяца также проверяем простой ключ дня (обратная совместимость)
@@ -40,19 +42,46 @@ class ShiftDateText(Text):
         current_date = datetime.now().date()
         day_key = f"{day:02d}"
 
+        schedule_value = None
+
         # Сначала проверяем специфичный ключ месяца и дня
         if month_day_key in shift_dates:
-            return f"·{day}·"
-
+            shift_data = shift_dates[month_day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
         # Только для текущего месяца и года проверяем простой ключ дня
-        if (
+        elif (
             month == current_date.month
             and year == current_date.year
             and day_key in shift_dates
         ):
-            return f"·{day}·"
+            shift_data = shift_dates[day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
 
-        return str(day)
+        # Если нет записи, показываем обычный день
+        if schedule_value is None:
+            return str(day)
+
+        # Категоризируем запись расписания
+        category = ScheduleAnalyzer.categorize_schedule_entry(schedule_value)
+
+        # Отображаем день в зависимости от категории
+        emoji = schedule_category_emojis.get(category, "")
+        if category == "work":
+            return f"·{day}·"  # Рабочий день с точками
+        elif emoji:
+            return f"{emoji}{day}"
+        else:  # day_off или неизвестная категория
+            return str(day)
 
 
 class TodayShiftDateText(Text):
@@ -63,7 +92,7 @@ class TodayShiftDateText(Text):
         super().__init__()
 
     async def _render_text(self, data, dialog_manager: DialogManager) -> str:
-        """Рендер сегодняшней даты с эмодзи смены если она есть."""
+        """Рендер сегодняшней даты с эмодзи в зависимости от типа записи в расписании."""
         selected_date: date = data["date"]
         day = selected_date.day
         month = selected_date.month
@@ -72,7 +101,7 @@ class TodayShiftDateText(Text):
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
 
-        # Проверяем есть ли смена на эту дату
+        # Проверяем есть ли запись на эту дату
         month_day_key = f"{month:02d}_{day:02d}"
 
         # Для текущего месяца также проверяем простой ключ дня (обратная совместимость)
@@ -81,19 +110,46 @@ class TodayShiftDateText(Text):
         current_date = datetime.now().date()
         day_key = f"{day:02d}"
 
+        schedule_value = None
+
         # Сначала проверяем специфичный ключ месяца и дня
         if month_day_key in shift_dates:
-            return f"·︎︎{day}·"
-
+            shift_data = shift_dates[month_day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
         # Только для текущего месяца и года проверяем простой ключ дня
-        if (
+        elif (
             month == current_date.month
             and year == current_date.year
             and day_key in shift_dates
         ):
-            return f"·︎︎{day}·"
+            shift_data = shift_dates[day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
 
-        return f"{day}"
+        # Если нет записи, показываем обычное сегодня
+        if schedule_value is None:
+            return f"{day}"
+
+        # Категоризируем запись расписания
+        category = ScheduleAnalyzer.categorize_schedule_entry(schedule_value)
+
+        # Отображаем сегодняшний день в зависимости от категории
+        emoji = schedule_category_emojis.get(category, "")
+        if category == "work":
+            return f"·︎︎{day}·"  # Рабочий день с точками
+        elif emoji:
+            return f"{emoji}{day}"
+        else:  # day_off или неизвестная категория
+            return f"{day}"
 
 
 class ExchangeCalendar(Calendar):
@@ -152,7 +208,7 @@ class SubscriptionDateText(Text):
         super().__init__()
 
     async def _render_text(self, data, dialog_manager: DialogManager) -> str:
-        """Рендер даты с эмодзи для выбранных дат и блокировкой прошедших дат."""
+        """Рендер даты с эмодзи для выбранных дат и категоризацией типа записи."""
         selected_date: date = data["date"]
         day = selected_date.day
         month = selected_date.month
@@ -172,35 +228,63 @@ class SubscriptionDateText(Text):
         date_str = selected_date.strftime("%Y-%m-%d")
         is_selected = date_str in selected_dates
 
-        # Проверяем есть ли смена на эту дату
+        # Проверяем есть ли запись на эту дату
         month_day_key = f"{month:02d}_{day:02d}"
         day_key = f"{day:02d}"
 
-        has_shift = False
+        schedule_value = None
         # Сначала проверяем специфичный ключ месяца и дня
         if month_day_key in shift_dates:
-            has_shift = True
+            shift_data = shift_dates[month_day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
         # Только для текущего месяца и года проверяем простой ключ дня
         elif (
             month == current_date.month
             and year == current_date.year
             and day_key in shift_dates
         ):
-            has_shift = True
+            shift_data = shift_dates[day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
 
-        # Формируем отображение даты
-        if is_selected:
-            # Выбранные даты показываем с зеленым кружком
-            if has_shift:
-                return f"👉{day}·"
-            else:
+        # Если нет записи, показываем день как есть (обычный или выбранный)
+        if schedule_value is None:
+            if is_selected:
                 return f"👉{day}"
-        elif has_shift:
-            # Дни со сменами показываем с точками
-            return f"·{day}·"
+            else:
+                return str(day)
+
+        # Категоризируем запись расписания
+        category = ScheduleAnalyzer.categorize_schedule_entry(schedule_value)
+
+        # Формируем отображение даты в зависимости от категории и выбора
+        emoji = schedule_category_emojis.get(category, "")
+
+        if is_selected:
+            # Выбранные даты с префиксом 👉
+            if category == "work":
+                return f"👉{day}·"  # Рабочий день с точками
+            elif emoji:
+                return f"👉{emoji}{day}"
+            else:  # day_off
+                return f"👉{day}"
         else:
-            # Обычные дни
-            return str(day)
+            # Обычные даты без выбора
+            if category == "work":
+                return f"·{day}·"  # Рабочий день с точками
+            elif emoji:
+                return f"{emoji}{day}"
+            else:  # day_off
+                return str(day)
 
 
 class SubscriptionTodayDateText(Text):
@@ -211,7 +295,7 @@ class SubscriptionTodayDateText(Text):
         super().__init__()
 
     async def _render_text(self, data, dialog_manager: DialogManager) -> str:
-        """Рендер сегодняшней даты с выделением если она выбрана."""
+        """Рендер сегодняшней даты с категоризацией и выделением если она выбрана."""
         selected_date: date = data["date"]
         day = selected_date.day
         month = selected_date.month
@@ -225,14 +309,20 @@ class SubscriptionTodayDateText(Text):
         date_str = selected_date.strftime("%Y-%m-%d")
         is_selected = date_str in selected_dates
 
-        # Проверяем есть ли смена на эту дату
+        # Проверяем есть ли запись на эту дату
         month_day_key = f"{month:02d}_{day:02d}"
         day_key = f"{day:02d}"
 
-        has_shift = False
+        schedule_value = None
         # Сначала проверяем специфичный ключ месяца и дня
         if month_day_key in shift_dates:
-            has_shift = True
+            shift_data = shift_dates[month_day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
         # Для текущего месяца также проверяем простой ключ дня (обратная совместимость)
         from datetime import datetime
 
@@ -242,21 +332,43 @@ class SubscriptionTodayDateText(Text):
             and year == current_date.year
             and day_key in shift_dates
         ):
-            has_shift = True
+            shift_data = shift_dates[day_key]
+            # Извлекаем строку расписания из словаря
+            schedule_value = (
+                shift_data.get("schedule")
+                if isinstance(shift_data, dict)
+                else shift_data
+            )
 
-        # Формируем отображение сегодняшней даты
-        if is_selected:
-            # Выбранная сегодняшняя дата
-            if has_shift:
-                return f"🟢{day}·"
-            else:
+        # Если нет записи, показываем сегодняшний день как есть
+        if schedule_value is None:
+            if is_selected:
                 return f"🟢{day}"
-        elif has_shift:
-            # Сегодня со сменой
-            return f"·{day}·"
+            else:
+                return f"{day}"
+
+        # Категоризируем запись расписания
+        category = ScheduleAnalyzer.categorize_schedule_entry(schedule_value)
+
+        # Формируем отображение сегодняшней даты в зависимости от категории и выбора
+        emoji = schedule_category_emojis.get(category, "")
+
+        if is_selected:
+            # Выбранные сегодняшние даты с зеленым кружком
+            if category == "work":
+                return f"🟢{day}·"  # Рабочий день с точками
+            elif emoji:
+                return f"🟢{emoji}{day}"
+            else:  # day_off
+                return f"🟢{day}"
         else:
-            # Обычное сегодня
-            return f"{day}"
+            # Обычные сегодняшние даты
+            if category == "work":
+                return f"·{day}·"  # Рабочий день с точками
+            elif emoji:
+                return f"{emoji}{day}"
+            else:  # day_off
+                return f"{day}"
 
 
 class SubscriptionCalendar(Calendar):

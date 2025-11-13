@@ -8,7 +8,7 @@ from aiogram import Bot
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.dicts import months_emojis, russian_months
+from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
 from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
     get_current_month,
@@ -239,12 +239,7 @@ async def prepare_schedule_calendar_data(
         current_date = datetime.now().date()
 
         try:
-            # Получаем базовое расписание для месяца
-            base_schedule = parser.get_user_schedule(
-                user.fullname, month_name, user.division
-            )
-
-            # Получаем расписание с дежурствами
+            # Получаем расписание с дежурствами (включает в себя базовое расписание)
             schedule_dict = await parser.get_user_schedule_with_duties(
                 user.fullname,
                 month_name,
@@ -266,7 +261,10 @@ async def prepare_schedule_calendar_data(
 
             # Извлекаем рабочие дни
             for day, (schedule, duty_info) in schedule_dict.items():
-                if schedule and schedule not in ["Не указано", "В", "О"]:
+                if schedule and not any(
+                    schedule in schedule_list
+                    for schedule_list in schedule_types.values()
+                ):
                     # Извлекаем номер дня
                     day_match = re.search(r"(\d{1,2})", day)
                     if day_match:

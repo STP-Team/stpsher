@@ -11,7 +11,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio
 from stp_database import Employee, Exchange, MainRequestsRepo
 
-from tgbot.misc.dicts import exchange_emojis
+from tgbot.misc.dicts import exchange_emojis, schedule_types
 from tgbot.misc.helpers import (
     format_currency_price,
     format_fullname,
@@ -140,14 +140,20 @@ async def prepare_calendar_data_for_exchange(
             # Извлекаем рабочие дни для отладки
             work_days = []
             for day, (schedule, duty_info) in schedule_dict.items():
-                if schedule and schedule not in ["Не указано", "В", "О"]:
+                if schedule and not any(
+                    schedule in schedule_list
+                    for schedule_list in schedule_types.values()
+                ):
                     day_match = re.search(r"(\d{1,2})", day)
                     if day_match:
                         work_days.append(int(day_match.group(1)))
 
             # Извлекаем дни когда есть смены
             for day, (schedule, duty_info) in schedule_dict.items():
-                if schedule and schedule not in ["Не указано", "В", "О"]:
+                if schedule and not any(
+                    schedule in schedule_list
+                    for schedule_list in schedule_types.values()
+                ):
                     # Извлекаем номер дня
                     day_match = re.search(r"(\d{1,2})", day)
                     if day_match:

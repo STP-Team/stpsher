@@ -7,6 +7,8 @@
 import re
 from typing import Dict, List, Tuple
 
+from tgbot.misc.dicts import schedule_types
+
 from ..parsers.base import BaseParser
 from .models import DayInfo
 
@@ -24,19 +26,21 @@ class ScheduleAnalyzer:
         Returns:
             Категория: work, vacation, vacation_bs, army, sick, missing, или day_off
         """
-        schedule_clean = schedule_value.strip().upper()
-
-        if not schedule_clean or schedule_clean in ["НЕ УКАЗАНО", "NAN", "NONE", ""]:
+        if schedule_value is None:
             return "day_off"
-        elif schedule_clean.lower() == "отпуск":
+        schedule_clean = schedule_value.strip().lower()
+
+        if not schedule_clean or schedule_clean in schedule_types["day_off"]:
+            return "day_off"
+        elif schedule_clean in schedule_types["vacation"]:
             return "vacation"
-        elif schedule_clean.lower() == "отпуск бс":
+        elif schedule_clean in schedule_types["unpaid_leave"]:
             return "vacation_bs"
-        elif schedule_clean.lower() == "в":
+        elif schedule_clean in schedule_types["army"]:
             return "army"
-        elif any(word in schedule_clean for word in ["ЛНТС"]):
+        elif schedule_clean in schedule_types["sick"]:
             return "sick"
-        elif schedule_clean.lower() == "Н":
+        elif schedule_clean in schedule_types["missing"]:
             return "missing"
         elif any(char in schedule_clean for char in ["-", ":"]):
             return "work"

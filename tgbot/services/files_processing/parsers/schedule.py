@@ -12,13 +12,14 @@ import logging
 import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
 from openpyxl import load_workbook
 from stp_database import Employee, MainRequestsRepo
 
+from tgbot.misc.dicts import schedule_types
 from tgbot.misc.helpers import format_fullname, tz_perm
 
 from ..core.analyzers import ScheduleAnalyzer
@@ -431,22 +432,20 @@ class ScheduleParser(BaseParser):
             additional_shifts = {}
 
             for col_idx, day in day_headers.items():
-                schedule_value = reader.get_cell(user_row, col_idx).strip()
+                cell_value = reader.get_cell(user_row, col_idx)
+                schedule_value = cell_value.strip() if cell_value is not None else ""
 
-                if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
-                    schedule_value = "Не указано"
+                if schedule_value.lower() in schedule_types["day_off"]:
+                    schedule_value = None
 
                 # Check cell color in openpyxl (1-indexed)
                 cell = ws.cell(row=user_row + 1, column=col_idx + 1)
                 is_additional_shift = self._is_additional_shift_color(cell)
 
-                if is_additional_shift and schedule_value not in [
-                    "Не указано",
-                    "В",
-                    "О",
-                    "0",
-                    "0.0",
-                ]:
+                if (
+                    is_additional_shift
+                    and schedule_value not in schedule_types["day_off"]
+                ):
                     additional_shifts[day] = schedule_value
                 else:
                     schedule[day] = schedule_value
@@ -1124,7 +1123,7 @@ class GroupScheduleParser(BaseParser):
         return dict(grouped)
 
     @staticmethod
-    def _extract_start_time(working_hours: str) -> str:
+    def _extract_start_time(working_hours: str) -> str | None | Any:
         """Извлекает время начала из строки рабочих часов.
 
         Args:
@@ -1133,8 +1132,8 @@ class GroupScheduleParser(BaseParser):
         Returns:
             Время начала работы
         """
-        if not working_hours or working_hours == "Не указано":
-            return "Не указано"
+        if not working_hours or working_hours is None:
+            return None
 
         time_pattern = r"(\d{1,2}:\d{2})"
         match = re.search(time_pattern, working_hours)
@@ -1142,7 +1141,7 @@ class GroupScheduleParser(BaseParser):
         if match:
             return match.group(1)
 
-        return "Не указано"
+        return None
 
     def _format_member_with_link(self, member: GroupMemberInfo) -> str:
         """Format member name with link and working hours."""
@@ -1154,7 +1153,7 @@ class GroupScheduleParser(BaseParser):
             gender_emoji=True,
         )
 
-        working_hours = member.working_hours or "Не указано"
+        working_hours = member.working_hours or None
         result = f"{user_link} <code>{working_hours}</code>"
 
         if member.duty_info:
@@ -1291,7 +1290,7 @@ class GroupScheduleParser(BaseParser):
                 continue
 
             # Get working hours for the specific date
-            working_hours = "Не указано"
+            working_hours = None
             if date_column is not None:
                 hours_cell = reader.get_cell(row_idx, date_column)
                 if hours_cell and hours_cell.strip():
@@ -1308,7 +1307,7 @@ class GroupScheduleParser(BaseParser):
             names_to_fetch.add(name_stripped)
             candidate_members.append({
                 "name": name_stripped,
-                "schedule": schedule_cell.strip() if schedule_cell else "Не указано",
+                "schedule": schedule_cell.strip() if schedule_cell else None,
                 "position": position_cell.strip() if position_cell else "Специалист",
                 "working_hours": working_hours,
             })

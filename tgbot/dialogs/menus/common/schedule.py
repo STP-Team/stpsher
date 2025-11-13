@@ -99,10 +99,10 @@ my_window = Window(
             on_click=next_month,
         ),
     ),
+    Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
     Button(
         Const("📅 Вид календаря"), id="calendar_view", on_click=switch_to_calendar_view
     ),
-    Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
     Row(
         Radio(
             Format("🔘 {item[1]}"),

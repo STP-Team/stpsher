@@ -7,6 +7,8 @@ from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from tgbot.misc.dicts import schedule_types
+
 from .cache import get_cache
 
 logger = logging.getLogger(__name__)
@@ -297,10 +299,11 @@ class ExcelReader:
         # Extract schedule values
         schedule = {}
         for col_idx, day in day_headers.items():
-            schedule_value = self.get_cell(user_row, col_idx).strip()
+            cell_value = self.get_cell(user_row, col_idx)
+            schedule_value = cell_value.strip() if cell_value is not None else ""
 
-            if schedule_value.lower() in ["nan", "none", "", "0", "0.0"]:
-                schedule_value = "Не указано"
+            if schedule_value.lower() in schedule_types["day_off"]:
+                schedule_value = None
 
             schedule[day] = schedule_value
 
