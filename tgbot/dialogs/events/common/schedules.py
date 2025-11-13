@@ -54,7 +54,7 @@ async def prev_day(
     """Получает предыдущий день и сохраняет его в dialog_data.
 
     Args:
-        _button: Данные кнопки смены дня
+        _widget: Данные кнопки смены дня
         _event: Callback query от Telegram
         dialog_manager: Менеджер диалога
     """
@@ -74,7 +74,7 @@ async def next_day(
     """Получает следующий день и сохраняет его в dialog_data.
 
     Args:
-        _button: Данные кнопки смены дня
+        _widget: Данные кнопки смены дня
         _event: Callback query от Telegram
         dialog_manager: Менеджер диалога
     """
@@ -94,7 +94,7 @@ async def today(
     """Получает текущий день и сохраняет его в dialog_data.
 
     Args:
-        _button: Данные кнопки смены дня
+        _widget: Данные кнопки смены дня
         _event: Callback query от Telegram
         dialog_manager: Менеджер диалога
     """
@@ -109,7 +109,7 @@ async def prev_month(
 
     Args:
         _event: Callback query от Telegram
-        _button: Данные кнопки смены дня
+        _widget: Данные кнопки смены дня
         dialog_manager: Менеджер диалога
     """
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
@@ -124,7 +124,7 @@ async def next_month(
 
     Args:
         _event: Callback query от Telegram
-        _button: Данные кнопки смены дня
+        _widget: Данные кнопки смены дня
         dialog_manager: Менеджер диалога
     """
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
@@ -139,7 +139,7 @@ async def do_nothing(
 
     Args:
         _event: Callback query от Telegram
-        _button: Данные кнопки смены дня
+        _widget: Данные кнопки смены дня
         _dialog_manager: Менеджер диалога
     """
     pass

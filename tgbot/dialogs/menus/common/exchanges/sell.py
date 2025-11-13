@@ -25,9 +25,6 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_seller_time_input,
     on_time_input,
 )
-from tgbot.dialogs.events.common.exchanges.subscriptions import (
-    start_subscriptions_dialog,
-)
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     buy_confirmation_getter,
     buy_time_selection_getter,
@@ -87,11 +84,6 @@ sell_window = Window(
         Const("💡 Фильтры и сортировка"),
         id="exchanges_sell_settings",
         state=Exchanges.sell_settings,
-    ),
-    Button(
-        Const("🔔 Подписки"),
-        id="buy_subscriptions",
-        on_click=start_subscriptions_dialog,
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.menu), HOME_BTN),
     getter=exchange_sell_getter,

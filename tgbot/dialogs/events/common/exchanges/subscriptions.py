@@ -33,24 +33,8 @@ async def start_subscriptions_dialog(
         _widget: Данные виджета Button
         dialog_manager: Менеджер диалога
     """
-    # Проверяем откуда вызвана подписка (из buy или sell окна)
-    current_state = dialog_manager.current_context().state
-    sub_type = None
-
-    if hasattr(current_state, "state") and current_state.state:
-        state_name = current_state.state
-        if "buy" in state_name:
-            sub_type = (
-                "sell"  # Если в окне покупки, подписываемся на продажи (чтобы покупать)
-            )
-        elif "sell" in state_name:
-            sub_type = (
-                "buy"  # Если в окне продажи, подписываемся на покупки (чтобы продавать)
-            )
-
     await dialog_manager.start(
         ExchangesSub.menu,
-        data={"type": sub_type} if sub_type else None,
     )
 
 
@@ -61,7 +45,7 @@ async def finish_subscriptions_dialog(
 
     Args:
         _event: Callback query от Telegram
-        _button: Виджет кнопки
+        _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.done()

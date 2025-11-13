@@ -596,7 +596,7 @@ async def finish_exchange_create_dialog(
 
     Args:
         _event: Callback query от Telegram
-        _button: Виджет кнопки
+        _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.done()
@@ -611,7 +611,7 @@ async def on_cancel_sell(
 
     Args:
         _event: Callback query от Telegram
-        _button: Кнопка отмены
+        _widget: Кнопка отмены
         dialog_manager: Менеджер диалога
     """
     # Очищаем данные диалога
@@ -701,7 +701,7 @@ async def on_today_selected(
 
     Args:
         event: Callback query от Telegram
-        _button: Виджет кнопки
+        _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     today = datetime.now().date()
@@ -956,7 +956,7 @@ async def on_remaining_time_selected(
 
     Args:
         event: Callback query от Telegram
-        _button: Виджет кнопки
+        _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     shift_schedule = dialog_manager.dialog_data["shift_schedule"]

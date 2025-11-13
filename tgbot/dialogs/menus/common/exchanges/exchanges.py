@@ -22,6 +22,9 @@ from tgbot.dialogs.events.common.exchanges.exchanges import (
     on_exchange_type_selected,
 )
 from tgbot.dialogs.events.common.exchanges.stats import start_stats_dialog
+from tgbot.dialogs.events.common.exchanges.subscriptions import (
+    start_subscriptions_dialog,
+)
 from tgbot.dialogs.getters.common.exchanges.exchanges import exchanges_getter
 from tgbot.dialogs.menus.common.exchanges.buy import buy_detail_window, buy_window
 from tgbot.dialogs.menus.common.exchanges.my import (
@@ -38,7 +41,6 @@ from tgbot.dialogs.menus.common.exchanges.sell import (
     buy_time_selection_window,
     sell_confirmation_window,
     sell_detail_window,
-    # New seller windows
     sell_time_selection_window,
     sell_window,
 )
@@ -63,7 +65,16 @@ menu_window = Window(
     ),
     SwitchTo(Const("🗳 Мои сделки"), id="exchanges_my", state=Exchanges.my),
     SwitchTo(Const("💸 Создать сделку"), id="exchanges_create", state=Exchanges.create),
-    Button(Const("📊 Статистика"), id="exchanges_stats", on_click=start_stats_dialog),
+    Row(
+        Button(
+            Const("🔔 Подписки"),
+            id="buy_subscriptions",
+            on_click=start_subscriptions_dialog,
+        ),
+        Button(
+            Const("📊 Статистика"), id="exchanges_stats", on_click=start_stats_dialog
+        ),
+    ),
     Group(
         Url(
             Const("📌 Регламент"),

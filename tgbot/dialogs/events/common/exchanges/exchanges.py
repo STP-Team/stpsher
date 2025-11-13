@@ -265,7 +265,7 @@ async def finish_exchanges_dialog(
 
     Args:
         _event: Callback query от Telegrma
-        _button: Виджет кнопки
+        _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.done()
@@ -995,7 +995,7 @@ async def on_add_to_calendar(
 
     Args:
         event: Callback query от Telegram
-        _button: Виджет кнопки
+        _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
