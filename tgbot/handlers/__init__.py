@@ -1,6 +1,7 @@
 """Импортируем все роутеры."""
 
 from tgbot.handlers.auth import user_auth_router
+from tgbot.handlers.channels.join import channels_router
 from tgbot.handlers.common.whois import whois_router
 from tgbot.handlers.deeplinks import deeplink_router
 from tgbot.handlers.exchange_reschedule import exchange_reschedule_router
@@ -23,6 +24,7 @@ routers_list = [
     group_admin_router,
     group_user_router,
     group_settings_router,
+    channels_router,
     groups_router,
 ]
 

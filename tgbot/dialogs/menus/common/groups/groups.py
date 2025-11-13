@@ -6,6 +6,7 @@ from typing import Any
 from aiogram_dialog import Dialog, DialogManager, Window
 from aiogram_dialog.widgets.kbd import (
     Checkbox,
+    Group,
     ManagedRadio,
     Radio,
     Row,
@@ -18,6 +19,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
 from tgbot.dialogs.events.common.groups import (
+    on_autoapply_click,
     on_group_selected,
     on_is_casino_allowed_click,
     on_new_user_notify_click,
@@ -31,6 +33,7 @@ from tgbot.dialogs.menus.common.groups.settings import (
     groups_access_window,
     groups_remove_bot_window,
     groups_service_messages_window,
+    inappropriate_users_window,
 )
 from tgbot.dialogs.states.common.groups import Groups
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -127,9 +130,10 @@ groups_list_window = Window(
     Format(
         """🛡️ <b>Управление группами</b>
 
-Найдено групп: <b>{groups_count}</b>
+👥 <b>Групп:</b> {groups_count}
+📢 <b>Каналов:</b> {channels_count}
 
-<i>Выбери группу для просмотра настроек</i>""",
+<i>Для редактирования настроек выбери группу/канал используя меню</i>""",
         when="has_groups",
     ),
     Format(
@@ -166,40 +170,43 @@ groups_list_window = Window(
 
 
 groups_list_detail_window = Window(
-    Format("""⚙️ <b>Настройки группы</b>: {group_name}
-    
-<b>Обозначения</b>
-- 🟢 Опция включена
-- 🔴 Опция выключена
+    Format("""⚙️ <b>Настройки {group_type}</b>: {group_name}
 
-Идентификатор группы: <code>{group_id}</code>
-
-<i>Используй меню для управления функциями бота в группе</i>"""),
+Идентификатор {group_type}: <code>{group_id}</code>"""),
+    Checkbox(
+        Const("🟢 Принятие заявок"),
+        Const("🔴 Принятие заявок"),
+        id="autoapply_checkbox",
+        on_click=on_autoapply_click,
+    ),
     SwitchTo(
         Const("🛡️ Уровень доступа"),
         id="access_level",
         state=Groups.settings_access,
     ),
-    Row(
-        Checkbox(
-            Const("🟢 Приветствие"),
-            Const("🔴 Приветствие"),
-            id="new_user_notify",
-            on_click=on_new_user_notify_click,
+    Group(
+        Row(
+            Checkbox(
+                Const("🟢 Приветствие"),
+                Const("🔴 Приветствие"),
+                id="new_user_notify",
+                on_click=on_new_user_notify_click,
+            ),
+            Checkbox(
+                Const("🟢 Казино"),
+                Const("🔴 Казино"),
+                id="is_casino_allowed",
+                on_click=on_is_casino_allowed_click,
+            ),
         ),
-        Checkbox(
-            Const("🟢 Казино"),
-            Const("🔴 Казино"),
-            id="is_casino_allowed",
-            on_click=on_is_casino_allowed_click,
+        Row(
+            SwitchTo(
+                Const("🗑️ Сервисные сообщения"),
+                id="service_messages",
+                state=Groups.settings_services,
+            ),
         ),
-    ),
-    Row(
-        SwitchTo(
-            Const("🗑️ Сервисные сообщения"),
-            id="service_messages",
-            state=Groups.settings_services,
-        ),
+        when=~F["is_channel"],
     ),
     SwitchTo(Const("♻️ Удалить бота"), id="remove_bot", state=Groups.settings_remove),
     Row(
@@ -231,5 +238,6 @@ groups_dialog = Dialog(
     groups_access_window,
     groups_service_messages_window,
     groups_remove_bot_window,
+    inappropriate_users_window,
     on_start=on_start,
 )
