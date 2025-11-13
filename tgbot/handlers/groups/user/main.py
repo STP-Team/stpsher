@@ -74,8 +74,15 @@ async def admins_cmd(
         await message.reply(response_text)
 
         # Логируем использование команды
+        user_name = (
+            user.fullname
+            if user
+            else f"@{message.from_user.username}"
+            if message.from_user.username
+            else message.from_user.full_name
+        )
         logger.info(
-            f"[/admins] {user.fullname} ({message.from_user.id}) запросил список администраторов группы {message.chat.id}"
+            f"[/admins] {user_name} ({message.from_user.id}) запросил список администраторов группы {message.chat.id}"
         )
 
     except Exception as e:
@@ -108,8 +115,15 @@ async def balance_cmd(message: Message, user: Employee, stp_repo: MainRequestsRe
         await message.reply(level_info_text)
 
         # Логируем использование команды
+        user_name = (
+            user.fullname
+            if user
+            else f"@{message.from_user.username}"
+            if message.from_user.username
+            else message.from_user.full_name
+        )
         logger.info(
-            f"[/balance] {user.fullname} ({message.from_user.id}) запросил свой баланс"
+            f"[/balance] {user_name} ({message.from_user.id}) запросил свой баланс"
         )
 
     except Exception as e:
@@ -180,8 +194,15 @@ async def top_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo):
         await message.reply(message_text)
 
         # Логируем использование команды
+        user_name = (
+            user.fullname
+            if user
+            else f"@{message.from_user.username}"
+            if message.from_user.username
+            else message.from_user.full_name
+        )
         logger.info(
-            f"[/top] {user.fullname} ({message.from_user.id}) запросил рейтинг группы {message.chat.id}"
+            f"[/top] {user_name} ({message.from_user.id}) запросил рейтинг группы {message.chat.id}"
         )
 
     except Exception as e:
