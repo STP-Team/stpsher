@@ -52,7 +52,7 @@ async def finish_subscriptions_dialog(
 
 
 async def on_subscription_selected(
-    event: CallbackQuery,
+    _event: CallbackQuery,
     _widget: Select,
     dialog_manager: DialogManager,
     item_id: str,
@@ -60,17 +60,14 @@ async def on_subscription_selected(
     """Обработчик выбора подписки для просмотра деталей.
 
     Args:
-        event: Callback query от Telegram
+        _event: Callback query от Telegram
         _widget: Данные виджета Select
         dialog_manager: Менеджер диалога
         item_id: ID выбранной подписки
     """
-    try:
-        subscription_id = int(item_id)
-        dialog_manager.dialog_data["subscription_id"] = subscription_id
-        await dialog_manager.switch_to(ExchangesSub.sub_detail)
-    except (ValueError, TypeError):
-        await event.answer("❌ Ошибка выбора подписки", show_alert=True)
+    subscription_id = int(item_id)
+    dialog_manager.dialog_data["subscription_id"] = subscription_id
+    await dialog_manager.switch_to(ExchangesSub.sub_detail)
 
 
 async def on_sub_status_click(
@@ -84,10 +81,7 @@ async def on_sub_status_click(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    subscription_id = (
-        dialog_manager.dialog_data.get("subscription_id", None)
-        or dialog_manager.start_data["subscription_id"]
-    )
+    subscription_id = dialog_manager.dialog_data["subscription_id"]
 
     subscription: ExchangeSubscription = await stp_repo.exchange.get_subscription_by_id(
         subscription_id
@@ -131,10 +125,7 @@ async def on_delete_subscription(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    subscription_id = (
-        dialog_manager.dialog_data.get("subscription_id", None)
-        or dialog_manager.start_data["subscription_id"]
-    )
+    subscription_id = dialog_manager.dialog_data["subscription_id"]
 
     try:
         # Удаляем подписку

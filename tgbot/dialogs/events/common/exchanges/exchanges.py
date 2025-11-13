@@ -323,10 +323,7 @@ async def on_exchange_buy(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user_id = dialog_manager.event.from_user.id
 
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     if not exchange_id:
         await event.answer("❌ Обмен не найден", show_alert=True)
@@ -372,12 +369,8 @@ async def on_exchange_sell(
 ):
     """Обработчик ответа на buy request (продажа)."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
     user_id = dialog_manager.event.from_user.id
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
 
     if not exchange_id:
         await event.answer("❌ Обмен не найден", show_alert=True)
@@ -465,11 +458,7 @@ async def on_private_click(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     await stp_repo.exchange.update_exchange(
         exchange_id, is_private=not widget.is_checked()
@@ -490,11 +479,7 @@ async def on_paid_click(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     await stp_repo.exchange.update_exchange(
         exchange_id, is_paid=not widget.is_checked()
@@ -516,11 +501,7 @@ async def on_in_schedule_click(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
 
@@ -553,11 +534,7 @@ async def on_activation_click(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     new_status = "canceled" if not widget.is_checked() else "active"
     await stp_repo.exchange.update_exchange(exchange_id, status=new_status)
@@ -596,11 +573,7 @@ async def on_delete_exchange(
         dialog_manager: Менеджер диалога
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     await stp_repo.exchange.delete_exchange(exchange_id)
     await event.answer("🔥 Сделка удалена")
@@ -671,11 +644,7 @@ async def on_edit_price_input(
         text: Введенный текст
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -770,11 +739,7 @@ async def _update_payment_timing(
 ):
     """Вспомогательная функция для обновления условий оплаты."""
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     if not exchange_id:
         return
@@ -829,11 +794,7 @@ async def on_edit_comment_input(
         text: Введенный текст
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     if not exchange_id:
         await message.answer("❌ Ошибка: сделка не найдена")
@@ -894,11 +855,7 @@ async def on_cancel_exchange(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     bot: Bot = dialog_manager.middleware_data["bot"]
     user: Employee = dialog_manager.middleware_data["user"]
-
-    exchange_id = dialog_manager.dialog_data.get(
-        "exchange_id", None
-    ) or dialog_manager.start_data.get("exchange_id")
-
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
     if not exchange_id:
         await event.answer("❌ Сделка не найдена", show_alert=True)
         return
@@ -1000,11 +957,7 @@ async def on_add_to_calendar(
     """
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     user: Employee = dialog_manager.middleware_data["user"]
-
-    exchange_id = (
-        dialog_manager.dialog_data.get("exchange_id", None)
-        or dialog_manager.start_data["exchange_id"]
-    )
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
     if not exchange:

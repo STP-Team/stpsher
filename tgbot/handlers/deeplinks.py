@@ -74,8 +74,8 @@ async def start_deeplink(
             )
             return
         elif payload.startswith("exchange_"):
-            subscription_id = int(payload.split("_", 1)[1])
-            exchange = await stp_repo.exchange.get_exchange_by_id(subscription_id)
+            exchange_id = int(payload.split("_", 1)[1])
+            exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
 
             if not exchange:
                 await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
@@ -88,7 +88,7 @@ async def start_deeplink(
                     await dialog_manager.start(
                         Exchanges.my_detail,
                         mode=StartMode.RESET_STACK,
-                        data={"exchange_id": subscription_id},
+                        data={"exchange_id": exchange_id},
                     )
                     return
                 if exchange.status != "active":
@@ -99,14 +99,14 @@ async def start_deeplink(
                     await dialog_manager.start(
                         Exchanges.buy_detail,
                         mode=StartMode.RESET_STACK,
-                        data={"exchange_id": subscription_id},
+                        data={"exchange_id": exchange_id},
                     )
                 else:
                     # Запускаем диалог покупок
                     await dialog_manager.start(
                         Exchanges.sell_detail,
                         mode=StartMode.RESET_STACK,
-                        data={"exchange_id": subscription_id},
+                        data={"exchange_id": exchange_id},
                     )
             return
         elif payload.startswith("cancel_"):

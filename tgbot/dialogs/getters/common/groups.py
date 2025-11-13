@@ -101,9 +101,11 @@ async def groups_details_getter(
     Returns:
         Словарь с информацией о выбранной группе
     """
-    group_id = (
-        dialog_manager.dialog_data.get("group_id", None)
-        or dialog_manager.start_data["group_id"]
+    group_id = dialog_manager.dialog_data.setdefault(
+        "group_id",
+        dialog_manager.start_data.get("group_id")
+        if dialog_manager.start_data
+        else None,
     )
 
     try:

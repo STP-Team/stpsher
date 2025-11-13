@@ -83,9 +83,11 @@ async def subscription_detail_getter(
         Словарь с деталями подписки
     """
     try:
-        subscription_id = (
-            dialog_manager.dialog_data.get("subscription_id", None)
-            or dialog_manager.start_data["subscription_id"]
+        subscription_id = dialog_manager.dialog_data.setdefault(
+            "subscription_id",
+            dialog_manager.start_data.get("subscription_id")
+            if dialog_manager.start_data
+            else None,
         )
 
         # Получаем подписку
