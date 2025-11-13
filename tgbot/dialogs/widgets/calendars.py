@@ -12,7 +12,10 @@ from aiogram_dialog.widgets.kbd.calendar_kbd import (
 )
 from aiogram_dialog.widgets.text import Format, Text
 
-from tgbot.misc.dicts import russian_months_nominative, russian_weekdays_short
+from tgbot.misc.dicts import (
+    russian_months,
+    russian_weekdays_short,
+)
 
 
 class RussianWeekday(Text):
@@ -46,7 +49,7 @@ class RussianMonthNominative(Text):
             Русское название месяца в именительном падеже
         """
         selected_date: date = data["date"]
-        return russian_months_nominative[selected_date.month]
+        return russian_months[selected_date.month].capitalize()
 
 
 class RussianCalendar(Calendar):
