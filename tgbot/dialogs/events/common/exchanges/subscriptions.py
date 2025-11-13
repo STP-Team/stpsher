@@ -114,8 +114,8 @@ async def on_create_subscription(
     # Очищаем данные диалога для новой подписки
     dialog_manager.dialog_data.clear()
 
-    dialog_manager.dialog_data["type"] = dialog_manager.start_data["type"]
-    await dialog_manager.switch_to(ExchangesSub.create_criteria)
+    # Переходим к выбору типа обменов
+    await dialog_manager.switch_to(ExchangesSub.create_type)
 
 
 async def on_delete_subscription(
@@ -178,24 +178,47 @@ async def on_criteria_next(
         await _navigate_forward(current_state, dialog_manager)
 
 
+def _get_selected_criteria(dialog_manager: DialogManager) -> list:
+    """Получить выбранные критерии из виджета."""
+    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
+    return criteria_widget.get_checked() if criteria_widget else []
+
+
+def _get_next_step_after_criteria(selected_criteria: list) -> str:
+    """Определить следующий шаг на основе выбранных критериев."""
+    if "price" in selected_criteria:
+        return ExchangesSub.create_price
+    elif "time" in selected_criteria:
+        return ExchangesSub.create_time
+    elif "days" in selected_criteria:
+        return ExchangesSub.create_date
+    elif "seller" in selected_criteria:
+        return ExchangesSub.create_seller
+    else:
+        return ExchangesSub.create_confirmation
+
+
 async def _navigate_forward(current_state, dialog_manager: DialogManager) -> None:
     """Навигация вперед по шагам создания подписки."""
-    # Получаем выбранные критерии
-    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
-    selected_criteria = criteria_widget.get_checked() if criteria_widget else []
+    if current_state == ExchangesSub.create_type:
+        # Сохраняем выбранный тип обмена
+        exchange_type_widget: ManagedRadio = dialog_manager.find("exchange_type")
+        selected_type = (
+            exchange_type_widget.get_checked() if exchange_type_widget else None
+        )
+        if selected_type:
+            dialog_manager.dialog_data["exchange_type"] = selected_type
+        await dialog_manager.switch_to(ExchangesSub.create_criteria)
 
-    if current_state == ExchangesSub.create_criteria:
-        if "price" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_price)
-        elif "time" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_time)
-        elif "days" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_date)
-        elif "seller" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_seller)
-        else:
-            await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+    elif current_state == ExchangesSub.create_criteria:
+        # Получаем выбранные критерии и переходим к следующему шагу
+        selected_criteria = _get_selected_criteria(dialog_manager)
+        next_step = _get_next_step_after_criteria(selected_criteria)
+        await dialog_manager.switch_to(next_step)
+
     elif current_state == ExchangesSub.create_price:
+        # После настройки цены переходим к следующему критерию
+        selected_criteria = _get_selected_criteria(dialog_manager)
         if "time" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_time)
         elif "days" in selected_criteria:
@@ -204,25 +227,35 @@ async def _navigate_forward(current_state, dialog_manager: DialogManager) -> Non
             await dialog_manager.switch_to(ExchangesSub.create_seller)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+
     elif current_state == ExchangesSub.create_time:
+        # После настройки времени переходим к следующему критерию
+        selected_criteria = _get_selected_criteria(dialog_manager)
         if "days" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_date)
         elif "seller" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_seller)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+
     elif current_state == ExchangesSub.create_date:
+        # После настройки дат переходим к следующему критерию
+        selected_criteria = _get_selected_criteria(dialog_manager)
         if "seller" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_seller)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_confirmation)
-    elif (
-        current_state == ExchangesSub.create_seller
-        or current_state == ExchangesSub.create_seller_results
-    ):
+
+    elif current_state in [
+        ExchangesSub.create_seller,
+        ExchangesSub.create_seller_results,
+    ]:
+        # После выбора продавца всегда переходим к подтверждению
         await dialog_manager.switch_to(ExchangesSub.create_confirmation)
+
     elif current_state == ExchangesSub.create_confirmation:
-        # Возврат из подтверждения к последнему шагу настройки
+        # Из подтверждения возвращаемся к последнему шагу настройки
+        selected_criteria = _get_selected_criteria(dialog_manager)
         if "seller" in selected_criteria:
             await dialog_manager.switch_to(ExchangesSub.create_seller)
         elif "days" in selected_criteria:
@@ -233,51 +266,60 @@ async def _navigate_forward(current_state, dialog_manager: DialogManager) -> Non
             await dialog_manager.switch_to(ExchangesSub.create_price)
         else:
             await dialog_manager.switch_to(ExchangesSub.create_criteria)
+
+
+def _get_previous_step(current_state, selected_criteria: list):
+    """Определить предыдущий шаг на основе текущего состояния и критериев."""
+    if current_state == ExchangesSub.create_criteria:
+        return ExchangesSub.create_type
+    elif current_state == ExchangesSub.create_price:
+        return ExchangesSub.create_criteria
+    elif current_state == ExchangesSub.create_time:
+        if "price" in selected_criteria:
+            return ExchangesSub.create_price
+        else:
+            return ExchangesSub.create_criteria
+    elif current_state == ExchangesSub.create_date:
+        if "time" in selected_criteria:
+            return ExchangesSub.create_time
+        elif "price" in selected_criteria:
+            return ExchangesSub.create_price
+        else:
+            return ExchangesSub.create_criteria
+    elif current_state in [
+        ExchangesSub.create_seller,
+        ExchangesSub.create_seller_results,
+    ]:
+        if "days" in selected_criteria:
+            return ExchangesSub.create_date
+        elif "time" in selected_criteria:
+            return ExchangesSub.create_time
+        elif "price" in selected_criteria:
+            return ExchangesSub.create_price
+        else:
+            return ExchangesSub.create_criteria
+    elif current_state == ExchangesSub.create_confirmation:
+        # Для подтверждения ищем последний настроенный критерий
+        if "seller" in selected_criteria:
+            return ExchangesSub.create_seller
+        elif "days" in selected_criteria:
+            return ExchangesSub.create_date
+        elif "time" in selected_criteria:
+            return ExchangesSub.create_time
+        elif "price" in selected_criteria:
+            return ExchangesSub.create_price
+        else:
+            return ExchangesSub.create_criteria
+    else:
+        # Fallback для неизвестных состояний
+        return ExchangesSub.create_criteria
 
 
 async def _navigate_back(current_state, dialog_manager: DialogManager) -> None:
     """Навигация назад по шагам создания подписки."""
-    # Получаем выбранные критерии
-    criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
-    selected_criteria = criteria_widget.get_checked() if criteria_widget else []
-
-    if current_state == ExchangesSub.create_price:
-        await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    elif current_state == ExchangesSub.create_time:
-        if "price" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_price)
-        else:
-            await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    elif current_state == ExchangesSub.create_date:
-        if "time" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_time)
-        elif "price" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_price)
-        else:
-            await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    elif (
-        current_state == ExchangesSub.create_seller
-        or current_state == ExchangesSub.create_seller_results
-    ):
-        if "days" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_date)
-        elif "time" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_time)
-        elif "price" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_price)
-        else:
-            await dialog_manager.switch_to(ExchangesSub.create_criteria)
-    elif current_state == ExchangesSub.create_confirmation:
-        if "seller" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_seller)
-        elif "days" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_date)
-        elif "time" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_time)
-        elif "price" in selected_criteria:
-            await dialog_manager.switch_to(ExchangesSub.create_price)
-        else:
-            await dialog_manager.switch_to(ExchangesSub.create_criteria)
+    selected_criteria = _get_selected_criteria(dialog_manager)
+    previous_step = _get_previous_step(current_state, selected_criteria)
+    await dialog_manager.switch_to(previous_step)
 
 
 async def on_price_input(
@@ -433,15 +475,17 @@ async def on_confirm_subscription(
         subscription_id = subscription.id if subscription else None
 
         if subscription_id and subscription:
-            await event.answer("✅ Подписка создана успешно!", show_alert=True)
+            await event.answer(
+                "👌 Подписка успешно создана",
+            )
             dialog_manager.dialog_data.clear()
             await dialog_manager.switch_to(ExchangesSub.menu)
         else:
-            await event.answer("❌ Ошибка создания подписки", show_alert=True)
+            await event.answer("🚨 Ошибка создания подписки")
 
     except Exception as e:
         logger.error(f"Ошибка создания подписки для пользователя {user.user_id}: {e}")
-        await event.answer("❌ Ошибка создания подписки", show_alert=True)
+        await event.answer("🚨 Ошибка создания подписки")
 
 
 def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) -> dict:
@@ -454,7 +498,7 @@ def _collect_subscription_data(dialog_manager: DialogManager, user: Employee) ->
     Returns:
         Словарь с данными подписки
     """
-    exchange_type: ManagedRadio = dialog_manager.dialog_data.get("type")
+    exchange_type = dialog_manager.dialog_data.get("exchange_type")
 
     criteria_widget: ManagedToggle = dialog_manager.find("criteria_toggles")
     selected_criteria = criteria_widget.get_checked() if criteria_widget else []
@@ -533,7 +577,7 @@ async def on_date_selected(
         # Проверяем, не является ли выбранная дата прошедшей
         current_date = datetime.now().date()
         if isinstance(selected_date, date) and selected_date < current_date:
-            await event.answer("❌ Нельзя выбрать прошедшую дату", show_alert=True)
+            await event.answer("🚨 Нельзя выбрать прошедшую дату", show_alert=True)
             return
 
         # Конвертируем дату в строку ISO формата
@@ -548,11 +592,11 @@ async def on_date_selected(
         # Если дата уже выбрана, убираем её, иначе добавляем
         if date_str in selected_dates:
             selected_dates.remove(date_str)
-            await event.answer(f"❌ Убрана дата {selected_date.strftime('%d.%m.%Y')}")
+            await event.answer(f"Убрана дата {selected_date.strftime('%d.%m.%Y')}")
         else:
             selected_dates.append(date_str)
             await event.answer(
-                f"✅ Добавлена дата {selected_date.strftime('%d.%m.%Y')}"
+                f"👌 Добавлена дата {selected_date.strftime('%d.%m.%Y')}"
             )
 
         # Сохраняем обновленный список
@@ -560,7 +604,7 @@ async def on_date_selected(
 
     except Exception as e:
         logger.error(f"Ошибка при выборе даты для подписки: {e}")
-        await event.answer("❌ Ошибка выбора даты")
+        await event.answer("🚨 Ошибка выбора даты")
 
 
 async def on_clear_dates(

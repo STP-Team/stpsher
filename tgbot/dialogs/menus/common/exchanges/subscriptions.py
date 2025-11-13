@@ -39,6 +39,7 @@ from tgbot.dialogs.getters.common.exchanges.subscriptions import (
     subscription_create_seller_results_getter,
     subscription_create_seller_search_getter,
     subscription_create_time_getter,
+    subscription_create_type_getter,
     subscription_detail_getter,
     subscriptions_getter,
 )
@@ -137,9 +138,40 @@ sub_detail_window = Window(
     state=ExchangesSub.sub_detail,
 )
 
+# Выбор типа обменов
+subscription_create_type_window = Window(
+    Const("📈 <b>Шаг 1: Тип обменов</b>"),
+    Format("""\
+Выберите тип обменов, на которые хотите подписаться:
+
+💰 <b>Покупка</b> - получать уведомления о новых предложениях продажи смен
+💼 <b>Продажа</b> - получать уведомления о новых запросах на покупку смен"""),
+    Group(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪ {item[1]}"),
+            id="exchange_type",
+            item_id_getter=lambda item: item[0],
+            items="exchange_types",
+        ),
+        width=1,
+    ),
+    Format("\n💡 <i>Выберите интересующий вас тип обменов</i>"),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.menu),
+        Button(
+            Const("➡️ Далее"),
+            id="next_step",
+            on_click=on_criteria_next,
+        ),
+    ),
+    getter=subscription_create_type_getter,
+    state=ExchangesSub.create_type,
+)
+
 # Выбор критериев подписки
 subscription_create_criteria_window = Window(
-    Const("🎯 <b>Шаг 1: Условия сделок</b>"),
+    Const("🎯 <b>Шаг 2: Условия сделок</b>"),
     Format("""
 <blockquote>📈 <b>Тип:</b> {selected_exchange_type}
 
@@ -158,7 +190,7 @@ subscription_create_criteria_window = Window(
         "\n💡 <i>Выберите критерии или оставь пустым для подписки на любые условия</i>",
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.menu),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangesSub.create_type),
         Button(
             Const("➡️ Далее"),
             id="next_step",
@@ -171,7 +203,7 @@ subscription_create_criteria_window = Window(
 
 # Настройка цены (если выбрана)
 create_price_window = Window(
-    Const("💰 <b>Шаг 2: Настройка минимальной цены</b>"),
+    Const("💰 <b>Шаг 3: Настройка минимальной цены</b>"),
     Format("""
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
@@ -198,7 +230,7 @@ create_price_window = Window(
 
 # Настройка времени (если выбрана)
 create_time_window = Window(
-    Const("⏰ <b>Шаг 3: Выбор времени суток</b>"),
+    Const("⏰ <b>Шаг 4: Выбор времени суток</b>"),
     Format("""
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
@@ -230,7 +262,7 @@ create_time_window = Window(
 
 # Настройка дат (если выбрана)
 create_date_window = Window(
-    Const("📅 <b>Шаг 4: Выбор конкретных дат</b>"),
+    Const("📅 <b>Шаг 5: Выбор конкретных дат</b>"),
     Format("""
 <blockquote>📈 <b>Тип:</b> {exchange_type_display}
 🎯 <b>Критерии:</b> {criteria_display}
@@ -345,7 +377,7 @@ create_seller_results_window = Window(
 
 # Подтверждение создания
 create_confirmation_window = Window(
-    Const("✅ <b>Шаг 5: Подтверждение создания</b>"),
+    Const("✅ <b>Шаг 6: Подтверждение создания</b>"),
     Format("""
 Проверь настройки подписки:
 
@@ -368,6 +400,7 @@ create_confirmation_window = Window(
 exchanges_subscriptions_dialog = Dialog(
     menu_window,
     sub_detail_window,
+    subscription_create_type_window,
     subscription_create_criteria_window,
     create_price_window,
     create_time_window,

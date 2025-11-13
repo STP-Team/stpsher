@@ -195,16 +195,15 @@ async def subscription_create_type_getter(
         Словарь с типами обменов
     """
     exchange_types = [
-        ("buy", "📈 Покупка часов (я покупаю)"),
-        ("sell", "📉 Продажа часов (я продаю)"),
-        ("both", "🔄 Оба типа"),
+        ("buy", "📈 Хочу купить"),
+        ("sell", "📉 Хочу продать"),
     ]
 
-    sub_type = dialog_manager.dialog_data.get("type")
+    selected_type = dialog_manager.dialog_data.get("exchange_type")
 
     return {
         "exchange_types": exchange_types,
-        "exchange_type_selected": sub_type is not None,
+        "exchange_type_selected": selected_type is not None,
     }
 
 
@@ -219,13 +218,12 @@ async def subscription_create_criteria_getter(
     Returns:
         Словарь с критериями
     """
-    # Получаем выбранный тип обменов (автоматический или из виджета)
-    sub_type = dialog_manager.dialog_data.get("type")
+    # Получаем выбранный тип обменов
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
 
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
-        "both": "🔄 Оба типа",
     }
 
     criteria_options = [
@@ -273,12 +271,11 @@ async def subscription_create_price_getter(
     Returns:
         Словарь с настройками цены
     """
-    sub_type = dialog_manager.dialog_data.get("type")
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
 
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
-        "both": "🔄 Оба типа",
     }
 
     # Получаем выбранные критерии
@@ -337,12 +334,11 @@ async def subscription_create_time_getter(
     Returns:
         Словарь с временными диапазонами
     """
-    sub_type = dialog_manager.dialog_data.get("type")
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
 
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
-        "both": "🔄 Оба типа",
     }
 
     # Получаем выбранные критерии для отображения
@@ -433,12 +429,11 @@ async def subscription_create_date_getter(
     )
 
     await prepare_calendar_data_for_exchange(stp_repo, user, dialog_manager)
-    sub_type = dialog_manager.dialog_data.get("type")
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
 
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
-        "both": "🔄 Оба типа",
     }
 
     # Получаем выбранные критерии
@@ -564,11 +559,10 @@ async def subscription_create_confirmation_getter(
         "subscription_name", "Моя подписка"
     )
 
-    sub_type = dialog_manager.dialog_data.get("type")
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
-        "both": "🔄 Оба типа",
     }
     exchange_type = type_names.get(sub_type, "Не выбрано")
 
@@ -597,8 +591,8 @@ def _generate_subscription_name(dialog_manager: DialogManager) -> str:
     """
     parts = []
 
-    sub_type = dialog_manager.dialog_data.get("type")
-    type_names = {"buy": "Покупка", "sell": "Продажа", "both": "Все обмены"}
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
+    type_names = {"buy": "Покупка", "sell": "Продажа"}
     parts.append(type_names.get(sub_type, "Обмены"))
 
     # Сотрудник (приоритетно)
@@ -671,8 +665,8 @@ def _get_criteria_summary(dialog_manager: DialogManager) -> str:
 
 def _get_subscription_summary(dialog_manager: DialogManager) -> str:
     """Получить краткое описание подписки для названия."""
-    sub_type = dialog_manager.dialog_data.get("type")
-    type_short = {"buy": "покупка", "sell": "продажа", "both": "все обмены"}
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
+    type_short = {"buy": "покупка", "sell": "продажа"}
 
     criteria_summary = _get_criteria_summary(dialog_manager)
 
@@ -759,12 +753,11 @@ async def subscription_create_seller_search_getter(
     Returns:
         Словарь с данными для поиска сотрудника
     """
-    sub_type = dialog_manager.dialog_data.get("type")
+    sub_type = dialog_manager.dialog_data.get("exchange_type")
 
     type_names = {
         "buy": "📈 Покупка часов",
         "sell": "📉 Продажа часов",
-        "both": "🔄 Оба типа",
     }
 
     # Получаем выбранные критерии для отображения
