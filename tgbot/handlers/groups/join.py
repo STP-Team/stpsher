@@ -2,14 +2,117 @@ import logging
 
 from aiogram import F, Router
 from aiogram.filters import IS_ADMIN, IS_MEMBER, IS_NOT_MEMBER, ChatMemberUpdatedFilter
-from aiogram.types import ChatMemberUpdated
-from stp_database import MainRequestsRepo
+from aiogram.types import (
+    ChatJoinRequest,
+    ChatMemberUpdated,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
+from stp_database import Employee, MainRequestsRepo
 
 logger = logging.getLogger(__name__)
 
 
 groups_router = Router()
 groups_router.my_chat_member.filter(F.chat.type.in_({"group", "supergroup"}))
+
+
+@groups_router.chat_join_request()
+async def join_request(
+    request: ChatJoinRequest, user: Employee, stp_repo: MainRequestsRepo
+) -> None:
+    """Обработчик новых запросов на вход в канал.
+
+    Args:
+        request: Запрос входа
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+    """
+    try:
+        chat = request.chat
+
+        # Получаем настройки канала из БД
+        group = await stp_repo.group.get_groups(chat.id)
+
+        # Проверяем, что канал существует в БД
+        if not group:
+            logger.warning(f"Группа {chat.id} не найдена в базе данных")
+            await request.decline()
+            return
+
+        channel_link = f"t.me/c/{str(chat.id).replace('-100', '')}"
+
+        # Проверка на удаление уволенных
+        if group.remove_unemployed:
+            if not user:
+                await request.decline()
+                await stp_repo.group_member.remove_member(chat.id, request.from_user.id)
+                await request.answer_pm(
+                    text=f"✋ Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> отклонен\n\nДоступ разрешен только сотрудникам"
+                )
+                return
+            # Если пользователь есть и remove_unemployed=True, проверяем роли дальше
+
+        # Проверка ролей
+        if group.allowed_roles:
+            if user and user.role in group.allowed_roles:
+                await request.approve()
+                await stp_repo.group_member.add_member(chat.id, request.from_user.id)
+                await request.answer_pm(
+                    text=f"👌 Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> принят",
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [
+                                InlineKeyboardButton(
+                                    text=f"👀 Открыть {'группу' if group.group_type == 'group' else 'канал'}",
+                                    url=channel_link,
+                                )
+                            ]
+                        ]
+                    ),
+                )
+            else:
+                await request.decline()
+                await stp_repo.group_member.remove_member(chat.id, request.from_user.id)
+                await request.answer_pm(
+                    text=f"✋ Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> отклонен\n\nДоступ с твоим уровнем доступа запрещен"
+                )
+        else:
+            # Нет ограничений по ролям - одобряем всех (кроме уже отфильтрованных безработных)
+            await request.approve()
+            await stp_repo.group_member.add_member(chat.id, request.from_user.id)
+            await request.answer_pm(
+                text=f"👌 Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> принят",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text=f"👀 Открыть {'группу' if group.group_type == 'group' else 'канал'}",
+                                url=channel_link,
+                            )
+                        ]
+                    ]
+                ),
+            )
+
+    except Exception as e:
+        chat_id = request.chat.id if request.chat else "unknown"
+        logger.error(f"Ошибка при обработке запроса входа в канал {chat_id}: {e}")
+        try:
+            await request.decline()
+            if request.chat:
+                await stp_repo.group_member.remove_member(
+                    request.chat.id, request.from_user.id
+                )
+        except Exception as decline_error:
+            error_str = str(decline_error)
+            # Не логируем ошибки, когда запрос уже недоступен
+            if "HIDE_REQUESTER_MISSING" not in error_str:
+                logger.error(f"Ошибка при отклонении запроса: {decline_error}")
+            else:
+                logger.debug(
+                    f"Запрос на вступление уже недоступен для пользователя {request.from_user.id if request.from_user else 'unknown'}"
+                )
 
 
 @groups_router.my_chat_member(
