@@ -43,6 +43,7 @@ async def groups_list_getter(
     """
     user_groups = await stp_repo.group_member.get_member_groups(member_id=user.user_id)
     managed_groups = []
+    managed_groups_with_type = []
 
     for group in user_groups:
         try:
@@ -57,13 +58,23 @@ async def groups_list_getter(
                     or "Без названия"
                 )
                 managed_groups.append((group_name, str(group.group_id)))
+                managed_groups_with_type.append((
+                    group_name,
+                    str(group.group_id),
+                    group.group_type,
+                ))
         except TelegramBadRequest:
             # Пропускаем группы, где бот больше не имеет доступа
             continue
 
     return {
         "groups": managed_groups,
-        "groups_count": len(managed_groups),
+        "groups_count": len([
+            group for group in managed_groups_with_type if group[2] == "group"
+        ]),
+        "channels_count": len([
+            group for group in managed_groups_with_type if group[2] == "channel"
+        ]),
         "has_groups": len(managed_groups) > 0,
     }
 
