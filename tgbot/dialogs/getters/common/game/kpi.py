@@ -55,11 +55,7 @@ async def kpi_getter(
     # Форматирование даты
     updated_at_str = "—"
     if premium.updated_at:
-        updated_at_str = (
-            premium.updated_at.replace(tzinfo=datetime.timezone.utc)
-            .astimezone(datetime.timezone(datetime.timedelta(hours=5)))
-            .strftime(strftime_date)
-        )
+        updated_at_str = premium.updated_at.strftime(strftime_date)
 
     current_time_str = datetime.datetime.now(
         datetime.timezone(datetime.timedelta(hours=5))
@@ -83,7 +79,7 @@ async def kpi_getter(
 
 {"📈 Всего чатов: " + SalaryFormatter.format_value(premium.contacts_count) if user.division == "НЦК" else "📈 Всего звонков: " + SalaryFormatter.format_value(premium.contacts_count)}
 
-<i>Выгружено: {premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date) if premium.updated_at else "—"}</i>
+<i>Выгружено: {updated_at_str}</i>
 <i>Обновлено: {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</i>"""
 
     else:
