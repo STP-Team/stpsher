@@ -32,6 +32,7 @@ from tgbot.dialogs.menus.common.groups.settings import (
     groups_access_window,
     groups_remove_bot_window,
     groups_service_messages_window,
+    inappropriate_users_window,
 )
 from tgbot.dialogs.states.common.groups import Groups
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -230,5 +231,6 @@ groups_dialog = Dialog(
     groups_access_window,
     groups_service_messages_window,
     groups_remove_bot_window,
+    inappropriate_users_window,
     on_start=on_start,
 )

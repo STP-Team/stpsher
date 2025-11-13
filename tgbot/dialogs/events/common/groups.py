@@ -209,3 +209,105 @@ async def on_confirm_delete_group(
         await event.answer(
             f"❌ Ошибка при удалении бота из группы: {str(e)}", show_alert=True
         )
+
+
+async def on_kick_inappropriate_user(
+    event: CallbackQuery,
+    _widget: Select,
+    dialog_manager: DialogManager,
+    item_id: str,
+) -> None:
+    """Обработчик исключения одного неподходящего пользователя из группы.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Select виджет
+        dialog_manager: Менеджер диалога
+        item_id: ID пользователя для исключения
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+    user_id = int(item_id)
+
+    try:
+        # Исключаем пользователя из группы в Telegram
+        await event.bot.ban_chat_member(chat_id=group_id, user_id=user_id)
+        await event.bot.unban_chat_member(chat_id=group_id, user_id=user_id)
+
+        # Удаляем пользователя из БД
+        await stp_repo.group_member.remove_member(group_id=group_id, member_id=user_id)
+
+        await event.answer("✅ Пользователь исключен из группы", show_alert=True)
+
+        # Обновляем окно для показа актуального списка
+        await dialog_manager.switch_to(Groups.inappropriate_users)
+
+    except Exception as e:
+        await event.answer(
+            f"❌ Ошибка при исключении пользователя: {str(e)}", show_alert=True
+        )
+
+
+async def on_kick_all_inappropriate_users(
+    event: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик массового исключения всех неподходящих пользователей из группы.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    try:
+        # Получаем данные о неподходящих пользователях
+        from tgbot.dialogs.getters.common.groups import inappropriate_users_getter
+
+        getter_data = await inappropriate_users_getter(
+            stp_repo=stp_repo,
+            bot=event.bot,
+            dialog_manager=dialog_manager,
+        )
+
+        inappropriate_users = getter_data["inappropriate_users"]
+        kicked_count = 0
+
+        # Исключаем каждого пользователя
+        for user_display, user_id_str, reason in inappropriate_users:
+            try:
+                user_id = int(user_id_str)
+
+                # Исключаем пользователя из группы в Telegram
+                await event.bot.ban_chat_member(chat_id=group_id, user_id=user_id)
+                await event.bot.unban_chat_member(chat_id=group_id, user_id=user_id)
+
+                # Удаляем пользователя из БД
+                await stp_repo.group_member.remove_member(
+                    group_id=group_id, member_id=user_id
+                )
+                kicked_count += 1
+
+            except Exception:
+                # Продолжаем исключение остальных пользователей даже если один не удался
+                continue
+
+        if kicked_count > 0:
+            await event.answer(
+                f"✅ Исключено {kicked_count} пользователей из группы", show_alert=True
+            )
+        else:
+            await event.answer(
+                "❌ Не удалось исключить ни одного пользователя", show_alert=True
+            )
+
+        # Обновляем окно для показа актуального списка
+        await dialog_manager.switch_to(Groups.inappropriate_users)
+
+    except Exception as e:
+        await event.answer(
+            f"❌ Ошибка при массовом исключении: {str(e)}", show_alert=True
+        )
