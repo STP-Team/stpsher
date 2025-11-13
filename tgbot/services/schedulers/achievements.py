@@ -36,6 +36,18 @@ KPI_MAPPING = {
         "attribute": "sales_potential",
         "display_name": "Потенциальных продаж",
     },
+    "SalesConversion": {
+        "attribute": "sales_conversion",
+        "display_name": "Конверсия продаж",
+    },
+    "PaidServiceCount": {
+        "attribute": "paid_service_count",
+        "display_name": "Платных сервисов",
+    },
+    "PaidServiceConversion": {
+        "attribute": "paid_service_conversion",
+        "display_name": "Конверсия платного сервиса",
+    },
 }
 
 
