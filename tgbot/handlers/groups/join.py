@@ -40,6 +40,10 @@ async def join_request(
             await request.decline()
             return
 
+        # Проверяем настройку auto_apply - если отключена, пропускаем запрос
+        if not group.auto_apply:
+            return
+
         channel_link = f"t.me/c/{str(chat.id).replace('-100', '')}"
 
         # Проверка на удаление уволенных

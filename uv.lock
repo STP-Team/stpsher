@@ -1239,7 +1239,7 @@ wheels = [
 [[package]]
 name = "stp-database"
 version = "1.8"
-source = { git = "https://github.com/ERTG-BOTS/stp-database.git#3ac540287bafbdf4be34e719105cd172f328180c" }
+source = { git = "https://github.com/ERTG-BOTS/stp-database.git#c48651d1434f978be33641746bb296326371f1b6" }
 dependencies = [
     { name = "aiomysql" },
     { name = "infrastructure" },

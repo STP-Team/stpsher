@@ -111,6 +111,9 @@ async def groups_details_getter(
     dialog_manager.dialog_data["initializing_checkboxes"] = True
 
     # Установка настроек из БД
+    autoapply_checkbox: ManagedCheckbox = dialog_manager.find("autoapply_checkbox")
+    await autoapply_checkbox.set_checked(settings.auto_apply)
+
     new_user_notify_checkbox: ManagedCheckbox = dialog_manager.find("new_user_notify")
     await new_user_notify_checkbox.set_checked(settings.new_user_notify)
 

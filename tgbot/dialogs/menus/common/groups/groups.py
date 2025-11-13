@@ -19,6 +19,7 @@ from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
 from tgbot.dialogs.events.common.groups import (
+    on_autoapply_click,
     on_group_selected,
     on_is_casino_allowed_click,
     on_new_user_notify_click,
@@ -172,6 +173,12 @@ groups_list_detail_window = Window(
     Format("""⚙️ <b>Настройки {group_type}</b>: {group_name}
 
 Идентификатор {group_type}: <code>{group_id}</code>"""),
+    Checkbox(
+        Const("🟢 Принятие заявок"),
+        Const("🔴 Принятие заявок"),
+        id="autoapply_checkbox",
+        on_click=on_autoapply_click,
+    ),
     SwitchTo(
         Const("🛡️ Уровень доступа"),
         id="access_level",

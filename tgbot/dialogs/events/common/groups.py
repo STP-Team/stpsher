@@ -110,6 +110,26 @@ async def on_service_message_selected(
     )
 
 
+async def on_autoapply_click(
+    _event: CallbackQuery,
+    widget: ManagedCheckbox,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик изменения настройки удаления не сотрудников.
+
+    Args:
+        _event: Событие клика на кнопку настройки
+        widget: Виджет чекбокса
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    await stp_repo.group.update_group(
+        group_id=group_id, auto_apply=not widget.is_checked()
+    )
+
+
 async def on_only_employees_click(
     _event: CallbackQuery,
     widget: ManagedCheckbox,
