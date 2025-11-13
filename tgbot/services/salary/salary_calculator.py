@@ -12,13 +12,60 @@ from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 from .pay_rates import PayRateService
 
-# Create a global instance of ScheduleParser for salary calculations
 schedule_parser = ScheduleParser()
 
 
 @dataclass
 class SalaryCalculationResult:
-    """Result of salary calculation"""
+    """Модель результата вычислений зарплаты.
+
+    Содержит все данные о расчете зарплаты сотрудника за месяц,
+    включая базовую информацию, отработанные часы, дополнительные смены,
+    компоненты премии и итоговую сумму.
+
+    Attributes:
+        user: Объект сотрудника из базы данных
+        current_month_name: Название текущего месяца
+        current_year: Текущий год
+        pay_rate: Часовая тарифная ставка (ЧТС)
+
+        working_days: Количество отработанных дней
+        total_working_hours: Общее количество отработанных часов
+        regular_hours: Обычные рабочие часы (дневные, не праздничные)
+        night_hours: Ночные часы (22:00-06:00)
+        holiday_hours: Дневные часы в праздничные дни
+        night_holiday_hours: Ночные часы в праздничные дни
+        holiday_days_worked: Список отработанных праздничных дней
+
+        additional_shift_hours: Часы дополнительных смен
+        additional_shift_holiday_hours: Праздничные часы доп. смен
+        additional_shift_night_hours: Ночные часы доп. смен
+        additional_shift_night_holiday_hours: Ночные праздничные часы доп. смен
+        additional_shift_days_worked: Список дней с доп. сменами
+
+        base_salary: Базовая зарплата (без премии)
+        additional_shift_salary: Зарплата за дополнительные смены
+        additional_shift_rate: Ставка для дополнительных смен
+        additional_shift_holiday_rate: Праздничная ставка доп. смен
+        additional_shift_night_rate: Ночная ставка доп. смен
+        additional_shift_night_holiday_rate: Ночная праздничная ставка доп. смен
+
+        csi_premium_amount: Сумма премии CSI
+        flr_premium_amount: Сумма премии FLR
+        gok_premium_amount: Сумма премии GOK
+        target_premium_amount: Сумма премии за выполнение цели
+        discipline_premium_amount: Сумма премии за дисциплину
+        tests_premium_amount: Сумма премии за тесты
+        thanks_premium_amount: Сумма премии за благодарности
+        tutors_premium_amount: Сумма премии за наставничество
+        head_adjust_premium_amount: Корректировка премии руководителем
+        premium_amount: Общая сумма премии
+
+        total_salary: Итоговая зарплата
+
+        calculation_time: Время проведения расчета
+        premium_updated_at: Время последнего обновления премии
+    """
 
     # Базовая информация
     user: Employee
@@ -27,7 +74,7 @@ class SalaryCalculationResult:
     pay_rate: float
 
     # Рабочие часы
-    working_days: int
+    working_days: float
     total_working_hours: float
     regular_hours: float
     night_hours: float
@@ -71,13 +118,60 @@ class SalaryCalculationResult:
 
 
 class SalaryCalculator:
-    """Central service for salary calculations"""
+    """Сервис для расчета зарплаты сотрудников.
+
+    Предоставляет функциональность для полного расчета заработной платы,
+    включая обработку графика работы, подсчет ночных и праздничных часов,
+    дополнительных смен и всех видов премий.
+
+    Основные возможности:
+        - Расчет ночных часов (22:00-06:00 по местному времени)
+        - Обработка данных графика работы и дополнительных смен
+        - Подсчет базовой зарплаты с учетом различных коэффициентов
+        - Расчет премий для специалистов и руководителей
+        - Учет праздничных дней согласно производственному календарю
+
+    Note:
+        Все расчеты выполняются асинхронно для работы с внешними API
+        (производственный календарь).
+    """
 
     @staticmethod
     def _calculate_night_hours(
         start_hour: int, start_min: int, end_hour: int, end_min: int
     ) -> float:
-        """Подсчет ночных часов (с 22:00 до 06:00) по локальному времени сотрудника"""
+        """Рассчитывает количество ночных часов в рабочей смене.
+
+        Определяет количество часов, отработанных в ночное время
+        (с 22:00 до 06:00 по локальному времени). Алгоритм корректно
+        обрабатывает смены, переходящие через полночь.
+
+        Args:
+            start_hour: Час начала смены (0-23)
+            start_min: Минута начала смены (0-59)
+            end_hour: Час окончания смены (0-23)
+            end_min: Минута окончания смены (0-59)
+
+        Returns:
+            Количество ночных часов в смене (в часах с плавающей точкой)
+
+        Examples:
+            Смена с 20:00 до 08:00:
+            >>> _calculate_night_hours(20, 0, 8, 0)
+            8.0
+
+            Смена с 23:00 до 02:00:
+            >>> _calculate_night_hours(23, 0, 2, 0)
+            3.0
+
+            Смена с 10:00 до 18:00:
+            >>> _calculate_night_hours(10, 0, 18, 0)
+            0.0
+
+        Note:
+            Ночными часами считается период с 22:00 до 06:00 включительно.
+            Если смена проходит полностью в дневное время, возвращается 0.0.
+        """
         start_minutes = start_hour * 60 + start_min
         end_minutes = end_hour * 60 + end_min
 
@@ -132,7 +226,34 @@ class SalaryCalculator:
         now: datetime.datetime,
         is_additional_shift: bool = False,
     ) -> Tuple[float, float, float, float, float, List[str]]:
-        """Обработка данных графика и возврат разбивки рабочего времени"""
+        """Обрабатывает данные графика работы для расчета часов и дней.
+
+        Анализирует график работы сотрудника, вычисляет общие, ночные и
+        праздничные часы с учетом производственного календаря. Поддерживает
+        обработку как основных смен, так и дополнительных.
+
+        Args:
+            schedule_data: Словарь с данными графика {день: время_работы}
+            now: Текущая дата и время для определения месяца и года
+            is_additional_shift: Флаг дополнительной смены
+
+        Returns:
+            Кортеж из 6 элементов:
+                - total_hours: Общее количество отработанных часов
+                - night_hours: Количество ночных часов (обычных дней)
+                - holiday_hours: Количество праздничных часов (дневных)
+                - night_holiday_hours: Количество ночных праздничных часов
+                - working_days: Количество отработанных дней
+                - days_worked: Список строк с описанием отработанных дней
+
+        Raises:
+            Exception: При ошибке обращения к производственному календарю
+
+        Note:
+            Метод учитывает время обеда при расчете рабочих часов и
+            пропорционально корректирует ночные часы. Использует внешний
+            API производственного календаря для определения праздничных дней.
+        """
         total_hours = 0.0
         night_hours = 0.0
         holiday_hours = 0.0
@@ -226,7 +347,33 @@ class SalaryCalculator:
     async def calculate_salary(
         cls, user: Employee, premium_data, current_month: Optional[str] = None
     ) -> SalaryCalculationResult:
-        """Считаем общую зарплату сотрудника"""
+        """Выполняет полный расчет зарплаты сотрудника за месяц.
+
+        Основной метод для расчета заработной платы, который объединяет
+        все компоненты: базовую зарплату, дополнительные смены, премии
+        и создает подробный отчет о расчетах.
+
+        Args:
+            user: Объект сотрудника из базы данных с информацией о
+                должности, подразделении и ФИО
+            premium_data: Объект с данными о премиях (SpecPremium или HeadPremium)
+                содержащий процентные значения всех видов премий
+            current_month: Название месяца для расчета (по умолчанию текущий)
+
+        Returns:
+            SalaryCalculationResult: Полный результат расчета зарплаты
+                с детализацией по всем компонентам
+
+        Raises:
+            ValueError: Если не найдена ЧТС для подразделения и должности
+            Exception: При ошибках парсинга графика или других расчетных ошибках
+
+        Note:
+            - Использует производственный календарь для определения праздников
+            - Различает расчет премий для специалистов и руководителей
+            - Учитывает часовой пояс +5 для корректного времени расчета
+            - Автоматически вычитает время обеда из рабочих часов
+        """
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5)))
         current_month_name = current_month or russian_months[now.month]
 
