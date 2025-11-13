@@ -1,7 +1,11 @@
 """Геттеры для функционала управления группами."""
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramBadRequest,
+    TelegramForbiddenError,
+)
 from aiogram.utils.deep_linking import create_startgroup_link
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedMultiselect
@@ -64,8 +68,7 @@ async def groups_list_getter(
                     str(group.group_id),
                     group.group_type,
                 ))
-        except TelegramBadRequest as e:
-            print(group.group_id, e)
+        except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
             # Пропускаем группы, где бот больше не имеет доступа
             continue
 
@@ -103,7 +106,17 @@ async def groups_details_getter(
         or dialog_manager.start_data["group_id"]
     )
 
-    chat = await bot.get_chat(chat_id=group_id)
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        # Возвращаем данные с информацией об ошибке
+        return {
+            "group_name": f"ID: {group_id}",
+            "group_id": group_id,
+            "is_channel": False,
+            "group_type": "группы",
+            "error": str(e),
+        }
 
     settings = await stp_repo.group.get_groups(group_id=group_id)
 
@@ -148,7 +161,18 @@ async def group_details_access_getter(
         Словарь с данными для окна
     """
     group_id = dialog_manager.dialog_data["group_id"]
-    chat = await bot.get_chat(chat_id=group_id)
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "group_name": f"ID: {group_id}",
+            "roles": [],
+            "has_pending_changes": False,
+            "has_inappropriate_users": False,
+            "error": str(e),
+        }
+
     settings = await stp_repo.group.get_groups(group_id=group_id)
 
     # Преобразуем словарь ролей в список кортежей (role_id, display_name)
@@ -213,7 +237,16 @@ async def group_details_services_getter(
         Словарь с данными для окна, включая список типов сервисных сообщений
     """
     group_id = dialog_manager.dialog_data["group_id"]
-    chat = await bot.get_chat(chat_id=group_id)
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "service_messages": [],
+            "group_name": f"Группа недоступна (ID: {group_id})",
+            "error": str(e),
+        }
+
     settings = await stp_repo.group.get_groups(group_id=group_id)
 
     service_messages_items = [
@@ -256,10 +289,15 @@ async def group_remove_getter(
         Словарь с данными для окна
     """
     group_id = dialog_manager.dialog_data["group_id"]
-    chat = await bot.get_chat(chat_id=group_id)
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+        group_name = chat.title
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
+        group_name = f"ID: {group_id}"
 
     return {
-        "group_name": chat.title,
+        "group_name": group_name,
     }
 
 
@@ -284,7 +322,19 @@ async def inappropriate_users_getter(
         Словарь с данными неподходящих пользователей
     """
     group_id = dialog_manager.dialog_data["group_id"]
-    chat = await bot.get_chat(chat_id=group_id)
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "group_name": f"ID: {group_id}",
+            "inappropriate_users": [],
+            "has_inappropriate_users": False,
+            "users_count": 0,
+            "has_multiple_users": False,
+            "error": str(e),
+        }
+
     group_settings = await stp_repo.group.get_groups(group_id=group_id)
 
     # Получаем всех участников группы
@@ -361,7 +411,12 @@ async def inappropriate_users_getter(
                         user_display = f"{user_name} (@{username})"
                     else:
                         user_display = user_name
-                except Exception:
+                except (
+                    TelegramBadRequest,
+                    TelegramForbiddenError,
+                    TelegramAPIError,
+                    Exception,
+                ):
                     user_display = f"ID: {member.member_id}"
 
                 inappropriate_users.append({
