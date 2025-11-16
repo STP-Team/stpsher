@@ -91,10 +91,10 @@ async def send_activation_product_email(
     # Базовое содержимое письма
     email_content = f"""Добрый день!<br><br>
 
-<a href="https://t.me/{user.username}"<b>{user.fullname}</b> из {user.division} просит активировать предмет <b>{product.name}</b><br>
+<a href="https://t.me/{user.username}"<b>{user.fullname}</b></a> из {user.division} просит активировать предмет <b>{product.name}</b><br><br>
 
 <b>О предмете</b>
-💵 Стоимость: {product.cost} баллов
+💵 Стоимость: {product.cost} баллов<br>
 📝 Описание: {product.description}<br>
 📍 Всего активаций: {product.count} (Осталось у специалиста - {product.count - (purchase.usage_count + 1)})<br>
 👮‍♂️ Ответственный: {get_role(role_id=product.manager_role)["name"]}<br>"""
