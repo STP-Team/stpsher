@@ -1256,6 +1256,33 @@ async def buy_time_selection_getter(
     }
 
 
+def _handle_midnight_crossing(start_str: str, end_str: str, base_date) -> tuple:
+    """Обрабатывает пересечение полуночи при расчете времени.
+
+    Args:
+        start_str: Время начала в формате HH:MM
+        end_str: Время окончания в формате HH:MM
+        base_date: Базовая дата для создания datetime объектов
+
+    Returns:
+        Кортеж (start_datetime, end_datetime) с корректной обработкой полуночи
+    """
+    from datetime import datetime, timedelta
+
+    start_datetime = datetime.combine(
+        base_date, datetime.strptime(start_str, "%H:%M").time()
+    )
+    end_datetime = datetime.combine(
+        base_date, datetime.strptime(end_str, "%H:%M").time()
+    )
+
+    # Если время окончания меньше времени начала, значит пересекаем полночь
+    if end_datetime <= start_datetime:
+        end_datetime += timedelta(days=1)
+
+    return start_datetime, end_datetime
+
+
 async def buy_confirmation_getter(
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
@@ -1304,13 +1331,14 @@ async def buy_confirmation_getter(
 
         from datetime import datetime
 
-        start_time_dt = datetime.fromisoformat(original_exchange["start_time"]) if original_exchange["start_time"] else datetime.now()
-        exchange_date = start_time_dt.date()
-        selected_start = datetime.combine(
-            exchange_date, datetime.strptime(start_str, "%H:%M").time()
+        start_time_dt = (
+            datetime.fromisoformat(original_exchange["start_time"])
+            if original_exchange["start_time"]
+            else datetime.now()
         )
-        selected_end = datetime.combine(
-            exchange_date, datetime.strptime(end_str, "%H:%M").time()
+        exchange_date = start_time_dt.date()
+        selected_start, selected_end = _handle_midnight_crossing(
+            start_str, end_str, exchange_date
         )
 
         # Рассчитываем цену исходя из цены за час
@@ -1429,13 +1457,14 @@ async def sell_confirmation_getter(
 
         from datetime import datetime
 
-        request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
-        request_date = request_start_dt.date()
-        offered_start = datetime.combine(
-            request_date, datetime.strptime(start_str, "%H:%M").time()
+        request_start_dt = (
+            datetime.fromisoformat(buy_request["start_time"])
+            if buy_request["start_time"]
+            else datetime.now()
         )
-        offered_end = datetime.combine(
-            request_date, datetime.strptime(end_str, "%H:%M").time()
+        request_date = request_start_dt.date()
+        offered_start, offered_end = _handle_midnight_crossing(
+            start_str, end_str, request_date
         )
 
         # Рассчитываем цену исходя из цены за час
