@@ -11,10 +11,6 @@ services:
     expose:
       - "8443"
 
-    depends_on:
-      redis_cache:
-        condition: service_healthy
-
     logging:
       driver: "json-file"
       options:
@@ -26,22 +22,13 @@ services:
       - caddy-network
 
   redis_cache:
-    image: redis:7.4.5-alpine
+    image: redis:8.0.5-alpine
     restart: always
     command: redis-server --port $REDIS_PORT --save 20 1 --loglevel warning --requirepass $REDIS_PASSWORD
     env_file:
       - ".env"
-    ports:
-      - "6379:6379"
     volumes:
       - cache:/data
-
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
 
     networks:
       - stp_bots
