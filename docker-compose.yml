@@ -11,6 +11,12 @@ services:
     expose:
       - "8443"
 
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8443/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
     depends_on:
       redis_cache:
         condition: service_healthy

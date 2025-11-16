@@ -17,6 +17,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiogram_dialog import DialogManager, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import OutdatedIntent, UnknownIntent, UnknownState
 from aiohttp import web
+from aiohttp.web import Response
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import Employee, create_engine, create_session_pool
 
@@ -279,6 +280,18 @@ async def on_shutdown_webhook(bot: Bot) -> None:
     logger.info("[Вебхук] Вебхук удален")
 
 
+async def health_check(request) -> Response:
+    """Эндпоинт для проверки здоровья приложения.
+
+    Args:
+        request: HTTP запрос
+
+    Returns:
+        Response: HTTP ответ со статусом здоровья
+    """
+    return Response(text="OK", status=200)
+
+
 async def main() -> None:
     """Основная функция запуска бота."""
     setup_logging()
@@ -347,6 +360,9 @@ async def main() -> None:
 
             # Создаем aiohttp приложение
             app = web.Application()
+
+            # Регистрируем health check эндпоинт
+            app.router.add_get("/health", health_check)
 
             # Создаем обработчик webhook
             webhook_handler = SimpleRequestHandler(
