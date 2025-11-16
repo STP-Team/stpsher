@@ -65,7 +65,7 @@ async def process_casino_game(
         if user_balance < bet_amount:
             await message.reply(
                 f"❌ Недостаточно баллов для игры!\n"
-                f"💰 Твой баланс: {user_balance} баллов\n"
+                f"✨ Твой баланс: {user_balance} баллов\n"
                 f"🎲 Нужно для ставки: {bet_amount} баллов"
             )
             return
@@ -118,20 +118,22 @@ async def process_casino_game(
         message_parts = [
             f"{result_data['result_icon']} <b>{result_data['result_title']}</b>",
             result_data["result_message"],
+            f"\n<b>Ставка:</b> {bet_amount} баллов",
         ]
 
-        # Информация о ставке и выигрыше
+        # Информация о выигрыше/проигрыше
         if net_win > 0:
-            message_parts.append(f"\n💰 <b>Выиграно:</b> +{net_win} баллов")
+            message_parts.append(f"<b>Выиграно:</b> +{net_win} баллов")
         elif net_win < 0:
-            message_parts.append(f"\n💸 <b>Проиграно:</b> {abs(net_win)} баллов")
+            message_parts.append(f"<b>Проиграно:</b> {abs(net_win)} баллов")
 
-        message_parts.append(f"\n🎯 <b>Ставка:</b> {bet_amount} баллов")
-        message_parts.append(f"\n\n💳 <b>Баланс:</b> {new_balance} баллов")
+        message_parts.append(
+            f"\n✨ <b>Баланс:</b> {user_balance} → {new_balance} баллов"
+        )
 
         result_message = "\n".join(message_parts)
 
-        await dice_message.reply(result_message)
+        await message.reply(result_message)
 
         # Логируем игру
         user_name = (

@@ -214,43 +214,43 @@ def format_result(game_type: str, value: int, multiplier: float, net_win: int) -
     # Формируем сообщение в зависимости от типа игры
     if game_type == "slots":
         if value == 64:
-            result_message = "🎰 <b>ДЖЕКПОТ!</b> Три семерки!"
+            result_message = "<b>ДЖЕКПОТ!</b> Три семерки!"
         elif value in [1, 22, 43]:
-            result_message = "🔥 <b>Три в ряд!</b> Отличный результат!"
+            result_message = "<b>Три в ряд!</b> Отличный результат!"
         elif value in [16, 32, 48]:
-            result_message = "✨ <b>Две семерки!</b> Неплохо!"
+            result_message = "<b>Две семерки!</b> Неплохо!"
         else:
             result_message = "Не повезло в этот раз..."
     elif game_type == "dice":
         if value == 6:
-            result_message = f"🎯 Выпало <b>{value}</b>! Отлично!"
+            result_message = f"Выпало <b>{value}</b>! Отлично!"
         elif value == 5:
-            result_message = f"✨ Выпало <b>{value}</b>! Хорошо!"
+            result_message = f"Выпало <b>{value}</b>! Хорошо!"
         elif value == 4:
-            result_message = f"💫 Выпало <b>{value}</b>! Неплохо!"
+            result_message = f"Выпало <b>{value}</b>! Неплохо!"
         else:
             result_message = f"Выпало <b>{value}</b>. Не повезло..."
     elif game_type == "darts":
         if value == 6:
-            result_message = "🎯 <b>Яблочко!</b> Идеальный бросок!"
+            result_message = "<b>Яблочко!</b> Идеальный бросок!"
         elif value == 5:
-            result_message = "✨ <b>Близко к центру!</b> Хороший бросок!"
+            result_message = "<b>Близко к центру!</b> Хороший бросок!"
         elif value == 4:
-            result_message = "💫 <b>В мишень!</b> Неплохо!"
+            result_message = "<b>В мишень!</b> Неплохо!"
         else:
             result_message = f"Попадание на <b>{value}</b>. Промах..."
     else:  # bowling
         if value == 6:
-            result_message = "🎳 <b>СТРАЙК!</b> Все кегли сбиты!"
+            result_message = "<b>СТРАЙК!</b> Все кегли сбиты!"
         elif value == 5:
-            result_message = "✨ <b>Почти страйк!</b> 5 кеглей!"
+            result_message = "<b>Почти страйк!</b> 5 кеглей!"
         elif value == 4:
-            result_message = "💫 <b>Хороший бросок!</b> 4 кегли!"
+            result_message = "<b>Хороший бросок!</b> 4 кегли!"
         else:
             result_message = f"Сбито <b>{value}</b> кеглей. Слабовато..."
 
     if multiplier > 0:
-        result_message += f"\n🎁 <b>Множитель:</b> x{multiplier}"
+        result_message += f"\n<b>Множитель:</b> x{multiplier}"
 
     return {
         "result_icon": result_icon,
