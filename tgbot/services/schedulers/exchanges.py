@@ -622,6 +622,13 @@ async def notify_upcoming_exchange(
             if exchange.owner_intent == "sell"
             else exchange.counterpart_id
         )
+
+        # Уведомление покупателю (определяем на основе owner_intent)
+        buyer_id = (
+            exchange.counterpart_id
+            if exchange.owner_intent == "sell"
+            else exchange.owner_id
+        )
         if seller_id:
             seller_exchange_info = await get_exchange_text(
                 stp_repo, exchange, user_id=seller_id
@@ -641,9 +648,9 @@ async def notify_upcoming_exchange(
                 notifications_sent += 1
 
         # Уведомление покупателю
-        if exchange.counterpart_id:
+        if buyer_id:
             buyer_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=exchange.counterpart_id
+                stp_repo, exchange, user_id=buyer_id
             )
 
             buyer_message = MESSAGES["upcoming_buyer"].format(
@@ -652,7 +659,7 @@ async def notify_upcoming_exchange(
 
             success = await send_message(
                 bot=bot,
-                user_id=exchange.counterpart_id,
+                user_id=buyer_id,
                 text=buyer_message,
                 reply_markup=reply_markup,
             )
