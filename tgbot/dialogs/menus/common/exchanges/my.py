@@ -180,6 +180,12 @@ my_detail_window = Window(
         when=F["status"] == "sold",  # noqa
     ),
     Button(Const("🔄 Обновить"), id="update"),
+    Button(
+        Const("🔥 Удалить"),
+        id="remove_my_exchange",
+        on_click=on_delete_exchange,
+        when=F["status"] == "canceled",  # noqa
+    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my), HOME_BTN),
     getter=my_detail_getter,
     state=Exchanges.my_detail,
