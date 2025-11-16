@@ -3,7 +3,7 @@ services:
     image: "ghcr.io/stp-team/stpsher:latest"
     container_name: stpsher
     stop_signal: SIGINT
-    restart: always
+    restart: unless-stopped
     env_file:
       - ".env"
     volumes:
@@ -11,24 +11,48 @@ services:
     expose:
       - "8443"
 
+    depends_on:
+      redis_cache:
+        condition: service_healthy
+
     logging:
       driver: "json-file"
       options:
         max-size: "200k"
         max-file: "10"
+        compress: "true"
 
     networks:
       - stp_bots
       - caddy-network
 
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          memory: 256M
+
   redis_cache:
     image: redis:8.0.5-alpine
-    restart: always
-    command: redis-server --port $REDIS_PORT --save 20 1 --loglevel warning --requirepass $REDIS_PASSWORD
+    restart: unless-stopped
+    command: >
+      redis-server --port $REDIS_PORT 
+      --save 20 1 --loglevel warning 
+      --requirepass $REDIS_PASSWORD
+
     env_file:
       - ".env"
+
     volumes:
       - cache:/data
+
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
 
     networks:
       - stp_bots

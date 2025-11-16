@@ -337,7 +337,7 @@ async def main() -> None:
     )
     scheduler_manager.start()
 
-    await on_startup()
+    # await on_startup()
 
     try:
         if bot_config.tg_bot.use_webhook:
