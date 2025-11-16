@@ -23,21 +23,101 @@ group_casino_router = Router()
 group_casino_router.message.filter(F.chat.type.in_(("group", "supergroup")))
 
 
-def parse_casino_command(message_text: str) -> int:
+async def send_game_help(message: Message, game_type: str) -> None:
+    """Отправить справку по игре.
+
+    Args:
+        message: Сообщение от пользователя
+        game_type: Тип игры (slots, dice, darts, bowling)
+    """
+    help_messages = {
+        "slots": {
+            "title": "🎰 <b>Игра в слоты</b>",
+            "usage": "/slots [сумма]",
+            "examples": [
+                "• /slots 50 - поставить 50 баллов",
+                "• /slots 100 - поставить 100 баллов",
+            ],
+            "rewards": [
+                "· Джекпот (777) → 5x",
+                "· Три в ряд → 3.5x",
+                "· Две семерки → 2.5x",
+            ],
+        },
+        "dice": {
+            "title": "🎲 <b>Игра в кости</b>",
+            "usage": "/dice [сумма]",
+            "examples": [
+                "• /dice 50 - поставить 50 баллов",
+                "• /dice 100 - поставить 100 баллов",
+            ],
+            "rewards": [
+                "· Выпало 6 → 2x",
+                "· Выпало 5 → 1.5x",
+                "· Выпало 4 → 0.75x (утешительный приз)",
+            ],
+        },
+        "darts": {
+            "title": "🎯 <b>Игра в дартс</b>",
+            "usage": "/darts [сумма]",
+            "examples": [
+                "• /darts 50 - поставить 50 баллов",
+                "• /darts 100 - поставить 100 баллов",
+            ],
+            "rewards": [
+                "· Яблочко (6) → 2x",
+                "· Близко к центру (5) → 1.5x",
+                "· В мишень (4) → 0.75x (утешительный приз)",
+            ],
+        },
+        "bowling": {
+            "title": "🎳 <b>Игра в боулинг</b>",
+            "usage": "/bowling [сумма]",
+            "examples": [
+                "• /bowling 50 - поставить 50 баллов",
+                "• /bowling 100 - поставить 100 баллов",
+            ],
+            "rewards": [
+                "· Страйк (6) → 2x",
+                "· 5 кеглей → 1.5x",
+                "· 4 кегли → 0.75x (утешительный приз)",
+            ],
+        },
+    }
+
+    game_info = help_messages[game_type]
+
+    help_text = f"{game_info['title']}\n\n"
+    help_text += f"Использование: {game_info['usage']}\n\n"
+    help_text += "<b>Примеры:</b>\n"
+    help_text += "\n".join(game_info["examples"])
+    help_text += "\n\n💎 <b>Таблица наград:</b>\n"
+    help_text += "\n".join(game_info["rewards"])
+    help_text += "\n\nМинимальная ставка: 10 баллов"
+
+    await message.reply(help_text)
+
+
+def parse_casino_command(message_text: str) -> int | None:
     """Извлечь ставку из команды казино.
 
     Args:
         message_text: Текст команды (например, "/slots 50" или "/dice")
 
     Returns:
-        Размер ставки (минимум 10)
+        Размер ставки (минимум 10) или None если аргумент не указан
     """
     # Паттерн для извлечения числа из команды
     match = re.search(r"/(?:slots|dice|darts|bowling)\s+(\d+)", message_text)
     if match:
         bet_amount = int(match.group(1))
         return max(10, bet_amount)  # Минимальная ставка 10
-    return 10  # Ставка по умолчанию
+
+    # Проверяем, есть ли команда без аргумента
+    if re.search(r"/(?:slots|dice|darts|bowling)$", message_text.strip()):
+        return None  # Команда без аргумента
+
+    return 10  # Ставка по умолчанию для других случаев
 
 
 async def process_casino_game(
@@ -163,6 +243,10 @@ async def slots_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo
         stp_repo: Репозиторий операций с базой STP
     """
     bet_amount = parse_casino_command(message.text)
+    if bet_amount is None:
+        await send_game_help(message, "slots")
+        return
+
     await process_casino_game(
         message, user, stp_repo, "slots", DiceEmoji.SLOT_MACHINE, bet_amount
     )
@@ -178,6 +262,10 @@ async def dice_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo)
         stp_repo: Репозиторий операций с базой STP
     """
     bet_amount = parse_casino_command(message.text)
+    if bet_amount is None:
+        await send_game_help(message, "dice")
+        return
+
     await process_casino_game(
         message, user, stp_repo, "dice", DiceEmoji.DICE, bet_amount
     )
@@ -193,6 +281,10 @@ async def darts_cmd(message: Message, user: Employee, stp_repo: MainRequestsRepo
         stp_repo: Репозиторий операций с базой STP
     """
     bet_amount = parse_casino_command(message.text)
+    if bet_amount is None:
+        await send_game_help(message, "darts")
+        return
+
     await process_casino_game(
         message, user, stp_repo, "darts", DiceEmoji.DART, bet_amount
     )
@@ -208,6 +300,10 @@ async def bowling_cmd(message: Message, user: Employee, stp_repo: MainRequestsRe
         stp_repo: Репозиторий операций с базой STP
     """
     bet_amount = parse_casino_command(message.text)
+    if bet_amount is None:
+        await send_game_help(message, "bowling")
+        return
+
     await process_casino_game(
         message, user, stp_repo, "bowling", DiceEmoji.BOWLING, bet_amount
     )
