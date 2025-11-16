@@ -184,7 +184,7 @@ my_detail_window = Window(
         Const("🔥 Удалить"),
         id="remove_my_exchange",
         on_click=on_delete_exchange,
-        when=F["status"] == "canceled",  # noqa
+        when=(F["status"] == "canceled") | (F["status"] == "expired"),  # noqa
     ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Exchanges.my), HOME_BTN),
     getter=my_detail_getter,
