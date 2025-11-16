@@ -135,9 +135,18 @@ async def casino_result_getter(
 
     # Формируем сообщение о выигрыше/проигрыше
     if win_amount > 0:
-        win_message = f"🎉 <b>Выигрыш:</b> +{win_amount} баллов"
+        # Получаем множитель из dialog_data
+        multiplier = dialog_manager.dialog_data.get("multiplier", 0)
+
+        if multiplier > 0:
+            gross_win = int(bet_amount * multiplier)
+            win_message = (
+                f"💰 <b>Выигрыш:</b> {gross_win} баллов → прибыль +{win_amount}"
+            )
+        else:
+            win_message = f"🎉 <b>Выигрыш:</b> +{win_amount} баллов"
     elif win_amount < 0:
-        win_message = f"💸 <b>Проигрыш:</b> {win_amount} баллов"
+        win_message = f"💸 <b>Проигрыш:</b> {abs(win_amount)} баллов"
     else:
         win_message = "➖ <b>Без изменений</b>"
 

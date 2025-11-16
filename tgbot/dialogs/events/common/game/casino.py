@@ -183,6 +183,7 @@ async def play_casino_game(
     result_data = format_result(game_type, dice_value, multiplier, net_win)
     dialog_manager.dialog_data.update(result_data)
     dialog_manager.dialog_data["win_amount"] = net_win
+    dialog_manager.dialog_data["multiplier"] = multiplier
 
     # Переходим к окну результата с новым сообщением
     dialog_manager.show_mode = ShowMode.SEND

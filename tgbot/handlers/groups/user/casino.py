@@ -203,7 +203,10 @@ async def process_casino_game(
 
         # Информация о выигрыше/проигрыше
         if net_win > 0:
-            message_parts.append(f"<b>Выиграно:</b> +{net_win} баллов")
+            gross_win = int(bet_amount * multiplier)
+            message_parts.append(
+                f"<b>Выигрыш:</b> {gross_win} баллов → прибыль +{net_win}"
+            )
         elif net_win < 0:
             message_parts.append(f"<b>Проиграно:</b> {abs(net_win)} баллов")
 
