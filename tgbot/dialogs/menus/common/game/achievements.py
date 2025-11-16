@@ -31,7 +31,7 @@ achievements_window = Window(
         Format("""{pos}. <b>{item[1]}</b>
 <blockquote>🏅 Награда: {item[2]} баллов
 📝 Описание: {item[3]}
-🔰 Должность: {item[4]}
+💼 Должность: {item[4]}
 🕒 Начисление: {item[5]}</blockquote>\n"""),
         items="achievements",
         id="achievements_list",

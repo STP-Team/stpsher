@@ -57,19 +57,28 @@ async def join_request(
                 return
             # Если пользователь есть и remove_unemployed=True, проверяем роли дальше
 
-        # Проверка доступа по ролям и подразделениям
+        # Проверка доступа по ролям, подразделениям и должностям
         if group.allowed_roles or group.allowed_divisions:
             access_granted = True
+            denial_reason = ""
 
             # Проверка ролей
             if group.allowed_roles:
                 if not user or user.role not in group.allowed_roles:
                     access_granted = False
+                    denial_reason = "уровень доступа"
 
             # Проверка подразделений (только если есть пользователь и установлены ограничения)
             if access_granted and user and group.allowed_divisions:
                 if user.division not in group.allowed_divisions:
                     access_granted = False
+                    denial_reason = "направление"
+                else:
+                    # Проверка должностей (только если подразделение прошло проверку и установлены ограничения по должностям)
+                    if group.allowed_positions:
+                        if user.position not in group.allowed_positions:
+                            access_granted = False
+                            denial_reason = "должность"
 
             if access_granted:
                 await request.approve()
@@ -90,8 +99,14 @@ async def join_request(
             else:
                 await request.decline()
                 await stp_repo.group_member.remove_member(chat.id, request.from_user.id)
+                reason_map = {
+                    "уровень доступа": "неразрешенный уровень доступа",
+                    "направление": "неразрешенное направление",
+                    "должность": "неразрешенная должность",
+                }
+                reason_text = reason_map.get(denial_reason, "недостаточно прав доступа")
                 await request.answer_pm(
-                    text=f"✋ Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> отклонен\n\nДоступ с твоим уровнем доступа запрещен"
+                    text=f"✋ Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> отклонен\n\nПричина: {reason_text}"
                 )
         else:
             # Нет ограничений по ролям и подразделениям - одобряем всех (кроме уже отфильтрованных безработных)

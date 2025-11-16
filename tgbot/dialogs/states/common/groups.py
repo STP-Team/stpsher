@@ -20,6 +20,7 @@ class Groups(StatesGroup):
     settings_access = State()
     settings_access_roles = State()
     settings_access_divisions = State()
+    settings_access_positions = State()
     settings_services = State()
     settings_members = State()
     settings_remove = State()

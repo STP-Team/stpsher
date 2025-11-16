@@ -76,7 +76,12 @@ async def on_role_selected(
     selected_roles_str = access_level_select.get_checked()
     selected_roles = [int(role_id) for role_id in selected_roles_str]
 
-    await stp_repo.group.update_group(group_id=group_id, allowed_roles=selected_roles)
+    if len(selected_roles) > 0:
+        await stp_repo.group.update_group(
+            group_id=group_id, allowed_roles=selected_roles
+        )
+    else:
+        await stp_repo.group.update_group(group_id=group_id, allowed_roles=None)
 
 
 async def on_division_selected(
@@ -95,9 +100,48 @@ async def on_division_selected(
     )
     selected_divisions = access_division_select.get_checked()
 
-    await stp_repo.group.update_group(
-        group_id=group_id, allowed_divisions=selected_divisions
+    if len(selected_divisions) > 0:
+        await stp_repo.group.update_group(
+            group_id=group_id, allowed_divisions=selected_divisions
+        )
+    else:
+        await stp_repo.group.update_group(
+            group_id=group_id,
+            allowed_divisions=None,
+            allowed_positions=None,
+        )
+
+
+async def on_position_selected(
+    _event: CallbackQuery,
+    _widget: Multiselect,
+    dialog_manager: DialogManager,
+    _item_id: str,
+) -> None:
+    """Обработчик изменения должностей для доступа к группе."""
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    # Получаем все выбранные должности из мультиселекта (короткие ID)
+    access_position_select: ManagedMultiselect = dialog_manager.find(
+        "access_position_select"
     )
+    selected_position_ids = access_position_select.get_checked()
+
+    # Преобразуем короткие ID в настоящие названия должностей
+    position_mapping = dialog_manager.dialog_data.get("position_mapping", {})
+    selected_positions = [
+        position_mapping[pos_id]
+        for pos_id in selected_position_ids
+        if pos_id in position_mapping
+    ]
+
+    if len(selected_positions) > 0:
+        await stp_repo.group.update_group(
+            group_id=group_id, allowed_positions=selected_positions
+        )
+    else:
+        await stp_repo.group.update_group(group_id=group_id, allowed_positions=None)
 
 
 async def on_service_message_selected(

@@ -169,8 +169,6 @@ async def groups_access_getter(
     except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
         return {
             "group_name": f"ID: {group_id}",
-            "roles": [],
-            "has_pending_changes": False,
             "has_inappropriate_users": False,
             "error": str(e),
         }
@@ -195,6 +193,7 @@ async def groups_access_getter(
     return {
         "group_name": chat.title,
         "has_inappropriate_users": has_inappropriate_users,
+        "has_allowed_divisions": settings.allowed_divisions,
     }
 
 
@@ -222,8 +221,6 @@ async def groups_access_roles_getter(
         return {
             "group_name": f"ID: {group_id}",
             "roles": [],
-            "has_pending_changes": False,
-            "has_inappropriate_users": False,
             "error": str(e),
         }
 
@@ -245,7 +242,7 @@ async def groups_access_roles_getter(
     allowed_roles = settings.allowed_roles if settings.allowed_roles else []
 
     # Устанавливаем выбранные роли в мультиселект
-    access_level_select: ManagedMultiselect = dialog_manager.find("access_level_select")
+    access_level_select: ManagedMultiselect = dialog_manager.find("access_role_select")
     for role_id, _ in roles_list:
         is_allowed = role_id in allowed_roles
         await access_level_select.set_checked(str(role_id), is_allowed)
@@ -280,8 +277,6 @@ async def settings_access_divisions_getter(
         return {
             "group_name": f"ID: {group_id}",
             "divisions": [],
-            "has_pending_changes": False,
-            "has_inappropriate_users": False,
             "error": str(e),
         }
 
@@ -318,6 +313,88 @@ async def settings_access_divisions_getter(
     return {
         "group_name": chat.title,
         "divisions": divisions_list,
+    }
+
+
+async def settings_access_positions_getter(
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна настройки должностей для доступа в группе.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        bot: Экземпляр бота
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными для окна
+    """
+    group_id = dialog_manager.dialog_data["group_id"]
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "group_name": f"ID: {group_id}",
+            "positions": [],
+            "error": str(e),
+        }
+
+    # Получаем fresh данные из БД (важно для корректной работы после обновлений)
+    settings = await stp_repo.group.get_groups(group_id=group_id)
+
+    # Получаем allowed_divisions из БД
+    allowed_divisions = settings.allowed_divisions or []
+
+    # Если нет allowed_divisions, возвращаем пустой список должностей
+    if not allowed_divisions:
+        allowed_positions = []
+        positions_list = []
+        dialog_manager.dialog_data["position_mapping"] = {}
+    else:
+        # Получаем всех сотрудников
+        all_employees = await stp_repo.employee.get_users()
+
+        # Фильтруем сотрудников по allowed_divisions и получаем уникальные должности
+        positions_set = set()
+        for employee in all_employees:
+            if employee.division in allowed_divisions and employee.position:
+                positions_set.add(employee.position)
+
+        # Сортируем должности и создаем маппинг с короткими ID
+        sorted_positions = sorted(positions_set)
+        position_mapping = {}
+        positions_list = []
+
+        for i, position in enumerate(sorted_positions):
+            short_id = f"pos_{i}"
+            position_mapping[short_id] = position
+            positions_list.append((short_id, position))
+
+        # Сохраняем маппинг в dialog_data для использования в обработчиках
+        dialog_manager.dialog_data["position_mapping"] = position_mapping
+
+        # Получаем allowed_positions из БД
+        allowed_positions = settings.allowed_positions or []
+
+    # Устанавливаем выбранные должности в мультиселект
+    access_position_select: ManagedMultiselect = dialog_manager.find(
+        "access_position_select"
+    )
+    if access_position_select:
+        for short_id, position_name in positions_list:
+            is_allowed = position_name in allowed_positions
+            await access_position_select.set_checked(short_id, is_allowed)
+
+    # Сброс флага инициализации
+    dialog_manager.dialog_data["initializing_checkboxes"] = False
+
+    return {
+        "group_name": chat.title,
+        "positions": positions_list,
     }
 
 

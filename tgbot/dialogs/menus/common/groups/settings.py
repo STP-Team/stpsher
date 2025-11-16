@@ -22,6 +22,8 @@ from tgbot.dialogs.events.common.groups import (
     on_kick_all_inappropriate_users,
     on_kick_inappropriate_user,
     on_only_employees_click,
+    on_position_selected,
+    on_role_selected,
     on_service_message_selected,
 )
 from tgbot.dialogs.getters.common.groups import (
@@ -31,6 +33,7 @@ from tgbot.dialogs.getters.common.groups import (
     groups_access_roles_getter,
     inappropriate_users_getter,
     settings_access_divisions_getter,
+    settings_access_positions_getter,
 )
 from tgbot.dialogs.states.common.groups import Groups
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -39,7 +42,9 @@ groups_access_window = Window(
     Format(
         """🔓 <b>{group_name}: Доступ</b>
 
-Если не выбрана ни одна роль или направление - доступ открыт для всех"""
+Доступ по должности доступен только после выбора допустимых направлений
+
+<i>Если не выбрана ни одна опция - доступ открыт для всех</i>"""
     ),
     Checkbox(
         Const("✓ 👔 Только сотрудники 👔"),
@@ -54,10 +59,16 @@ groups_access_window = Window(
             state=Groups.settings_access_roles,
         ),
         SwitchTo(
-            Const("💼 По направлению"),
+            Const("🔰 По направлению"),
             id="group_division_access",
             state=Groups.settings_access_divisions,
         ),
+    ),
+    SwitchTo(
+        Const("💼 По должности"),
+        id="group_position_access",
+        state=Groups.settings_access_positions,
+        when="has_allowed_divisions",
     ),
     SwitchTo(
         Const("⚠️ Неподходящие пользователи"),
@@ -87,7 +98,7 @@ groups_access_roles_window = Window(
             id="access_role_select",
             item_id_getter=operator.itemgetter(0),
             items="roles",
-            on_state_changed=on_division_selected,
+            on_state_changed=on_role_selected,
         ),
         width=2,
     ),
@@ -101,7 +112,7 @@ groups_access_roles_window = Window(
 
 settings_access_divisions_window = Window(
     Format(
-        """💼 <b>{group_name}: Доступ по направлению</b>
+        """🔰 <b>{group_name}: Доступ по направлению</b>
 
 Выбери направления, которые могут вступать в группу
 Если не выбрано ни одно направление, доступ открыт для всех"""
@@ -123,6 +134,32 @@ settings_access_divisions_window = Window(
     ),
     getter=settings_access_divisions_getter,
     state=Groups.settings_access_divisions,
+)
+
+settings_access_positions_window = Window(
+    Format(
+        """🔰 <b>{group_name}: Доступ по должности</b>
+
+Выбери должности, которые могут вступать в группу
+Если не выбрана ни одна должность, доступ открыт для всех"""
+    ),
+    Group(
+        Multiselect(
+            Format("✓ {item[1]}"),
+            Format("{item[1]}"),
+            id="access_position_select",
+            item_id_getter=operator.itemgetter(0),
+            items="positions",
+            on_state_changed=on_position_selected,
+        ),
+        width=1,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Groups.settings_access),
+        HOME_BTN,
+    ),
+    getter=settings_access_positions_getter,
+    state=Groups.settings_access_positions,
 )
 
 # Окно настройки сервисных сообщений группы

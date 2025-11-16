@@ -135,11 +135,17 @@ class GroupsMiddleware(BaseMiddleware):
             if not group:
                 return
 
-            if not await self._validate_user_access(
+            access_granted, denial_reason = await self._validate_user_access(
                 user_id, group, stp_repo, event.from_user
-            ):
+            )
+            if not access_granted:
                 await self._execute_user_kick(
-                    event.bot, user_id, group_id, stp_repo, "исключен из группы"
+                    event.bot,
+                    user_id,
+                    group_id,
+                    stp_repo,
+                    "исключен из группы",
+                    denial_reason,
                 )
                 return
 
@@ -216,15 +222,17 @@ class GroupsMiddleware(BaseMiddleware):
     ) -> None:
         """Обработка добавления пользователя в группу."""
         try:
-            if not await self._validate_user_access(
+            access_granted, denial_reason = await self._validate_user_access(
                 user_id, group, stp_repo, event.new_chat_member.user
-            ):
+            )
+            if not access_granted:
                 await self._execute_user_kick(
                     event.bot,
                     user_id,
                     group_id,
                     stp_repo,
                     "исключен при присоединении",
+                    denial_reason,
                 )
                 return
 
@@ -284,11 +292,11 @@ class GroupsMiddleware(BaseMiddleware):
         group: Group,
         stp_repo: MainRequestsRepo,
         user: Optional[User] = None,
-    ) -> bool:
+    ) -> tuple[bool, str]:
         """Проверка доступа пользователя к группе."""
         try:
             if user and user.is_bot:
-                return True
+                return True, ""
 
             # Получаем данные сотрудника для проверок
             employee = await stp_repo.employee.get_users(user_id=user_id)
@@ -298,23 +306,31 @@ class GroupsMiddleware(BaseMiddleware):
                 logger.info(
                     f"[Группы] Пользователь {user_id} не найден в базе сотрудников"
                 )
-                return False
+                return False, "уровень доступа"
 
             # Проверка ролей (только если установлены ограничения)
             if group.allowed_roles:
                 if not employee or employee.role not in group.allowed_roles:
-                    return False
+                    return False, "уровень доступа"
 
             # Проверка подразделений (только если установлены ограничения)
             if group.allowed_divisions:
                 if not employee or employee.division not in group.allowed_divisions:
-                    return False
+                    return False, "направление"
+                else:
+                    # Проверка должностей (только если подразделение прошло проверку и установлены ограничения по должностям)
+                    if group.allowed_positions:
+                        if (
+                            not employee
+                            or employee.position not in group.allowed_positions
+                        ):
+                            return False, "должность"
 
-            return True
+            return True, ""
 
         except Exception as e:
             logger.error(f"[Группы] Ошибка валидации пользователя {user_id}: {e}")
-            return True
+            return True, ""
 
     async def _execute_user_kick(
         self,
@@ -323,6 +339,7 @@ class GroupsMiddleware(BaseMiddleware):
         group_id: int,
         stp_repo: MainRequestsRepo,
         reason: str,
+        denial_reason: str = "недостаточно прав доступа",
     ) -> None:
         """Выполнение исключения пользователя."""
         try:
@@ -331,7 +348,9 @@ class GroupsMiddleware(BaseMiddleware):
             await bot.unban_chat_member(chat_id=group_id, user_id=user_id)
             await stp_repo.group_member.remove_member(group_id, user_id)
 
-            await self._send_kick_notification(bot, user_id, group_id, stp_repo, reason)
+            await self._send_kick_notification(
+                bot, user_id, group_id, stp_repo, reason, denial_reason
+            )
             logger.info(
                 f"[Группы] Пользователь {user_id} исключен из группы {group_id}"
             )
@@ -355,14 +374,21 @@ class GroupsMiddleware(BaseMiddleware):
         group_id: int,
         stp_repo: MainRequestsRepo,
         reason: str,
+        denial_reason: str = "недостаточно прав доступа",
     ) -> None:
         """Отправка уведомления об исключении."""
         try:
             user = await stp_repo.employee.get_users(user_id=user_id)
+            reason_map = {
+                "уровень доступа": "неразрешенный уровень доступа",
+                "направление": "неразрешенное направление",
+                "должность": "неразрешенная должность",
+            }
+            reason_text = reason_map.get(denial_reason, "недостаточно прав доступа")
             if user:
-                text = f"👋 <b>Пользователь исключен</b>\n\n{format_fullname(user, True)} {reason}\n\n<i>Причина: недостаточно прав доступа</i>"
+                text = f"👋 <b>Пользователь исключен</b>\n\n{format_fullname(user, True)} {reason}\n\n<i>Причина: {reason_text}</i>"
             else:
-                text = f"👋 <b>Пользователь исключен</b>\n\n{user_id} {reason}\n\n<i>Причина: недостаточно прав доступа</i>"
+                text = f"👋 <b>Пользователь исключен</b>\n\n{user_id} {reason}\n\n<i>Причина: {reason_text}</i>"
 
             await bot.send_message(chat_id=group_id, text=text, parse_mode="HTML")
 
