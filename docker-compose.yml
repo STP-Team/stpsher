@@ -63,6 +63,14 @@ services:
     networks:
       - stp_bots
 
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+        reservations:
+          memory: 64M
+
 volumes:
   cache: { }
 
