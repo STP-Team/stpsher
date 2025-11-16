@@ -121,8 +121,11 @@ async def sell_time_input_getter(
 
         # Формируем предупреждение о дежурстве
         duty_warning = ""
-        if has_duty:
+        if has_duty and duty_time and duty_type:
             duty_warning = f"\n🚩 <b>Есть дежурство:</b>\n{duty_time} {duty_type}"
+        elif has_duty:
+            # Fallback если по какой-то причине нет детальной информации
+            duty_warning = "\n🚩 <b>Есть дежурство</b>"
 
         # Формируем информацию о проданных часах
         sold_hours_info = ""

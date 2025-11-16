@@ -82,8 +82,8 @@ async def get_shift_info_from_calendar_data(
 
     # Получаем информацию о дежурствах из календарных данных
     duty_info = calendar_data.get("duty_info")
-    has_duty = bool(duty_info)
-    duty_time = duty_info if has_duty else None
+    has_duty = False  # Начинаем с False, устанавливаем True только если найдено валидное дежурство
+    duty_time = None
     duty_type = None
 
     if duty_info and isinstance(duty_info, str):
@@ -92,6 +92,7 @@ async def get_shift_info_from_calendar_data(
         if len(duty_parts) >= 2 and duty_parts[-1] in ["С", "П"]:
             duty_type = duty_parts[-1]
             duty_time = " ".join(duty_parts[:-1])
+            has_duty = True  # Устанавливаем True только после успешного парсинга
 
     return shift_start, shift_end, has_duty, duty_time, duty_type
 
