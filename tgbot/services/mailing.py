@@ -11,6 +11,7 @@ from stp_database import Employee, Product
 from stp_database.models.STP.purchase import Purchase
 
 from tgbot.config import load_config
+from tgbot.misc.helpers import get_role
 
 config = load_config(".env")
 
@@ -59,7 +60,7 @@ async def send_auth_email(code: str, email: str, bot_username: str) -> None:
         bot_username: Юзернейм бота Telegram (для гиперссылки)
     """
     email_subject = "Авторизация в боте"
-    email_content = f"""Добрый день<br><br>
+    email_content = f"""Добрый день!<br><br>
 
 Код для авторизации: <b>{code}</b><br>
 Введите код в бота <a href="https://t.me/{bot_username}">@{bot_username}</a> для завершения авторизации"""
@@ -86,12 +87,24 @@ async def send_activation_product_email(
         bot_username: Юзернейм бота Telegram
     """
     email_subject = "Активация предмета"
+
+    # Базовое содержимое письма
     email_content = f"""Добрый день!<br><br>
 
-<b>{user.fullname}</b>{f' (<a href="https://t.me/{user.username}">@{user.username}</a>)' if user.username else ""} отправил запрос на активацию <b>{product.name}</b><br>
-📝 Описание: {product.description}<br>
-📍 Активаций: <b>{purchase.usage_count + 1}</b> из <b>{product.count}</b><br><br>
+<a href="https://t.me/{user.username}"<b>{user.fullname}</b> из {user.division} просит активировать предмет <b>{product.name}</b><br>
 
+<b>О предмете</b>
+💵 Стоимость: {product.cost} баллов
+📝 Описание: {product.description}<br>
+📍 Всего активаций: {product.count} (Осталось у специалиста - {product.count - (purchase.usage_count + 1)})<br>
+👮‍♂️ Ответственный: {get_role(role_id=product.manager_role)["name"]}<br>"""
+
+    # Добавляем комментарий к покупке, если он существует
+    if purchase.user_comment:
+        email_content += f"""
+💬 Комментарий: {purchase.user_comment}<br>"""
+
+    email_content += f"""<br>
 Для активации перейдите в <a href="https://t.me/{bot_username}">СТПшер</a>"""
 
     email = []
@@ -147,12 +160,24 @@ async def send_cancel_product_email(
         bot_username: Юзернейм бота Telegram
     """
     email_subject = "Отмена покупки"
+
+    # Базовое содержимое письма
     email_content = f"""Добрый день!<br><br>
 
-<b>{user.fullname}</b>{f' (<a href="https://t.me/{user.username}">@{user.username}</a>)' if user.username else ""} отменил использование <b>{product.name}</b><br>
-📝 Описание: {product.description}<br>
-📍 Активаций: <b>{purchase.usage_count}</b> из <b>{product.count}</b><br><br>
+<a href="https://t.me/{user.username}"<b>{user.fullname}</b> из {user.division} отозвал просьбу активации <b>{product.name}</b><br>
 
+<b>О предмете</b>
+💵 Стоимость: {product.cost} баллов
+📝 Описание: {product.description}<br>
+📍 Всего активаций: {product.count} (Осталось у специалиста - {purchase.usage_count})<br>
+👮‍♂️ Ответственный: {get_role(role_id=product.manager_role)["name"]}<br>"""
+
+    # Добавляем комментарий к покупке, если он существует
+    if purchase.comment and purchase.comment.strip():
+        email_content += f"""
+💬 Комментарий: {purchase.comment}<br>"""
+
+    email_content += f"""<br>
 Подробности можно посмотреть в <a href="https://t.me/{bot_username}">СТПшере</a>"""
 
     email = []
