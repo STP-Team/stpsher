@@ -349,8 +349,8 @@ async def on_exchange_buy(
         # Пользователь покупает существующее предложение продажи
         dialog_manager.dialog_data["original_exchange"] = {
             "id": exchange.id,
-            "start_time": exchange.start_time,
-            "end_time": exchange.end_time,
+            "start_time": exchange.start_time.isoformat() if exchange.start_time else None,
+            "end_time": exchange.end_time.isoformat() if exchange.end_time else None,
             "price": exchange.price,
             "owner_id": exchange.owner_id,  # Создатель обмена
         }
@@ -396,8 +396,8 @@ async def on_exchange_sell(
         # Пользователь отвечает на запрос покупки
         dialog_manager.dialog_data["buy_request"] = {
             "id": exchange.id,
-            "start_time": exchange.start_time,
-            "end_time": exchange.end_time,
+            "start_time": exchange.start_time.isoformat() if exchange.start_time else None,
+            "end_time": exchange.end_time.isoformat() if exchange.end_time else None,
             "price": exchange.price,
             "owner_id": exchange.owner_id,  # Создатель запроса покупки
         }
@@ -1085,8 +1085,10 @@ async def on_time_input(
             return
 
         if not _validate_time_limits(start_str, end_str, original_exchange):
-            original_start = original_exchange["start_time"].strftime("%H:%M")
-            original_end = original_exchange["end_time"].strftime("%H:%M")
+            original_start_dt = datetime.fromisoformat(original_exchange["start_time"]) if original_exchange["start_time"] else datetime.now()
+            original_end_dt = datetime.fromisoformat(original_exchange["end_time"]) if original_exchange["end_time"] else datetime.now()
+            original_start = original_start_dt.strftime("%H:%M")
+            original_end = original_end_dt.strftime("%H:%M")
             await message.answer(
                 f"❌ Время должно быть в пределах {original_start}-{original_end}"
             )
@@ -1252,15 +1254,32 @@ def _validate_time_limits(
         end_time = datetime.strptime(end_str, "%H:%M").time()
 
         # Получаем границы оригинального обмена
-        original_start = original_exchange["start_time"].time()
-        original_end = original_exchange["end_time"].time()
+        original_start_dt = datetime.fromisoformat(original_exchange["start_time"]) if original_exchange["start_time"] else datetime.now()
+        original_end_dt = datetime.fromisoformat(original_exchange["end_time"]) if original_exchange["end_time"] else datetime.now()
+        original_start = original_start_dt.time()
+        original_end = original_end_dt.time()
 
         # Проверяем что выбранное время в границах
-        return (
-            start_time >= original_start
-            and end_time <= original_end
-            and start_time < end_time
-        )
+        # Учитываем пересечение полуночи для времени
+        def time_in_range(time_to_check, range_start, range_end):
+            if range_start <= range_end:
+                # Обычный диапазон времени (не пересекает полночь)
+                return range_start <= time_to_check <= range_end
+            else:
+                # Диапазон пересекает полночь (например, 21:00-00:00)
+                return time_to_check >= range_start or time_to_check <= range_end
+
+        def is_valid_time_range(start, end, original_start, original_end):
+            # Проверяем, что начальное и конечное время находятся в допустимых границах
+            start_valid = time_in_range(start, original_start, original_end)
+            end_valid = time_in_range(end, original_start, original_end)
+
+            # Проверяем логичность диапазона (start != end)
+            range_valid = start != end
+
+            return start_valid and end_valid and range_valid
+
+        return is_valid_time_range(start_time, end_time, original_start, original_end)
     except Exception:
         return False
 
@@ -1276,7 +1295,8 @@ async def _handle_partial_exchange(
     end_str = dialog_manager.dialog_data.get("selected_end_time")
 
     # Создаем datetime объекты для выбранного времени
-    exchange_date = original_exchange["start_time"].date()
+    original_start_dt = datetime.fromisoformat(original_exchange["start_time"]) if original_exchange["start_time"] else datetime.now()
+    exchange_date = original_start_dt.date()
     selected_start = datetime.combine(
         exchange_date, datetime.strptime(start_str, "%H:%M").time()
     )
@@ -1298,8 +1318,8 @@ async def _handle_partial_exchange(
     )
 
     # Создаем новые обмены для оставшегося времени
-    original_start = original_exchange["start_time"]
-    original_end = original_exchange["end_time"]
+    original_start = datetime.fromisoformat(original_exchange["start_time"]) if original_exchange["start_time"] else datetime.now()
+    original_end = datetime.fromisoformat(original_exchange["end_time"]) if original_exchange["end_time"] else datetime.now()
 
     new_exchanges = []
     # Создаем обмен для времени до выбранного диапазона
@@ -1380,8 +1400,10 @@ async def on_seller_time_input(
             return
 
         if not _validate_seller_time_limits(start_str, end_str, buy_request):
-            request_start = buy_request["start_time"].strftime("%H:%M")
-            request_end = buy_request["end_time"].strftime("%H:%M")
+            request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+            request_end_dt = datetime.fromisoformat(buy_request["end_time"]) if buy_request["end_time"] else datetime.now()
+            request_start = request_start_dt.strftime("%H:%M")
+            request_end = request_end_dt.strftime("%H:%M")
             await message.answer(
                 f"❌ Время должно быть в пределах запрашиваемого диапазона {request_start}-{request_end}"
             )
@@ -1549,15 +1571,32 @@ def _validate_seller_time_limits(
         end_time = datetime.strptime(end_str, "%H:%M").time()
 
         # Получаем границы buy request
-        request_start = buy_request["start_time"].time()
-        request_end = buy_request["end_time"].time()
+        request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+        request_end_dt = datetime.fromisoformat(buy_request["end_time"]) if buy_request["end_time"] else datetime.now()
+        request_start = request_start_dt.time()
+        request_end = request_end_dt.time()
 
         # Проверяем что предложенное время в границах запроса
-        return (
-            start_time >= request_start
-            and end_time <= request_end
-            and start_time < end_time
-        )
+        # Учитываем пересечение полуночи для времени
+        def time_in_range(time_to_check, range_start, range_end):
+            if range_start <= range_end:
+                # Обычный диапазон времени (не пересекает полночь)
+                return range_start <= time_to_check <= range_end
+            else:
+                # Диапазон пересекает полночь (например, 21:00-00:00)
+                return time_to_check >= range_start or time_to_check <= range_end
+
+        def is_valid_time_range(start, end, req_start, req_end):
+            # Проверяем, что начальное и конечное время находятся в допустимых границах
+            start_valid = time_in_range(start, req_start, req_end)
+            end_valid = time_in_range(end, req_start, req_end)
+
+            # Проверяем логичность диапазона (start != end)
+            range_valid = start != end
+
+            return start_valid and end_valid and range_valid
+
+        return is_valid_time_range(start_time, end_time, request_start, request_end)
     except Exception:
         return False
 
@@ -1566,14 +1605,14 @@ async def _handle_partial_sell_offer(
     dialog_manager: DialogManager, stp_repo: MainRequestsRepo, user_id: int
 ):
     """Обработка частичного предложения времени продавцом (старая логика)."""
-    from datetime import datetime
 
     buy_request = dialog_manager.dialog_data.get("buy_request")
     start_str = dialog_manager.dialog_data.get("offered_start_time")
     end_str = dialog_manager.dialog_data.get("offered_end_time")
 
     # Создаем datetime объекты для предложенного времени
-    request_date = buy_request["start_time"].date()
+    request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+    request_date = request_start_dt.date()
     offered_start = datetime.combine(
         request_date, datetime.strptime(start_str, "%H:%M").time()
     )
@@ -1614,14 +1653,15 @@ def _is_full_time_offer(dialog_manager: DialogManager, buy_request: dict) -> boo
 
     try:
         from datetime import datetime
-
         # Парсим предложенное время
         offered_start = datetime.strptime(start_str, "%H:%M").time()
         offered_end = datetime.strptime(end_str, "%H:%M").time()
 
         # Получаем время buy request
-        request_start = buy_request["start_time"].time()
-        request_end = buy_request["end_time"].time()
+        request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+        request_end_dt = datetime.fromisoformat(buy_request["end_time"]) if buy_request["end_time"] else datetime.now()
+        request_start = request_start_dt.time()
+        request_end = request_end_dt.time()
 
         # Проверяем, совпадает ли полностью
         return offered_start == request_start and offered_end == request_end
@@ -1640,7 +1680,8 @@ async def _handle_partial_sell_offer_new(
     end_str = dialog_manager.dialog_data.get("offered_end_time")
 
     # Создаем datetime объекты для предложенного времени
-    request_date = buy_request["start_time"].date()
+    request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+    request_date = request_start_dt.date()
     offered_start = datetime.combine(
         request_date, datetime.strptime(start_str, "%H:%M").time()
     )
@@ -1662,8 +1703,8 @@ async def _handle_partial_sell_offer_new(
     )
 
     # Создаем новые buy requests для оставшегося времени
-    original_start = buy_request["start_time"]
-    original_end = buy_request["end_time"]
+    original_start = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+    original_end = datetime.fromisoformat(buy_request["end_time"]) if buy_request["end_time"] else datetime.now()
     original_buyer_id = buy_request["owner_id"]  # Исправлено: используем owner_id
 
     new_exchanges = []

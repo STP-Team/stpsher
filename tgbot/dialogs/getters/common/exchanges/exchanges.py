@@ -1222,13 +1222,23 @@ async def buy_time_selection_getter(
     if not original_exchange:
         return {"error": "Обмен не найден"}
 
-    # Получаем информацию об обмене
-    start_time = original_exchange["start_time"].strftime("%H:%M")
-    end_time = original_exchange["end_time"].strftime("%H:%M")
-    date_str = original_exchange["start_time"].strftime("%d.%m.%Y")
+    # Получаем информацию об обмене (конвертируем из ISO строк)
+    start_time_dt = (
+        datetime.fromisoformat(original_exchange["start_time"])
+        if original_exchange["start_time"]
+        else datetime.now()
+    )
+    end_time_dt = (
+        datetime.fromisoformat(original_exchange["end_time"])
+        if original_exchange["end_time"]
+        else datetime.now()
+    )
+    start_time = start_time_dt.strftime("%H:%M")
+    end_time = end_time_dt.strftime("%H:%M")
+    date_str = start_time_dt.strftime("%d.%m.%Y")
 
     # Рассчитываем общее количество часов
-    duration = original_exchange["end_time"] - original_exchange["start_time"]
+    duration = end_time_dt - start_time_dt
     total_hours = duration.total_seconds() / 3600
 
     # Рассчитываем общую стоимость (цена за час * количество часов)
@@ -1252,6 +1262,8 @@ async def buy_confirmation_getter(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для экрана подтверждения покупки."""
+    from datetime import datetime
+
     original_exchange = dialog_manager.dialog_data.get("original_exchange")
     buy_full = dialog_manager.dialog_data.get("buy_full", False)
 
@@ -1262,14 +1274,25 @@ async def buy_confirmation_getter(
     seller = await stp_repo.employee.get_users(user_id=original_exchange["owner_id"])
     seller_name = format_fullname(seller, True, True)
 
-    date_str = original_exchange["start_time"].strftime("%d.%m.%Y")
+    # Конвертируем ISO строки в datetime для расчетов
+    start_time_dt = (
+        datetime.fromisoformat(original_exchange["start_time"])
+        if original_exchange["start_time"]
+        else datetime.now()
+    )
+    end_time_dt = (
+        datetime.fromisoformat(original_exchange["end_time"])
+        if original_exchange["end_time"]
+        else datetime.now()
+    )
+    date_str = start_time_dt.strftime("%d.%m.%Y")
     price_per_hour = original_exchange["price"]
 
     if buy_full:
         # Полная покупка
-        start_time = original_exchange["start_time"].strftime("%H:%M")
-        end_time = original_exchange["end_time"].strftime("%H:%M")
-        duration = original_exchange["end_time"] - original_exchange["start_time"]
+        start_time = start_time_dt.strftime("%H:%M")
+        end_time = end_time_dt.strftime("%H:%M")
+        duration = end_time_dt - start_time_dt
         hours = duration.total_seconds() / 3600
         total_price = int(price_per_hour * hours)
         time_range = f"{start_time}-{end_time}"
@@ -1281,7 +1304,8 @@ async def buy_confirmation_getter(
 
         from datetime import datetime
 
-        exchange_date = original_exchange["start_time"].date()
+        start_time_dt = datetime.fromisoformat(original_exchange["start_time"]) if original_exchange["start_time"] else datetime.now()
+        exchange_date = start_time_dt.date()
         selected_start = datetime.combine(
             exchange_date, datetime.strptime(start_str, "%H:%M").time()
         )
@@ -1327,13 +1351,23 @@ async def sell_time_selection_getter(
     buyer = await stp_repo.employee.get_users(user_id=buy_request["owner_id"])
     buyer_name = format_fullname(buyer, True, True)
 
-    # Форматируем время и дату
-    start_time = buy_request["start_time"].strftime("%H:%M")
-    end_time = buy_request["end_time"].strftime("%H:%M")
-    date_str = buy_request["start_time"].strftime("%d.%m.%Y")
+    # Конвертируем ISO строки в datetime и форматируем время и дату
+    start_time_dt = (
+        datetime.fromisoformat(buy_request["start_time"])
+        if buy_request["start_time"]
+        else datetime.now()
+    )
+    end_time_dt = (
+        datetime.fromisoformat(buy_request["end_time"])
+        if buy_request["end_time"]
+        else datetime.now()
+    )
+    start_time = start_time_dt.strftime("%H:%M")
+    end_time = end_time_dt.strftime("%H:%M")
+    date_str = start_time_dt.strftime("%d.%m.%Y")
 
     # Рассчитываем общее количество часов
-    duration = buy_request["end_time"] - buy_request["start_time"]
+    duration = end_time_dt - start_time_dt
     requested_hours = duration.total_seconds() / 3600
 
     return {
@@ -1351,6 +1385,8 @@ async def sell_confirmation_getter(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для экрана подтверждения предложения продажи."""
+    from datetime import datetime
+
     buy_request = dialog_manager.dialog_data.get("buy_request")
     offer_full = dialog_manager.dialog_data.get("offer_full", False)
 
@@ -1361,13 +1397,24 @@ async def sell_confirmation_getter(
     buyer = await stp_repo.employee.get_users(user_id=buy_request["owner_id"])
     buyer_name = format_fullname(buyer, True, True)
 
-    date_str = buy_request["start_time"].strftime("%d.%m.%Y")
+    # Конвертируем ISO строки в datetime
+    start_time_dt = (
+        datetime.fromisoformat(buy_request["start_time"])
+        if buy_request["start_time"]
+        else datetime.now()
+    )
+    end_time_dt = (
+        datetime.fromisoformat(buy_request["end_time"])
+        if buy_request["end_time"]
+        else datetime.now()
+    )
+    date_str = start_time_dt.strftime("%d.%m.%Y")
     price_per_hour = buy_request["price"]
 
     # Форматируем запрашиваемое время
-    request_start = buy_request["start_time"].strftime("%H:%M")
-    request_end = buy_request["end_time"].strftime("%H:%M")
-    request_duration = buy_request["end_time"] - buy_request["start_time"]
+    request_start = start_time_dt.strftime("%H:%M")
+    request_end = end_time_dt.strftime("%H:%M")
+    request_duration = end_time_dt - start_time_dt
     requested_hours = request_duration.total_seconds() / 3600
 
     if offer_full:
@@ -1382,7 +1429,8 @@ async def sell_confirmation_getter(
 
         from datetime import datetime
 
-        request_date = buy_request["start_time"].date()
+        request_start_dt = datetime.fromisoformat(buy_request["start_time"]) if buy_request["start_time"] else datetime.now()
+        request_date = request_start_dt.date()
         offered_start = datetime.combine(
             request_date, datetime.strptime(start_str, "%H:%M").time()
         )
