@@ -6,7 +6,12 @@ from typing import Any
 from aiogram_dialog import DialogManager
 from stp_database import Employee, MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname, get_status_emoji, strftime_date
+from tgbot.misc.helpers import (
+    format_fullname,
+    get_status_emoji,
+    short_name,
+    strftime_date,
+)
 from tgbot.services.leveling import LevelingSystem
 
 # Словарь для русских названий месяцев
@@ -403,7 +408,7 @@ async def game_casino_getter(
             casino_enabled_count += 1
 
         status_emoji = "🟢" if member.is_casino_allowed else "🔴"
-        member_name = format_fullname(member, True, True)
+        member_name = short_name(member.fullname)
 
         formatted_members.append((
             member.id,
