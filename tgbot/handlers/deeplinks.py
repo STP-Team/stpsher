@@ -8,6 +8,7 @@ from aiogram_dialog.api.exceptions import NoContextError
 from stp_database import Employee, MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges, ExchangesSub
+from tgbot.dialogs.states.common.game import Game
 from tgbot.dialogs.states.user import UserSG
 from tgbot.handlers.inline.exchanges import handle_exchange_cancellation
 from tgbot.keyboards.auth import auth_kb
@@ -132,6 +133,21 @@ async def start_deeplink(
                 ExchangesSub.sub_detail,
                 mode=StartMode.RESET_STACK,
                 data={"subscription_id": subscription_id},
+            )
+            return
+        elif payload.startswith("activation_"):
+            purchase_id = int(payload.split("_", 1)[1])
+            purchase = await stp_repo.purchase.get_purchase_details(purchase_id)
+
+            if not purchase or purchase.user_purchase.status != "review":
+                await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+                return
+
+            # Запускаем диалог активации
+            await dialog_manager.start(
+                Game.activation_details,
+                mode=StartMode.RESET_STACK,
+                data={"purchase_id": purchase_id},
             )
             return
 

@@ -4,7 +4,13 @@ import logging
 from datetime import datetime
 
 from aiogram import Bot
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
+from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select
@@ -102,13 +108,25 @@ async def send_product_activation_notifications(
 <b>🛒 Предмет:</b> {product_name}
 <b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
 <b>📋 Описание:</b> {product.description}
-{f"<b>💬 Комментарий:</b> {comment}" if comment else ""}
-<b>Требуется рассмотрение заявки</b>"""
+{f"<b>💬 Комментарий:</b> {comment}" if comment else ""}"""
+
+            activation_link = await create_start_link(
+                bot=bot, payload=f"activation_{purchase.id}", encode=True
+            )
 
             result = await broadcast(
                 bot=bot,
                 users=manager_ids,
                 text=notification_text,
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="✍️ Открыть активацию", url=activation_link
+                            )
+                        ]
+                    ]
+                ),
             )
 
             logger.info(

@@ -61,7 +61,7 @@ activations_window = Window(
 )
 
 activation_details_window = Window(
-    Format("""<b>🎯 Активация предмета</b>
+    Format("""<b>✍️ Активация предмета</b>
 
 <b>🏆 О предмете</b>
 <blockquote><b>Название</b>
