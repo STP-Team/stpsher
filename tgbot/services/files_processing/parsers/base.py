@@ -141,7 +141,7 @@ class BaseParser(ABC):
 
     @staticmethod
     def is_valid_fullname(fullname_cell: str) -> bool:
-        """Проверяет содержит ли ячейка валидные ФИО.
+        """Проверка содержит ли ячейка валидные ФИО.
 
         Args:
             fullname_cell: Ячейка с ФИО для проверки

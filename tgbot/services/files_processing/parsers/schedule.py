@@ -88,9 +88,9 @@ class ScheduleParser(BaseParser):
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
-            stp_repo: Репозиторий базы данных
+            stp_repo: Репозиторий операций с базой STP
             current_day_only: Если True, получает дежурство только для текущего дня
-            bot: Экземпляр бота для создания ссылок
+            bot: Экземпляр бота
 
         Returns:
             Словарь с маппингом день -> (график, информация_о_дежурстве_и_обменах)
@@ -173,13 +173,11 @@ class ScheduleParser(BaseParser):
                                 exchange.counterpart_id == user.user_id
                                 and exchange.in_counterpart_schedule
                             ):
-                                print("here")
                                 # Проверяем что обмен относится к нужному месяцу
                                 if (
                                     exchange.start_time.year == current_year
                                     and exchange.start_time.month == month_num
                                 ):
-                                    print("here 1")
                                     day_num = exchange.start_time.day
                                     emoji = (
                                         "📈"
@@ -188,7 +186,6 @@ class ScheduleParser(BaseParser):
                                         else "📉"
                                     )
                                     if bot:
-                                        print("here 2")
                                         deeplink = await create_start_link(
                                             bot=bot,
                                             payload=f"exchange_{exchange.id}",
@@ -310,8 +307,8 @@ class ScheduleParser(BaseParser):
             month: Название месяца
             division: Направление
             compact: Использовать компактный формат
-            stp_repo: Репозиторий базы данных
-            bot: Экземпляр бота для создания ссылок
+            stp_repo: Репозиторий операций с базой STP
+            bot: Экземпляр бота
 
         Returns:
             Отформатированная строка с графиком, дежурствами и обменами
@@ -531,7 +528,7 @@ class DutyScheduleParser(BaseParser):
         Args:
             date: Дата в нужном месяце
             division: Направление
-            stp_repo: Репозиторий базы данных
+            stp_repo: Репозиторий операций с базой STP
 
         Returns:
             Словарь {день_месяца: список_дежурных}
@@ -1025,7 +1022,7 @@ class HeadScheduleParser(BaseParser):
             duties: Список дежурных
 
         Returns:
-
+            График дежурств если есть, иначе None
         """
         try:
             for duty in duties:
@@ -1215,7 +1212,6 @@ class GroupScheduleParser(BaseParser):
 
                 # Use FastExcelReader with caching
                 reader = ExcelReader(schedule_file, "ГРАФИК")
-                df = reader.df
 
                 # Find date column
                 date_column = reader.find_date_column(date)

@@ -1,3 +1,5 @@
+"""Файл конфигурации проекта."""
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -7,7 +9,20 @@ from sqlalchemy import URL
 
 @dataclass
 class TgBot:
-    """Creates the TgBot object from environment variables."""
+    """Класс конфигурации бота Telegram.
+
+    Attributes:
+        environment: Адрес сервера (prod или dev)
+        token: Токен бота от @BotFather
+
+        use_redis: Использовать ли Redis
+
+        use_webhook: Использовать ли вебхуки
+        webhook_domain: Домен вебхука
+        webhook_path: Кастомный путь к вебхуку
+        webhook_secret: Секретный токен вебхука
+        webhook_port: Порт вебхука
+    """
 
     environment: str
     token: str
@@ -20,7 +35,14 @@ class TgBot:
 
     @staticmethod
     def from_env(env: Env):
-        """Creates the TgBot object from environment variables."""
+        """Создает объект TgBot из переменных окружения.
+
+        Args:
+            env: Объект переменных окружения
+
+        Returns:
+            Собранный объект TgBot
+        """
         environment = env.str("ENVIRONMENT")
         token = env.str("BOT_TOKEN")
         use_redis = env.bool("USE_REDIS")
@@ -44,28 +66,22 @@ class TgBot:
 
 @dataclass
 class DbConfig:
-    """Database configuration class.
-    This class holds the settings for the database, such as host, password, port, etc.
+    """Класс конфигурации подключения к базам данных.
 
     Attributes:
-    ----------
-    host : str
-        Хост, на котором находится база данных
-    password : str
-        Пароль для авторизации в базе данных.
-    user : str
-        Логин для авторизации в базе данных.
-    main_db : str
-        Имя основной базы данных.
-    kpi_db : str
-        Имя основной базы данных.
+        host: Адрес сервера
+        user: Логин пользователя БД
+        password: Пароль пользователя БД
+
+        stp_db: Название базы данных STP
+        kpi_db: Название базы данных KPI
     """
 
     host: str
     user: str
     password: str
 
-    main_db: str
+    stp_db: str
     kpi_db: str
 
     def construct_sqlalchemy_url(
@@ -73,7 +89,15 @@ class DbConfig:
         db_name=None,
         driver="aiomysql",
     ) -> URL:
-        """Constructs and returns SQLAlchemy URL for MariaDB database connection"""
+        """Собирает строку SQLAlchemy для подключения к MariaDB.
+
+        Args:
+            db_name: Название базы данных
+            driver: Драйвер для подключения
+
+        Returns:
+            Возвращает собранную строку для подключения к базе используя SQLAlchemy
+        """
         connection_url = URL.create(
             f"mysql+{driver}",
             username=self.user,
@@ -94,35 +118,36 @@ class DbConfig:
 
     @staticmethod
     def from_env(env: Env):
-        """Creates the DbConfig object from environment variables."""
+        """Создает объект DbConfig из переменных окружения.
+
+        Args:
+            env: Объект переменных окружения
+
+        Returns:
+            Собранный объект DbConfig
+        """
         host = env.str("DB_HOST")
         user = env.str("DB_USER")
         password = env.str("DB_PASS")
 
-        main_db = env.str("MAIN_DB_NAME")
+        stp_db = env.str("STP_DB_NAME")
         kpi_db = env.str("KPI_DB_NAME")
 
         return DbConfig(
-            host=host, user=user, password=password, main_db=main_db, kpi_db=kpi_db
+            host=host, user=user, password=password, stp_db=stp_db, kpi_db=kpi_db
         )
 
 
 @dataclass
 class MailConfig:
-    """Creates the Email object from environment variables.
+    """Класс конфигурации подключения к email-серверу.
 
     Attributes:
-    ----------
-    host : str
-        The host where the email server is located.
-    port : int
-        The port which used to connect to the email server.
-    user : str
-        The username used to authenticate with the email server.
-    password : str
-        The password used to authenticate with the email server.
-    use_ssl : bool
-        The use_ssl flag used to connect to the email server.
+        host: Адрес почтового сервера
+        port: Порт почтового сервера
+        user: Логин почтового аккаунта
+        password: Пароль почтового аккаунта
+        use_ssl: Использовать ли флаг use_ssl при подключении
     """
 
     host: str
@@ -138,7 +163,14 @@ class MailConfig:
 
     @staticmethod
     def from_env(env: Env):
-        """Creates the Email object from environment variables."""
+        """Создает объект MailConfig из переменных окружения.
+
+        Args:
+            env: Объект переменных окружения
+
+        Returns:
+            Собранный объект MailConfig
+        """
         host = env.str("EMAIL_HOST")
         port = env.int("EMAIL_PORT")
         user = env.str("EMAIL_USER")
@@ -165,16 +197,12 @@ class MailConfig:
 
 @dataclass
 class RedisConfig:
-    """Redis configuration class.
+    """Класс конфигурации подключения к Redis серверу.
 
     Attributes:
-    ----------
-    redis_pass : Optional(str)
-        The password used to authenticate with Redis.
-    redis_port : Optional(int)
-        The port where Redis server is listening.
-    redis_host : Optional(str)
-        The host where Redis server is located.
+        redis_host: Адрес Redis сервера
+        redis_port: Порт Redis сервера
+        redis_pass: Пароль для подключения к Redis
     """
 
     redis_pass: Optional[str]
@@ -182,7 +210,11 @@ class RedisConfig:
     redis_host: Optional[str]
 
     def dsn(self) -> str:
-        """Constructs and returns a Redis DSN (Data Source Name) for this database configuration."""
+        """Собирает строку Redis DSN (Data Source Name) для подключения к Redis.
+
+        Returns:
+            Возвращает собранную строку для подключения к Redis
+        """
         if self.redis_pass:
             return f"redis://:{self.redis_pass}@{self.redis_host}:{self.redis_port}/0"
         else:
@@ -190,7 +222,14 @@ class RedisConfig:
 
     @staticmethod
     def from_env(env: Env):
-        """Creates the RedisConfig object from environment variables."""
+        """Создает объект RedisConfig из переменных окружения.
+
+        Args:
+            env: Объект переменных окружения
+
+        Returns:
+            Собранный объект RedisConfig
+        """
         redis_pass = env.str("REDIS_PASSWORD")
         redis_port = env.int("REDIS_PORT")
         redis_host = env.str("REDIS_HOST")
@@ -201,54 +240,36 @@ class RedisConfig:
 
 
 @dataclass
-class Miscellaneous:
-    """Miscellaneous configuration class.
-
-    This class holds settings for various other parameters.
-    It merely serves as a placeholder for settings that are not part of other categories.
-
-    Attributes:
-    ----------
-    other_params : str, optional
-        A string used to hold other various parameters as required (default is None).
-    """
-
-    other_params: str = None
-
-
-@dataclass
 class Config:
-    """The main configuration class that integrates all the other configuration classes.
+    """Основной класс конфигурации.
 
-    This class holds the other configuration classes, providing a centralized point of access for all settings.
+    Этот класс содержит все остальные классы конфигурации, предоставляя централизованный доступ ко всем настройкам.
 
     Attributes:
     ----------
-    tg_bot : TgBot
-        Holds the settings related to the Telegram Bot.
-    misc : Miscellaneous
-        Holds the values for miscellaneous settings.
-    db : Optional[DbConfig]
-        Holds the settings specific to the database (default is None).
-    redis : Optional[RedisConfig]
-        Holds the settings specific to Redis (default is None).
+    tg_bot: Содержит настройки Telegram бота
+    mail: Содержит настройки почтового сервера
+    db: Содержит настройки подключения к базе данных
+    redis: Содержит настройки подключения к Redis
     """
 
     tg_bot: TgBot
     mail: MailConfig
-    misc: Miscellaneous
-    db: Optional[DbConfig] = None
-    redis: Optional[RedisConfig] = None
+    db: Optional[DbConfig]
+    redis: Optional[RedisConfig]
 
 
 def load_config(path: str = None) -> Config:
-    """This function takes an optional file path as input and returns a Config object.
-    :param path: The path of env file from where to load the configuration variables.
-    It reads environment variables from a .env file if provided, else from the process environment.
-    :return: Config object with attributes set as per environment variables.
+    """Загружает конфиг из переменных окружения.
+
+    Читает либо значения из файла .env, если предоставлен путь до него, иначе читает из переменных запущенного процесса.
+
+    Args:
+        path: Опциональный путь к файлу переменных окружения
+
+    Returns:
+        Объект Config с аттрибутами для каждого класса конфигурации
     """
-    # Create an Env object.
-    # The Env object will be used to read environment variables.
     env = Env()
     env.read_env(path)
 
@@ -257,10 +278,9 @@ def load_config(path: str = None) -> Config:
         mail=MailConfig.from_env(env),
         db=DbConfig.from_env(env),
         redis=RedisConfig.from_env(env),
-        misc=Miscellaneous(),
     )
 
 
-# Global config instance for IS_DEVELOPMENT access
+# Глобальная конфигурация для определения окружения
 _global_config = load_config(".env")
 IS_DEVELOPMENT = _global_config.tg_bot.environment == "dev"

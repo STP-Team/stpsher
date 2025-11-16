@@ -23,6 +23,7 @@ from typing import List, Set
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
@@ -58,10 +59,16 @@ class StudiesScheduler(BaseScheduler):
     """
 
     def __init__(self):
+        """Инициализация планировщика обучений."""
         super().__init__("Обучения")
         self.studies_parser = StudiesScheduleParser()
 
-    def setup_jobs(self, scheduler: AsyncIOScheduler, session_pool, bot: Bot):
+    def setup_jobs(
+        self,
+        scheduler: AsyncIOScheduler,
+        stp_session_pool: async_sessionmaker[AsyncSession],
+        bot: Bot,
+    ):
         """Настраивает задачи планировщика для уведомлений об обучениях.
 
         Регистрирует в планировщике задачу автоматической проверки
@@ -70,8 +77,8 @@ class StudiesScheduler(BaseScheduler):
 
         Args:
             scheduler: Планировщик задач APScheduler для регистрации заданий
-            session_pool: Пул соединений с базой данных для операций с участниками
-            bot: Экземпляр бота для отправки уведомлений пользователям
+            stp_session_pool: Пул сессий с базой STP
+            bot: Экземпляр бота
 
         Note:
             Метод переопределяет базовую реализацию BaseScheduler
@@ -81,14 +88,16 @@ class StudiesScheduler(BaseScheduler):
 
         scheduler.add_job(
             func=self._check_upcoming_studies_job,
-            args=[session_pool, bot],
+            args=[stp_session_pool, bot],
             trigger="interval",
             id=f"{self.category_name}_check_upcoming_studies",
             name="Проверка предстоящих обучений",
             minutes=30,
         )
 
-    async def _check_upcoming_studies_job(self, session_pool, bot: Bot):
+    async def _check_upcoming_studies_job(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ):
         """Обертка для проверки приближающихся обучений.
 
         Выполняет проверку приближающихся обучений с логированием начала
@@ -96,8 +105,8 @@ class StudiesScheduler(BaseScheduler):
         выполнения задачи.
 
         Args:
-            session_pool: Пул соединений с базой данных
-            bot: Экземпляр бота для отправки уведомлений
+            stp_session_pool: Пул сессий с базой STP
+            bot: Экземпляр бота
 
         Returns:
             dict: Результат выполнения проверки или None при ошибке
@@ -108,7 +117,7 @@ class StudiesScheduler(BaseScheduler):
         """
         self._log_job_execution_start("Проверка предстоящих обучений")
         try:
-            result = await check_upcoming_studies(session_pool, bot)
+            result = await check_upcoming_studies(stp_session_pool, bot)
             self._log_job_execution_end("Проверка предстоящих обучений", success=True)
             return result
         except Exception as e:
@@ -117,7 +126,9 @@ class StudiesScheduler(BaseScheduler):
             )
 
 
-async def check_upcoming_studies(session_pool, bot: Bot):
+async def check_upcoming_studies(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+):
     """Проверяет приближающиеся обучения и отправляет уведомления участникам.
 
     Основная функция для проверки обучений из Excel-файла и отправки
@@ -125,8 +136,8 @@ async def check_upcoming_studies(session_pool, bot: Bot):
     Работает с окном в 10 минут для каждого типа уведомления.
 
     Args:
-        session_pool: Пул соединений с базой данных для поиска участников
-        bot: Экземпляр бота Telegram для отправки уведомлений
+        stp_session_pool: Пул сессий с базой STP
+        bot: Экземпляр бота
 
     Returns:
         dict: Словарь с результатами выполнения:
@@ -184,7 +195,7 @@ async def check_upcoming_studies(session_pool, bot: Bot):
         )
 
         notification_results = await send_study_notifications(
-            upcoming_sessions, session_pool, bot
+            upcoming_sessions, stp_session_pool, bot
         )
 
         total_notifications = sum(notification_results.values())
@@ -205,7 +216,9 @@ async def check_upcoming_studies(session_pool, bot: Bot):
 
 
 async def send_study_notifications(
-    sessions: List[StudySession], session_pool, bot: Bot
+    sessions: List[StudySession],
+    stp_session_pool: async_sessionmaker[AsyncSession],
+    bot: Bot,
 ) -> dict:
     """Отправляет уведомления участникам обучений.
 
@@ -216,7 +229,7 @@ async def send_study_notifications(
 
     Args:
         sessions: Список сессий обучений для обработки
-        session_pool: Пул соединений с базой данных для поиска участников
+        stp_session_pool: Пул сессий с базой STP
         bot: Экземпляр бота Telegram для отправки сообщений
 
     Returns:
@@ -232,7 +245,7 @@ async def send_study_notifications(
     """
     notification_results = {}
 
-    async with session_pool() as session:
+    async with stp_session_pool() as session:
         stp_repo = MainRequestsRepo(session)
 
         for session_obj in sessions:
@@ -312,7 +325,7 @@ async def create_study_notification_message(
 
     Args:
         session: Объект сессии обучения с данными о дате, теме, тренере
-        stp_repo: Репозиторий для операций с базой данных
+        stp_repo: Репозиторий операций с базой STP
         time_diff: Разница во времени до начала обучения
 
     Returns:

@@ -41,13 +41,14 @@ class StudySession:
 
 
 class StudiesScheduleParser(BaseParser):
-    """Parser for studies/training exchanges."""
+    """Парсер для обучений."""
 
     def __init__(self, uploads_folder: str = "uploads"):
+        """Инициализация парсера для файла графиков обучений."""
         super().__init__(uploads_folder)
 
     def parse(self, *args, **kwargs):
-        """Implementation of abstract parse method."""
+        """Реализация абстрактного метода парсинга."""
         pass
 
     def parse_studies_file(self, file_path: Path) -> List[StudySession]:

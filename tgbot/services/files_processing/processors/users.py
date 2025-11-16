@@ -2,9 +2,10 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import pandas as pd
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import Employee
 from stp_database.repo.STP.employee import EmployeeRepo
 
@@ -168,16 +169,17 @@ def _extract_users_from_dataframe(
 
 
 async def process_fired_users_with_stats(
-    files_list: list[str] | list[Path], session_pool
-):
+    files_list: list[str] | list[Path],
+    stp_session_pool: async_sessionmaker[AsyncSession],
+) -> list[Any]:
     """Обработка уволенных сотрудников - удаление из базы.
 
     Args:
         files_list: Список файлов для проверки
-        session_pool: Пул сессий БД из bot.py
+        stp_session_pool: Пул сессий с базой STP
 
     Returns:
-         ФИО уволенных специалистов
+         Список фио уволенных специалистов
     """
     try:
         fired_users = get_fired_users_from_excel(files_list)
@@ -187,7 +189,7 @@ async def process_fired_users_with_stats(
             return []
 
         # Получение сессии из пула
-        async with session_pool() as session:
+        async with stp_session_pool() as session:
             user_repo = EmployeeRepo(session)
 
             fired_names = []
@@ -222,11 +224,13 @@ async def process_fired_users_with_stats(
         return []
 
 
-async def process_user_changes(session_pool, file_name: str):
+async def process_user_changes(
+    stp_session_pool: async_sessionmaker[AsyncSession], file_name: str
+):
     """Процессинг изменений должности и руководителя специалиста из файла.
 
     Args:
-        session_pool: Сессия с БД
+        stp_session_pool: Пул сессий с базой STP
         file_name: Название файла с таблицей
 
     Returns:
@@ -244,7 +248,7 @@ async def process_user_changes(session_pool, file_name: str):
 
         fired_users = get_fired_users_from_excel([file_name])
 
-        async with session_pool() as session:
+        async with stp_session_pool() as session:
             user_repo = EmployeeRepo(session)
             db_users = await user_repo.get_users()
             existing_fullnames = [user.fullname for user in db_users]

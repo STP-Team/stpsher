@@ -11,6 +11,10 @@ services:
     expose:
       - "8443"
 
+    depends_on:
+      redis_cache:
+        condition: service_healthy
+
     logging:
       driver: "json-file"
       options:
@@ -31,6 +35,13 @@ services:
       - "6379:6379"
     volumes:
       - cache:/data
+
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
     networks:
       - stp_bots

@@ -1,3 +1,5 @@
+"""Калькулятор показателей и порогов премии."""
+
 import datetime
 from typing import Optional
 
@@ -8,11 +10,20 @@ from tgbot.services.salary import SalaryFormatter
 
 
 class KPICalculator:
-    """Service for KPI calculations and premium thresholds"""
+    """Сервиса для расчета показателей и выполнения порогов премии."""
 
     @staticmethod
     def calculate_csi_needed(division: str, current_csi, normative):
-        """Расчет оценки, необходимой для достижения уровней премии"""
+        """Расчет оценки, необходимой для достижения уровней премии.
+
+        Args:
+            division: Направление сотрудника
+            current_csi: Текущее значение оценки
+            normative: Норматив оценки
+
+        Returns:
+            Строку с выполнением норматива оценки
+        """
         if normative == 0 or normative is None:
             return "—"
 
@@ -62,7 +73,17 @@ class KPICalculator:
     def calculate_flr_needed(
         division: str, current_flr, normative, is_head: bool = False
     ):
-        """Расчет FLR, необходимой для достижения уровней премии"""
+        """Расчет FLR, необходимого для достижения уровней премии.
+
+        Args:
+            division: Направление сотрудника
+            current_flr: Текущее значение FLR
+            normative: Норматив FLR
+            is_head: Является ли сотрудник руководителем
+
+        Returns:
+            Строку с выполнением норматива FLR
+        """
         if normative == 0 or normative is None:
             return "—"
 
@@ -137,8 +158,18 @@ class KPICalculator:
     @staticmethod
     def calculate_gok_needed(
         division: str, current_gok, normative, is_head: bool = False
-    ):
-        """Расчет ГОК, необходимой для достижения уровней премии"""
+    ) -> str:
+        """Расчет ГОК, необходимого для достижения уровней премии.
+
+        Args:
+            division: Направление сотрудника
+            current_gok: Текущее значение ГОК
+            normative: Норматив ГОК
+            is_head: Является ли сотрудник руководителем
+
+        Returns:
+            Строку с выполнением норматива ГОК
+        """
         if normative == 0 or normative is None:
             return "—"
 
@@ -220,7 +251,18 @@ class KPICalculator:
         target_type: Optional[str] = None,
         is_head: bool = False,
     ):
-        """Расчет цели, необходимой для достижения уровней премии"""
+        """Расчет специальной цели, необходимого для достижения уровней премии.
+
+        Args:
+            current_target: Текущее значение цели
+            target_normative_first: Первый норматив спец. цели
+            target_normative_second: Второй норматив спец. цели
+            target_type: Тип спец. цели
+            is_head: Является ли сотрудник руководителем
+
+        Returns:
+            Строку с выполнением норматива спец. цели
+        """
         if target_normative_first is None and target_normative_second is None:
             return "—"
 
@@ -408,6 +450,16 @@ class KPICalculator:
     def format_requirements_message(
         cls, user: Employee, premium: SpecPremium | HeadPremium, is_head: bool = False
     ) -> str:
+        """Форматирует сообщение с порогами премии за показатели.
+
+        Args:
+            user: Экземпляр пользователя с моделью Employee
+            premium: Экземпляр премии сотрудника
+            is_head: Является ли сотрудник руководителем
+
+        Returns:
+            Форматированную строку для отображения в боте
+        """
         csi_calculation = ""
         if not is_head:
             csi_calculation = cls.calculate_csi_needed(

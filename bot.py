@@ -17,6 +17,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiogram_dialog import DialogManager, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import OutdatedIntent, UnknownIntent, UnknownState
 from aiohttp import web
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import Employee, create_engine, create_session_pool
 
 from tgbot.config import Config, load_config
@@ -109,16 +110,16 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
         return
 
     # Получаем пулы сессий из middleware_data
-    main_db = dialog_manager.middleware_data["main_db"]
-    kpi_db = dialog_manager.middleware_data["kpi_db"]
+    stp_session_pool = dialog_manager.middleware_data["stp_session_pool"]
+    kpi_session_pool = dialog_manager.middleware_data["kpi_session_pool"]
 
-    if not main_db or not kpi_db:
+    if not stp_session_pool or not kpi_session_pool:
         logger.error("Session pools not available in middleware_data")
         return
 
     # Создаем репозитории для работы с базами данных
     try:
-        async with main_db() as stp_session:
+        async with stp_session_pool() as stp_session:
             from stp_database import MainRequestsRepo
 
             stp_repo = MainRequestsRepo(stp_session)
@@ -134,7 +135,7 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
 
             user: Employee | None = await stp_repo.employee.get_users(user_id=user_id)
 
-            async with kpi_db() as kpi_session:
+            async with kpi_session_pool() as kpi_session:
                 from stp_database.repo.KPI.requests import KPIRequestsRepo
 
                 kpi_repo = KPIRequestsRepo(kpi_session)
@@ -185,8 +186,8 @@ def register_middlewares(
     dp: Dispatcher,
     config: Config,
     bot: Bot,
-    main_session_pool=None,
-    kpi_session_pool=None,
+    stp_session_pool: async_sessionmaker[AsyncSession],
+    kpi_session_pool: async_sessionmaker[AsyncSession],
 ) -> None:
     """Установка middleware для определенных ивентов.
 
@@ -194,14 +195,14 @@ def register_middlewares(
         dp: Диспетчер ивентов
         config: Конфигурация
         bot: Экземпляр бота
-        main_session_pool: Сессия с базой данных STP
-        kpi_session_pool: Сессия с базой данных KPI
+        stp_session_pool: Пул сессий с базой STP
+        kpi_session_pool: Пул сессий с базой KPI
     """
     config_middleware = ConfigMiddleware(config)
     database_middleware = DatabaseMiddleware(
         config=config,
         bot=bot,
-        stp_session_pool=main_session_pool,
+        stp_session_pool=stp_session_pool,
         kpi_session_pool=kpi_session_pool,
     )
     users_middleware = UsersMiddleware()
@@ -307,22 +308,22 @@ async def main() -> None:
     dp = Dispatcher(storage=storage)
 
     # Создаем движки для доступа к базам
-    main_db_engine = create_engine(bot_config.db, db_name=bot_config.db.main_db)
-    kpi_db_engine = create_engine(bot_config.db, db_name=bot_config.db.kpi_db)
+    stp_engine = create_engine(bot_config.db, db_name=bot_config.db.stp_db)
+    kpi_engine = create_engine(bot_config.db, db_name=bot_config.db.kpi_db)
 
-    main_db = create_session_pool(main_db_engine)
-    kpi_db = create_session_pool(kpi_db_engine)
+    stp_session_pool = create_session_pool(stp_engine)
+    kpi_session_pool = create_session_pool(kpi_engine)
 
     # Храним сессии в диспетчере для доступа из error handlers
-    dp["main_db"] = main_db
-    dp["kpi_db"] = kpi_db
+    dp["stp_session_pool"] = stp_session_pool
+    dp["kpi_session_pool"] = kpi_session_pool
 
     dp.include_routers(*routers_list)
     dp.include_routers(*dialogs_list)
     dp.include_routers(*common_dialogs_list)
     setup_dialogs(dp)
 
-    register_middlewares(dp, bot_config, bot, main_db, kpi_db)
+    register_middlewares(dp, bot_config, bot, stp_session_pool, kpi_session_pool)
 
     # Регистрация обработчиков ошибок
     dp.errors.register(_unknown_intent, ExceptionTypeFilter(UnknownIntent))
@@ -331,7 +332,9 @@ async def main() -> None:
 
     # Запуск планировщика и добавление задач
     scheduler_manager = SchedulerManager()
-    scheduler_manager.setup_jobs(main_db, bot, kpi_db)
+    scheduler_manager.setup_jobs(
+        stp_session_pool=stp_session_pool, kpi_session_pool=kpi_session_pool, bot=bot
+    )
     scheduler_manager.start()
 
     await on_startup()
@@ -386,7 +389,7 @@ async def main() -> None:
     finally:
         if bot_config.tg_bot.use_webhook:
             await on_shutdown_webhook(bot)
-        await main_db_engine.dispose()
+        await stp_engine.dispose()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""HR-планировщик для управления кадровыми процессами
+"""HR-планировщик для управления кадровыми процессами.
 
 Содержит задачи по обработке увольнений, уведомлениям об авторизации
 и другим кадровым операциям.
@@ -9,12 +9,13 @@ import os
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List, Sequence
 
 import pandas as pd
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from stp_database import MainRequestsRepo
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from stp_database import Employee, MainRequestsRepo
 from stp_database.repo.STP.employee import EmployeeRepo
 
 from tgbot.services.broadcaster import send_message
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class HRScheduler(BaseScheduler):
-    """Планировщик HR-задач
+    """Планировщик HR-задач.
 
     Управляет задачами связанными с кадровыми процессами:
     - Обработка увольнений из Excel файлов
@@ -32,16 +33,25 @@ class HRScheduler(BaseScheduler):
     """
 
     def __init__(self):
+        """Инициализация планировщика HR."""
         super().__init__("HR")
 
-    def setup_jobs(self, scheduler: AsyncIOScheduler, session_pool, bot: Bot):
-        """Настройка всех HR задач"""
+    def setup_jobs(
+        self, scheduler: AsyncIOScheduler, stp_session_pool, bot: Bot
+    ) -> None:
+        """Настройка всех HR задач.
+
+        Args:
+            scheduler: Экземпляр планировщика
+            stp_session_pool: Пул сессий с базой STP
+            bot: Экземпляр бота
+        """
         self.logger.info("Настройка HR задач...")
 
         # Задача обработки увольнений - каждый день в 9:00
         scheduler.add_job(
             func=self._process_fired_users_job,
-            args=[session_pool, bot],
+            args=[stp_session_pool, bot],
             trigger="cron",
             id="hr_process_fired_users",
             name="Обработка увольнений",
@@ -52,7 +62,7 @@ class HRScheduler(BaseScheduler):
         # Запуск обработки увольнений при старте
         scheduler.add_job(
             func=self._process_fired_users_job,
-            args=[session_pool, bot],
+            args=[stp_session_pool, bot],
             trigger="date",
             id="hr_startup_process_fired_users",
             name="Запуск при старте: Обработка увольнений",
@@ -63,7 +73,7 @@ class HRScheduler(BaseScheduler):
         self._add_job(
             scheduler=scheduler,
             func=self._notify_unauthorized_users_job,
-            args=[session_pool, bot],
+            args=[stp_session_pool, bot],
             trigger="cron",
             job_id="notify_unauthorized_users",
             name="Уведомления о неавторизованных пользователях",
@@ -71,22 +81,36 @@ class HRScheduler(BaseScheduler):
             minute=30,
         )
 
-    async def _process_fired_users_job(self, session_pool, bot: Bot):
-        """Обёртка для задачи обработки увольнений"""
+    async def _process_fired_users_job(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
+        """Обёртка для задачи обработки увольнений.
+
+        Args:
+            stp_session_pool: Пул сессий с базой STP
+            bot: Экземпляр бота
+        """
         self._log_job_execution_start("Обработка увольнений")
         try:
-            await process_fired_users(session_pool, bot)
+            await process_fired_users(stp_session_pool, bot)
             self._log_job_execution_end("Обработка увольнений", success=True)
         except Exception as e:
             self._log_job_execution_end(
                 "Обработка увольнений", success=False, error=str(e)
             )
 
-    async def _notify_unauthorized_users_job(self, session_pool, bot: Bot):
-        """Обёртка для задачи уведомлений об авторизации"""
+    async def _notify_unauthorized_users_job(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
+        """Обёртка для задачи уведомлений об авторизации.
+
+        Args:
+            stp_session_pool: Пул сессий с базой STP
+            bot: Экземпляр бота
+        """
         self._log_job_execution_start("Уведомления о неавторизованных пользователях")
         try:
-            await notify_to_unauthorized_users(session_pool, bot)
+            await notify_to_unauthorized_users(stp_session_pool, bot)
             self._log_job_execution_end(
                 "Уведомления о неавторизованных пользователях", success=True
             )
@@ -100,7 +124,7 @@ class HRScheduler(BaseScheduler):
 
 # Функции для работы с увольнениями
 def parse_dismissal_date(date_str: str) -> datetime:
-    """Парсинг даты увольнения из формата '04.авг' или '25.июл'
+    """Парсинг даты увольнения из формата '04.авг' или '25.июл'.
 
     Args:
         date_str: Строка даты в формате 'день.месяц_сокр'
@@ -141,10 +165,13 @@ def parse_dismissal_date(date_str: str) -> datetime:
 
 
 def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
-    """Получение списка уволенных сотрудников из Excel файлов
+    """Получение списка уволенных сотрудников из Excel файлов.
+
+    Args:
+        files_list: Список файлов для получения уволенных сотрудников
 
     Returns:
-        Список ФИО уволенных сотрудников, дата увольнения которых совпадает с текущей датой
+        Список ФИО уволенных сотрудников, дата увольнения которых старше на день текущего дня
     """
     fired_users = []
     uploads_path = Path("uploads")
@@ -227,12 +254,14 @@ def get_fired_users_from_excel(files_list: list[str] = None) -> List[str]:
     return fired_users
 
 
-async def process_fired_users(session_pool, bot: Bot = None):
-    """Обработка уволенных сотрудников - удаление из базы и групп
+async def process_fired_users(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot = None
+) -> None:
+    """Обработка уволенных сотрудников - удаление из базы и групп.
 
     Args:
-        session_pool: Пул сессий БД из bot.py
-        bot: Экземпляр бота для операций в Telegram (опционально)
+        stp_session_pool: Пул сессий с базой STP
+        bot: Экземпляр бота
     """
     try:
         fired_users = get_fired_users_from_excel()
@@ -242,7 +271,7 @@ async def process_fired_users(session_pool, bot: Bot = None):
             return
 
         # Получение сессии из пула
-        async with session_pool() as session:
+        async with stp_session_pool() as session:
             user_repo = EmployeeRepo(session)
 
             total_deleted = 0
@@ -269,24 +298,24 @@ async def process_fired_users(session_pool, bot: Bot = None):
 
         # Если передан экземпляр бота, удаляем сотрудников из групп
         if bot and fired_users:
-            await remove_fired_users_from_groups(session_pool, bot, fired_users)
+            await remove_fired_users_from_groups(stp_session_pool, bot, fired_users)
 
     except Exception as e:
         logger.error(f"[Увольнения] Критическая ошибка при обработке увольнений: {e}")
 
 
 async def remove_fired_users_from_groups(
-    session_pool, bot: Bot, fired_users: List[str]
-):
-    """Удаление уволенных сотрудников из групп с опцией remove_unemployed = True
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot, fired_users: List[str]
+) -> None:
+    """Удаление уволенных сотрудников из групп с опцией remove_unemployed = True.
 
     Args:
-        session_pool: Пул сессий БД
-        bot: Экземпляр бота для выполнения операций в Telegram
+        stp_session_pool: Пул сессий с базой STP
+        bot: Экземпляр бота
         fired_users: Список ФИО уволенных сотрудников
     """
     try:
-        async with session_pool() as session:
+        async with stp_session_pool() as session:
             stp_repo = MainRequestsRepo(session)
 
             total_removed_from_groups = 0
@@ -391,11 +420,20 @@ async def remove_fired_users_from_groups(
         logger.error(f"[Увольнения] Критическая ошибка при удалении из групп: {e}")
 
 
-# Функции для работы с авторизацией
-async def notify_to_unauthorized_users(session_pool, bot: Bot):
-    """Уведомление руководителей о неавторизованных пользователях в их группах"""
+async def notify_to_unauthorized_users(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+) -> Dict[str, Any] | None:
+    """Уведомляет руководителей о неавторизованных пользователях в их группах.
+
+    Args:
+        stp_session_pool:
+        bot:
+
+    Returns:
+        Кол-во разосланных уведомлений
+    """
     try:
-        async with session_pool() as session:
+        async with stp_session_pool() as session:
             stp_repo = MainRequestsRepo(session)
             unauthorized_users = await stp_repo.employee.get_unauthorized_users()
 
@@ -430,8 +468,10 @@ async def notify_to_unauthorized_users(session_pool, bot: Bot):
         return {}
 
 
-async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]:
-    """Группирует неавторизованных пользователей по их руководителям
+async def group_users_by_supervisor(
+    unauthorized_users: Sequence[Employee],
+) -> Dict[str, List]:
+    """Группирует неавторизованных пользователей по их руководителям.
 
     Args:
         unauthorized_users: Список неавторизованных пользователей
@@ -467,12 +507,12 @@ async def group_users_by_supervisor(unauthorized_users: List) -> Dict[str, List]
 async def send_notifications_to_supervisors(
     unauthorized_by_head: Dict[str, List], bot: Bot, stp_repo: MainRequestsRepo
 ) -> Dict[str, bool]:
-    """Отправляет уведомления руководителям об их неавторизованных подчиненных
+    """Отправляет уведомления руководителям об их неавторизованных подчиненных.
 
     Args:
         unauthorized_by_head: Словарь с группировкой пользователей по руководителям
-        bot: Экземпляр бота для отправки сообщений
-        stp_repo: Репозиторий для работы с БД
+        bot: Экземпляр бота
+        stp_repo: Репозиторий операций с базой STP
 
     Returns:
         Словарь с результатами отправки уведомлений {имя_руководителя: успех}
@@ -516,7 +556,7 @@ async def send_notifications_to_supervisors(
 
 
 def create_notification_message(head_name: str, unauthorized_subordinates: List) -> str:
-    """Создает текст уведомления для руководителя
+    """Создает текст уведомления для руководителя.
 
     Args:
         head_name: Имя руководителя
@@ -559,7 +599,7 @@ def create_notification_message(head_name: str, unauthorized_subordinates: List)
 
 
 def format_unauthorized_users_summary(unauthorized_users: List) -> str:
-    """Форматирует краткую сводку о неавторизованных пользователях для логов
+    """Форматирует краткую сводку о неавторизованных пользователях для логов.
 
     Args:
         unauthorized_users: Список неавторизованных пользователей

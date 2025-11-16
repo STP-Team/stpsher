@@ -26,7 +26,7 @@ async def got_auto_admin_rights_channel(
 
     Args:
         event: Событие изменения статуса участника чата от Telegram
-        stp_repo: Репозиторий базы данных
+        stp_repo: Репозиторий операций с базой STP
     """
     channel = await stp_repo.group.get_groups(event.chat.id)
 

@@ -8,6 +8,7 @@ from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tgbot.config import IS_DEVELOPMENT, load_config
 from tgbot.misc.helpers import tz_perm
@@ -70,30 +71,38 @@ class SchedulerManager:
             timezone=tz_perm,
         )
 
-    def setup_jobs(self, session_pool, bot: Bot, kpi_session_pool) -> None:
+    def setup_jobs(
+        self,
+        stp_session_pool: async_sessionmaker[AsyncSession],
+        kpi_session_pool: async_sessionmaker[AsyncSession],
+        bot: Bot,
+    ) -> None:
         """Настройка всех запланированных задач.
 
         Args:
-            session_pool: Пул сессий основной БД
+            stp_session_pool: Пул сессий с базой STP
+            kpi_session_pool: Пул сессий с базой KPI
             bot: Экземпляр бота
-            kpi_session_pool: Пул сессий KPI БД
         """
         logger.info("[Планировщик] Настройка запланированных задач...")
 
         # HR задачи
-        self.hr.setup_jobs(self.scheduler, session_pool, bot)
+        self.hr.setup_jobs(self.scheduler, stp_session_pool, bot)
 
         if not IS_DEVELOPMENT:
             # Задачи достижений
             self.achievements.setup_jobs(
-                self.scheduler, session_pool, bot, kpi_session_pool
+                self.scheduler,
+                stp_session_pool,
+                kpi_session_pool,
+                bot,
             )
 
         # Задачи обучений
-        self.studies.setup_jobs(self.scheduler, session_pool, bot)
+        self.studies.setup_jobs(self.scheduler, stp_session_pool, bot)
 
         # Задачи биржи
-        self.exchanges.setup_jobs(self.scheduler, session_pool, bot)
+        self.exchanges.setup_jobs(self.scheduler, stp_session_pool, bot=bot)
 
         logger.info("[Планировщик] Все задачи настроены")
 

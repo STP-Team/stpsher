@@ -1,7 +1,20 @@
+"""Конфигурация ЧТС."""
+
+
 class PayRateService:
+    """Класс для конфигурации часовых тарифных ставок (ЧТС)."""
+
     @staticmethod
     def get_pay_rate(division: str, position: str) -> float:
-        """Get hourly pay rate based on division and position"""
+        """Получает ЧТС исходя из направления и должности сотрудника.
+
+        Args:
+            division: Направление сотрудника
+            position: Должность сотрудника
+
+        Returns:
+            ЧТС сотрудника
+        """
         pay_rate = 0.0
 
         match division:
@@ -36,20 +49,20 @@ class PayRateService:
 
     @staticmethod
     def get_additional_shift_multiplier() -> float:
-        """Get multiplier for additional shifts (2.63)"""
+        """Получает множитель дополнительных смен."""
         return 2.63
 
     @staticmethod
     def get_holiday_multiplier() -> float:
-        """Get multiplier for holiday hours (2.0)"""
+        """Получает множитель праздничных часов."""
         return 2.0
 
     @staticmethod
     def get_night_multiplier() -> float:
-        """Get multiplier for night hours (1.2)"""
+        """Получает множитель ночных часов."""
         return 1.2
 
     @staticmethod
     def get_night_holiday_multiplier() -> float:
-        """Get multiplier for night holiday hours (2.4)"""
+        """Получает множитель ночных праздничных часов."""
         return 2.4

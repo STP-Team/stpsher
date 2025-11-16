@@ -28,7 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 def get_month_name(month_number: int) -> str:
-    """Получить название месяца на русском языке."""
+    """Получает название месяца на русском языке.
+
+    Args:
+        month_number: Номер месяца
+
+    Returns:
+        Название месяца на русском языке
+    """
     months = [
         "",
         "Январь",
@@ -50,7 +57,13 @@ def get_month_name(month_number: int) -> str:
 async def prepare_calendar_data_for_exchange(
     stp_repo: MainRequestsRepo, user: Employee, dialog_manager: DialogManager
 ) -> None:
-    """Подготавливает данные календаря ТОЛЬКО для текущего отображаемого месяца."""
+    """Подготавливает данные календаря для текущего отображаемого месяца.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
+        dialog_manager: Менеджер диалога
+    """
     try:
         # Получаем календарный виджет и определяем отображаемый месяц
         calendar_widget = (
@@ -88,7 +101,6 @@ async def prepare_calendar_data_for_exchange(
             f"[Биржа] Загружаем данные календаря для {month_name} {displayed_year}"
         )
 
-        # Загружаем данные ТОЛЬКО для отображаемого месяца
         parser = ScheduleParser()
         all_shift_dates = {}
         current_date = datetime.now().date()
@@ -917,9 +929,18 @@ async def exchange_sell_getter(
 
 
 async def exchange_buy_detail_getter(
-    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
-    """Геттер для детального просмотра обмена при покупке."""
+    """Геттер для детального просмотра запроса на продажу.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранной сделке продажи.
+    """
     exchange_id = dialog_manager.dialog_data.setdefault(
         "exchange_id",
         dialog_manager.start_data.get("exchange_id")
@@ -989,7 +1010,16 @@ async def exchange_buy_detail_getter(
 async def exchange_sell_detail_getter(
     user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
 ) -> Dict[str, Any]:
-    """Геттер для детального просмотра запроса на покупку (buy request)."""
+    """Геттер для детального просмотра запроса на покупку.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранной сделке покупки.
+    """
     exchange_id = dialog_manager.dialog_data.setdefault(
         "exchange_id",
         dialog_manager.start_data.get("exchange_id")
@@ -1102,7 +1132,17 @@ async def my_detail_getter(
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> Dict[str, Any]:
-    """Геттер для детального просмотра собственного обмена."""
+    """Геттер для детального просмотра собственной сделки.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        bot: Экземпляр бота
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager:
+
+    Returns:
+        Словарь с информацией о выбранной собственной сделке
+    """
     exchange_id = dialog_manager.dialog_data.setdefault(
         "exchange_id",
         dialog_manager.start_data.get("exchange_id")
@@ -1204,8 +1244,17 @@ async def my_detail_edit_getter(
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
-):
-    """Геттер для настроек сделки."""
+) -> Dict[str, Any]:
+    """Геттер для настроек сделки.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager:
+        **_kwargs:
+
+    Returns:
+        Словарь со статусом выбранной заявки
+    """
     exchange_id = dialog_manager.dialog_data["exchange_id"]
 
     exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
@@ -1216,7 +1265,14 @@ async def buy_time_selection_getter(
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> Dict[str, Any]:
-    """Геттер для экрана выбора времени покупки."""
+    """Геттер для экрана выбора времени покупки.
+
+    Args:
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранном времени покупки и сделке
+    """
     original_exchange = dialog_manager.dialog_data.get("original_exchange")
 
     if not original_exchange:
@@ -1288,7 +1344,15 @@ async def buy_confirmation_getter(
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> Dict[str, Any]:
-    """Геттер для экрана подтверждения покупки."""
+    """Геттер для экрана подтверждения покупки.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о покупаемой сделке
+    """
     from datetime import datetime
 
     original_exchange = dialog_manager.dialog_data.get("original_exchange")
@@ -1361,15 +1425,20 @@ async def buy_confirmation_getter(
     }
 
 
-# New getters for seller responding to buy requests
-
-
 async def sell_time_selection_getter(
     stp_repo: MainRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> Dict[str, Any]:
-    """Геттер для экрана выбора времени продавцом в ответ на buy request."""
+    """Геттер для экрана выбора времени продавцом в ответ на сделку покупки.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о выбранной сделке и выбранном времени
+    """
     buy_request = dialog_manager.dialog_data.get("buy_request")
 
     if not buy_request:
@@ -1412,7 +1481,15 @@ async def sell_confirmation_getter(
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> Dict[str, Any]:
-    """Геттер для экрана подтверждения предложения продажи."""
+    """Геттер для экрана подтверждения предложения продажи.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с информацией о продаваемой сделке
+    """
     from datetime import datetime
 
     buy_request = dialog_manager.dialog_data.get("buy_request")

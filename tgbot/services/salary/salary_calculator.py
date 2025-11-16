@@ -24,7 +24,7 @@ class SalaryCalculationResult:
     компоненты премии и итоговую сумму.
 
     Attributes:
-        user: Объект сотрудника из базы данных
+        user: Экземпляр пользователя с моделью Employee
         current_month_name: Название текущего месяца
         current_year: Текущий год
         pay_rate: Часовая тарифная ставка (ЧТС)

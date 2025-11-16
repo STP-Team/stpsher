@@ -106,7 +106,7 @@ async def notify_subscription_match(
 
     Args:
         bot: Экземпляр бота
-        stp_repo: Репозиторий базы данных
+        stp_repo: Репозиторий операций с базой STP
         subscription: Подписка
         exchange: Экземпляр сделки с моделью Exchange
 

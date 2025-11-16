@@ -6,6 +6,7 @@ from typing import Any, Awaitable, Callable, Dict, Union
 from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import MainRequestsRepo
 from stp_database.repo.KPI.requests import KPIRequestsRepo
 
@@ -21,8 +22,13 @@ class DatabaseMiddleware(BaseMiddleware):
     """
 
     def __init__(
-        self, config: Config, bot: Bot, stp_session_pool, kpi_session_pool
+        self,
+        config: Config,
+        bot: Bot,
+        stp_session_pool: async_sessionmaker[AsyncSession],
+        kpi_session_pool: async_sessionmaker[AsyncSession],
     ) -> None:
+        """Инициализация миддлвари для связи с БД."""
         self.stp_session_pool = stp_session_pool
         self.kpi_session_pool = kpi_session_pool
         self.bot = bot
@@ -36,6 +42,16 @@ class DatabaseMiddleware(BaseMiddleware):
         event: Union[Message, CallbackQuery],
         data: Dict[str, Any],
     ) -> Any:
+        """Обработка запросов к миддлвари.
+
+        Args:
+            handler: Обработчик сообщений и CallbackQuery от Telegram
+            event: Событие Telegram
+            data: Данные в памяти
+
+        Returns:
+            Заполненные stp_repo, stp_session, kpi_repo, kpi_session, user
+        """
         max_retries = 3
         retry_count = 0
 
@@ -50,8 +66,8 @@ class DatabaseMiddleware(BaseMiddleware):
                         user_id=event.from_user.id
                     )
                     # Добавляем пулы сессий для доступа в error handlers
-                    data["main_db"] = self.stp_session_pool
-                    data["kpi_db"] = self.kpi_session_pool
+                    data["stp_session_pool"] = self.stp_session_pool
+                    data["kpi_session_pool"] = self.kpi_session_pool
 
                     async with self.kpi_session_pool() as kpi_session:
                         kpi_repo = KPIRequestsRepo(kpi_session)

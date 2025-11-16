@@ -129,7 +129,7 @@ async def got_auto_admin_rights(
 
     Args:
         event: Callback query от Telegram
-        stp_repo: Репозиторий базы данных
+        stp_repo: Репозиторий операций с базой STP
     """
     group = await stp_repo.group.get_groups(event.chat.id)
 
@@ -175,7 +175,7 @@ async def got_manual_admin_rights(event: ChatMemberUpdated, stp_repo: MainReques
 
     Args:
         event: Callback query от Telegram
-        stp_repo: Репозиторий базы данных
+        stp_repo: Репозиторий операций с базой STP
     """
     group = await stp_repo.group.get_groups(event.chat.id)
 

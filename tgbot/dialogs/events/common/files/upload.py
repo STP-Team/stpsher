@@ -10,7 +10,7 @@ from aiogram.types import CallbackQuery, Document, Message
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import MainRequestsRepo
 
 from tgbot.dialogs.states.common.files import Files
@@ -53,7 +53,9 @@ async def on_document_uploaded(
     document: Document = message.document
     bot: Bot = dialog_manager.middleware_data["bot"]
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
-    main_db: Session = dialog_manager.middleware_data["main_db"]
+    stp_session_pool: async_sessionmaker[AsyncSession] = dialog_manager.middleware_data[
+        "stp_session_pool"
+    ]
 
     if not bot or not stp_repo:
         await message.answer("❌ Ошибка инициализации")
@@ -80,11 +82,11 @@ async def on_document_uploaded(
 
     if is_schedule:
         total_steps += 2  # статистика + обработка пользователей
-        if main_db:
+        if stp_session_pool:
             total_steps += 1  # проверка изменений расписания
     elif is_studies:
         total_steps += 1  # обработка обучений
-        if main_db:
+        if stp_session_pool:
             total_steps += 1  # уведомления
 
     # Сохраняем информацию о файле
@@ -187,15 +189,15 @@ async def on_document_uploaded(
             await update_progress(
                 current_step, total_steps, "Обработка изменений пользователей..."
             )
-            if main_db:
+            if stp_session_pool:
                 try:
                     from tgbot.misc.helpers import format_fullname
 
                     fired_names = await process_fired_users_with_stats(
-                        [file_path], main_db
+                        [file_path], stp_session_pool
                     )
                     updated_names, new_names = await process_user_changes(
-                        main_db, file_name
+                        stp_session_pool, file_name
                     )
 
                     # Форматируем имена пользователей
@@ -254,7 +256,7 @@ async def on_document_uploaded(
                     logger.error(f"Ошибка обработки пользователей: {e}")
 
             # Шаг 5: Проверяем изменения в расписании
-            if old_file_exists and temp_old_file and main_db:
+            if old_file_exists and temp_old_file and stp_session_pool:
                 current_step += 1
                 await update_progress(
                     current_step, total_steps, "Проверка изменений расписания..."
@@ -346,7 +348,7 @@ async def on_document_uploaded(
                 processing_results["studies_stats"] = studies_stats
 
                 # Шаг 4: Проверяем предстоящие обучения
-                if main_db:
+                if stp_session_pool:
                     current_step += 1
                     await update_progress(
                         current_step,
@@ -359,7 +361,7 @@ async def on_document_uploaded(
                         )
 
                         notification_results = await check_upcoming_studies(
-                            main_db, bot
+                            stp_session_pool, bot
                         )
                         processing_results["notification_results"] = (
                             notification_results

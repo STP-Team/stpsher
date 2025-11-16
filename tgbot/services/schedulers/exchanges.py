@@ -6,6 +6,7 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.deep_linking import create_start_link
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import Exchange, MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
@@ -17,7 +18,7 @@ from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
 
-# Scheduler Configuration Constants
+# Константы настроек планировщика
 SCHEDULER_CONFIG = {
     "expired_offers": {
         "interval_minutes": 1,
@@ -55,7 +56,7 @@ SCHEDULER_CONFIG = {
     },
 }
 
-# Notification Messages Templates
+# Заготовки сообщений для планировщиков
 MESSAGES = {
     "expired_offer": """⏳ <b>Сделка истекла</b>
 
@@ -109,7 +110,7 @@ MESSAGES = {
 <i>Пожалуйста, произведи оплату покупателям</i>""",
 }
 
-# Button Text Constants
+# Кнопки для сообщений
 BUTTONS = {
     "open_exchange": "🎭 Открыть сделку",
     "reschedule_auto": "⏰ Перенести автоматически",
@@ -117,14 +118,13 @@ BUTTONS = {
     "configure_subscription": "🔔 Настроить подписку",
 }
 
-# Time-related Constants
+# Настройки времени
 TIME_CONSTANTS = {
     "upcoming_notification_window_minutes": 5,
     "minimum_reschedule_minutes": 30,
 }
 
 
-# Helper Functions
 async def create_exchange_deeplink(bot: Bot, exchange_id: int) -> str:
     """Создает deeplink для обмена.
 
@@ -321,12 +321,22 @@ class ExchangesScheduler(BaseScheduler):
     """Планировщик биржи подмен."""
 
     def __init__(self):
+        """Инициализация планировщика биржи подмен."""
         super().__init__("Биржа подмен")
 
     def setup_jobs(
-        self, scheduler: AsyncIOScheduler, session_pool, bot: Bot, kpi_session_pool=None
-    ):
-        """Настройка всех задач биржи."""
+        self,
+        scheduler: AsyncIOScheduler,
+        stp_session_pool: async_sessionmaker[AsyncSession],
+        bot: Bot,
+    ) -> None:
+        """Настройка всех задач биржи.
+
+        Args:
+            scheduler: Экземпляр планировщика.
+            stp_session_pool: Пул сессий с базой STP
+            bot: Экземпляр бота
+        """
         self.logger.info("Настройка задач биржи...")
 
         # Конфигурация задач с их функциями
@@ -342,7 +352,7 @@ class ExchangesScheduler(BaseScheduler):
             config = SCHEDULER_CONFIG[config_key]
             job_kwargs = {
                 "func": func,
-                "args": [session_pool, bot],
+                "args": [stp_session_pool, bot],
                 "id": config["id"],
                 "name": config["name"],
                 "coalesce": True,
@@ -366,61 +376,73 @@ class ExchangesScheduler(BaseScheduler):
 
             scheduler.add_job(**job_kwargs)
 
-    async def _check_expired_offers(self, session_pool, bot: Bot) -> None:
+    async def _check_expired_offers(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
         """Проверка истекших сделок.
 
         Args:
-            session_pool: Сессия с БД
+            stp_session_pool: Пул сессий с базой STP
             bot: Экземпляр бота
         """
-        await check_expired_offers(session_pool, bot)
+        await check_expired_offers(stp_session_pool, bot)
 
-    async def _check_upcoming_exchanges_1hour(self, session_pool, bot: Bot) -> None:
+    async def _check_upcoming_exchanges_1hour(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
         """Проверка обменов, начинающихся через 1 час.
 
         Args:
-            session_pool: Сессия с БД
+            stp_session_pool: Пул сессий с базой STP
             bot: Экземпляр бота
         """
-        await check_upcoming_exchanges(session_pool, bot, hours_before=1)
+        await check_upcoming_exchanges(stp_session_pool, bot, hours_before=1)
 
-    async def _check_upcoming_exchanges_1day(self, session_pool, bot: Bot) -> None:
+    async def _check_upcoming_exchanges_1day(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
         """Проверка обменов, начинающихся через 1 день.
 
         Args:
-            session_pool: Сессия с БД
+            stp_session_pool: Пул сессий с базой STP
             bot: Экземпляр бота
         """
-        await check_upcoming_exchanges(session_pool, bot, hours_before=24)
+        await check_upcoming_exchanges(stp_session_pool, bot, hours_before=24)
 
-    async def _check_payment_date_notifications(self, session_pool, bot: Bot) -> None:
+    async def _check_payment_date_notifications(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
         """Проверка наступивших дат оплаты.
 
         Args:
-            session_pool: Сессия с БД
+            stp_session_pool: Пул сессий с базой STP
             bot: Экземпляр бота
         """
-        await check_payment_date_notifications(session_pool, bot)
+        await check_payment_date_notifications(stp_session_pool, bot)
 
-    async def _check_daily_payment_reminders(self, session_pool, bot: Bot) -> None:
+    async def _check_daily_payment_reminders(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ) -> None:
         """Ежедневная проверка неоплаченных обменов в 12:00.
 
         Args:
-            session_pool: Сессия с БД
+            stp_session_pool: Пул сессий с базой STP
             bot: Экземпляр бота
         """
-        await check_daily_payment_reminders(session_pool, bot)
+        await check_daily_payment_reminders(stp_session_pool, bot)
 
 
-async def check_expired_offers(session_pool, bot: Bot) -> None:
+async def check_expired_offers(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+) -> None:
     """Проверка и скрытие истекших сделок.
 
     Args:
-        session_pool: Пул сессий основной БД
+        stp_session_pool: Пул сессий с базой STP
         bot: Экземпляр бота
     """
     try:
-        async with session_pool() as stp_session:
+        async with stp_session_pool() as stp_session:
             stp_repo = MainRequestsRepo(stp_session)
 
             active_exchanges = await stp_repo.exchange.get_active_exchanges(
@@ -519,16 +541,18 @@ async def notify_expire_offer(
         )
 
 
-async def check_upcoming_exchanges(session_pool, bot: Bot, hours_before: int) -> None:
+async def check_upcoming_exchanges(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot, hours_before: int
+) -> None:
     """Проверка и отправка уведомлений о приближающихся обменах.
 
     Args:
-        session_pool: Пул сессий основной БД
+        stp_session_pool: Пул сессий с базой STP
         bot: Экземпляр бота
         hours_before: За сколько часов до начала отправлять уведомление
     """
     try:
-        async with session_pool() as stp_session:
+        async with stp_session_pool() as stp_session:
             stp_repo = MainRequestsRepo(stp_session)
 
             current_local_time = datetime.now(tz_perm)
@@ -647,15 +671,17 @@ async def notify_upcoming_exchange(
         )
 
 
-async def check_payment_date_notifications(session_pool, bot: Bot) -> None:
+async def check_payment_date_notifications(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+) -> None:
     """Проверка и отправка уведомлений о наступивших датах оплаты.
 
     Args:
-        session_pool: Пул сессий основной БД
+        stp_session_pool: Пул сессий с базой STP
         bot: Экземпляр бота
     """
     try:
-        async with session_pool() as stp_session:
+        async with stp_session_pool() as stp_session:
             stp_repo = MainRequestsRepo(stp_session)
 
             current_local_time = datetime.now(tz_perm)
@@ -755,15 +781,17 @@ async def notify_payment_date_reached(
         logger.error(f"Ошибка отправки уведомления о дате оплаты {exchange.id}: {e}")
 
 
-async def check_daily_payment_reminders(session_pool, bot: Bot) -> None:
+async def check_daily_payment_reminders(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+) -> None:
     """Ежедневная проверка и отправка напоминаний об оплате в 12:00.
 
     Args:
-        session_pool: Пул сессий основной БД
+        stp_session_pool: Пул сессий с базой STP
         bot: Экземпляр бота
     """
     try:
-        async with session_pool() as stp_session:
+        async with stp_session_pool() as stp_session:
             stp_repo = MainRequestsRepo(stp_session)
 
             # Получаем всех пользователей с неоплаченными проданными обменами

@@ -40,8 +40,8 @@ async def casino_game_getter(
     """Геттер для игрового окна казино.
 
     Args:
-        stp_repo: Репозиторий для работы с БД
-        user: Текущий пользователь
+        stp_repo: Репозиторий операций с базой STP
+        user: Экземпляр пользователя с моделью Employee
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -116,7 +116,7 @@ async def casino_result_getter(
     """Геттер для окна результата игры.
 
     Args:
-        stp_repo: Репозиторий для работы с БД
+        stp_repo: Репозиторий операций с базой STP
         user: Текущий пользователь
         dialog_manager: Менеджер диалога
 
