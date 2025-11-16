@@ -93,7 +93,7 @@ async def send_activation_product_email(
 
 <a href="https://t.me/{user.username}"<b>{user.fullname}</b></a> из {user.division} просит активировать предмет <b>{product.name}</b><br><br>
 
-<b>О предмете</b>
+<b>О предмете</b><br>
 💵 Стоимость: {product.cost} баллов<br>
 📝 Описание: {product.description}<br>
 📍 Всего активаций: {product.count} (Осталось у специалиста - {product.count - (purchase.usage_count + 1)})<br>
