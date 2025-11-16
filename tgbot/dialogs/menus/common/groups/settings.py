@@ -18,27 +18,28 @@ from magic_filter import F
 
 from tgbot.dialogs.events.common.groups import (
     on_confirm_delete_group,
+    on_division_selected,
     on_kick_all_inappropriate_users,
     on_kick_inappropriate_user,
     on_only_employees_click,
-    on_role_selected,
     on_service_message_selected,
 )
 from tgbot.dialogs.getters.common.groups import (
-    group_details_access_getter,
     group_details_services_getter,
     group_remove_getter,
+    groups_access_getter,
+    groups_access_roles_getter,
     inappropriate_users_getter,
+    settings_access_divisions_getter,
 )
 from tgbot.dialogs.states.common.groups import Groups
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 groups_access_window = Window(
     Format(
-        """🛡️ <b>Уровень доступа к группе</b>: {group_name}
+        """🔓 <b>{group_name}: Доступ</b>
 
-Выбери роли, которые могут вступать в группу
-Если не выбрана ни одна роль, доступ открыт для всех"""
+Если не выбрана ни одна роль или направление - доступ открыт для всех"""
     ),
     Checkbox(
         Const("✓ 👔 Только сотрудники 👔"),
@@ -46,16 +47,17 @@ groups_access_window = Window(
         id="only_employees",
         on_click=on_only_employees_click,
     ),
-    Group(
-        Multiselect(
-            Format("✓ {item[1]}"),
-            Format("{item[1]}"),
-            id="access_level_select",
-            item_id_getter=operator.itemgetter(0),
-            items="roles",
-            on_state_changed=on_role_selected,
+    Row(
+        SwitchTo(
+            Const("🛡️ По уровню"),
+            id="group_role_access",
+            state=Groups.settings_access_roles,
         ),
-        width=2,
+        SwitchTo(
+            Const("💼 По направлению"),
+            id="group_division_access",
+            state=Groups.settings_access_divisions,
+        ),
     ),
     SwitchTo(
         Const("⚠️ Неподходящие пользователи"),
@@ -67,14 +69,66 @@ groups_access_window = Window(
         SwitchTo(Const("↩️ Назад"), id="back", state=Groups.group_details),
         HOME_BTN,
     ),
+    getter=groups_access_getter,
     state=Groups.settings_access,
-    getter=group_details_access_getter,
+)
+
+groups_access_roles_window = Window(
+    Format(
+        """🛡️ <b>{group_name}: Доступ по уровню</b>
+
+Выбери роли, которые могут вступать в группу
+Если не выбрана ни одна роль, доступ открыт для всех"""
+    ),
+    Group(
+        Multiselect(
+            Format("✓ {item[1]}"),
+            Format("{item[1]}"),
+            id="access_role_select",
+            item_id_getter=operator.itemgetter(0),
+            items="roles",
+            on_state_changed=on_division_selected,
+        ),
+        width=2,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Groups.settings_access),
+        HOME_BTN,
+    ),
+    getter=groups_access_roles_getter,
+    state=Groups.settings_access_roles,
+)
+
+settings_access_divisions_window = Window(
+    Format(
+        """💼 <b>{group_name}: Доступ по направлению</b>
+
+Выбери направления, которые могут вступать в группу
+Если не выбрано ни одно направление, доступ открыт для всех"""
+    ),
+    Group(
+        Multiselect(
+            Format("✓ {item[1]}"),
+            Format("{item[1]}"),
+            id="access_division_select",
+            item_id_getter=operator.itemgetter(0),
+            items="divisions",
+            on_state_changed=on_division_selected,
+        ),
+        width=2,
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=Groups.settings_access),
+        HOME_BTN,
+    ),
+    getter=settings_access_divisions_getter,
+    state=Groups.settings_access_divisions,
 )
 
 # Окно настройки сервисных сообщений группы
 groups_service_messages_window = Window(
     Const(
-        """🗑️ <b>Управление сервисными сообщениями</b>
+        """🗑️ <b>{group_name}: Сервисные сообщения</b>
 
 <blockquote expandable><b>Типы сервисных сообщений:</b>
 • <b>Вход</b> - "X присоединился к чату"
@@ -108,7 +162,7 @@ groups_service_messages_window = Window(
 
 # Окно подтверждения удаления бота из группы
 groups_remove_bot_window = Window(
-    Format("""⚠️ <b>Подтверждение удаления бота</b>
+    Format("""⚠️ <b>{group_name}: Удаление бота</b>
 
 Группа: <b>{group_name}</b>
 
@@ -134,7 +188,7 @@ groups_remove_bot_window = Window(
 # Окно списка неподходящих пользователей
 inappropriate_users_window = Window(
     Format(
-        """⚠️ <b>Неподходящие пользователи</b>: {group_name}
+        """⚠️ <b>{group_name}: Неподходящие пользователи</b>
 
 Найдено {users_count} пользователей, которые не соответствуют настройкам группы
 
@@ -142,7 +196,7 @@ inappropriate_users_window = Window(
         when="has_inappropriate_users",
     ),
     Format(
-        """⚠️ <b>Неподходящие пользователи</b>: {group_name}
+        """⚠️ <b>{group_name}: Неподходящие пользователи</b>
 
 Все пользователи в группе соответствуют настройкам""",
         when=~F["has_inappropriate_users"],

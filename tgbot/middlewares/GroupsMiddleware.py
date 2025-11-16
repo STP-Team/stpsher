@@ -99,10 +99,6 @@ class GroupsMiddleware(BaseMiddleware):
 
         return await handler(event, data)
 
-    # ============================================================================
-    # ОБРАБОТКА СООБЩЕНИЙ
-    # ============================================================================
-
     async def _handle_message_event(
         self,
         event: Message,
@@ -142,8 +138,8 @@ class GroupsMiddleware(BaseMiddleware):
             if not await self._validate_user_access(
                 user_id, group, stp_repo, event.from_user
             ):
-                await self._execute_user_ban(
-                    event.bot, user_id, group_id, stp_repo, "заблокирован в группе"
+                await self._execute_user_kick(
+                    event.bot, user_id, group_id, stp_repo, "исключен из группы"
                 )
                 return
 
@@ -154,10 +150,6 @@ class GroupsMiddleware(BaseMiddleware):
             logger.error(
                 f"[Группы] Ошибка обновления участников группы {group_id} для {user_id}: {e}"
             )
-
-    # ============================================================================
-    # ОБРАБОТКА УЧАСТНИКОВ
-    # ============================================================================
 
     async def _handle_membership_event(
         self, event: ChatMemberUpdated, stp_repo: MainRequestsRepo
@@ -227,12 +219,12 @@ class GroupsMiddleware(BaseMiddleware):
             if not await self._validate_user_access(
                 user_id, group, stp_repo, event.new_chat_member.user
             ):
-                await self._execute_user_ban(
+                await self._execute_user_kick(
                     event.bot,
                     user_id,
                     group_id,
                     stp_repo,
-                    "заблокирован при присоединении",
+                    "исключен при присоединении",
                 )
                 return
 
@@ -276,10 +268,6 @@ class GroupsMiddleware(BaseMiddleware):
                 f"[Группы] Ошибка удаления пользователя {user_id} из группы {group_id}: {e}"
             )
 
-    # ============================================================================
-    # ВАЛИДАЦИЯ И ПРОВЕРКИ
-    # ============================================================================
-
     async def _get_group_or_return(
         self, group_id: int, stp_repo: MainRequestsRepo
     ) -> Optional[Group]:
@@ -302,22 +290,25 @@ class GroupsMiddleware(BaseMiddleware):
             if user and user.is_bot:
                 return True
 
-            if not group.remove_unemployed:
-                return (
-                    await self._check_user_role_access(user_id, group, stp_repo)
-                    if group.allowed_roles
-                    else True
-                )
-
+            # Получаем данные сотрудника для проверок
             employee = await stp_repo.employee.get_users(user_id=user_id)
-            if not employee:
+
+            # Проверка на удаление уволенных
+            if group.remove_unemployed and not employee:
                 logger.info(
                     f"[Группы] Пользователь {user_id} не найден в базе сотрудников"
                 )
                 return False
 
+            # Проверка ролей (только если установлены ограничения)
             if group.allowed_roles:
-                return await self._check_user_role_access(user_id, group, stp_repo)
+                if not employee or employee.role not in group.allowed_roles:
+                    return False
+
+            # Проверка подразделений (только если установлены ограничения)
+            if group.allowed_divisions:
+                if not employee or employee.division not in group.allowed_divisions:
+                    return False
 
             return True
 
@@ -325,32 +316,7 @@ class GroupsMiddleware(BaseMiddleware):
             logger.error(f"[Группы] Ошибка валидации пользователя {user_id}: {e}")
             return True
 
-    async def _check_user_role_access(
-        self, user_id: int, group: Group, stp_repo: MainRequestsRepo
-    ) -> bool:
-        """Проверка доступа по ролям."""
-        try:
-            if not group.allowed_roles:
-                return True
-
-            user = await stp_repo.employee.get_users(user_id=user_id)
-            if not user:
-                return False
-
-            user_role = getattr(user, "role", 0)
-            return (
-                user_role in group.allowed_roles or user_role == 10
-            )  # Админы всегда проходят
-
-        except Exception as e:
-            logger.error(f"[Группы] Ошибка проверки ролей для {user_id}: {e}")
-            return True
-
-    # ============================================================================
-    # УВЕДОМЛЕНИЯ И БАНЫ
-    # ============================================================================
-
-    async def _execute_user_ban(
+    async def _execute_user_kick(
         self,
         bot: Bot,
         user_id: int,
@@ -358,27 +324,31 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
         reason: str,
     ) -> None:
-        """Выполнение бана пользователя."""
+        """Выполнение исключения пользователя."""
         try:
+            # Используем ban_chat_member с последующим unban для исключения без блокировки
             await bot.ban_chat_member(chat_id=group_id, user_id=user_id)
+            await bot.unban_chat_member(chat_id=group_id, user_id=user_id)
             await stp_repo.group_member.remove_member(group_id, user_id)
 
-            await self._send_ban_notification(bot, user_id, group_id, stp_repo, reason)
-            logger.info(f"[Группы] Пользователь {user_id} забанен в группе {group_id}")
+            await self._send_kick_notification(bot, user_id, group_id, stp_repo, reason)
+            logger.info(
+                f"[Группы] Пользователь {user_id} исключен из группы {group_id}"
+            )
 
         except TelegramForbiddenError as e:
             if "bot was kicked from the supergroup chat" in str(e):
                 await self._cleanup_removed_group(group_id, stp_repo)
             else:
                 logger.error(
-                    f"[Группы] Ошибка доступа при бане {user_id} в группе {group_id}: {e}"
+                    f"[Группы] Ошибка доступа при исключении {user_id} из группы {group_id}: {e}"
                 )
         except Exception as e:
             logger.error(
-                f"[Группы] Ошибка бана пользователя {user_id} в группе {group_id}: {e}"
+                f"[Группы] Ошибка исключения пользователя {user_id} из группы {group_id}: {e}"
             )
 
-    async def _send_ban_notification(
+    async def _send_kick_notification(
         self,
         bot: Bot,
         user_id: int,
@@ -386,18 +356,20 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
         reason: str,
     ) -> None:
-        """Отправка уведомления о бане."""
+        """Отправка уведомления об исключении."""
         try:
             user = await stp_repo.employee.get_users(user_id=user_id)
             if user:
-                text = f"🚫 <b>Пользователь заблокирован</b>\n\n{format_fullname(user, True)} {reason}\n\n<i>Причина: недостаточно прав доступа</i>"
+                text = f"👋 <b>Пользователь исключен</b>\n\n{format_fullname(user, True)} {reason}\n\n<i>Причина: недостаточно прав доступа</i>"
             else:
-                text = f"🚫 <b>Пользователь заблокирован</b>\n\n{user_id} {reason}\n\n<i>Причина: недостаточно прав доступа</i>"
+                text = f"👋 <b>Пользователь исключен</b>\n\n{user_id} {reason}\n\n<i>Причина: недостаточно прав доступа</i>"
 
             await bot.send_message(chat_id=group_id, text=text, parse_mode="HTML")
 
         except Exception as e:
-            logger.error(f"[Группы] Ошибка отправки уведомления о бане {user_id}: {e}")
+            logger.error(
+                f"[Группы] Ошибка отправки уведомления об исключении {user_id}: {e}"
+            )
 
     async def _send_user_notification(
         self,
@@ -456,10 +428,6 @@ class GroupsMiddleware(BaseMiddleware):
                 f"[Группы] Ошибка добавления участника {user_id} в группу {group_id}: {e}"
             )
 
-    # ============================================================================
-    # СЕРВИСНЫЕ СООБЩЕНИЯ
-    # ============================================================================
-
     async def _handle_service_message_deletion(
         self, event: Message, stp_repo: MainRequestsRepo
     ) -> bool:
@@ -495,10 +463,6 @@ class GroupsMiddleware(BaseMiddleware):
             if any(getattr(message, attr, None) for attr in attributes):
                 return category
         return None
-
-    # ============================================================================
-    # РЕГИСТРАЦИЯ ГРУПП
-    # ============================================================================
 
     async def _handle_unregistered_group_command(
         self, event: Message, stp_repo: MainRequestsRepo
@@ -580,10 +544,6 @@ class GroupsMiddleware(BaseMiddleware):
                 logger.warning(f"[Группы] Не удалось создать группу {group_id} в базе")
         except Exception as e:
             logger.error(f"[Группы] Ошибка создания группы {group_id} в базе: {e}")
-
-    # ============================================================================
-    # ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-    # ============================================================================
 
     async def _cleanup_removed_group(
         self, group_id: int, stp_repo: MainRequestsRepo

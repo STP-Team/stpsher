@@ -57,9 +57,21 @@ async def join_request(
                 return
             # Если пользователь есть и remove_unemployed=True, проверяем роли дальше
 
-        # Проверка ролей
-        if group.allowed_roles:
-            if user and user.role in group.allowed_roles:
+        # Проверка доступа по ролям и подразделениям
+        if group.allowed_roles or group.allowed_divisions:
+            access_granted = True
+
+            # Проверка ролей
+            if group.allowed_roles:
+                if not user or user.role not in group.allowed_roles:
+                    access_granted = False
+
+            # Проверка подразделений (только если есть пользователь и установлены ограничения)
+            if access_granted and user and group.allowed_divisions:
+                if user.division not in group.allowed_divisions:
+                    access_granted = False
+
+            if access_granted:
                 await request.approve()
                 await stp_repo.group_member.add_member(chat.id, request.from_user.id)
                 await request.answer_pm(
@@ -82,7 +94,7 @@ async def join_request(
                     text=f"✋ Запрос на вступление в {'группу' if group.group_type == 'group' else 'канал'} <b>{chat.title}</b> отклонен\n\nДоступ с твоим уровнем доступа запрещен"
                 )
         else:
-            # Нет ограничений по ролям - одобряем всех (кроме уже отфильтрованных безработных)
+            # Нет ограничений по ролям и подразделениям - одобряем всех (кроме уже отфильтрованных безработных)
             await request.approve()
             await stp_repo.group_member.add_member(chat.id, request.from_user.id)
             await request.answer_pm(

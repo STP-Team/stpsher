@@ -58,7 +58,7 @@ async def on_role_selected(
     dialog_manager: DialogManager,
     _item_id: str,
 ) -> None:
-    """Обработчик изменения уровня доступа к группе через Multiselect.
+    """Обработчик изменения ролей для доступа к группе.
 
     Сохраняет выбранные роли в БД в формате JSON.
 
@@ -72,11 +72,32 @@ async def on_role_selected(
     group_id = dialog_manager.dialog_data.get("group_id")
 
     # Получаем все выбранные роли из мультиселекта
-    access_level_select: ManagedMultiselect = dialog_manager.find("access_level_select")
+    access_level_select: ManagedMultiselect = dialog_manager.find("access_role_select")
     selected_roles_str = access_level_select.get_checked()
     selected_roles = [int(role_id) for role_id in selected_roles_str]
 
     await stp_repo.group.update_group(group_id=group_id, allowed_roles=selected_roles)
+
+
+async def on_division_selected(
+    _event: CallbackQuery,
+    _widget: Multiselect,
+    dialog_manager: DialogManager,
+    _item_id: str,
+) -> None:
+    """Обработчик изменения направлений для доступа к группе."""
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+
+    # Получаем все выбранные подразделения из мультиселекта
+    access_division_select: ManagedMultiselect = dialog_manager.find(
+        "access_division_select"
+    )
+    selected_divisions = access_division_select.get_checked()
+
+    await stp_repo.group.update_group(
+        group_id=group_id, allowed_divisions=selected_divisions
+    )
 
 
 async def on_service_message_selected(

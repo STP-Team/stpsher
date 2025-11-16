@@ -146,13 +146,65 @@ async def groups_details_getter(
     }
 
 
-async def group_details_access_getter(
+async def groups_access_getter(
     stp_repo: MainRequestsRepo,
     bot: Bot,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> dict:
     """Геттер для окна настройки уровня доступа к группе.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        bot: Экземпляр бота
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными для окна
+    """
+    group_id = dialog_manager.dialog_data["group_id"]
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "group_name": f"ID: {group_id}",
+            "roles": [],
+            "has_pending_changes": False,
+            "has_inappropriate_users": False,
+            "error": str(e),
+        }
+
+    settings = await stp_repo.group.get_groups(group_id=group_id)
+
+    allow_unemployed = dialog_manager.find("only_employees")
+    await allow_unemployed.set_checked(settings.remove_unemployed)
+
+    # Проверяем, есть ли неподходящие пользователи
+    try:
+        inappropriate_data = await inappropriate_users_getter(
+            stp_repo=stp_repo,
+            bot=bot,
+            dialog_manager=dialog_manager,
+        )
+        has_inappropriate_users = inappropriate_data["has_inappropriate_users"]
+    except Exception:
+        # Если не удалось получить данные, не показываем кнопку
+        has_inappropriate_users = False
+
+    return {
+        "group_name": chat.title,
+        "has_inappropriate_users": has_inappropriate_users,
+    }
+
+
+async def groups_access_roles_getter(
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна настройки ролей для доступа к группе.
 
     Args:
         stp_repo: Репозиторий операций с базой STP
@@ -198,27 +250,74 @@ async def group_details_access_getter(
         is_allowed = role_id in allowed_roles
         await access_level_select.set_checked(str(role_id), is_allowed)
 
-    allow_unemployed = dialog_manager.find("only_employees")
-    await allow_unemployed.set_checked(settings.remove_unemployed)
-
-    # Проверяем, есть ли неподходящие пользователи
-    has_inappropriate_users = False
-    try:
-        inappropriate_data = await inappropriate_users_getter(
-            stp_repo=stp_repo,
-            bot=bot,
-            dialog_manager=dialog_manager,
-        )
-        has_inappropriate_users = inappropriate_data["has_inappropriate_users"]
-    except Exception:
-        # Если не удалось получить данные, не показываем кнопку
-        has_inappropriate_users = False
-
     return {
         "group_name": chat.title,
         "roles": roles_list,
-        "has_pending_changes": False,
-        "has_inappropriate_users": has_inappropriate_users,
+    }
+
+
+async def settings_access_divisions_getter(
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна настройки направлений для доступа в группе.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        bot: Экземпляр бота
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными для окна
+    """
+    group_id = dialog_manager.dialog_data["group_id"]
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "group_name": f"ID: {group_id}",
+            "divisions": [],
+            "has_pending_changes": False,
+            "has_inappropriate_users": False,
+            "error": str(e),
+        }
+
+    settings = await stp_repo.group.get_groups(group_id=group_id)
+
+    # Создаем список подразделений с соответствующими эмодзи
+    # Используем названия подразделений как ID для хранения в БД
+    divisions_list = [
+        ("НТП1", "📞 НТП1"),
+        ("НТП2", "📞 НТП2"),
+        ("НЦК", "💬 НЦК"),
+    ]
+
+    # Получаем allowed_divisions из БД (используем allowed_roles как временное решение если нет allowed_divisions)
+    allowed_divisions = (
+        getattr(settings, "allowed_divisions", [])
+        if hasattr(settings, "allowed_divisions")
+        else []
+    )
+
+    # Если нет поля allowed_divisions, создаем пустой список для начальной инициализации
+    if not allowed_divisions:
+        allowed_divisions = []
+
+    # Устанавливаем выбранные подразделения в мультиселект
+    access_division_select: ManagedMultiselect = dialog_manager.find(
+        "access_division_select"
+    )
+    if access_division_select:
+        for division_id, _ in divisions_list:
+            is_allowed = division_id in allowed_divisions
+            await access_division_select.set_checked(division_id, is_allowed)
+
+    return {
+        "group_name": chat.title,
+        "divisions": divisions_list,
     }
 
 

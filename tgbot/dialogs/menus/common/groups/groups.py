@@ -30,10 +30,12 @@ from tgbot.dialogs.getters.common.groups import (
     groups_list_getter,
 )
 from tgbot.dialogs.menus.common.groups.settings import (
+    groups_access_roles_window,
     groups_access_window,
     groups_remove_bot_window,
     groups_service_messages_window,
     inappropriate_users_window,
+    settings_access_divisions_window,
 )
 from tgbot.dialogs.states.common.groups import Groups
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -180,7 +182,7 @@ groups_list_detail_window = Window(
         on_click=on_autoapply_click,
     ),
     SwitchTo(
-        Const("🛡️ Уровень доступа"),
+        Const("🔓 Доступ"),
         id="access_level",
         state=Groups.settings_access,
     ),
@@ -237,6 +239,8 @@ groups_dialog = Dialog(
     groups_cmds_window,
     groups_access_window,
     groups_service_messages_window,
+    groups_access_roles_window,
+    settings_access_divisions_window,
     groups_remove_bot_window,
     inappropriate_users_window,
     on_start=on_start,
