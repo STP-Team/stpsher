@@ -1,7 +1,6 @@
 """Обработчики для диалога создания покупки на бирже."""
 
 import logging
-import re
 from datetime import datetime
 
 from aiogram.types import CallbackQuery, Message
@@ -10,6 +9,10 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
 from stp_database import MainRequestsRepo
 
+from tgbot.dialogs.events.common.exchanges.create.sell import (
+    create_datetime_for_shift,
+    validate_time_range,
+)
 from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy, Exchanges
 from tgbot.services.notifications.subscription_matcher import (
     notify_matching_subscriptions,
@@ -60,72 +63,33 @@ async def on_buy_hours_input(
     data: str,
 ) -> None:
     """Обработчик ввода времени для покупки."""
-    # Проверяем формат времени (09:00-13:00)
-    time_pattern = r"^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$"
-    match = re.match(time_pattern, data.strip())
-
-    if not match:
-        await message.answer(
-            "<b>❌ Неверный формат времени</b>\n\nИспользуй формат: 09:00-13:00"
-        )
+    # Используем ту же валидацию, что и в sell exchange
+    is_valid, error_message = validate_time_range(data)
+    if not is_valid:
+        await message.answer(f"<b>❌ {error_message}</b>")
         return
 
-    start_hour, start_min, end_hour, end_min = map(int, match.groups())
-
-    # Проверяем валидность времени
-    if not (
-        0 <= start_hour <= 23
-        and 0 <= start_min <= 59
-        and 0 <= end_hour <= 23
-        and 0 <= end_min <= 59
-    ):
-        await message.answer("<b>❌ Неверное время</b>\n\nЧасы: 0-23, минуты: 0-59")
-        return
-
-    if (start_min not in (0, 30)) or (end_min not in (0, 30)):
-        await message.answer(
-            "<b>❌ Неверное время</b>\n\nВремя должно начинаться и заканчиваться либо на 00 минутах, либо на 30 минутах часа"
-        )
-        return
-
-    start_time = f"{start_hour:02d}:{start_min:02d}"
-    end_time = f"{end_hour:02d}:{end_min:02d}"
-
-    # Проверяем, что время начала меньше времени окончания
-    start_minutes = start_hour * 60 + start_min
-    end_minutes = end_hour * 60 + end_min
-
-    if start_minutes >= end_minutes:
-        await message.answer(
-            "<b>❌ Неверное время</b>\n\nВремя начала должно быть раньше времени окончания"
-        )
-        return
-
-    if end_minutes - start_minutes < 30:
-        await message.answer(
-            "<b>❌ Неверное время</b>\n\nМинимальная продолжительность: 30 минут"
-        )
-        return
+    # Извлекаем время начала и окончания
+    start_time_str, end_time_str = data.split("-")
+    start_time_str = start_time_str.strip()
+    end_time_str = end_time_str.strip()
 
     # Создаем timestamp для start_time и end_time
     buy_date = dialog_manager.dialog_data.get("buy_date")
 
     if buy_date:
-        # Если дата выбрана, создаем полные timestamp
+        # Если дата выбрана, создаем полные timestamp с учетом ночных смен
         shift_date = datetime.fromisoformat(buy_date)
-        start_datetime = datetime.combine(
-            shift_date.date(), datetime.strptime(start_time, "%H:%M").time()
-        )
-        end_datetime = datetime.combine(
-            shift_date.date(), datetime.strptime(end_time, "%H:%M").time()
+        start_datetime, end_datetime = create_datetime_for_shift(
+            shift_date, start_time_str, end_time_str
         )
 
         dialog_manager.dialog_data["start_time"] = start_datetime.isoformat()
         dialog_manager.dialog_data["end_time"] = end_datetime.isoformat()
     else:
         # Если дата не выбрана, сохраняем только время
-        dialog_manager.dialog_data["start_time"] = start_time
-        dialog_manager.dialog_data["end_time"] = end_time
+        dialog_manager.dialog_data["start_time"] = start_time_str
+        dialog_manager.dialog_data["end_time"] = end_time_str
 
     # Переходим к вводу цены
     await dialog_manager.switch_to(ExchangeCreateBuy.price)
@@ -224,15 +188,13 @@ async def on_confirm_buy(
                 start_time = datetime.fromisoformat(data["start_time"])
                 end_time = datetime.fromisoformat(data["end_time"])
             else:
-                # Если дата не указана, создаем timestamp с условной датой
+                # Если дата не указана, создаем timestamp с условной датой с учетом ночных смен
                 today = datetime.now().date()
                 start_time_str = data["start_time"]
                 end_time_str = data["end_time"]
-                start_time = datetime.combine(
-                    today, datetime.strptime(start_time_str, "%H:%M").time()
-                )
-                end_time = datetime.combine(
-                    today, datetime.strptime(end_time_str, "%H:%M").time()
+                today_datetime = datetime.combine(today, datetime.min.time())
+                start_time, end_time = create_datetime_for_shift(
+                    today_datetime, start_time_str, end_time_str
                 )
         else:
             # Если время не указано, устанавливаем весь день (00:00 - 23:59)
