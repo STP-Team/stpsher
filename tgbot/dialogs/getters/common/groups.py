@@ -13,7 +13,7 @@ from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import short_name
 
 
 async def groups_getter(bot: Bot, **_kwargs) -> dict:
@@ -548,7 +548,7 @@ async def inappropriate_users_getter(
                 # Получаем информацию о пользователе Telegram
                 try:
                     if employee:
-                        display_name = format_fullname(employee, True, True)
+                        display_name = short_name(employee.fullname)
                     else:
                         display_name = f"ID: {member.member_id}"
                 except Exception:
