@@ -72,28 +72,9 @@ class SalaryFormatter:
 
         # Форматирование блока дополнительных смен
         additional_shifts_details = []
-        regular_additional_shift_hours = (
-            result.additional_shift_hours
-            - result.additional_shift_holiday_hours
-            - result.additional_shift_night_hours
-            - result.additional_shift_night_holiday_hours
-        )
-
-        if regular_additional_shift_hours > 0:
+        if result.additional_shift_hours > 0:
             additional_shifts_details.append(
-                f"Обычные доп. смены: {regular_additional_shift_hours:g}ч × {result.additional_shift_rate:g} ₽ = {regular_additional_shift_hours * result.additional_shift_rate:g} ₽"
-            )
-        if result.additional_shift_night_hours > 0:
-            additional_shifts_details.append(
-                f"Ночные доп. смены: {result.additional_shift_night_hours:g}ч × {result.additional_shift_night_rate:g} ₽ = {result.additional_shift_night_hours * result.additional_shift_night_rate:g} ₽"
-            )
-        if result.additional_shift_holiday_hours > 0:
-            additional_shifts_details.append(
-                f"Праздничные доп. смены: {result.additional_shift_holiday_hours:g}ч × {result.additional_shift_holiday_rate:g} ₽ = {result.additional_shift_holiday_hours * result.additional_shift_holiday_rate:g} ₽"
-            )
-        if result.additional_shift_night_holiday_hours > 0:
-            additional_shifts_details.append(
-                f"Ночные праздничные доп. смены: {result.additional_shift_night_holiday_hours:g}ч × {result.additional_shift_night_holiday_rate:g} ₽ = {result.additional_shift_night_holiday_hours * result.additional_shift_night_holiday_rate:g} ₽"
+                f"Доп. смены: {result.additional_shift_hours:g}ч × {result.additional_shift_rate:g} ₽ = {result.additional_shift_salary:g} ₽"
             )
 
         message_text = f"""💰 <b>Зарплата</b>
@@ -217,7 +198,7 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 Праздничные часы: часы × ставка × 2
 Ночные часы: часы × ставка × 1.2
 Ночные праздничные часы: часы × ставка × 2.4
-Доп. смены: часы × (ставка × 2.63)
+Доп. смены: часы × (ставка × 2 × (1 + премия%))
 
 Ночными часами считается локальное время 22:00 - 6:00
 Праздничные дни считаются по производственному <a href='https://www.consultant.ru/law/ref/calendar/proizvodstvennye/'>календарю</a></blockquote>
