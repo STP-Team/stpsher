@@ -3,6 +3,7 @@
 from html import escape
 from typing import Any, Sequence
 
+from aiogram import Bot
 from aiogram_dialog import DialogManager
 from sqlalchemy.orm import Mapped
 from stp_database.models.STP import Employee
@@ -331,7 +332,7 @@ async def search_access_level_getter(
 
 
 async def search_schedule_getter(
-    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    stp_repo: MainRequestsRepo, dialog_manager: DialogManager, bot: Bot, **_kwargs
 ) -> dict:
     """Геттер для получения графика выбранного пользователя.
 
@@ -346,7 +347,7 @@ async def search_schedule_getter(
     selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     schedule_data = await user_schedule_getter(
-        user=selected_user, stp_repo=stp_repo, dialog_manager=dialog_manager
+        bot=bot, user=selected_user, stp_repo=stp_repo, dialog_manager=dialog_manager
     )
 
     # Добавляем информацию о пользователе в начало текста графика
