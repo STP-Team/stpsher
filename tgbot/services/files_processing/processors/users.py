@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import Employee
+from stp_database.models.STP import Employee
 from stp_database.repo.STP.employee import EmployeeRepo
 
 from tgbot.services.schedulers.hr import get_fired_users_from_excel

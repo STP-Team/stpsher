@@ -17,7 +17,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
 from openpyxl import load_workbook
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import schedule_types
 from tgbot.misc.helpers import format_fullname, tz_perm

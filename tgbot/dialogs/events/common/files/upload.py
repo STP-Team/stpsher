@@ -11,7 +11,7 @@ from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.files import Files
 from tgbot.services.files_processing.detectors.changes import ScheduleChangeDetector

@@ -9,7 +9,8 @@ from aiogram.exceptions import (
 from aiogram.utils.deep_linking import create_startgroup_link
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedMultiselect
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import format_fullname

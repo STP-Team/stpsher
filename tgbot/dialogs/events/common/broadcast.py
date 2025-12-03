@@ -6,7 +6,8 @@ from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Button, ManagedMultiselect, Radio, Select
 from sqlalchemy import select
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.broadcast import Broadcast
 from tgbot.misc.dicts import roles

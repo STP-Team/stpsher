@@ -3,7 +3,7 @@
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Select
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
 from tgbot.misc.helpers import strftime_date

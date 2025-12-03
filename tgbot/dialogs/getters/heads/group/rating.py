@@ -5,9 +5,10 @@ from typing import Any, Sequence
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedRadio
 from sqlalchemy.orm import Mapped
-from stp_database import Employee, MainRequestsRepo
 from stp_database.models.KPI.spec_kpi import SpecDayKPI, SpecMonthKPI, SpecWeekKPI
+from stp_database.models.STP import Employee
 from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, strftime_date
 

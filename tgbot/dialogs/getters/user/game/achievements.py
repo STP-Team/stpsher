@@ -3,7 +3,8 @@
 from html import escape
 from typing import Any, Dict
 
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 
 async def achievements_getter(stp_repo: MainRequestsRepo, **_kwargs) -> Dict[str, Any]:

@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager, StartMode
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.misc.helpers import tz_perm

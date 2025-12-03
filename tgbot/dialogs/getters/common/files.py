@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from aiogram_dialog import DialogManager
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, strftime_date
 from tgbot.services.files_processing.utils.files import (

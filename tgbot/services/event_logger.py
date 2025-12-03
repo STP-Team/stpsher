@@ -1,6 +1,6 @@
 """Логирование событий."""
 
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 
 class EventLogger:

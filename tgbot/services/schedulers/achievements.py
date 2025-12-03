@@ -15,9 +15,9 @@ from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import MainRequestsRepo
 from stp_database.models.STP.transactions import Transaction
 from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedulers.base import BaseScheduler

@@ -4,7 +4,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.keyboards.schedule import changed_schedule_kb
 from tgbot.misc.helpers import tz_perm

@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.files import get_history_file_details
 from tgbot.dialogs.states.common.files import Files

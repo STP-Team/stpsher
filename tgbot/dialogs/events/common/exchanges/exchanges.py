@@ -17,7 +17,8 @@ from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Calendar, ManagedCheckbox, Select
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     _get_exchange_status,

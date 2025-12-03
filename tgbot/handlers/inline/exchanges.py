@@ -11,7 +11,8 @@ from aiogram.types import (
 )
 from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
-from stp_database import Employee, Exchange, MainRequestsRepo
+from stp_database.models.STP import Employee, Exchange
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     get_exchange_text,

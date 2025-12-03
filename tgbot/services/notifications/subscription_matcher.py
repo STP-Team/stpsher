@@ -3,7 +3,8 @@
 import logging
 
 from aiogram import Bot
-from stp_database import Exchange, MainRequestsRepo
+from stp_database.models.STP import Exchange
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import get_exchange_text
 from tgbot.services.broadcaster import send_message

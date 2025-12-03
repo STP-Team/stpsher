@@ -8,7 +8,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
 )
 from aiogram.utils.deep_linking import create_start_link
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 logger = logging.getLogger(__name__)
 

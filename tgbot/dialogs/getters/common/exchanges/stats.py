@@ -6,7 +6,8 @@ from typing import Any, Dict
 
 from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.misc.helpers import format_fullname

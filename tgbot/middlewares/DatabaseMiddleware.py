@@ -7,8 +7,8 @@ from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import MainRequestsRepo
 from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.config import Config
 

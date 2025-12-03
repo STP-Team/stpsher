@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict
 
 from sqlalchemy import and_, func, select
-from stp_database import MainRequestsRepo
 from stp_database.models.STP.exchange import Exchange
+from stp_database.repo.STP import MainRequestsRepo
 
 logger = logging.getLogger(__name__)
 

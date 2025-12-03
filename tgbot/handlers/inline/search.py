@@ -2,7 +2,8 @@ import logging
 from typing import List
 
 from aiogram.types import InlineQueryResultArticle, InputTextMessageContent
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.handlers.inline.helpers import SEARCH_LIMITS
 from tgbot.handlers.inline.texts import ERROR_MESSAGES

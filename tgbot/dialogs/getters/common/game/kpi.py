@@ -3,9 +3,9 @@
 import datetime
 from typing import Any, Dict
 
-from stp_database import Employee
 from stp_database.models.KPI.head_premium import HeadPremium
 from stp_database.models.KPI.spec_premium import SpecPremium
+from stp_database.models.STP import Employee
 from stp_database.repo.KPI.requests import KPIRequestsRepo
 
 from tgbot.misc.helpers import strftime_date

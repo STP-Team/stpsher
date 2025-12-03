@@ -6,7 +6,8 @@ from typing import Any, Dict
 
 from aiogram import Bot
 from aiogram_dialog import DialogManager
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
 from tgbot.services.files_processing.formatters.schedule import (

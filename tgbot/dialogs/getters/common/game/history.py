@@ -3,7 +3,8 @@
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import strftime_date
 

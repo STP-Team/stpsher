@@ -7,7 +7,8 @@ from aiogram.enums import DiceEmoji
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.kbd import Button
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
 

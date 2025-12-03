@@ -10,7 +10,8 @@ from typing import Optional, Tuple
 
 from aiogram import Bot
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.keyboards.auth import auth_kb
 

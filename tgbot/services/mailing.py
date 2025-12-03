@@ -7,7 +7,7 @@ from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from stp_database import Employee, Product
+from stp_database.models.STP import Employee, Product
 from stp_database.models.STP.purchase import Purchase
 
 from tgbot.config import load_config

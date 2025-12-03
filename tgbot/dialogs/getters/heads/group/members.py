@@ -4,8 +4,9 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram_dialog import DialogManager
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
 from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.game.kpi import (
     base_kpi_data,

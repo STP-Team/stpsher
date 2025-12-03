@@ -6,7 +6,8 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
 from aiogram_dialog.widgets.input import ManagedTextInput
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 from stp_database.repo.STP.purchase import PurchaseDetailedParams
 
 from tgbot.dialogs.states.common.game import Game

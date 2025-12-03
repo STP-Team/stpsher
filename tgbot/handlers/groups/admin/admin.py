@@ -9,7 +9,8 @@ from aiogram.types import (
     ChatPermissions,
     Message,
 )
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.filters.group import GroupAdminFilter
 from tgbot.misc.helpers import format_fullname, short_name

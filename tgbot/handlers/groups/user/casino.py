@@ -8,7 +8,8 @@ from aiogram import F, Router
 from aiogram.enums import DiceEmoji
 from aiogram.filters import Command
 from aiogram.types import Message
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.events.common.game.casino import (
     calculate_simple_multiplier,

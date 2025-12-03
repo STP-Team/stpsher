@@ -24,7 +24,7 @@ from typing import List, Set
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
 from tgbot.services.files_processing.parsers.studies import (

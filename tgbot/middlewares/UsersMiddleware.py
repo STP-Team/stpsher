@@ -5,7 +5,8 @@ from typing import Any, Awaitable, Callable, Dict, Union
 
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, InlineQuery, Message
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 logger = logging.getLogger(__name__)
 

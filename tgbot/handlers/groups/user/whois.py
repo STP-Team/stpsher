@@ -3,7 +3,8 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, get_role
 

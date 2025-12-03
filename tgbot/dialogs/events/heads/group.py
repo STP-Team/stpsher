@@ -5,7 +5,7 @@ import logging
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
-from stp_database import Employee, MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.head import HeadGroupSG
 from tgbot.misc.dicts import roles

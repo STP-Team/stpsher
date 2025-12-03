@@ -9,7 +9,7 @@ from aiogram_dialog.widgets.kbd import (
     Multiselect,
     Select,
 )
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.groups import Groups
 

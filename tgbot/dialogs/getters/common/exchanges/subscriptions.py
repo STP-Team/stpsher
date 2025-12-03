@@ -7,7 +7,8 @@ from aiogram import Bot
 from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedCheckbox, ManagedRadio, ManagedToggle
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.handlers.inline.helpers import EXCHANGE_TYPE_NAMES
 from tgbot.misc.helpers import DAY_NAMES, short_name

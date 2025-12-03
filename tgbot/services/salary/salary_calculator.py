@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from stp_database import Employee
+from stp_database.models.STP import Employee
 
 from infrastructure.api.production_calendar import production_calendar
 from tgbot.misc.dicts import russian_months

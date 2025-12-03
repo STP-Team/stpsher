@@ -14,7 +14,8 @@ from aiogram.utils.deep_linking import create_start_link
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, Select
-from stp_database import Employee, MainRequestsRepo, Product, Purchase
+from stp_database.models.STP import Employee, Product, Purchase
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
 from tgbot.misc.helpers import strftime_date, tz_perm

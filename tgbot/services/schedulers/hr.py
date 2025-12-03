@@ -15,7 +15,8 @@ import pandas as pd
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 from stp_database.repo.STP.employee import EmployeeRepo
 
 from tgbot.services.broadcaster import send_message

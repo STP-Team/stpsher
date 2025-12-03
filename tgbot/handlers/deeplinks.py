@@ -5,7 +5,8 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.api.exceptions import NoContextError
-from stp_database import Employee, MainRequestsRepo
+from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges, ExchangesSub
 from tgbot.dialogs.states.common.game import Game

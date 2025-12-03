@@ -3,7 +3,7 @@
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.kbd import Button
-from stp_database import Employee
+from stp_database.models.STP import Employee
 
 from tgbot.dialogs.states.admin import AdminSG
 from tgbot.dialogs.states.gok import GokSG

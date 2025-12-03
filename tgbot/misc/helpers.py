@@ -4,7 +4,7 @@ import random
 import string
 
 import pytz
-from stp_database import Employee
+from stp_database.models.STP import Employee
 
 from tgbot.misc.dicts import roles, russian_weekdays_short
 

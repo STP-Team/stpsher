@@ -13,7 +13,8 @@ from aiogram_dialog.widgets.kbd import (
     ManagedToggle,
     Select,
 )
-from stp_database import Employee, ExchangeSubscription, MainRequestsRepo
+from stp_database.models.STP import Employee, ExchangeSubscription
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import ExchangesSub
 

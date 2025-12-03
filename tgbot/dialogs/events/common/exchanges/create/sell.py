@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, Select
-from stp_database import MainRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import _get_exchange_status
 from tgbot.dialogs.states.common.exchanges import (

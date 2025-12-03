@@ -7,7 +7,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.deep_linking import create_start_link
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import Exchange, MainRequestsRepo
+from stp_database.models.STP import Exchange
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.exchanges.exchanges import (
     get_exchange_text,

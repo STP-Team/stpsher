@@ -19,7 +19,8 @@ from aiogram_dialog.api.exceptions import OutdatedIntent, UnknownIntent, Unknown
 from aiohttp import web
 from aiohttp.web import Response
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database import Employee, create_engine, create_session_pool
+from stp_database import create_engine, create_session_pool
+from stp_database.models.STP import Employee
 
 from tgbot.config import Config, load_config
 from tgbot.dialogs.menus import common_dialogs_list, dialogs_list

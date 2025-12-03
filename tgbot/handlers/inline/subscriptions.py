@@ -9,7 +9,8 @@ from aiogram.types import (
     InputTextMessageContent,
 )
 from aiogram.utils.deep_linking import create_start_link
-from stp_database import ExchangeSubscription, MainRequestsRepo
+from stp_database.models.STP import ExchangeSubscription
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.handlers.inline.helpers import EXCHANGE_TYPE_NAMES
 from tgbot.misc.helpers import DAY_NAMES
