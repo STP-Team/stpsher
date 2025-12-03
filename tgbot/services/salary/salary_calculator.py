@@ -45,10 +45,7 @@ class SalaryCalculationResult:
 
         base_salary: Базовая зарплата (без премии)
         additional_shift_salary: Зарплата за дополнительные смены
-        additional_shift_rate: Ставка для дополнительных смен
-        additional_shift_holiday_rate: Праздничная ставка доп. смен
-        additional_shift_night_rate: Ночная ставка доп. смен
-        additional_shift_night_holiday_rate: Ночная праздничная ставка доп. смен
+        additional_shift_rate: Единая ставка для всех дополнительных смен (2x + премия пользователя)
 
         csi_premium_amount: Сумма премии CSI
         flr_premium_amount: Сумма премии FLR
@@ -93,9 +90,6 @@ class SalaryCalculationResult:
     base_salary: float
     additional_shift_salary: float
     additional_shift_rate: float
-    additional_shift_holiday_rate: float
-    additional_shift_night_rate: float
-    additional_shift_night_holiday_rate: float
 
     # Премия
     csi_premium_amount: float
@@ -130,6 +124,7 @@ class SalaryCalculator:
         - Подсчет базовой зарплаты с учетом различных коэффициентов
         - Расчет премий для специалистов и руководителей
         - Учет праздничных дней согласно производственному календарю
+        - Дополнительные смены: двойная оплата + индивидуальная премия (без доплат за ночь/праздники)
 
     Note:
         Все расчеты выполняются асинхронно для работы с внешними API
@@ -420,12 +415,6 @@ class SalaryCalculator:
         regular_hours = (
             total_working_hours - holiday_hours - night_hours - night_holiday_hours
         )
-        regular_additional_shift_hours = (
-            additional_shift_hours
-            - additional_shift_holiday_hours
-            - additional_shift_night_hours
-            - additional_shift_night_holiday_hours
-        )
 
         # Считаем базовую зарплату
         base_salary = (
@@ -440,28 +429,12 @@ class SalaryCalculator:
         )
 
         # Считаем зарплату за дополнительные смены
-        additional_shift_rate = (
-            pay_rate * PayRateService.get_additional_shift_multiplier()
-        )
-        additional_shift_holiday_rate = (
-            additional_shift_rate * PayRateService.get_holiday_multiplier()
-        )
-        additional_shift_night_rate = (
-            additional_shift_rate * PayRateService.get_night_multiplier()
-        )
-        additional_shift_night_holiday_rate = (
-            additional_shift_rate * PayRateService.get_night_holiday_multiplier()
-        )
+        # Используем двойную ставку + собственную премию пользователя (вместо фиксированных 63%)
+        additional_shift_premium_multiplier = 1 + ((premium_data.total_premium or 0) / 100)
+        additional_shift_rate = pay_rate * 2.0 * additional_shift_premium_multiplier
 
-        additional_shift_salary = (
-            (regular_additional_shift_hours * additional_shift_rate)
-            + (additional_shift_holiday_hours * additional_shift_holiday_rate)
-            + (additional_shift_night_hours * additional_shift_night_rate)
-            + (
-                additional_shift_night_holiday_hours
-                * additional_shift_night_holiday_rate
-            )
-        )
+        # Все часы дополнительных смен оплачиваются по единой ставке (без доплат за ночь/праздники)
+        additional_shift_salary = additional_shift_hours * additional_shift_rate
 
         # Считаем индивидуальную сумму для каждого показателя премии (основываясь на базовой зарплате)
         # Проверяем тип премиум данных (HeadPremium vs SpecPremium)
@@ -533,9 +506,6 @@ class SalaryCalculator:
             base_salary=base_salary,
             additional_shift_salary=additional_shift_salary,
             additional_shift_rate=additional_shift_rate,
-            additional_shift_holiday_rate=additional_shift_holiday_rate,
-            additional_shift_night_rate=additional_shift_night_rate,
-            additional_shift_night_holiday_rate=additional_shift_night_holiday_rate,
             csi_premium_amount=csi_premium_amount,
             flr_premium_amount=flr_premium_amount,
             gok_premium_amount=gok_premium_amount,
