@@ -24,10 +24,16 @@ async def base_kpi_data(
     Returns:
         Словарь с информацией о премии пользователя
     """
+    extraction_period = datetime.datetime.today().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
     if user.role == 2:
-        premium: HeadPremium = await kpi_repo.head_premium.get_premium(user.fullname)
+        premium: HeadPremium = await kpi_repo.head_premium.get_premium(
+            user.fullname, extraction_period=extraction_period
+        )
     else:
-        premium: SpecPremium = await kpi_repo.spec_premium.get_premium(user.fullname)
+        premium: SpecPremium = await kpi_repo.spec_premium.get_premium(
+            user.fullname, extraction_period=extraction_period
+        )
 
     return {"premium": premium}
 

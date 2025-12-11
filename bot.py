@@ -322,8 +322,18 @@ async def main() -> None:
     dp = Dispatcher(storage=storage)
 
     # Создаем движки для доступа к базам
-    stp_engine = create_engine(bot_config.db, db_name=bot_config.db.stp_db)
-    kpi_engine = create_engine(bot_config.db, db_name=bot_config.db.kpi_db)
+    stp_engine = create_engine(
+        db_name=bot_config.db.stp_db,
+        host=bot_config.db.host,
+        username=bot_config.db.user,
+        password=bot_config.db.password,
+    )
+    kpi_engine = create_engine(
+        db_name=bot_config.db.kpi_db,
+        host=bot_config.db.host,
+        username=bot_config.db.user,
+        password=bot_config.db.password,
+    )
 
     stp_session_pool = create_session_pool(stp_engine)
     kpi_session_pool = create_session_pool(kpi_engine)
