@@ -430,7 +430,9 @@ class SalaryCalculator:
 
         # Считаем зарплату за дополнительные смены
         # Используем двойную ставку + собственную премию пользователя (вместо фиксированных 63%)
-        additional_shift_premium_multiplier = 1 + ((premium_data.total_premium or 0) / 100)
+        additional_shift_premium_multiplier = 1 + (
+            (premium_data.total_premium or 0) / 100
+        )
         additional_shift_rate = pay_rate * 2.0 * additional_shift_premium_multiplier
 
         # Все часы дополнительных смен оплачиваются по единой ставке (без доплат за ночь/праздники)

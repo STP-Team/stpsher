@@ -24,11 +24,8 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     Returns:
         Форматированный вид информации о пользователе
     """
-    # Определяем уровень доступа и эмодзи
-    role_info = get_role(user.role)
-
     # Формируем контент сообщения
-    message_parts = [f"<b>{role_info['emoji']} {user.fullname}</b>", ""]
+    message_parts = [f"<b>{format_fullname(user, False, True)}</b>", ""]
 
     if user.position and user.division:
         message_parts.append(f"<b>💼 Должность:</b> {user.position} {user.division}")
@@ -46,15 +43,18 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
         else:
             message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")
 
-    message_parts.append("")
-
-    # Контактная информация
-    if user.username:
-        message_parts.append(f"<b>📱 Telegram:</b> @{user.username}")
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(f"\n🛡️ <b> Уровень доступа:</b> {get_role(user.role)['name']}")
+    message_parts.append(
+        f"\n🛡️ <b> Уровень доступа:</b> {get_role(user.role)['name']}\n"
+    )
+
+    if user.birthday:
+        message_parts.append(f"<b>🍰 День рождения:</b> {user.birthday}")
+
+    if user.employment_date:
+        message_parts.append(f"<b>📅 Дата трудоустройства:</b> {user.employment_date}")
 
     return "\n".join(message_parts)
 

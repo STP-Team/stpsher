@@ -21,6 +21,7 @@ from aiohttp.web import Response
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import create_engine, create_session_pool
 from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.config import Config, load_config
 from tgbot.dialogs.menus import common_dialogs_list, dialogs_list
@@ -122,8 +123,6 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
     # Создаем репозитории для работы с базами данных
     try:
         async with stp_session_pool() as stp_session:
-            from stp_database import MainRequestsRepo
-
             stp_repo = MainRequestsRepo(stp_session)
 
             # Получаем пользователя из базы данных

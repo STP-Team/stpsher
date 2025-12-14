@@ -16,6 +16,7 @@ from tgbot.dialogs.getters.common.game.kpi import (
     salary_getter,
 )
 from tgbot.dialogs.getters.common.schedules import user_schedule_getter
+from tgbot.handlers.groups.user.whois import create_user_info_message
 from tgbot.misc.dicts import roles
 from tgbot.misc.helpers import (
     format_fullname,
@@ -213,25 +214,7 @@ async def search_user_info_getter(
         if searched_user.head:
             user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        user_info = f"""<b>{format_fullname(searched_user, False, True)}</b>
-
-<b>💼 Должность:</b> {searched_user.position} {searched_user.division}"""
-
-        if user_head:
-            user_info += f"\n<b>👑 Руководитель:</b> {
-                format_fullname(
-                    user_head,
-                    True,
-                    True,
-                )
-            }"
-
-        if searched_user.email:
-            user_info += f"\n<b>📧 Email:</b> {searched_user.email}"
-
-        user_info += (
-            f"\n\n🛡️ <b>Уровень доступа:</b> {get_role(searched_user.role)['name']}"
-        )
+        user_info = create_user_info_message(user=user, user_head=user_head)
 
         return {
             "user_info": user_info,
