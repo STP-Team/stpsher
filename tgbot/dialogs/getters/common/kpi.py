@@ -264,7 +264,7 @@ async def salary_getter(
 
     try:
         salary_result = await SalaryCalculator.calculate_salary(
-            user=user, premium_data=premium
+            user=user, premium_data=premium, current_month=data.get("current_month")
         )
     except Exception:
         salary_result = """💰 <b>Зарплата</b>
