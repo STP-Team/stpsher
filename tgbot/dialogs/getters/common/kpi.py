@@ -155,12 +155,6 @@ async def kpi_getter(
             else f"📈 Всего звонков: {SalaryFormatter.format_value(premium.contacts_count)}"
         )
 
-        delay_text = (
-            f"⏰ Задержка: {SalaryFormatter.format_value(premium.delay, '%')}"
-            if user.division != "НЦК"
-            else ""
-        )
-
         kpi_text = f"""🌟 <b>Показатели</b>
     
 📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
