@@ -361,11 +361,11 @@ async def _check_user_achievements(
             )
             return earned_achievements
 
-        # Получаем kpi_extract_date из KPI данных
-        kpi_extract_date = user_kpi.kpi_extract_date
-        if not kpi_extract_date:
+        # Получаем extraction_period из KPI данных
+        extraction_period = user_kpi.extraction_period
+        if not extraction_period:
             logger.debug(
-                f"[Достижения] Нет kpi_extract_date в {period.description} KPI данных для пользователя {user.fullname}"
+                f"[Достижения] Нет extraction_period в {period.description} KPI данных для пользователя {user.fullname}"
             )
             return earned_achievements
 
@@ -374,7 +374,7 @@ async def _check_user_achievements(
             existing_transactions,
             recent_transactions,
         ) = await _get_user_achievement_history(
-            stp_repo, user.user_id, kpi_extract_date, period.days_check
+            stp_repo, user.user_id, extraction_period, period.days_check
         )
 
         existing_achievement_ids = {
@@ -390,7 +390,7 @@ async def _check_user_achievements(
                 # Пропускаем достижение если уже получено с этим kpi_extracted_at
                 if achievement.id in existing_achievement_ids:
                     logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
+                        f"[Достижения] Достижение {achievement.name} уже получено для extraction_period {extraction_period}"
                     )
                     continue
 
@@ -413,7 +413,7 @@ async def _check_user_achievements(
                         "description": achievement.description,
                         "reward_points": achievement.reward,
                         "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
-                        "kpi_extract_date": kpi_extract_date,
+                        "extraction_period": extraction_period,
                     })
                     logger.info(
                         f"[Достижения] Пользователь {user.fullname} заработал {period.description[:-2]}ое достижение '{achievement.name}'"
@@ -434,14 +434,14 @@ async def _check_user_achievements(
 
 
 async def _get_user_achievement_history(
-    stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date, days_check: int
+    stp_repo: MainRequestsRepo, user_id: int, extraction_period, days_check: int
 ) -> tuple[Sequence[Transaction], Sequence[Transaction]]:
     """Получает историю достижений пользователя одним запросом.
 
     Args:
         stp_repo: Репозиторий операций с базой STP
         user_id: ID пользователя
-        kpi_extract_date: Дата извлечения KPI
+        extraction_period: Дата извлечения KPI
         days_check: Количество дней для проверки дублирования
 
     Returns:
@@ -450,7 +450,7 @@ async def _get_user_achievement_history(
     try:
         # Получаем достижения с определенной датой KPI
         existing_transactions = await _get_user_achievements_by_kpi_date(
-            stp_repo, user_id, kpi_extract_date
+            stp_repo, user_id, extraction_period
         )
 
         # Получаем достижения за последние N дней
@@ -495,7 +495,7 @@ async def _award_achievements(
                 amount=achievement["reward_points"],
                 source_id=achievement["id"],
                 comment=comment,
-                kpi_extracted_at=achievement.get("kpi_extract_date"),
+                kpi_extracted_at=achievement.get("extraction_period"),
             )
 
             if transaction:
@@ -537,19 +537,19 @@ async def _award_achievements(
 
 
 async def _get_user_achievements_by_kpi_date(
-    stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date
+    stp_repo: MainRequestsRepo, user_id: int, extraction_period
 ) -> Sequence[Transaction] | list:
     """Получает достижения пользователя с определенным kpi_extracted_at.
 
     Args:
         stp_repo: Репозиторий операций с базой STP
         user_id: ID пользователя
-        kpi_extract_date: Дата извлечения KPI
+        extraction_period: Дата извлечения KPI
 
     Returns:
         Список транзакций-достижений с указанным kpi_extracted_at
     """
-    additional_filters = [Transaction.kpi_extracted_at == kpi_extract_date]
+    additional_filters = [Transaction.kpi_extracted_at == extraction_period]
     return await _query_user_transactions(stp_repo, user_id, additional_filters)
 
 
