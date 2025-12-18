@@ -444,7 +444,9 @@ async def search_salary_getter(
     selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    salary_data = await salary_getter(user=selected_user, stats_repo=stats_repo)
+    salary_data = await salary_getter(
+        user=selected_user, stats_repo=stats_repo, dialog_manager=dialog_manager
+    )
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
