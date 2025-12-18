@@ -60,6 +60,10 @@ class SalaryCalculationResult:
 
         total_salary: Итоговая зарплата
 
+        first_half_hours: Часы работы в первой половине месяца (1-15 числа)
+        advance_payment: Аванс (первая половина месяца × ставка)
+        main_payment: Основная часть зарплаты (полная зарплата - аванс)
+
         calculation_time: Время проведения расчета
         premium_updated_at: Время последнего обновления премии
     """
@@ -105,6 +109,11 @@ class SalaryCalculationResult:
 
     # Финальный подсчет зарплаты
     total_salary: float
+
+    # Аванс и основная часть зарплаты
+    first_half_hours: float
+    advance_payment: float
+    main_payment: float
 
     # Мета
     calculation_time: datetime.datetime
@@ -218,7 +227,8 @@ class SalaryCalculator:
     @staticmethod
     async def _process_schedule_data(
         schedule_data: Dict[str, str],
-        now: datetime.datetime,
+        target_year: int,
+        target_month: int,
         is_additional_shift: bool = False,
     ) -> Tuple[float, float, float, float, float, List[str]]:
         """Обрабатывает данные графика работы для расчета часов и дней.
@@ -229,7 +239,8 @@ class SalaryCalculator:
 
         Args:
             schedule_data: Словарь с данными графика {день: время_работы}
-            now: Текущая дата и время для определения месяца и года
+            target_year: Год для расчета
+            target_month: Месяц для расчета (1-12)
             is_additional_shift: Флаг дополнительной смены
 
         Returns:
@@ -295,7 +306,7 @@ class SalaryCalculator:
 
                     # Проверка на праздничный день
                     try:
-                        work_date = datetime.date(now.year, now.month, int(day))
+                        work_date = datetime.date(target_year, target_month, int(day))
                         is_holiday = await production_calendar.is_holiday(work_date)
                         holiday_name = await production_calendar.get_holiday_name(
                             work_date
@@ -338,6 +349,167 @@ class SalaryCalculator:
             days_worked,
         )
 
+    @staticmethod
+    def _calculate_first_half_hours(schedule_data: Dict[str, str]) -> float:
+        """Рассчитывает количество рабочих часов в первой половине месяца (1-15 числа).
+
+        Args:
+            schedule_data: Словарь с данными графика {день: время_работы}
+
+        Returns:
+            Количество рабочих часов в первой половине месяца
+        """
+        first_half_hours = 0.0
+
+        for day, schedule_time in schedule_data.items():
+            try:
+                # Извлекаем число из начала строки (формат: "1 (Сб)", "2 (Вс)", etc.)
+                day_parts = day.split(" ")
+                day_num = int(day_parts[0]) if day_parts[0].isdigit() else None
+
+                if day_num is None:
+                    continue
+
+                # Проверяем, что день в первой половине месяца (1-15 включительно)
+                if 1 <= day_num <= 15:
+                    # Проверяем что schedule_time валидное и не является отпуском/выходным
+                    if (
+                        schedule_time
+                        and schedule_time
+                        not in [None, "Не указано", "В", "О", "ОТПУСК"]
+                        and isinstance(schedule_time, str)
+                    ):
+                        # Используем ScheduleAnalyzer для подсчета рабочих часов (с учетом обеда)
+                        day_hours = ScheduleAnalyzer.calculate_work_hours(schedule_time)
+                        first_half_hours += day_hours
+            except (ValueError, TypeError):
+                # Пропускаем дни, которые не являются числами
+                continue
+
+        return first_half_hours
+
+    @classmethod
+    async def _calculate_first_half_salary(
+        cls,
+        schedule_data: Dict[str, str],
+        pay_rate: float,
+        target_year: int,
+        target_month: int,
+    ) -> float:
+        """Рассчитывает полную стоимость зарплаты за первую половину месяца (1-15 числа) включая доплаты.
+
+        Args:
+            schedule_data: Словарь с данными графика {день: время_работы}
+            pay_rate: Часовая тарифная ставка
+            target_year: Год для расчета
+            target_month: Месяц для расчета (1-12)
+
+        Returns:
+            Полная стоимость зарплаты за первую половину месяца с учетом доплат
+        """
+        first_half_salary = 0.0
+
+        for day, schedule_time in schedule_data.items():
+            try:
+                # Извлекаем число из начала строки (формат: "1 (Сб)", "2 (Вс)", etc.)
+                day_parts = day.split(" ")
+                day_num = int(day_parts[0]) if day_parts[0].isdigit() else None
+
+                if day_num is None:
+                    continue
+
+                # Проверяем, что день в первой половине месяца (1-15 включительно)
+                if 1 <= day_num <= 15:
+                    # Проверяем что schedule_time валидное и не является отпуском/выходным
+                    if (
+                        schedule_time
+                        and schedule_time
+                        not in [None, "Не указано", "В", "О", "ОТПУСК"]
+                        and isinstance(schedule_time, str)
+                    ):
+                        # Используем ScheduleAnalyzer для подсчета рабочих часов (с учетом обеда)
+                        day_hours = ScheduleAnalyzer.calculate_work_hours(schedule_time)
+
+                        if day_hours > 0:
+                            # Парсим временные диапазоны для подсчета ночных часов
+                            time_pattern = r"(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})"
+                            time_matches = re.findall(time_pattern, schedule_time)
+
+                            shift_night_hours = 0.0
+                            total_raw_hours = 0.0
+
+                            # Обрабатываем каждый временной диапазон для ночных часов
+                            for match in time_matches:
+                                start_hour, start_min, end_hour, end_min = map(
+                                    int, match
+                                )
+                                start_minutes = start_hour * 60 + start_min
+                                end_minutes = end_hour * 60 + end_min
+
+                                if end_minutes < start_minutes:
+                                    end_minutes += 24 * 60
+
+                                range_hours = (end_minutes - start_minutes) / 60
+                                total_raw_hours += range_hours
+
+                                # Считаем ночные часы для этого диапазона
+                                range_night_hours = cls._calculate_night_hours(
+                                    start_hour, start_min, end_hour, end_min
+                                )
+                                shift_night_hours += range_night_hours
+
+                            # Если был вычет на обед, пропорционально уменьшаем ночные часы
+                            if total_raw_hours > day_hours and shift_night_hours > 0:
+                                shift_night_hours = shift_night_hours * (
+                                    day_hours / total_raw_hours
+                                )
+
+                            # Проверка на праздничный день
+                            try:
+                                work_date = datetime.date(
+                                    target_year, target_month, day_num
+                                )
+                                is_holiday = await production_calendar.is_holiday(
+                                    work_date
+                                )
+
+                                if is_holiday:
+                                    # Праздничные часы: дневные × 2.0 + ночные × 2.4
+                                    holiday_day_hours = day_hours - shift_night_hours
+                                    day_salary = (
+                                        holiday_day_hours
+                                        * pay_rate
+                                        * PayRateService.get_holiday_multiplier()
+                                    ) + (
+                                        shift_night_hours
+                                        * pay_rate
+                                        * PayRateService.get_night_holiday_multiplier()
+                                    )
+                                else:
+                                    # Обычные часы: дневные × 1.0 + ночные × 1.2
+                                    regular_day_hours = day_hours - shift_night_hours
+                                    day_salary = (regular_day_hours * pay_rate) + (
+                                        shift_night_hours
+                                        * pay_rate
+                                        * PayRateService.get_night_multiplier()
+                                    )
+                            except (ValueError, Exception):
+                                # Если ошибка с календарем, считаем как обычный день
+                                regular_day_hours = day_hours - shift_night_hours
+                                day_salary = (regular_day_hours * pay_rate) + (
+                                    shift_night_hours
+                                    * pay_rate
+                                    * PayRateService.get_night_multiplier()
+                                )
+
+                            first_half_salary += day_salary
+
+            except (ValueError, TypeError):
+                # Пропускаем дни, которые не являются числами
+                continue
+
+        return first_half_salary
+
     @classmethod
     async def calculate_salary(
         cls, user: Employee, premium_data, current_month: Optional[str] = None
@@ -372,6 +544,21 @@ class SalaryCalculator:
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5)))
         current_month_name = current_month or russian_months[now.month]
 
+        # Определяем год для выбранного месяца
+        if current_month:
+            # Получаем номер месяца из названия
+            month_to_num = {name: num for num, name in russian_months.items()}
+            selected_month_num = month_to_num.get(current_month_name.lower(), now.month)
+
+            # Если выбранный месяц больше текущего, это прошлый год
+            if selected_month_num > now.month:
+                target_year = now.year - 1
+            else:
+                target_year = now.year
+        else:
+            target_year = now.year
+            selected_month_num = now.month
+
         # Получаем ЧТС
         pay_rate = PayRateService.get_pay_rate(user.division, user.position)
         if pay_rate == 0.0:
@@ -396,7 +583,7 @@ class SalaryCalculator:
             working_days,
             holiday_days_worked,
         ) = await cls._process_schedule_data(
-            schedule_data, now, is_additional_shift=False
+            schedule_data, target_year, selected_month_num, is_additional_shift=False
         )
 
         # Процессим дополнительные смены
@@ -408,7 +595,10 @@ class SalaryCalculator:
             _,
             additional_shift_days_worked,
         ) = await cls._process_schedule_data(
-            additional_shifts_data, now, is_additional_shift=True
+            additional_shifts_data,
+            target_year,
+            selected_month_num,
+            is_additional_shift=True,
         )
 
         # Считаем обычные часы (исключая ночные часы и праздники их расчета)
@@ -430,17 +620,17 @@ class SalaryCalculator:
 
         # Считаем зарплату за дополнительные смены
         # Используем двойную ставку + собственную премию пользователя (вместо фиксированных 63%)
-        additional_shift_premium_multiplier = 1 + ((premium_data.total_premium or 0) / 100)
+        additional_shift_premium_multiplier = 1 + (
+            (premium_data.total_premium or 0) / 100
+        )
         additional_shift_rate = pay_rate * 2.0 * additional_shift_premium_multiplier
 
         # Все часы дополнительных смен оплачиваются по единой ставке (без доплат за ночь/праздники)
         additional_shift_salary = additional_shift_hours * additional_shift_rate
 
         # Считаем индивидуальную сумму для каждого показателя премии (основываясь на базовой зарплате)
-        # Проверяем тип премиум данных (HeadPremium vs SpecPremium)
-        is_head_premium = hasattr(premium_data, "head_adjust") and not hasattr(
-            premium_data, "csi_premium"
-        )
+        # Проверяем тип премиум данных по роли пользователя
+        is_head_premium = user.role == 2
 
         if is_head_premium:
             # Для руководителей - только FLR, GOK, цель и корректировка руководителя
@@ -455,7 +645,7 @@ class SalaryCalculator:
             thanks_premium_amount = 0
             tutors_premium_amount = 0
             head_adjust_premium_amount = base_salary * (
-                (premium_data.head_adjust or 0) / 100
+                (premium_data.head_adjust_premium or 0) / 100
             )
         else:
             # Для специалистов - все показатели
@@ -486,10 +676,19 @@ class SalaryCalculator:
         premium_amount = base_salary * premium_multiplier
         total_salary = base_salary + premium_amount + additional_shift_salary
 
+        # Считаем часы и полную стоимость первой половины месяца для аванса
+        first_half_hours = cls._calculate_first_half_hours(schedule_data)
+        # Аванс = полная стоимость первой половины месяца (включая ночные и праздничные доплаты)
+        advance_payment = await cls._calculate_first_half_salary(
+            schedule_data, pay_rate, target_year, selected_month_num
+        )
+        # Основная часть = полная зарплата - аванс (зарплата второй половины + премии + доп. смены)
+        main_payment = total_salary - advance_payment
+
         return SalaryCalculationResult(
             user=user,
             current_month_name=current_month_name,
-            current_year=now.year,
+            current_year=target_year,
             pay_rate=pay_rate,
             working_days=working_days,
             total_working_hours=total_working_hours,
@@ -517,6 +716,9 @@ class SalaryCalculator:
             head_adjust_premium_amount=head_adjust_premium_amount,
             premium_amount=premium_amount,
             total_salary=total_salary,
+            first_half_hours=first_half_hours,
+            advance_payment=advance_payment,
+            main_payment=main_payment,
             calculation_time=now,
             premium_updated_at=getattr(premium_data, "updated_at", None),
         )

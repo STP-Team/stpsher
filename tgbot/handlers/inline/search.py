@@ -5,9 +5,10 @@ from aiogram.types import InlineQueryResultArticle, InputTextMessageContent
 from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
+from tgbot.handlers.groups.user.whois import create_user_info_message
 from tgbot.handlers.inline.helpers import SEARCH_LIMITS
 from tgbot.handlers.inline.texts import ERROR_MESSAGES
-from tgbot.misc.helpers import format_fullname, get_role
+from tgbot.misc.helpers import get_role
 
 logger = logging.getLogger(__name__)
 
@@ -128,34 +129,7 @@ class InlineResultBuilder:
             " • ".join(description_parts) if description_parts else role_info["name"]
         )
 
-        # Формируем контент сообщения
-        message_parts = [f"<b>{role_info['emoji']} {user.fullname}</b>", ""]
-
-        if user.position and user.division:
-            message_parts.append(
-                f"<b>💼 Должность:</b> {user.position} {user.division}"
-            )
-        if user.head:
-            if user_head:
-                message_parts.append(
-                    f"<b>👑 Руководитель:</b> {format_fullname(user_head, True, True)}"
-                )
-            else:
-                message_parts.append(f"<b>👑 Руководитель:</b> {user.head}")
-
-        message_parts.append("")
-
-        # Контактная информация
-        if user.username:
-            message_parts.append(f"<b>📱 Telegram:</b> @{user.username}")
-        if user.email:
-            message_parts.append(f"<b>📧 Email:</b> {user.email}")
-
-        message_parts.append(
-            f"\n🛡️ <b>Уровень доступа:</b> {get_role(user.role)['name']}"
-        )
-
-        message_text = "\n".join(message_parts)
+        message_text = create_user_info_message(user=user, user_head=user_head)
 
         return InlineQueryResultArticle(
             id=f"user_{user.id}",

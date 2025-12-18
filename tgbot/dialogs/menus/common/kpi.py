@@ -3,10 +3,11 @@
 from typing import Any
 
 from aiogram_dialog import Dialog, DialogManager, Window
-from aiogram_dialog.widgets.kbd import Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 
-from tgbot.dialogs.getters.common.game.kpi import (
+from tgbot.dialogs.events.common.schedules import do_nothing, next_month, prev_month
+from tgbot.dialogs.getters.common.kpi import (
     kpi_getter,
     kpi_requirements_getter,
     salary_getter,
@@ -16,6 +17,23 @@ from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 menu_window = Window(
     Format("{kpi_text}"),
+    Row(
+        Button(
+            Const("<"),
+            id="prev_month",
+            on_click=prev_month,
+        ),
+        Button(
+            Format("{month_display}"),
+            id="current_month",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_month",
+            on_click=next_month,
+        ),
+    ),
     Row(
         SwitchTo(
             Const("🧮 Нормативы"),
@@ -37,6 +55,23 @@ menu_window = Window(
 requirements_window = Window(
     Format("{requirements_text}"),
     Row(
+        Button(
+            Const("<"),
+            id="prev_month",
+            on_click=prev_month,
+        ),
+        Button(
+            Format("{month_display}"),
+            id="current_month",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_month",
+            on_click=next_month,
+        ),
+    ),
+    Row(
         SwitchTo(Const("🌟 Показатели"), id="kpi", state=KPI.menu),
         SwitchTo(
             Const("💰 Зарплата"),
@@ -52,6 +87,23 @@ requirements_window = Window(
 
 salary_window = Window(
     Format("{salary_text}"),
+    Row(
+        Button(
+            Const("<"),
+            id="prev_month",
+            on_click=prev_month,
+        ),
+        Button(
+            Format("{month_display}"),
+            id="current_month",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_month",
+            on_click=next_month,
+        ),
+    ),
     Row(
         SwitchTo(Const("🌟 Показатели"), id="kpi", state=KPI.menu),
         SwitchTo(

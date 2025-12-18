@@ -12,9 +12,11 @@ class Schedules(StatesGroup):
     duties = State()  # График дежурных
     heads = State()  # График руководителей
     group = State()  # График группы
+    tutors = State()  # График наставников
 
     # Вид календаря
     my_calendar = State()  # Календарь для моего графика
     duties_calendar = State()  # Календарь для дежурных
     group_calendar = State()  # Календарь для группы
     heads_calendar = State()  # Календарь для руководителей
+    tutors_calendar = State()  # Календарь для наставников

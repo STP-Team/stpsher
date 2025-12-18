@@ -74,14 +74,14 @@ class SchedulerManager:
     def setup_jobs(
         self,
         stp_session_pool: async_sessionmaker[AsyncSession],
-        kpi_session_pool: async_sessionmaker[AsyncSession],
+        stats_session_pool: async_sessionmaker[AsyncSession],
         bot: Bot,
     ) -> None:
         """Настройка всех запланированных задач.
 
         Args:
             stp_session_pool: Пул сессий с базой STP
-            kpi_session_pool: Пул сессий с базой KPI
+            stats_session_pool: Пул сессий с базой KPI
             bot: Экземпляр бота
         """
         logger.info("[Планировщик] Настройка запланированных задач...")
@@ -94,7 +94,7 @@ class SchedulerManager:
             self.achievements.setup_jobs(
                 self.scheduler,
                 stp_session_pool,
-                kpi_session_pool,
+                stats_session_pool,
                 bot,
             )
 

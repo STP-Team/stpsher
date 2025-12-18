@@ -16,7 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database.models.STP.transactions import Transaction
-from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.services.broadcaster import send_message
@@ -163,7 +163,7 @@ class AchievementScheduler(BaseScheduler):
         self,
         scheduler: AsyncIOScheduler,
         stp_session_pool: async_sessionmaker[AsyncSession],
-        kpi_session_pool: async_sessionmaker[AsyncSession],
+        stats_session_pool: async_sessionmaker[AsyncSession],
         bot: Bot,
     ) -> None:
         """Настройка всех задач достижений.
@@ -172,7 +172,7 @@ class AchievementScheduler(BaseScheduler):
             scheduler: Экземпляр планировщика
             stp_session_pool: Пул сессий с базой STP
             bot: Экземпляр бота
-            kpi_session_pool:
+            stats_session_pool:
         """
         self.logger.info("Настройка задач достижений...")
 
@@ -181,7 +181,7 @@ class AchievementScheduler(BaseScheduler):
             # Основная периодическая задача
             scheduler.add_job(
                 func=self._check_achievements_job,
-                args=[stp_session_pool, kpi_session_pool, bot, period],
+                args=[stp_session_pool, stats_session_pool, bot, period],
                 trigger="interval",
                 id=f"achievements_check_{period.name.lower()}",
                 name=f"Проверка {period.description} достижений",
@@ -194,7 +194,7 @@ class AchievementScheduler(BaseScheduler):
             # Запуск при старте (используем run_date=None для немедленного выполнения)
             scheduler.add_job(
                 func=self._check_achievements_job,
-                args=[stp_session_pool, kpi_session_pool, bot, period],
+                args=[stp_session_pool, stats_session_pool, bot, period],
                 trigger="date",
                 id=f"achievements_startup_{period.name.lower()}",
                 name=f"Запуск при старте: Проверка {period.description} достижений",
@@ -202,13 +202,13 @@ class AchievementScheduler(BaseScheduler):
             )
 
     async def _check_achievements_job(
-        self, stp_session_pool, kpi_session_pool, bot: Bot, period: AchievementPeriod
+        self, stp_session_pool, stats_session_pool, bot: Bot, period: AchievementPeriod
     ) -> None:
         """Универсальная проверка достижений для любого периода.
 
         Args:
             stp_session_pool: Пул сессий с базой STP
-            kpi_session_pool: Пул сессий с базой KPI
+            stats_session_pool: Пул сессий с базой KPI
             bot: Экземпляр бота
             period: Период достижений для проверки
         """
@@ -218,7 +218,7 @@ class AchievementScheduler(BaseScheduler):
         self._log_job_execution_start(job_name)
         try:
             stats = await check_achievements(
-                stp_session_pool, kpi_session_pool, bot, period
+                stp_session_pool, stats_session_pool, bot, period
             )
             execution_time = time.time() - start_time
 
@@ -236,7 +236,7 @@ class AchievementScheduler(BaseScheduler):
 
 async def check_achievements(
     stp_session_pool: async_sessionmaker[AsyncSession],
-    kpi_session_pool: async_sessionmaker[AsyncSession],
+    stats_session_pool: async_sessionmaker[AsyncSession],
     bot: Bot,
     period: AchievementPeriod,
 ) -> Dict[str, int]:
@@ -244,7 +244,7 @@ async def check_achievements(
 
     Args:
         stp_session_pool: Пул сессий с базой STP
-        kpi_session_pool: Пул сессий с базой KPI
+        stats_session_pool: Пул сессий с базой KPI
         bot: Экземпляр бота
         period: Период для проверки достижений
 
@@ -254,9 +254,12 @@ async def check_achievements(
     stats = {"users_processed": 0, "achievements_awarded": 0, "errors": 0}
 
     try:
-        async with stp_session_pool() as stp_session, kpi_session_pool() as kpi_session:
+        async with (
+            stp_session_pool() as stp_session,
+            stats_session_pool() as stats_session,
+        ):
             stp_repo = MainRequestsRepo(stp_session)
-            kpi_repo = KPIRequestsRepo(kpi_session)
+            stats_repo = StatsRequestsRepo(stats_session)
 
             # Получаем всех пользователей одним запросом
             playing_users = await stp_repo.employee.get_users(roles=[1, 3, 10])
@@ -288,7 +291,7 @@ async def check_achievements(
 
                     # Проверяем достижения для пользователя
                     earned_achievements = await _check_user_achievements(
-                        stp_repo, kpi_repo, user, period_achievements, period
+                        stp_repo, stats_repo, user, period_achievements, period
                     )
 
                     if earned_achievements:
@@ -322,7 +325,7 @@ async def check_achievements(
 # Вспомогательные функции
 async def _check_user_achievements(
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
+    stats_repo: StatsRequestsRepo,
     user,
     achievements_list: List,
     period: AchievementPeriod,
@@ -331,7 +334,7 @@ async def _check_user_achievements(
 
     Args:
         stp_repo: Репозиторий операций с базой STP
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         user: Экземпляр пользователя с моделью Employee
         achievements_list: Список доступных достижений
         period: Период для проверки
@@ -346,7 +349,7 @@ async def _check_user_achievements(
             return earned_achievements
 
         # Динамически получаем нужный KPI метод
-        kpi_method = getattr(kpi_repo, period.kpi_method, None)
+        kpi_method = getattr(stats_repo, period.kpi_method, None)
         if not kpi_method:
             logger.error(
                 f"[Достижения] Метод KPI {period.kpi_method} не найден для периода {period.name}"
@@ -361,11 +364,11 @@ async def _check_user_achievements(
             )
             return earned_achievements
 
-        # Получаем kpi_extract_date из KPI данных
-        kpi_extract_date = user_kpi.kpi_extract_date
-        if not kpi_extract_date:
+        # Получаем extraction_period из KPI данных
+        extraction_period = user_kpi.extraction_period
+        if not extraction_period:
             logger.debug(
-                f"[Достижения] Нет kpi_extract_date в {period.description} KPI данных для пользователя {user.fullname}"
+                f"[Достижения] Нет extraction_period в {period.description} KPI данных для пользователя {user.fullname}"
             )
             return earned_achievements
 
@@ -374,7 +377,7 @@ async def _check_user_achievements(
             existing_transactions,
             recent_transactions,
         ) = await _get_user_achievement_history(
-            stp_repo, user.user_id, kpi_extract_date, period.days_check
+            stp_repo, user.user_id, extraction_period, period.days_check
         )
 
         existing_achievement_ids = {
@@ -390,7 +393,7 @@ async def _check_user_achievements(
                 # Пропускаем достижение если уже получено с этим kpi_extracted_at
                 if achievement.id in existing_achievement_ids:
                     logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено для kpi_extract_date {kpi_extract_date}"
+                        f"[Достижения] Достижение {achievement.name} уже получено для extraction_period {extraction_period}"
                     )
                     continue
 
@@ -413,7 +416,7 @@ async def _check_user_achievements(
                         "description": achievement.description,
                         "reward_points": achievement.reward,
                         "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
-                        "kpi_extract_date": kpi_extract_date,
+                        "extraction_period": extraction_period,
                     })
                     logger.info(
                         f"[Достижения] Пользователь {user.fullname} заработал {period.description[:-2]}ое достижение '{achievement.name}'"
@@ -434,14 +437,14 @@ async def _check_user_achievements(
 
 
 async def _get_user_achievement_history(
-    stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date, days_check: int
+    stp_repo: MainRequestsRepo, user_id: int, extraction_period, days_check: int
 ) -> tuple[Sequence[Transaction], Sequence[Transaction]]:
     """Получает историю достижений пользователя одним запросом.
 
     Args:
         stp_repo: Репозиторий операций с базой STP
         user_id: ID пользователя
-        kpi_extract_date: Дата извлечения KPI
+        extraction_period: Дата извлечения KPI
         days_check: Количество дней для проверки дублирования
 
     Returns:
@@ -450,7 +453,7 @@ async def _get_user_achievement_history(
     try:
         # Получаем достижения с определенной датой KPI
         existing_transactions = await _get_user_achievements_by_kpi_date(
-            stp_repo, user_id, kpi_extract_date
+            stp_repo, user_id, extraction_period
         )
 
         # Получаем достижения за последние N дней
@@ -495,7 +498,7 @@ async def _award_achievements(
                 amount=achievement["reward_points"],
                 source_id=achievement["id"],
                 comment=comment,
-                kpi_extracted_at=achievement.get("kpi_extract_date"),
+                kpi_extracted_at=achievement.get("extraction_period"),
             )
 
             if transaction:
@@ -537,19 +540,19 @@ async def _award_achievements(
 
 
 async def _get_user_achievements_by_kpi_date(
-    stp_repo: MainRequestsRepo, user_id: int, kpi_extract_date
+    stp_repo: MainRequestsRepo, user_id: int, extraction_period
 ) -> Sequence[Transaction] | list:
     """Получает достижения пользователя с определенным kpi_extracted_at.
 
     Args:
         stp_repo: Репозиторий операций с базой STP
         user_id: ID пользователя
-        kpi_extract_date: Дата извлечения KPI
+        extraction_period: Дата извлечения KPI
 
     Returns:
         Список транзакций-достижений с указанным kpi_extracted_at
     """
-    additional_filters = [Transaction.kpi_extracted_at == kpi_extract_date]
+    additional_filters = [Transaction.kpi_extracted_at == extraction_period]
     return await _query_user_transactions(stp_repo, user_id, additional_filters)
 
 

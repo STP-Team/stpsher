@@ -79,8 +79,6 @@ class SalaryFormatter:
 
         message_text = f"""💰 <b>Зарплата</b>
 
-📅 <b>Период:</b> {result.current_month_name} {result.current_year}
-
 ⏰ <b>Рабочие часы:</b>
 <blockquote>Рабочих дней: {result.working_days}
 Всего часов: {result.total_working_hours:g}{
@@ -128,10 +126,8 @@ class SalaryFormatter:
 
 🌟 Показатели:"""
 
-        # Определяем тип премиум данных (HeadPremium vs SpecPremium)
-        is_head_premium = hasattr(premium_data, "head_adjust") and not hasattr(
-            premium_data, "csi_premium"
-        )
+        # Определяем тип премиум данных по роли пользователя
+        is_head_premium = result.user.role == 2
 
         if is_head_premium:
             # Для руководителей - только FLR, GOK, цель и корректировка руководителя
@@ -147,9 +143,9 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
             }
 
 💼 Дополнительно:
-Корректировка руководителя: {cls.format_percentage(premium_data.head_adjust)} = {
-                cls.format_value(result.head_adjust_premium_amount, " ₽")
-            }"""
+Корректировка руководителя: {
+                cls.format_percentage(premium_data.head_adjust_premium)
+            } = {cls.format_value(result.head_adjust_premium_amount, " ₽")}"""
         else:
             # Для специалистов - все показатели
             message_text += f"""
@@ -186,7 +182,14 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
         message_text += f"""</blockquote>
 
 💰 <b>Итого к выплате:</b>
-~<b>{cls.format_value(result.total_salary, " ₽")}</b>
+<blockquote>Полная зарплата: ~<b>{cls.format_value(result.total_salary, " ₽")}</b>
+
+🏦 Аванс (1-15 числа): ~<b>{cls.format_value(result.advance_payment, " ₽")}</b>
+<blockquote>Часы первой половины: {cls.format_value(result.first_half_hours, "ч")}
+<i>(включая ночные/праздничные доплаты)</i></blockquote>
+
+💵 Основная часть: ~<b>{cls.format_value(result.main_payment, " ₽")}</b>
+<blockquote><i>(вторая половина + премии + доп. смены)</i></blockquote></blockquote>
 
 <blockquote expandable>⚠️ <b>Важное</b>
 

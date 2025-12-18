@@ -5,10 +5,10 @@ from typing import Any
 from aiogram import Bot
 from aiogram_dialog import DialogManager
 from stp_database.models.STP import Employee
-from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.dialogs.getters.common.game.kpi import (
+from tgbot.dialogs.getters.common.kpi import (
     base_kpi_data,
     kpi_getter,
     kpi_requirements_getter,
@@ -195,7 +195,7 @@ async def member_schedule_getter(
 
 async def member_kpi_getter(
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
+    stats_repo: StatsRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> dict:
@@ -203,7 +203,7 @@ async def member_kpi_getter(
 
     Args:
         stp_repo: Репозиторий операций с базой STP
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -213,11 +213,15 @@ async def member_kpi_getter(
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
     # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
+    premium_data = await base_kpi_data(user=selected_user, stats_repo=stats_repo)
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    kpi_data = await kpi_getter(user=selected_user, kpi_repo=kpi_repo)
+    kpi_data = await kpi_getter(
+        user=selected_user,
+        stats_repo=stats_repo,
+        dialog_manager=dialog_manager,
+    )
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
@@ -236,7 +240,7 @@ async def member_kpi_getter(
 
 async def member_kpi_requirements_getter(
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
+    stats_repo: StatsRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> dict:
@@ -244,7 +248,7 @@ async def member_kpi_requirements_getter(
 
     Args:
         stp_repo: Репозиторий операций с базой STP
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -254,12 +258,12 @@ async def member_kpi_requirements_getter(
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
     # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
+    premium_data = await base_kpi_data(user=selected_user, stats_repo=stats_repo)
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
-        user=selected_user, kpi_repo=kpi_repo
+        user=selected_user, stats_repo=stats_repo
     )
 
     # Добавляем информацию о пользователе в начало текста
@@ -279,7 +283,7 @@ async def member_kpi_requirements_getter(
 
 async def member_salary_getter(
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
+    stats_repo: StatsRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> dict:
@@ -287,7 +291,7 @@ async def member_salary_getter(
 
     Args:
         stp_repo: Репозиторий операций с базой STP
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -297,11 +301,11 @@ async def member_salary_getter(
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
     # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, kpi_repo=kpi_repo)
+    premium_data = await base_kpi_data(user=selected_user, stats_repo=stats_repo)
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    salary_data = await salary_getter(user=selected_user, kpi_repo=kpi_repo)
+    salary_data = await salary_getter(user=selected_user, stats_repo=stats_repo)
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(

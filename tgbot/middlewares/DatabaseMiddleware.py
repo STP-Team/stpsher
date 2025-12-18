@@ -7,7 +7,7 @@ from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.exc import DBAPIError, DisconnectionError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.config import Config
@@ -26,11 +26,11 @@ class DatabaseMiddleware(BaseMiddleware):
         config: Config,
         bot: Bot,
         stp_session_pool: async_sessionmaker[AsyncSession],
-        kpi_session_pool: async_sessionmaker[AsyncSession],
+        stats_session_pool: async_sessionmaker[AsyncSession],
     ) -> None:
         """Инициализация миддлвари для связи с БД."""
         self.stp_session_pool = stp_session_pool
-        self.kpi_session_pool = kpi_session_pool
+        self.stats_session_pool = stats_session_pool
         self.bot = bot
         self.config = config
 
@@ -50,7 +50,7 @@ class DatabaseMiddleware(BaseMiddleware):
             data: Данные в памяти
 
         Returns:
-            Заполненные stp_repo, stp_session, kpi_repo, kpi_session, user
+            Заполненные stp_repo, stp_session, stats_repo, stats_session, user
         """
         max_retries = 3
         retry_count = 0
@@ -67,12 +67,12 @@ class DatabaseMiddleware(BaseMiddleware):
                     )
                     # Добавляем пулы сессий для доступа в error handlers
                     data["stp_session_pool"] = self.stp_session_pool
-                    data["kpi_session_pool"] = self.kpi_session_pool
+                    data["stats_session_pool"] = self.stats_session_pool
 
-                    async with self.kpi_session_pool() as kpi_session:
-                        kpi_repo = KPIRequestsRepo(kpi_session)
-                        data["kpi_repo"] = kpi_repo
-                        data["kpi_session"] = kpi_session
+                    async with self.stats_session_pool() as stats_session:
+                        stats_repo = StatsRequestsRepo(stats_session)
+                        data["stats_repo"] = stats_repo
+                        data["stats_session"] = stats_session
 
                         # Продолжаем к следующему middleware/обработчику
                         result = await handler(event, data)

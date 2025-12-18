@@ -3,7 +3,7 @@
 import datetime
 from typing import Optional
 
-from stp_database.models.KPI import HeadPremium, SpecPremium
+from stp_database.models.Stats import HeadPremium, SpecPremium
 from stp_database.models.STP import Employee
 
 from tgbot.misc.helpers import strftime_date
