@@ -126,10 +126,8 @@ class SalaryFormatter:
 
 🌟 Показатели:"""
 
-        # Определяем тип премиум данных (HeadPremium vs SpecPremium)
-        is_head_premium = hasattr(premium_data, "head_adjust") and not hasattr(
-            premium_data, "csi_premium"
-        )
+        # Определяем тип премиум данных по роли пользователя
+        is_head_premium = result.user.role == 2
 
         if is_head_premium:
             # Для руководителей - только FLR, GOK, цель и корректировка руководителя
@@ -145,9 +143,9 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
             }
 
 💼 Дополнительно:
-Корректировка руководителя: {cls.format_percentage(premium_data.head_adjust)} = {
-                cls.format_value(result.head_adjust_premium_amount, " ₽")
-            }"""
+Корректировка руководителя: {
+                cls.format_percentage(premium_data.head_adjust_premium)
+            } = {cls.format_value(result.head_adjust_premium_amount, " ₽")}"""
         else:
             # Для специалистов - все показатели
             message_text += f"""

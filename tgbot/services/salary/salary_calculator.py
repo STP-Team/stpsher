@@ -629,10 +629,8 @@ class SalaryCalculator:
         additional_shift_salary = additional_shift_hours * additional_shift_rate
 
         # Считаем индивидуальную сумму для каждого показателя премии (основываясь на базовой зарплате)
-        # Проверяем тип премиум данных (HeadPremium vs SpecPremium)
-        is_head_premium = hasattr(premium_data, "head_adjust") and not hasattr(
-            premium_data, "csi_premium"
-        )
+        # Проверяем тип премиум данных по роли пользователя
+        is_head_premium = user.role == 2
 
         if is_head_premium:
             # Для руководителей - только FLR, GOK, цель и корректировка руководителя
@@ -647,7 +645,7 @@ class SalaryCalculator:
             thanks_premium_amount = 0
             tutors_premium_amount = 0
             head_adjust_premium_amount = base_salary * (
-                (premium_data.head_adjust or 0) / 100
+                (premium_data.head_adjust_premium or 0) / 100
             )
         else:
             # Для специалистов - все показатели

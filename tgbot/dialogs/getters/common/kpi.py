@@ -142,8 +142,6 @@ async def kpi_getter(
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
 
-{"📈 Всего чатов: " + SalaryFormatter.format_value(premium.contacts_count) if user.division == "НЦК" else "📈 Всего звонков: " + SalaryFormatter.format_value(premium.contacts_count)}
-
 <i>Выгружено: {updated_at_str}</i>
 <i>Обновлено: {datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</i>"""
 
@@ -266,12 +264,18 @@ async def salary_getter(
         salary_result = await SalaryCalculator.calculate_salary(
             user=user, premium_data=premium, current_month=data.get("current_month")
         )
-    except Exception:
-        salary_result = """💰 <b>Зарплата</b>
-        
-Не смог посчитать твою зарплату 🥺"""
+    except Exception as e:
+        salary_result = f"""💰 <b>Зарплата</b>
 
-    salary_text = SalaryFormatter.format_salary_message(salary_result, premium)
+Не смог посчитать твою зарплату 🥺
+
+<b>Ошибка:</b> <code>{str(e)}</code>"""
+
+    # Проверяем тип результата перед форматированием
+    if isinstance(salary_result, str):
+        salary_text = salary_result
+    else:
+        salary_text = SalaryFormatter.format_salary_message(salary_result, premium)
 
     return {
         "salary_text": salary_text,
