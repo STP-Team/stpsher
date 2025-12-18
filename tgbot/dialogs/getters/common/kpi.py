@@ -184,7 +184,6 @@ async def kpi_getter(
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
     
 {contacts_text}
-{delay_text}
 <i>Выгружено: {updated_at_str}</i>
 <i>Обновлено: {current_time_str}</i>"""
 
