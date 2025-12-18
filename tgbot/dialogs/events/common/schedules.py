@@ -208,6 +208,8 @@ async def on_date_selected(
         await dialog_manager.switch_to(Schedules.group)
     elif current_state == Schedules.heads_calendar:
         await dialog_manager.switch_to(Schedules.heads)
+    elif current_state == Schedules.tutors_calendar:
+        await dialog_manager.switch_to(Schedules.tutors)
 
 
 async def switch_to_calendar_view(

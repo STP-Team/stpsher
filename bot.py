@@ -114,9 +114,9 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
 
     # Получаем пулы сессий из middleware_data
     stp_session_pool = dialog_manager.middleware_data["stp_session_pool"]
-    kpi_session_pool = dialog_manager.middleware_data["kpi_session_pool"]
+    stats_session_pool = dialog_manager.middleware_data["stats_session_pool"]
 
-    if not stp_session_pool or not kpi_session_pool:
+    if not stp_session_pool or not stats_session_pool:
         logger.error("Session pools not available in middleware_data")
         return
 
@@ -136,17 +136,17 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
 
             user: Employee | None = await stp_repo.employee.get_users(user_id=user_id)
 
-            async with kpi_session_pool() as kpi_session:
-                from stp_database.repo.KPI.requests import KPIRequestsRepo
+            async with stats_session_pool() as stats_session:
+                from stp_database.repo.Stats.requests import StatsRequestsRepo
 
-                kpi_repo = KPIRequestsRepo(kpi_session)
+                stats_repo = StatsRequestsRepo(stats_session)
 
                 # Добавляем репозитории в middleware_data для геттеров диалогов
                 dialog_manager.middleware_data["user"] = user
                 dialog_manager.middleware_data["stp_repo"] = stp_repo
-                dialog_manager.middleware_data["kpi_repo"] = kpi_repo
+                dialog_manager.middleware_data["stats_repo"] = stats_repo
                 dialog_manager.middleware_data["stp_session"] = stp_session
-                dialog_manager.middleware_data["kpi_session"] = kpi_session
+                dialog_manager.middleware_data["stats_session"] = stats_session
 
                 # Определяем роль пользователя и запускаем соответствующее меню
                 if user and hasattr(user, "role") and user.role:
@@ -188,7 +188,7 @@ def register_middlewares(
     config: Config,
     bot: Bot,
     stp_session_pool: async_sessionmaker[AsyncSession],
-    kpi_session_pool: async_sessionmaker[AsyncSession],
+    stats_session_pool: async_sessionmaker[AsyncSession],
 ) -> None:
     """Установка middleware для определенных ивентов.
 
@@ -197,14 +197,14 @@ def register_middlewares(
         config: Конфигурация
         bot: Экземпляр бота
         stp_session_pool: Пул сессий с базой STP
-        kpi_session_pool: Пул сессий с базой KPI
+        stats_session_pool: Пул сессий с базой KPI
     """
     config_middleware = ConfigMiddleware(config)
     database_middleware = DatabaseMiddleware(
         config=config,
         bot=bot,
         stp_session_pool=stp_session_pool,
-        kpi_session_pool=kpi_session_pool,
+        stats_session_pool=stats_session_pool,
     )
     users_middleware = UsersMiddleware()
     groups_middleware = GroupsMiddleware()
@@ -328,25 +328,25 @@ async def main() -> None:
         password=bot_config.db.password,
     )
     kpi_engine = create_engine(
-        db_name=bot_config.db.kpi_db,
+        db_name=bot_config.db.stats_db,
         host=bot_config.db.host,
         username=bot_config.db.user,
         password=bot_config.db.password,
     )
 
     stp_session_pool = create_session_pool(stp_engine)
-    kpi_session_pool = create_session_pool(kpi_engine)
+    stats_session_pool = create_session_pool(kpi_engine)
 
     # Храним сессии в диспетчере для доступа из error handlers
     dp["stp_session_pool"] = stp_session_pool
-    dp["kpi_session_pool"] = kpi_session_pool
+    dp["stats_session_pool"] = stats_session_pool
 
     dp.include_routers(*routers_list)
     dp.include_routers(*dialogs_list)
     dp.include_routers(*common_dialogs_list)
     setup_dialogs(dp)
 
-    register_middlewares(dp, bot_config, bot, stp_session_pool, kpi_session_pool)
+    register_middlewares(dp, bot_config, bot, stp_session_pool, stats_session_pool)
 
     # Регистрация обработчиков ошибок
     dp.errors.register(_unknown_intent, ExceptionTypeFilter(UnknownIntent))
@@ -356,7 +356,9 @@ async def main() -> None:
     # Запуск планировщика и добавление задач
     scheduler_manager = SchedulerManager()
     scheduler_manager.setup_jobs(
-        stp_session_pool=stp_session_pool, kpi_session_pool=kpi_session_pool, bot=bot
+        stp_session_pool=stp_session_pool,
+        stats_session_pool=stats_session_pool,
+        bot=bot,
     )
     scheduler_manager.start()
 

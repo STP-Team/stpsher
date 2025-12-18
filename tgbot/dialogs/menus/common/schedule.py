@@ -34,6 +34,7 @@ from tgbot.dialogs.getters.common.schedules import (
     head_schedule_getter,
     my_schedule_calendar_getter,
     schedules_getter,
+    tutors_schedule_getter,
     user_schedule_getter,
 )
 from tgbot.dialogs.states.common.schedule import Schedules
@@ -68,6 +69,11 @@ menu_window = Window(
             id="schedule_heads",
             state=Schedules.heads,
         ),
+    ),
+    SwitchTo(
+        Const("🎓 Наставники"),
+        id="schedule_tutors",
+        state=Schedules.tutors,
     ),
     Button(
         Const("🎭 Биржа подмен"),
@@ -242,6 +248,43 @@ heads_window = Window(
     state=Schedules.heads,
 )
 
+tutors_window = Window(
+    Format("{tutors_text}"),
+    Row(
+        Button(
+            Const("<"),
+            id="prev_day",
+            on_click=prev_day,
+        ),
+        Button(
+            Format("📅 {date_display}"),
+            id="current_date",
+            on_click=do_nothing,
+        ),
+        Button(
+            Const(">"),
+            id="next_day",
+            on_click=next_day,
+        ),
+    ),
+    Row(
+        Button(
+            Const("📍 Сегодня"),
+            id="today",
+            on_click=today,
+            when=~F["is_today"],
+        ),
+        SwitchTo(
+            Const("📆 Выбор дня"),
+            id="calendar",
+            state=Schedules.tutors_calendar,
+        ),
+    ),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu), HOME_BTN),
+    getter=tutors_schedule_getter,
+    state=Schedules.tutors,
+)
+
 # Окна календарей
 duties_calendar_window = Window(
     Const("<b>📅 Выбор даты для дежурных</b>\n\nВыберите дату из календаря:"),
@@ -264,6 +307,13 @@ heads_calendar_window = Window(
     state=Schedules.heads_calendar,
 )
 
+tutors_calendar_window = Window(
+    Const("<b>📅 Выбор даты для наставников</b>\n\nВыберите дату из календаря:"),
+    RussianCalendar(id="tutors_calendar", on_click=on_date_selected),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.tutors), HOME_BTN),
+    state=Schedules.tutors_calendar,
+)
+
 
 async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     """Установка параметров диалога по умолчанию при запуске.
@@ -283,9 +333,11 @@ schedules_dialog = Dialog(
     group_window,
     duties_window,
     heads_window,
+    tutors_window,
     my_schedule_calendar_window,
     duties_calendar_window,
     group_calendar_window,
     heads_calendar_window,
+    tutors_calendar_window,
     on_start=on_start,
 )

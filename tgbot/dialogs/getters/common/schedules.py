@@ -2,14 +2,17 @@
 
 import re
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 
 from aiogram import Bot
 from aiogram_dialog import DialogManager
+from stp_database.models.Stats.tutors_schedule import TutorsSchedule
 from stp_database.models.STP import Employee
+from stp_database.repo.Stats import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
+from tgbot.misc.helpers import format_fullname
 from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
     get_current_month,
@@ -148,6 +151,121 @@ async def head_schedule_getter(
 
     return {
         "heads_text": heads_text,
+        "date_display": date_display,
+        "is_today": is_today,
+    }
+
+
+async def tutors_schedule_getter(
+    user: Employee,
+    stats_repo: StatsRequestsRepo,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> Dict[str, Any]:
+    """Геттер для получения расписания наставников.
+
+    Args:
+        user: Экземпляр пользователя с моделью Employee
+        stats_repo: Репозиторий операций с базой Stats
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с текстом графика наставников
+    """
+    current_date_str = dialog_manager.dialog_data.get("current_date")
+    if current_date_str is None:
+        current_date = get_current_date()
+    else:
+        current_date = datetime.fromisoformat(current_date_str)
+
+    selected_date = current_date.date()
+
+    trainees_schedule: Sequence[
+        TutorsSchedule
+    ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
+        training_date=selected_date,
+        division=user.division,
+    )
+
+    # Формируем текст для отображения
+    if trainees_schedule:
+        tutors_text = (
+            f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n"
+        )
+
+        # Получаем всех сотрудников для поиска
+        all_employees = await stp_repo.employee.get_users()
+
+        # Создаем словарь для быстрого поиска по ФИО
+        employees_by_fullname = {emp.fullname: emp for emp in all_employees}
+
+        for i, schedule in enumerate(trainees_schedule, 1):
+            # Ищем стажера в базе сотрудников
+            trainee_employee = employees_by_fullname.get(schedule.trainee_fullname)
+            if trainee_employee:
+                formatted_trainee = format_fullname(
+                    user=trainee_employee, short=True, gender_emoji=True
+                )
+            else:
+                # Если не нашли в базе, используем имя из расписания
+                formatted_trainee = f"<b>Стажер:</b> {schedule.trainee_fullname}"
+
+            # Ищем наставника в базе сотрудников
+            tutor_employee = (
+                employees_by_fullname.get(schedule.tutor_fullname)
+                if schedule.tutor_fullname
+                else None
+            )
+            if tutor_employee:
+                formatted_tutor = format_fullname(
+                    user=tutor_employee, short=True, gender_emoji=True
+                )
+            elif schedule.tutor_fullname:
+                # Если не нашли в базе, используем имя из расписания
+                formatted_tutor = f"<b>Наставник</b> {schedule.tutor_fullname}"
+            else:
+                formatted_tutor = "🎓 Наставник не указан"
+
+            tutors_text += f"<b>Наставник:</b> {formatted_tutor}\n<b>Стажер:</b> {formatted_trainee}\n"
+
+            # Добавляем время обучения
+            if not schedule.training_start_time and not schedule.training_end_time:
+                time_text = "Неизвестно"
+            else:
+                start_time = (
+                    schedule.training_start_time.strftime("%H:%M")
+                    if schedule.training_start_time
+                    else "Не указано"
+                )
+                end_time = (
+                    schedule.training_end_time.strftime("%H:%M")
+                    if schedule.training_end_time
+                    else "Не указано"
+                )
+                time_text = f"{start_time} - {end_time}"
+            tutors_text += f"⏰ <b>Время:</b> {time_text}\n"
+
+            if schedule.trainee_type:
+                type_mapping = {
+                    1: "До трудоустройства",
+                    2: "Основная стажировка",
+                    3: "Общий ряд",
+                }
+                type_text = type_mapping.get(
+                    schedule.trainee_type, schedule.trainee_type
+                )
+                tutors_text += f"📝 <b>Тип:</b> {type_text}\n"
+            tutors_text += "\n"
+    else:
+        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n📭 На выбранный день стажеров не найдено"
+
+    date_display = current_date.strftime("%d.%m")
+    is_today = current_date.date() == get_current_date().date()
+
+    return {
+        "tutors_text": tutors_text,
         "date_display": date_display,
         "is_today": is_today,
     }

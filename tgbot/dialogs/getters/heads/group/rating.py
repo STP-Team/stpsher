@@ -5,9 +5,9 @@ from typing import Any, Sequence
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import ManagedRadio
 from sqlalchemy.orm import Mapped
-from stp_database.models.KPI.spec_kpi import SpecDayKPI, SpecMonthKPI, SpecWeekKPI
+from stp_database.models.Stats.spec_kpi import SpecDayKPI, SpecMonthKPI, SpecWeekKPI
 from stp_database.models.STP import Employee
-from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, strftime_date
@@ -59,15 +59,15 @@ def _get_medal_emoji(position: int) -> str:
 
 
 async def _get_kpi_data_by_period(
-    kpi_repo: KPIRequestsRepo, fullnames: list[str], period: str
+    stats_repo: StatsRequestsRepo, fullnames: list[str], period: str
 ) -> Sequence[SpecDayKPI] | Sequence[SpecWeekKPI] | Sequence[SpecMonthKPI] | list[Any]:
     """Получить KPI данные по периоду."""
     if period == "day":
-        return await kpi_repo.spec_day_kpi.get_kpi(fullnames)
+        return await stats_repo.spec_day_kpi.get_kpi(fullnames)
     elif period == "week":
-        return await kpi_repo.spec_week_kpi.get_kpi(fullnames)
+        return await stats_repo.spec_week_kpi.get_kpi(fullnames)
     elif period == "month":
-        return await kpi_repo.spec_month_kpi.get_kpi(fullnames)
+        return await stats_repo.spec_month_kpi.get_kpi(fullnames)
     return []
 
 
@@ -139,7 +139,7 @@ def _format_rating_text(
 async def get_rating_display_data(
     user: Employee,
     stp_repo: MainRequestsRepo,
-    kpi_repo: KPIRequestsRepo,
+    stats_repo: StatsRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
 ) -> dict[str, Any]:
@@ -148,7 +148,7 @@ async def get_rating_display_data(
     Args:
         user: Руководитель, запросивший рейтинг
         stp_repo: Репозиторий операций с базой STP
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога
 
     Returns:
@@ -195,7 +195,7 @@ async def get_rating_display_data(
     fullnames = [member.fullname for member in team_members]
 
     # Получаем KPI данные
-    kpi_data = await _get_kpi_data_by_period(kpi_repo, fullnames, period)
+    kpi_data = await _get_kpi_data_by_period(stats_repo, fullnames, period)
 
     # Создаем словарь для быстрого доступа к KPI по ФИО
     kpi_dict = {kpi.fullname: kpi for kpi in kpi_data}

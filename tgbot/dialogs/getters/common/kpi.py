@@ -4,10 +4,10 @@ import datetime
 from typing import Any, Dict
 
 from aiogram_dialog import DialogManager
-from stp_database.models.KPI.head_premium import HeadPremium
-from stp_database.models.KPI.spec_premium import SpecPremium
+from stp_database.models.Stats.head_premium import HeadPremium
+from stp_database.models.Stats.spec_premium import SpecPremium
 from stp_database.models.STP import Employee
-from stp_database.repo.KPI.requests import KPIRequestsRepo
+from stp_database.repo.Stats.requests import StatsRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.misc.helpers import strftime_date
@@ -50,7 +50,7 @@ def get_extraction_period_from_month(month_name: str) -> datetime.datetime:
 
 async def base_kpi_data(
     user: Employee,
-    kpi_repo: KPIRequestsRepo,
+    stats_repo: StatsRequestsRepo,
     dialog_manager: DialogManager = None,
     **_kwargs,
 ) -> Dict[str, Any]:
@@ -58,7 +58,7 @@ async def base_kpi_data(
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога для получения выбранного месяца
 
     Returns:
@@ -75,11 +75,11 @@ async def base_kpi_data(
     extraction_period = get_extraction_period_from_month(current_month)
 
     if user.role == 2:
-        premium: HeadPremium = await kpi_repo.head_premium.get_premium(
+        premium: HeadPremium = await stats_repo.head_premium.get_premium(
             user.fullname, extraction_period=extraction_period
         )
     else:
-        premium: SpecPremium = await kpi_repo.spec_premium.get_premium(
+        premium: SpecPremium = await stats_repo.spec_premium.get_premium(
             user.fullname, extraction_period=extraction_period
         )
 
@@ -96,19 +96,22 @@ async def base_kpi_data(
 
 
 async def kpi_getter(
-    user: Employee, kpi_repo: KPIRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    user: Employee,
+    stats_repo: StatsRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для получения показателей KPI сотрудника.
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога для получения выбранного месяца
 
     Returns:
         Словарь с текстом сообщения о показателях пользователя
     """
-    data = await base_kpi_data(user, kpi_repo, dialog_manager, **_kwargs)
+    data = await base_kpi_data(user, stats_repo, dialog_manager, **_kwargs)
     premium = data.get("premium")
 
     if not premium:
@@ -198,19 +201,22 @@ async def kpi_getter(
 
 
 async def kpi_requirements_getter(
-    user: Employee, kpi_repo: KPIRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    user: Employee,
+    stats_repo: StatsRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для расчета необходимых показателей для выполнения нормативов.
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога для получения выбранного месяца
 
     Returns:
         Словарь с текстом сообщения о выполнении нормативов пользователем
     """
-    data = await base_kpi_data(user, kpi_repo, dialog_manager, **_kwargs)
+    data = await base_kpi_data(user, stats_repo, dialog_manager, **_kwargs)
     premium = data.get("premium")
 
     if not premium:
@@ -237,19 +243,22 @@ async def kpi_requirements_getter(
 
 
 async def salary_getter(
-    user: Employee, kpi_repo: KPIRequestsRepo, dialog_manager: DialogManager, **_kwargs
+    user: Employee,
+    stats_repo: StatsRequestsRepo,
+    dialog_manager: DialogManager,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Геттер для расчета заработной платы сотрудника.
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        kpi_repo: Репозиторий операций с базой KPI
+        stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога для получения выбранного месяца
 
     Returns:
         Словарь с текстом сообщения о зарплате сотрудника
     """
-    data = await base_kpi_data(user, kpi_repo, dialog_manager, **_kwargs)
+    data = await base_kpi_data(user, stats_repo, dialog_manager, **_kwargs)
     premium = data.get("premium")
 
     if not premium:
