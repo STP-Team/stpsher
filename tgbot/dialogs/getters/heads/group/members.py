@@ -217,7 +217,11 @@ async def member_kpi_getter(
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    kpi_data = await kpi_getter(user=selected_user, stats_repo=stats_repo)
+    kpi_data = await kpi_getter(
+        user=selected_user,
+        stats_repo=stats_repo,
+        dialog_manager=dialog_manager,
+    )
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
