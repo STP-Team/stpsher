@@ -214,7 +214,7 @@ async def search_user_info_getter(
         if searched_user.head:
             user_head = await stp_repo.employee.get_users(fullname=searched_user.head)
 
-        user_info = create_user_info_message(user=user, user_head=user_head)
+        user_info = create_user_info_message(user=searched_user, user_head=user_head)
 
         return {
             "user_info": user_info,
