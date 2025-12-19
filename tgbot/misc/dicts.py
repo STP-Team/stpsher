@@ -63,8 +63,8 @@ schedule_types = {
     "vacation": ["отпуск"],
     "unpaid_leave": ["отпуск бс"],
     "army": ["в"],
-    "sick": ["ЛНТС"],
-    "missing": ["Н"],
+    "sick": ["лнтс"],
+    "missing": ["н"],
 }
 
 schedule_category_emojis = {
