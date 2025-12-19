@@ -1291,7 +1291,7 @@ wheels = [
 [[package]]
 name = "stp-database"
 version = "2.0"
-source = { git = "https://github.com/ERTG-BOTS/stp-database.git#ba0865f502b1f16a0c7edbec1a785e9bff8724c1" }
+source = { git = "https://github.com/ERTG-BOTS/stp-database.git#cb2f96ec2fd1f913bb829fdc8517574ebf214542" }
 dependencies = [
     { name = "aiomysql" },
     { name = "infrastructure" },
@@ -1326,21 +1326,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiogram", specifier = ">=3.21.0" },
+    { name = "aiogram", specifier = ">=3.23.0" },
     { name = "aiogram-dialog", specifier = ">=2.4.0" },
-    { name = "aiomysql", specifier = ">=0.2.0" },
+    { name = "aiomysql", specifier = ">=0.3.2" },
     { name = "apscheduler", specifier = ">=3.11.0" },
     { name = "betterlogging", specifier = ">=1.0.0" },
     { name = "cachetools", specifier = ">=5.5.2" },
     { name = "databases", specifier = ">=0.9.0" },
-    { name = "environs", specifier = ">=14.3.0" },
+    { name = "environs", specifier = ">=14.5.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ics", specifier = ">=0.7.2" },
     { name = "openpyxl", specifier = ">=3.1.5" },
-    { name = "pandas", specifier = ">=2.3.2" },
+    { name = "pandas", specifier = ">=2.3.3" },
     { name = "pandas-stubs", specifier = "==2.3.3.251201" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "redis", specifier = ">=6.3.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "redis", specifier = ">=7.1.0" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "sqlalchemy", specifier = "==2.0.44" },
     { name = "stp-database", git = "https://github.com/ERTG-BOTS/stp-database.git" },

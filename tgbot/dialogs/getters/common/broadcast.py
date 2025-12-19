@@ -165,11 +165,14 @@ async def broadcast_progress_getter(dialog_manager: DialogManager, **_kwargs):
     }
 
 
-async def broadcast_result_getter(dialog_manager: DialogManager, **_kwargs):
+async def broadcast_result_getter(
+    dialog_manager: DialogManager, stp_repo: MainRequestsRepo, **_kwargs
+):
     """Получает результаты рассылки.
 
     Args:
         dialog_manager: Менеджер диалога
+        stp_repo: Репозиторий операций с базой STP
 
     Returns:
         Словарь с результатами рассылки
@@ -177,11 +180,28 @@ async def broadcast_result_getter(dialog_manager: DialogManager, **_kwargs):
     success = dialog_manager.dialog_data.get("success_count", 0)
     errors = dialog_manager.dialog_data.get("error_count", 0)
     total = dialog_manager.dialog_data.get("total_users", 0)
+    failed_user_ids = dialog_manager.dialog_data.get("failed_user_ids", [])
+
+    # Получаем информацию о пользователях, которым не удалось отправить сообщение
+    failed_users = []
+    failed_users_formatted = []
+    for index, user_id in enumerate(failed_user_ids, 1):
+        user = await stp_repo.employee.get_users(user_id=int(user_id))
+        if user:
+            failed_users.append(user)
+            # Форматируем имя пользователя для отображения с нумерацией
+            formatted_name = f"{index}. {format_fullname(user, short=True, gender_emoji=True)} ({user.division})"
+            failed_users_formatted.append(formatted_name)
 
     return {
         "success_count": success,
-        "error_count": errors,
+        "error_count": int(errors),
         "total_users": total,
+        "failed_users": failed_users,
+        "failed_users_formatted": failed_users_formatted,
+        "failed_users_text": "\n".join(failed_users_formatted)
+        if failed_users_formatted
+        else "Нет",
     }
 
 
@@ -258,6 +278,18 @@ async def broadcast_detail_getter(
     # Получаем информацию о создателе рассылки
     creator = await stp_repo.employee.get_users(user_id=int(broadcast.user_id))
 
+    # Получаем информацию о пользователях, которым не удалось отправить сообщение
+    failed_user_ids = getattr(broadcast, 'failed_recipients', None) or []
+    failed_users = []
+    failed_users_formatted = []
+    for index, user_id in enumerate(failed_user_ids, 1):
+        user = await stp_repo.employee.get_users(user_id=int(user_id))
+        if user:
+            failed_users.append(user)
+            # Форматируем имя пользователя для отображения с нумерацией
+            formatted_name = f"{index}. {format_fullname(user, short=True, gender_emoji=True)} ({user.division})"
+            failed_users_formatted.append(formatted_name)
+
     return {
         "broadcast_type": broadcast_type,
         "broadcast_target": broadcast.target,
@@ -265,4 +297,7 @@ async def broadcast_detail_getter(
         "recipients_count": len(broadcast.recipients or []),
         "created_at": created_at_str,
         "creator_name": format_fullname(creator, True, True),
+        "failed_users": failed_users,
+        "failed_users_formatted": failed_users_formatted,
+        "failed_users_text": "\n".join(failed_users_formatted) if failed_users_formatted else "Нет",
     }
