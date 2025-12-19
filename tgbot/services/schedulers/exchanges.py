@@ -737,10 +737,20 @@ async def notify_payment_date_reached(
         deeplink = await create_exchange_deeplink(bot, exchange.id)
         notifications_sent = 0
 
-        # Уведомляем покупателя о необходимости оплаты
-        if exchange.counterpart_id:
+        # Определяем правильно, кто продавец, а кто покупатель
+        if exchange.owner_intent == "sell":
+            # В sell: owner_id = продавец, counterpart_id = покупатель
+            seller_id = exchange.owner_id
+            buyer_id = exchange.counterpart_id
+        else:  # exchange.owner_intent == "buy"
+            # В buy: owner_id = покупатель, counterpart_id = продавец
+            seller_id = exchange.counterpart_id
+            buyer_id = exchange.owner_id
+
+        # Уведомляем покупателя о необходимости проверить получение оплаты
+        if buyer_id:
             buyer_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=exchange.counterpart_id
+                stp_repo, exchange, user_id=buyer_id
             )
 
             buyer_message = MESSAGES["payment_date_buyer"].format(
@@ -749,19 +759,14 @@ async def notify_payment_date_reached(
 
             success = await send_message(
                 bot=bot,
-                user_id=exchange.counterpart_id,
+                user_id=buyer_id,
                 text=buyer_message,
                 reply_markup=create_payment_keyboard(deeplink),
             )
             if success:
                 notifications_sent += 1
 
-        # Уведомляем продавца о том, что покупатель должен произвести оплату
-        seller_id = (
-            exchange.owner_id
-            if exchange.owner_intent == "sell"
-            else exchange.counterpart_id
-        )
+        # Уведомляем продавца о необходимости произвести оплату
         if seller_id:
             seller_exchange_info = await get_exchange_text(
                 stp_repo, exchange, user_id=seller_id

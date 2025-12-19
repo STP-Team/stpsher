@@ -13,7 +13,7 @@ class IsCasinoAllowed(BaseFilter):
     При отсутствии доступа отправляет сообщение об ошибке и прерывает обработку.
     """
 
-    async def __call__(self, obj: Message, user: "Employee", **kwargs) -> bool:
+    async def __call__(self, obj: Message, user: Employee, **kwargs) -> bool:
         """Проверяет разрешен ли доступ к казино для пользователя.
 
         Args:
