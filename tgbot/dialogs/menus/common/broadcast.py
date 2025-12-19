@@ -173,6 +173,11 @@ broadcast_new_result_window = Window(
 Всего получателей: <b>{total_users}</b>
 ✅ Успешно отправлено: <b>{success_count}</b>
 ❌ Ошибок: <b>{error_count}</b>"""),
+    Format(
+        """\n📋 <b>Сотрудники, не получившие сообщение:</b>
+{failed_users_text}""",
+        when="failed_users",
+    ),
     Row(
         Button(
             Const("↩️ К рассылкам"),
