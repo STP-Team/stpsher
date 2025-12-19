@@ -519,9 +519,25 @@ async def inappropriate_users_getter(
     # Получаем всех участников группы
     group_members = await stp_repo.group_member.get_group_members(group_id=group_id)
 
+    # Получаем создателя группы/канала
+    creator_id = None
+    try:
+        chat_admins = await bot.get_chat_administrators(chat_id=group_id)
+        for admin in chat_admins:
+            if admin.status == "creator":
+                creator_id = admin.user.id
+                break
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
+        # Если не можем получить администраторов, продолжаем без фильтрации создателя
+        pass
+
     inappropriate_users = []
 
     for member in group_members:
+        # Пропускаем создателя группы/канала, так как его нельзя исключить
+        if creator_id and member.member_id == creator_id:
+            continue
+
         # Получаем информацию о сотруднике
         try:
             employee = await stp_repo.employee.get_users(user_id=member.member_id)
