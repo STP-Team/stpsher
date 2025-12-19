@@ -482,7 +482,7 @@ member_schedule_window = Window(
     Radio(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
-        id="schedule_mode",
+        id="my_schedule_mode",
         item_id_getter=operator.itemgetter(0),
         items="mode_options",
         on_click=on_member_schedule_mode_select,
@@ -679,7 +679,7 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     await normative_radio.set_checked("csi")
 
     # Стандартный режим отображения графика на "Кратко"
-    member_schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    member_schedule_mode: ManagedRadio = dialog_manager.find("my_schedule_mode")
     await member_schedule_mode.set_checked("compact")
 
     # Фильтр достижений на "Все"
