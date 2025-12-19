@@ -424,7 +424,7 @@ details_schedule_window = Window(
     Radio(
         Format("🔘 {item[1]}"),
         Format("⚪️ {item[1]}"),
-        id="schedule_mode",
+        id="my_schedule_mode",
         item_id_getter=operator.itemgetter(0),
         items="mode_options",
         on_click=on_schedule_mode_select,
@@ -622,7 +622,7 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     await search_divisions.set_checked("all")
 
     # Стандартный режим отображения графика на "Кратко"
-    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
+    schedule_mode: ManagedRadio = dialog_manager.find("my_schedule_mode")
     await schedule_mode.set_checked("compact")
 
     # Фильтр достижений на "Все"

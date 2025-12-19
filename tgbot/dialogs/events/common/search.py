@@ -280,5 +280,5 @@ async def on_schedule_mode_select(
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного режима
     """
-    dialog_manager.dialog_data["schedule_mode"] = item_id
+    dialog_manager.dialog_data["my_schedule_mode"] = item_id
     await dialog_manager.switch_to(Search.details_schedule_window)

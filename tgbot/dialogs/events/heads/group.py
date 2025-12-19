@@ -5,6 +5,7 @@ import logging
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, Select
+from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.head import HeadGroupSG
@@ -149,7 +150,7 @@ async def on_member_schedule_mode_select(
         dialog_manager: Менеджер диалога
         item_id: Идентификатор выбранного режима
     """
-    dialog_manager.dialog_data["schedule_mode"] = item_id
+    dialog_manager.dialog_data["my_schedule_mode"] = item_id
     await dialog_manager.switch_to(HeadGroupSG.member_schedule)
 
 
