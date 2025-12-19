@@ -1,7 +1,7 @@
 """Middleware для операций с группами."""
 
 import logging
-from typing import Any, Awaitable, Callable, Dict, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, Optional, TypeAlias, Union
 
 from aiogram import BaseMiddleware, Bot
 from aiogram.exceptions import TelegramForbiddenError
@@ -12,6 +12,10 @@ from stp_database.repo.STP import MainRequestsRepo
 from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)
+
+# Type aliases for better readability
+EventType: TypeAlias = Union[Message, CallbackQuery, InlineQuery, ChatMemberUpdated]
+HandlerType: TypeAlias = Callable[[EventType, Dict[str, Any]], Awaitable[Any]]
 
 # Конфигурация команд бота для групп
 BOT_COMMANDS = [
@@ -59,42 +63,232 @@ SERVICE_MESSAGE_TYPES = {
     ],
 }
 
+# Статусы участников чата
+MEMBER_STATUSES = {
+    "JOINING": ["left", "kicked"],
+    "ACTIVE": ["member", "administrator", "creator"],
+    "LEAVING": ["left", "kicked"],
+}
+
+# Причины отказа в доступе и их описания
+ACCESS_DENIAL_REASONS = {
+    "уровень доступа": "неразрешенный уровень доступа",
+    "направление": "неразрешенное направление",
+    "должность": "неразрешенная должность",
+}
+
+# Тексты уведомлений
+NOTIFICATIONS = {
+    "user_kicked": "👋 <b>Пользователь исключен</b>\n\n{user_info} {reason}\n\n<i>Причина: {reason_text}</i>",
+    "user_welcome": "👋 <b>Добро пожаловать в группу!</b>\n\n{user_info} присоединился к группе\n<i>Должность: {position}</i>",
+    "user_new": "👋 <b>Новый участник</b>\n\n{user_info} присоединился к группе",
+    "admin_rights_required": (
+        "🤖 <b>Требуются права администратора</b>\n\n"
+        "Для использования команд бота в этой группе необходимо предоставить боту права администратора.\n\n"
+        "<b>Как предоставить права:</b>\n"
+        "1. Перейди в настройки группы\n"
+        "2. Выбери <b>Администраторы</b> → <b>Добавить администратора</b>\n"
+        "3. Найди и выбери меня в списке\n"
+        "4. Предоставь все права\n\n"
+        "После предоставления прав группа будет автоматически зарегистрирована"
+    ),
+}
+
+# Поддерживаемые типы групп
+SUPPORTED_GROUP_TYPES = ["groups", "supergroup"]
+
+# Административные статусы
+ADMIN_STATUSES = ["administrator", "creator"]
+
 
 class GroupsMiddleware(BaseMiddleware):
-    """Middleware для управления группами и их участниками.
+    """Middleware для автоматического управления группами Telegram и их участниками.
 
-    Организация:
-    1. Основной обработчик
-    2. Обработка сообщений
-    3. Обработка участников
-    4. Валидация и проверки
-    5. Уведомления и баны
-    6. Сервисные сообщения
-    7. Регистрация групп
-    8. Вспомогательные методы
+    Этот middleware обеспечивает:
+    1. Контроль доступа на основе ролей, должностей и подразделений
+    2. Автоматическое управление членством в группах
+    3. Удаление сервисных сообщений по настройкам группы
+    4. Автоматическую регистрацию новых групп с проверкой прав бота
+    5. Уведомления о новых участниках и исключениях
+    6. Автоматическое исключение пользователей без доступа
+
+    Архитектура:
+    - Обработка событий сообщений и изменений участников
+    - Кэширование данных сотрудников для оптимизации производительности
+    - Централизованная обработка ошибок с автоматической очисткой удаленных групп
+    - Использование констант для упрощения конфигурации и поддержки
+
+    Безопасность:
+    - Проверка доступа происходит при каждом сообщении и изменении участников
+    - Автоматическое исключение неавторизованных пользователей
+    - Логирование всех действий по безопасности
     """
+
+    async def _safe_execute(
+        self,
+        operation: str,
+        func: Callable,
+        *args,
+        group_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+        stp_repo: Optional[MainRequestsRepo] = None,
+        **kwargs,
+    ) -> Optional[Any]:
+        """Безопасное выполнение операций с обработкой ошибок."""
+        try:
+            return await func(*args, **kwargs)
+        except TelegramForbiddenError as e:
+            if (
+                "bot was kicked from the supergroup chat" in str(e)
+                and group_id
+                and stp_repo
+            ):
+                await self._cleanup_removed_group(group_id, stp_repo)
+            else:
+                user_info = f" для пользователя {user_id}" if user_id else ""
+                logger.error(
+                    f"[Группы] Ошибка доступа при {operation} в группе {group_id}{user_info}: {e}"
+                )
+        except Exception as e:
+            user_info = f" для пользователя {user_id}" if user_id else ""
+            group_info = f" в группе {group_id}" if group_id else ""
+            logger.error(f"[Группы] Ошибка {operation}{group_info}{user_info}: {e}")
+        return None
+
+    async def _get_user_context(
+        self,
+        user_id: int,
+        group_id: int,
+        stp_repo: MainRequestsRepo,
+        user: Optional[User] = None,
+    ) -> Dict[str, Any]:
+        """Получение полного контекста пользователя для обработки доступа и уведомлений.
+
+        Загружает все необходимые данные за один вызов:
+        - Информацию о группе из базы данных
+        - Данные сотрудника (если найден в корпоративной базе)
+        - Telegram-объект пользователя
+
+        Args:
+            user_id: Идентификатор пользователя Telegram
+            group_id: Идентификатор группы
+            stp_repo: Репозиторий для работы с базой данных
+            user: Объект пользователя Telegram (опционально)
+
+        Returns:
+            Словарь с ключами: group, employee, user, user_id, group_id
+        """
+        context = {
+            "group": await self._get_group_or_return(group_id, stp_repo),
+            "employee": await stp_repo.employee.get_users(user_id=user_id),
+            "user": user,
+            "user_id": user_id,
+            "group_id": group_id,
+        }
+        return context
+
+    async def _handle_user_access_and_membership(
+        self,
+        user_context: Dict[str, Any],
+        stp_repo: MainRequestsRepo,
+        bot: Optional[Bot] = None,
+        action: str = "проверки доступа",
+    ) -> bool:
+        """Комплексная обработка доступа пользователя и автоматическое управление членством.
+
+        Основной метод для проверки прав доступа и управления участниками группы:
+        1. Проверяет права доступа на основе настроек группы
+        2. При отсутствии доступа автоматически исключает пользователя
+        3. При наличии доступа добавляет в группу если не является участником
+        4. Логирует все действия для аудита безопасности
+
+        Args:
+            user_context: Контекст пользователя с данными группы и сотрудника
+            stp_repo: Репозиторий для работы с базой данных
+            bot: Экземпляр бота для исключения пользователей (если требуется)
+            action: Описание действия для логирования
+
+        Returns:
+            True если доступ разрешен, False если пользователь исключен
+        """
+        group = user_context["group"]
+        user_id = user_context["user_id"]
+        group_id = user_context["group_id"]
+
+        if not group:
+            return False
+
+        access_granted, denial_reason = await self._validate_user_access_from_context(
+            user_context
+        )
+
+        if not access_granted and bot:
+            await self._execute_user_kick(
+                bot,
+                user_id,
+                group_id,
+                stp_repo,
+                f"исключен при {action}",
+                denial_reason,
+            )
+            return False
+
+        if access_granted and not await stp_repo.group_member.is_member(
+            group_id, user_id
+        ):
+            await self._add_group_member(group_id, user_id, stp_repo)
+
+        return access_granted
+
+    @staticmethod
+    async def _validate_user_access_from_context(
+        user_context: Dict[str, Any],
+    ) -> tuple[bool, str]:
+        """Проверка доступа пользователя на основе контекста."""
+        group = user_context["group"]
+        employee = user_context["employee"]
+        user = user_context["user"]
+
+        if user and user.is_bot:
+            return True, ""
+
+        # Проверка на удаление уволенных
+        if group.remove_unemployed and not employee:
+            return False, "уровень доступа"
+
+        # Проверка ролей
+        if group.allowed_roles and (
+            not employee or employee.role not in group.allowed_roles
+        ):
+            return False, "уровень доступа"
+
+        # Проверка подразделений
+        if group.allowed_divisions:
+            if not employee or employee.division not in group.allowed_divisions:
+                return False, "направление"
+
+            # Проверка должностей (только если подразделение прошло проверку)
+            if group.allowed_positions:
+                if not employee or employee.position not in group.allowed_positions:
+                    return False, "должность"
+
+        return True, ""
 
     async def __call__(
         self,
-        handler: Callable[
-            [
-                Union[Message, CallbackQuery, InlineQuery, ChatMemberUpdated],
-                Dict[str, Any],
-            ],
-            Awaitable[Any],
-        ],
-        event: Union[Message, CallbackQuery, InlineQuery, ChatMemberUpdated],
+        handler: HandlerType,
+        event: EventType,
         data: Dict[str, Any],
     ) -> Any:
         """Основной обработчик middleware."""
         stp_repo: MainRequestsRepo = data.get("stp_repo")
 
-        if isinstance(event, Message) and event.chat.type in ["groups", "supergroup"]:
+        if isinstance(event, Message) and event.chat.type in SUPPORTED_GROUP_TYPES:
             return await self._handle_message_event(event, stp_repo, handler, data)
-        elif isinstance(event, ChatMemberUpdated) and event.chat.type in [
-            "groups",
-            "supergroup",
-        ]:
+        elif (
+            isinstance(event, ChatMemberUpdated)
+            and event.chat.type in SUPPORTED_GROUP_TYPES
+        ):
             await self._handle_membership_event(event, stp_repo)
 
         return await handler(event, data)
@@ -127,35 +321,34 @@ class GroupsMiddleware(BaseMiddleware):
         if not event.from_user or event.from_user.is_bot:
             return
 
-        group_id = event.chat.id
-        user_id = event.from_user.id
+        await self._safe_execute(
+            "обновления участников группы",
+            self._process_user_membership,
+            event.from_user.id,
+            event.chat.id,
+            stp_repo,
+            event.from_user,
+            event.bot,
+            "отправки сообщения",
+            group_id=event.chat.id,
+            user_id=event.from_user.id,
+            stp_repo=stp_repo,
+        )
 
-        try:
-            group = await self._get_group_or_return(group_id, stp_repo)
-            if not group:
-                return
-
-            access_granted, denial_reason = await self._validate_user_access(
-                user_id, group, stp_repo, event.from_user
-            )
-            if not access_granted:
-                await self._execute_user_kick(
-                    event.bot,
-                    user_id,
-                    group_id,
-                    stp_repo,
-                    "исключен из группы",
-                    denial_reason,
-                )
-                return
-
-            if not await stp_repo.group_member.is_member(group_id, user_id):
-                await self._add_group_member(group_id, user_id, stp_repo)
-
-        except Exception as e:
-            logger.error(
-                f"[Группы] Ошибка обновления участников группы {group_id} для {user_id}: {e}"
-            )
+    async def _process_user_membership(
+        self,
+        user_id: int,
+        group_id: int,
+        stp_repo: MainRequestsRepo,
+        user: User,
+        bot: Bot,
+        action: str,
+    ) -> None:
+        """Обработка членства пользователя в группе."""
+        user_context = await self._get_user_context(user_id, group_id, stp_repo, user)
+        await self._handle_user_access_and_membership(
+            user_context, stp_repo, bot, action
+        )
 
     async def _handle_membership_event(
         self, event: ChatMemberUpdated, stp_repo: MainRequestsRepo
@@ -199,18 +392,17 @@ class GroupsMiddleware(BaseMiddleware):
 
     def _is_user_joining(self, old_status: str, new_status: str) -> bool:
         """Проверка присоединения к группе."""
-        return old_status in ["left", "kicked"] and new_status in [
-            "member",
-            "administrator",
-            "creator",
-        ]
+        return (
+            old_status in MEMBER_STATUSES["JOINING"]
+            and new_status in MEMBER_STATUSES["ACTIVE"]
+        )
 
     def _is_user_leaving(self, old_status: str, new_status: str) -> bool:
         """Проверка выхода из группы."""
-        return old_status in ["member", "administrator", "creator"] and new_status in [
-            "left",
-            "kicked",
-        ]
+        return (
+            old_status in MEMBER_STATUSES["ACTIVE"]
+            and new_status in MEMBER_STATUSES["LEAVING"]
+        )
 
     async def _handle_user_join(
         self,
@@ -221,33 +413,75 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
     ) -> None:
         """Обработка добавления пользователя в группу."""
-        try:
-            access_granted, denial_reason = await self._validate_user_access(
-                user_id, group, stp_repo, event.new_chat_member.user
+        await self._safe_execute(
+            "добавления пользователя в группу",
+            self._process_user_join,
+            event,
+            user_id,
+            group_id,
+            group,
+            stp_repo,
+            group_id=group_id,
+            user_id=user_id,
+            stp_repo=stp_repo,
+        )
+
+    async def _process_user_join(
+        self,
+        event: ChatMemberUpdated,
+        user_id: int,
+        group_id: int,
+        group: Group,
+        stp_repo: MainRequestsRepo,
+    ) -> None:
+        """Процесс добавления пользователя в группу."""
+        user_context = await self._get_user_context(
+            user_id, group_id, stp_repo, event.new_chat_member.user
+        )
+        # Переопределяем группу из контекста, так как у нас уже есть эта информация
+        user_context["group"] = group
+
+        access_granted = await self._handle_user_access_and_membership(
+            user_context, stp_repo, event.bot, "присоединении"
+        )
+
+        if access_granted and group.new_user_notify:
+            await self._send_user_notification_from_context(
+                event, user_context, stp_repo
             )
-            if not access_granted:
-                await self._execute_user_kick(
-                    event.bot,
-                    user_id,
-                    group_id,
-                    stp_repo,
-                    "исключен при присоединении",
-                    denial_reason,
-                )
-                return
 
-            if not await stp_repo.group_member.is_member(group_id, user_id):
-                await self._add_group_member(group_id, user_id, stp_repo)
+    async def _send_user_notification_from_context(
+        self,
+        event: ChatMemberUpdated,
+        user_context: Dict[str, Any],
+        stp_repo: MainRequestsRepo,
+    ) -> None:
+        """Отправка уведомления о новом участнике на основе контекста."""
+        employee = user_context["employee"]
+        user = user_context["user"]
+        user_id = user_context["user_id"]
+        group_id = user_context["group_id"]
 
-                if group.new_user_notify:
-                    await self._send_user_notification(
-                        event, user_id, group_id, stp_repo
-                    )
-
-        except Exception as e:
-            logger.error(
-                f"[Группы] Ошибка добавления пользователя {user_id} в группу {group_id}: {e}"
+        if employee:
+            position = (
+                f"{employee.position} {employee.division}".strip() or "Не указана"
             )
+            text = NOTIFICATIONS["user_welcome"].format(
+                user_info=format_fullname(employee, True, True), position=position
+            )
+        else:
+            user_info = self._format_telegram_user_info(user, user_id)
+            text = NOTIFICATIONS["user_new"].format(user_info=user_info)
+
+        await self._safe_execute(
+            "отправки уведомления о новом участнике",
+            event.bot.send_message,
+            chat_id=group_id,
+            text=text,
+            group_id=group_id,
+            user_id=user_id,
+            stp_repo=stp_repo,
+        )
 
     async def _handle_user_leave(
         self,
@@ -285,52 +519,6 @@ class GroupsMiddleware(BaseMiddleware):
         except Exception as e:
             logger.error(f"[Группы] Ошибка получения группы {group_id}: {e}")
             return None
-
-    async def _validate_user_access(
-        self,
-        user_id: int,
-        group: Group,
-        stp_repo: MainRequestsRepo,
-        user: Optional[User] = None,
-    ) -> tuple[bool, str]:
-        """Проверка доступа пользователя к группе."""
-        try:
-            if user and user.is_bot:
-                return True, ""
-
-            # Получаем данные сотрудника для проверок
-            employee = await stp_repo.employee.get_users(user_id=user_id)
-
-            # Проверка на удаление уволенных
-            if group.remove_unemployed and not employee:
-                logger.info(
-                    f"[Группы] Пользователь {user_id} не найден в базе сотрудников"
-                )
-                return False, "уровень доступа"
-
-            # Проверка ролей (только если установлены ограничения)
-            if group.allowed_roles:
-                if not employee or employee.role not in group.allowed_roles:
-                    return False, "уровень доступа"
-
-            # Проверка подразделений (только если установлены ограничения)
-            if group.allowed_divisions:
-                if not employee or employee.division not in group.allowed_divisions:
-                    return False, "направление"
-                else:
-                    # Проверка должностей (только если подразделение прошло проверку и установлены ограничения по должностям)
-                    if group.allowed_positions:
-                        if (
-                            not employee
-                            or employee.position not in group.allowed_positions
-                        ):
-                            return False, "должность"
-
-            return True, ""
-
-        except Exception as e:
-            logger.error(f"[Группы] Ошибка валидации пользователя {user_id}: {e}")
-            return True, ""
 
     async def _execute_user_kick(
         self,
@@ -377,25 +565,24 @@ class GroupsMiddleware(BaseMiddleware):
         denial_reason: str = "недостаточно прав доступа",
     ) -> None:
         """Отправка уведомления об исключении."""
-        try:
-            user = await stp_repo.employee.get_users(user_id=user_id)
-            reason_map = {
-                "уровень доступа": "неразрешенный уровень доступа",
-                "направление": "неразрешенное направление",
-                "должность": "неразрешенная должность",
-            }
-            reason_text = reason_map.get(denial_reason, "недостаточно прав доступа")
-            if user:
-                text = f"👋 <b>Пользователь исключен</b>\n\n{format_fullname(user, True)} {reason}\n\n<i>Причина: {reason_text}</i>"
-            else:
-                text = f"👋 <b>Пользователь исключен</b>\n\n{user_id} {reason}\n\n<i>Причина: {reason_text}</i>"
+        user = await stp_repo.employee.get_users(user_id=user_id)
+        reason_text = ACCESS_DENIAL_REASONS.get(
+            denial_reason, "недостаточно прав доступа"
+        )
 
-            await bot.send_message(chat_id=group_id, text=text)
+        user_info = format_fullname(user, True) if user else str(user_id)
+        text = NOTIFICATIONS["user_kicked"].format(
+            user_info=user_info, reason=reason, reason_text=reason_text
+        )
 
-        except Exception as e:
-            logger.error(
-                f"[Группы] Ошибка отправки уведомления об исключении {user_id}: {e}"
-            )
+        await self._safe_execute(
+            "отправки уведомления об исключении",
+            bot.send_message,
+            chat_id=group_id,
+            text=text,
+            group_id=group_id,
+            user_id=user_id,
+        )
 
     async def _send_user_notification(
         self,
@@ -405,37 +592,35 @@ class GroupsMiddleware(BaseMiddleware):
         stp_repo: MainRequestsRepo,
     ) -> None:
         """Отправка уведомления о новом участнике."""
-        try:
-            user = event.new_chat_member.user
-            employee = await stp_repo.employee.get_users(user_id=user_id)
+        user = event.new_chat_member.user
+        employee = await stp_repo.employee.get_users(user_id=user_id)
 
-            if employee:
-                text = (
-                    f"👋 <b>Добро пожаловать в группу!</b>\n\n"
-                    f"{format_fullname(employee, True, True)} присоединился к группе\n"
-                    f"<i>Должность: {employee.position + ' ' + employee.division or 'Не указана'}</i>"
-                )
-            else:
-                user_mention = f"@{user.username}" if user.username else f"#{user_id}"
-                user_fullname = (
-                    f"{user.first_name or ''} {user.last_name or ''}".strip()
-                )
-                user_info = (
-                    f"{user_fullname} ({user_mention})"
-                    if user_fullname
-                    else user_mention
-                )
-                text = f"👋 <b>Новый участник</b>\n\n{user_info} присоединился к группе"
-
-            await event.bot.send_message(chat_id=group_id, text=text)
-
-        except TelegramForbiddenError as e:
-            if "bot was kicked from the supergroup chat" in str(e):
-                await self._cleanup_removed_group(group_id, stp_repo)
-        except Exception as e:
-            logger.error(
-                f"[Группы] Ошибка отправки уведомления о новом участнике {user_id}: {e}"
+        if employee:
+            position = (
+                f"{employee.position} {employee.division}".strip() or "Не указана"
             )
+            text = NOTIFICATIONS["user_welcome"].format(
+                user_info=format_fullname(employee, True, True), position=position
+            )
+        else:
+            user_info = self._format_telegram_user_info(user, user_id)
+            text = NOTIFICATIONS["user_new"].format(user_info=user_info)
+
+        await self._safe_execute(
+            "отправки уведомления о новом участнике",
+            event.bot.send_message,
+            chat_id=group_id,
+            text=text,
+            group_id=group_id,
+            user_id=user_id,
+            stp_repo=stp_repo,
+        )
+
+    def _format_telegram_user_info(self, user: User, user_id: int) -> str:
+        """Форматирование информации о пользователе Telegram."""
+        user_mention = f"@{user.username}" if user.username else f"#{user_id}"
+        user_fullname = f"{user.first_name or ''} {user.last_name or ''}".strip()
+        return f"{user_fullname} ({user_mention})" if user_fullname else user_mention
 
     async def _add_group_member(
         self, group_id: int, user_id: int, stp_repo: MainRequestsRepo
@@ -535,24 +720,14 @@ class GroupsMiddleware(BaseMiddleware):
         """Проверка прав администратора у бота."""
         try:
             bot_member = await event.bot.get_chat_member(group_id, event.bot.id)
-            return bot_member.status in ["administrator", "creator"]
+            return bot_member.status in ADMIN_STATUSES
         except Exception as e:
             logger.error(f"[Группы] Ошибка проверки прав бота в группе {group_id}: {e}")
             return False
 
     async def _request_admin_rights(self, event: Message) -> None:
         """Запрос прав администратора."""
-        text = (
-            "🤖 <b>Требуются права администратора</b>\n\n"
-            "Для использования команд бота в этой группе необходимо предоставить боту права администратора.\n\n"
-            "<b>Как предоставить права:</b>\n"
-            "1. Перейди в настройки группы\n"
-            "2. Выбери <b>Администраторы</b> → <b>Добавить администратора</b>\n"
-            "3. Найди и выбери меня в списке\n"
-            "4. Предоставь все права\n\n"
-            "После предоставления прав группа будет автоматически зарегистрирована"
-        )
-        await event.reply(text)
+        await event.reply(NOTIFICATIONS["admin_rights_required"])
 
     async def _create_group_in_database(
         self, group_id: int, invited_by: int, stp_repo: MainRequestsRepo
