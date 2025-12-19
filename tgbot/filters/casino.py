@@ -1,9 +1,9 @@
 """Фильтры для казино."""
 
 from aiogram.dispatcher.event.bases import CancelHandler
-from aiogram.enums import ParseMode
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
+from stp_database.models.STP import Employee
 
 
 class IsCasinoAllowed(BaseFilter):
@@ -32,7 +32,6 @@ class IsCasinoAllowed(BaseFilter):
                 """❌ Доступ к казино закрыт
 
 Если считаешь, что это ошибка — обратись к своему руководителю""",
-                parse_mode=ParseMode.HTML,
             )
             raise CancelHandler()
         return True

@@ -122,7 +122,7 @@ async def create_default_commands(
                     title="📅 Мой график",
                     description=f"Твой график на {current_month}",
                     input_message_content=InputTextMessageContent(
-                        message_text=schedule_text, parse_mode="HTML"
+                        message_text=schedule_text
                     ),
                 )
             )
@@ -143,7 +143,7 @@ async def create_default_commands(
                     title="👮‍♂️ Дежурные на сегодня",
                     description=f"График дежурных {user.division}",
                     input_message_content=InputTextMessageContent(
-                        message_text=duties_text, parse_mode="HTML"
+                        message_text=duties_text
                     ),
                 )
             )
@@ -165,7 +165,7 @@ async def create_default_commands(
                     title="👑 Руководители на сегодня",
                     description=f"График руководителей {user.division}",
                     input_message_content=InputTextMessageContent(
-                        message_text=heads_text, parse_mode="HTML"
+                        message_text=heads_text
                     ),
                 )
             )

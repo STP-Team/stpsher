@@ -63,7 +63,7 @@ async def handle_subscription_query(
                 title=f"🔔 Подписка {subscription.id}",
                 description=f"Тип обменов: {exchange_type}\n🎯 Критерии:\n{criteria_text}",
                 input_message_content=InputTextMessageContent(
-                    message_text=message_text, parse_mode="HTML"
+                    message_text=message_text
                 ),
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[

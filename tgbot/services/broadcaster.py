@@ -33,7 +33,6 @@ async def send_message(
             text,
             disable_notification=disable_notification,
             reply_markup=reply_markup,
-            parse_mode="HTML",
         )
     except exceptions.TelegramBadRequest:
         logging.error("Telegram server says - Bad Request: chat not found")

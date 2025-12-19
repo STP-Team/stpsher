@@ -82,7 +82,7 @@ async def handle_exchange_query(
                 title=f"Сделка #{exchange.id}",
                 description=f"📅 Предложение: {shift_time} {shift_date} ПРМ\n💰 Цена: {description_price_text}",
                 input_message_content=InputTextMessageContent(
-                    message_text=message_text, parse_mode="HTML"
+                    message_text=message_text
                 ),
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -175,7 +175,6 @@ async def handle_user_exchanges(
                     description="У тебя пока нет активных сделок",
                     input_message_content=InputTextMessageContent(
                         message_text="📭 <b>Нет активных сделок</b>\n\nУ тебя пока нет активных сделок.",
-                        parse_mode="HTML",
                     ),
                 )
             ]
@@ -211,7 +210,7 @@ async def handle_user_exchanges(
                     title=f"{status_icon} Сделка #{exchange.id}",
                     description=f"📅 {shift_time} {shift_date} ПРМ\n💰 {description_price_text}",
                     input_message_content=InputTextMessageContent(
-                        message_text=message_text, parse_mode="HTML"
+                        message_text=message_text
                     ),
                     reply_markup=InlineKeyboardMarkup(
                         inline_keyboard=[
@@ -237,7 +236,6 @@ async def handle_user_exchanges(
                 description="Не удалось загрузить твои сделки",
                 input_message_content=InputTextMessageContent(
                     message_text="❌ <b>Ошибка</b>\n\nНе удалось загрузить твои сделки",
-                    parse_mode="HTML",
                 ),
             )
         ]

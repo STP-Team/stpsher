@@ -135,9 +135,7 @@ class InlineResultBuilder:
             id=f"user_{user.id}",
             title=f"{role_info['emoji']} {user.fullname}",
             description=description,
-            input_message_content=InputTextMessageContent(
-                message_text=message_text, parse_mode="HTML"
-            ),
+            input_message_content=InputTextMessageContent(message_text=message_text),
         )
 
     @staticmethod
@@ -171,7 +169,7 @@ class InlineResultBuilder:
             title=ERROR_MESSAGES["NO_RESULTS"],
             description=f"По запросу: {query_text}",
             input_message_content=InputTextMessageContent(
-                message_text="\n".join(message_parts), parse_mode="HTML"
+                message_text="\n".join(message_parts)
             ),
         )
 

@@ -165,7 +165,7 @@ async def private_whois_command(
             # Формируем и отправляем ответ с информацией о пользователе
             user_info_message = create_user_info_message(target_user, user_head)
 
-            await message.reply(user_info_message, parse_mode="HTML")
+            await message.reply(user_info_message)
 
             # Логируем использование команды
             logger.info(
@@ -203,7 +203,7 @@ async def private_whois_command(
                         )
 
                     user_info_message = create_user_info_message(target_user, user_head)
-                    await message.reply(user_info_message, parse_mode="HTML")
+                    await message.reply(user_info_message)
 
                     logger.info(
                         f"[WHOIS PRIVATE] {user.fullname} ({message.from_user.id}) нашел по user_id '{search_query}': {target_user.fullname}"
@@ -228,7 +228,7 @@ async def private_whois_command(
                         )
 
                     user_info_message = create_user_info_message(target_user, user_head)
-                    await message.reply(user_info_message, parse_mode="HTML")
+                    await message.reply(user_info_message)
 
                     logger.info(
                         f"[WHOIS PRIVATE] {user.fullname} ({message.from_user.id}) нашел по username '{search_query}': {target_user.fullname}"
@@ -273,7 +273,7 @@ async def private_whois_command(
                     )
 
                 user_info_message = create_user_info_message(target_user, user_head)
-                await message.reply(user_info_message, parse_mode="HTML")
+                await message.reply(user_info_message)
 
                 # Логируем использование команды
                 logger.info(
@@ -410,7 +410,7 @@ async def handle_forwarded_message(
         # Формируем и отправляем ответ с информацией о пользователе
         user_info_message = create_user_info_message(target_user, user_head)
 
-        await message.reply(user_info_message, parse_mode="HTML")
+        await message.reply(user_info_message)
 
         # Логируем использование функции
         logger.info(

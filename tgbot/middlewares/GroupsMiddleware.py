@@ -390,7 +390,7 @@ class GroupsMiddleware(BaseMiddleware):
             else:
                 text = f"👋 <b>Пользователь исключен</b>\n\n{user_id} {reason}\n\n<i>Причина: {reason_text}</i>"
 
-            await bot.send_message(chat_id=group_id, text=text, parse_mode="HTML")
+            await bot.send_message(chat_id=group_id, text=text)
 
         except Exception as e:
             logger.error(
@@ -427,7 +427,7 @@ class GroupsMiddleware(BaseMiddleware):
                 )
                 text = f"👋 <b>Новый участник</b>\n\n{user_info} присоединился к группе"
 
-            await event.bot.send_message(chat_id=group_id, text=text, parse_mode="HTML")
+            await event.bot.send_message(chat_id=group_id, text=text)
 
         except TelegramForbiddenError as e:
             if "bot was kicked from the supergroup chat" in str(e):
@@ -552,7 +552,7 @@ class GroupsMiddleware(BaseMiddleware):
             "4. Предоставь все права\n\n"
             "После предоставления прав группа будет автоматически зарегистрирована"
         )
-        await event.reply(text, parse_mode="HTML")
+        await event.reply(text)
 
     async def _create_group_in_database(
         self, group_id: int, invited_by: int, stp_repo: MainRequestsRepo
