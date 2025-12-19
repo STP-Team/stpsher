@@ -143,7 +143,7 @@ async def broadcast_copy(
     text: str = None,
     disable_notification: bool = False,
     progress_callback: Callable[[int, int], Awaitable[None]] = None,
-) -> tuple[int, int]:
+) -> tuple[int, int, list[Union[str, int]]]:
     """Рассылка, использующая copy_message или send_message с отслеживанием прогресса.
 
     Args:
@@ -156,10 +156,11 @@ async def broadcast_copy(
         progress_callback: Callback для отслеживания прогресса рассылки (текущее, общее).
 
     Returns:
-        :return: Кортеж с кол-вом успешных сообщений и ошибок
+        :return: Кортеж с кол-вом успешных сообщений, ошибок и списком неудачных user_ids
     """
     success_count = 0
     error_count = 0
+    failed_user_ids = []
     total = len(users)
 
     # Validate parameters
@@ -182,6 +183,7 @@ async def broadcast_copy(
                 success_count += 1
             else:
                 error_count += 1
+                failed_user_ids.append(user_id)
 
             # Call progress callback if provided
             if progress_callback:
@@ -194,4 +196,4 @@ async def broadcast_copy(
         logging.info(
             f"Broadcast completed: {success_count} successful, {error_count} failed."
         )
-        return success_count, error_count
+        return success_count, error_count, failed_user_ids

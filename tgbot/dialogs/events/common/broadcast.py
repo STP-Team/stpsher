@@ -217,7 +217,7 @@ async def on_broadcast_send(
         dialog_manager.dialog_data["current_progress"] = current
         await dialog_manager.update({})
 
-    success_count, error_count = await broadcast_copy(
+    success_count, error_count, failed_user_ids = await broadcast_copy(
         bot=bot,
         users=user_ids,
         from_chat_id=from_chat_id,
@@ -229,6 +229,7 @@ async def on_broadcast_send(
     # Сохраняем результаты
     dialog_manager.dialog_data["success_count"] = success_count
     dialog_manager.dialog_data["error_count"] = error_count
+    dialog_manager.dialog_data["failed_user_ids"] = failed_user_ids
 
     # Сохраняем рассылку в базу данных
     user_id = _event.from_user.id
@@ -270,6 +271,7 @@ async def on_broadcast_send(
         target=target,
         text=broadcast_text,
         recipients=user_ids,
+        failed_recipients=failed_user_ids,
     )
 
     # Переходим к окну результатов
@@ -349,7 +351,7 @@ async def on_broadcast_resend(
         dialog_manager.dialog_data["current_progress"] = current
         await dialog_manager.update({})
 
-    success_count, error_count = await broadcast_copy(
+    success_count, error_count, failed_user_ids = await broadcast_copy(
         bot=bot,
         users=user_ids,
         text=broadcast.text,
@@ -360,6 +362,7 @@ async def on_broadcast_resend(
     # Сохраняем результаты
     dialog_manager.dialog_data["success_count"] = success_count
     dialog_manager.dialog_data["error_count"] = error_count
+    dialog_manager.dialog_data["failed_user_ids"] = failed_user_ids
 
     # Сохраняем новую рассылку в базу данных
     user_id = _event.from_user.id
@@ -369,6 +372,7 @@ async def on_broadcast_resend(
         target=broadcast.target,
         text=broadcast.text,
         recipients=user_ids,
+        failed_recipients=failed_user_ids,
     )
 
     # Переходим к окну результатов
