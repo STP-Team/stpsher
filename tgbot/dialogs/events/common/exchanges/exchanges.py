@@ -545,7 +545,7 @@ async def on_activation_click(
     stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
     exchange_id = dialog_manager.dialog_data["exchange_id"]
 
-    new_status = "canceled" if not widget.is_checked() else "active"
+    new_status = "canceled" if widget.is_checked() is True else "active"
     await stp_repo.exchange.update_exchange(exchange_id, status=new_status)
 
     # Проверяем подписки только при активации (переводе в статус "active")
