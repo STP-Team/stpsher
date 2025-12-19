@@ -230,6 +230,11 @@ broadcast_history_detail_window = Window(
 
 <b>Текст рассылки:</b>
 <blockquote expandable>{broadcast_text}</blockquote>"""),
+    Format(
+        """\n📋 <b>Сотрудники, не получившие сообщение:</b>
+{failed_users_text}""",
+        when="failed_users",
+    ),
     Button(Const("🔄 Отправить снова"), id="resend", on_click=on_broadcast_resend),
     Row(
         Back(Const("↩️ Назад"), id="back"),
