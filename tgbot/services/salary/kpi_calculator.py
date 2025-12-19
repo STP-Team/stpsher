@@ -505,7 +505,7 @@ class KPICalculator:
 <b>Для премии:</b>
 {target_calculation}</blockquote>
 
-<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date) if premium.updated_at else "—"}</code>
+<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{premium.updated_at.strftime(strftime_date)}</code>
 Меню обновлено в <code>{datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</code></i>"""
         else:
             message_text = f"""🧮 <b>Калькулятор KPI</b>
@@ -540,6 +540,6 @@ class KPICalculator:
 <b>Для премии:</b>
 {target_calculation}</blockquote>
 
-<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{premium.updated_at.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date) if premium.updated_at else "—"}</code>
+<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{premium.updated_at.strftime(strftime_date) if premium.updated_at else "—"}</code>
 Меню обновлено в <code>{datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</code></i>"""
         return message_text
