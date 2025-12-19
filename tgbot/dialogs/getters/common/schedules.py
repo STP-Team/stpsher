@@ -12,7 +12,7 @@ from stp_database.repo.Stats import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
     get_current_month,
@@ -55,6 +55,12 @@ async def user_schedule_getter(
     Returns:
         Словарь для смены месяца графика
     """
+    current_date_str = dialog_manager.dialog_data.get("current_date")
+    if current_date_str is None:
+        current_date = get_current_date()
+    else:
+        current_date = datetime.fromisoformat(current_date_str)
+
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
@@ -76,6 +82,29 @@ async def user_schedule_getter(
         bot=bot,
     )
 
+    # Get latest schedule file metadata
+    file_name = "Файл не найден"
+    upload_date = "Неизвестно"
+
+    try:
+        # Query all files and filter for division schedules
+        all_files = await stp_repo.upload.get_files()
+
+        # Filter files that match schedule pattern for this division
+        division_pattern = f"ГРАФИК {user.division}"
+        matching_files = [
+            f
+            for f in all_files
+            if f.file_name and f.file_name.startswith(division_pattern)
+        ]
+
+        if matching_files:
+            latest_file = matching_files[0]
+            file_name = latest_file.file_name or "Неизвестный файл"
+            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+    except Exception:
+        pass  # Use default values
+
     return {
         "current_month": current_month,
         "month_emoji": month_emoji,
@@ -85,6 +114,9 @@ async def user_schedule_getter(
         "is_detailed_mode": is_detailed_mode,
         "mode_options": mode_options,
         "selected_mode": selected_mode,
+        "file_name": file_name,
+        "upload_date": upload_date,
+        "current_time_str": current_date.strftime(strftime_date),
     }
 
 
@@ -116,10 +148,36 @@ async def duty_schedule_getter(
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == get_current_date().date()
 
+    # Get latest schedule file metadata
+    file_name = "Файл не найден"
+    upload_date = "Неизвестно"
+
+    try:
+        # Query all files and filter for division schedules
+        all_files = await stp_repo.upload.get_files()
+
+        # Filter files that match schedule pattern for this division
+        division_pattern = f"ГРАФИК {user.division}"
+        matching_files = [
+            f
+            for f in all_files
+            if f.file_name and f.file_name.startswith(division_pattern)
+        ]
+
+        if matching_files:
+            latest_file = matching_files[0]
+            file_name = latest_file.file_name or "Неизвестный файл"
+            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+    except Exception:
+        pass  # Use default values
+
     return {
         "duties_text": duties_text,
         "date_display": date_display,
         "is_today": is_today,
+        "file_name": file_name,
+        "upload_date": upload_date,
+        "current_time_str": current_date.strftime(strftime_date),
     }
 
 
@@ -149,10 +207,36 @@ async def head_schedule_getter(
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == get_current_date().date()
 
+    # Get latest schedule file metadata
+    file_name = "Файл не найден"
+    upload_date = "Неизвестно"
+
+    try:
+        # Query all files and filter for division schedules
+        all_files = await stp_repo.upload.get_files()
+
+        # Filter files that match schedule pattern for this division
+        division_pattern = f"ГРАФИК {user.division}"
+        matching_files = [
+            f
+            for f in all_files
+            if f.file_name and f.file_name.startswith(division_pattern)
+        ]
+
+        if matching_files:
+            latest_file = matching_files[0]
+            file_name = latest_file.file_name or "Неизвестный файл"
+            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+    except Exception:
+        pass  # Use default values
+
     return {
         "heads_text": heads_text,
         "date_display": date_display,
         "is_today": is_today,
+        "file_name": file_name,
+        "upload_date": upload_date,
+        "current_time_str": current_date.strftime(strftime_date),
     }
 
 
@@ -258,8 +342,15 @@ async def tutors_schedule_getter(
                 )
                 tutors_text += f"📝 <b>Тип:</b> {type_text}\n"
             tutors_text += "\n"
+
+        # Добавляем информацию о времени создания данных (используем первую запись)
     else:
-        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n📭 На выбранный день стажеров не найдено"
+        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n📭 На выбранный день стажеров не найдено\n"
+
+    data_created_at = trainees_schedule[0].created_at.strftime(strftime_date)
+    menu_updated_at = datetime.now().strftime(strftime_date)
+    tutors_text += f"""\n<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <code>{data_created_at}</code>
+Меню обновлено в <code>{menu_updated_at}</code></i>"""
 
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == get_current_date().date()
@@ -305,10 +396,36 @@ async def group_schedule_getter(
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == get_current_date().date()
 
+    # Get latest schedule file metadata
+    file_name = "Файл не найден"
+    upload_date = "Неизвестно"
+
+    try:
+        # Query all files and filter for division schedules
+        all_files = await stp_repo.upload.get_files()
+
+        # Filter files that match schedule pattern for this division
+        division_pattern = f"ГРАФИК {user.division}"
+        matching_files = [
+            f
+            for f in all_files
+            if f.file_name and f.file_name.startswith(division_pattern)
+        ]
+
+        if matching_files:
+            latest_file = matching_files[0]
+            file_name = latest_file.file_name or "Неизвестный файл"
+            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+    except Exception:
+        pass  # Use default values
+
     return {
         "group_text": group_text,
         "date_display": date_display,
         "is_today": is_today,
+        "file_name": file_name,
+        "upload_date": upload_date,
+        "current_time_str": current_date.strftime(strftime_date),
     }
 
 

@@ -1176,7 +1176,7 @@ async def on_buy_confirm(
                             [
                                 InlineKeyboardButton(
                                     text="🗓️ Открыть WFM",
-                                    url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                                    url="https://okc.ertelecom.ru/wfm/vueapp/personal",
                                 )
                             ],
                         ]
@@ -1235,7 +1235,7 @@ async def on_buy_confirm(
                         [
                             InlineKeyboardButton(
                                 text="🗓️ Открыть WFM",
-                                url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                                url="https://okc.ertelecom.ru/wfm/vueapp/personal",
                             )
                         ],
                     ]
@@ -1525,7 +1525,7 @@ async def on_sell_confirm(
                         [
                             InlineKeyboardButton(
                                 text="🗓️ Открыть WFM",
-                                url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                                url="https://okc.ertelecom.ru/wfm/vueapp/personal",
                             )
                         ],
                     ]
@@ -1583,7 +1583,7 @@ async def on_sell_confirm(
                         [
                             InlineKeyboardButton(
                                 text="🗓️ Открыть WFM",
-                                url="https://okc2.ertelecom.ru/wfm/vueapp/personal",
+                                url="https://okc.ertelecom.ru/wfm/vueapp/personal",
                             )
                         ],
                     ]
