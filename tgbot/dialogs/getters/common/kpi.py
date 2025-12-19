@@ -145,8 +145,8 @@ async def kpi_getter(
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
 
-<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{updated_at_str}</code>
-Меню обновлено в <code>{current_time_str}</code></i>"""
+<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <b>{updated_at_str}</b>
+Меню обновлено в <b>{current_time_str}</b></i>"""
 
     else:
         contacts_text = (
@@ -185,8 +185,8 @@ async def kpi_getter(
 
 {contacts_text}
 
-<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{updated_at_str}</code>
-Меню обновлено в <code>{current_time_str}</code></i>"""
+<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <b>{updated_at_str}</b>
+Меню обновлено в <b>{current_time_str}</b></i>"""
 
     return {
         "kpi_text": kpi_text,

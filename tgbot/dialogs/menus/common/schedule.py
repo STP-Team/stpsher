@@ -87,7 +87,12 @@ menu_window = Window(
 )
 
 my_window = Window(
-    Format("{schedule_text}"),
+    Format(
+        """{schedule_text}
+
+<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
+Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+    ),
     Row(
         Button(
             Const("<"),
@@ -138,7 +143,12 @@ my_schedule_calendar_window = Window(
 )
 
 duties_window = Window(
-    Format("{duties_text}"),
+    Format(
+        """{duties_text}
+        
+<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
+Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+    ),
     Row(
         Button(
             Const("<"),
@@ -175,7 +185,12 @@ duties_window = Window(
 )
 
 group_window = Window(
-    Format("{group_text}"),
+    Format(
+        """{group_text}
+        
+<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
+Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+    ),
     Row(
         Button(
             Const("<"),
@@ -212,7 +227,12 @@ group_window = Window(
 )
 
 heads_window = Window(
-    Format("{heads_text}"),
+    Format(
+        """{heads_text}
+        
+<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
+Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+    ),
     Row(
         Button(
             Const("<"),
