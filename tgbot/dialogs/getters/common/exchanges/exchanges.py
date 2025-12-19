@@ -1231,7 +1231,8 @@ async def my_detail_getter(
         "created_date": exchange.created_at.strftime(strftime_date)
         if exchange.created_at
         else "Не указано",
-        "is_paid": "Да" if exchange.is_paid else "Нет",
+        "is_paid": exchange.is_paid,
+        "is_paid_text": "Да" if exchange.is_paid else "Нет",
         "deeplink": exchange_deeplink,
         "deeplink_url": exchange_deeplink_url,
         "could_activate": could_activate,

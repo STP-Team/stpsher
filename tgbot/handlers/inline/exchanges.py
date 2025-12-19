@@ -359,3 +359,178 @@ async def handle_exchange_cancellation(
         logger.error(f"Ошибка при отмене сделки {exchange_id}: {e}")
         await message.answer("❌ Произошла ошибка при отмене сделки")
         await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+
+
+async def handle_payment_date_approval(
+    message: Message,
+    user: Employee,
+    stp_repo: MainRequestsRepo,
+    dialog_manager: DialogManager,
+    exchange_id: int,
+    new_date_str: str = None,
+    approved: bool = False,
+) -> None:
+    """Обрабатывает запрос на одобрение/отклонение изменения даты оплаты.
+
+    Args:
+        message: Сообщение пользователя
+        user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
+        dialog_manager: Менеджер диалога
+        exchange_id: ID сделки
+        new_date_str: Новая дата оплаты в формате ISO (только для одобрения)
+        approved: True если одобрено, False если отклонено
+    """
+    from datetime import datetime
+
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    from aiogram.utils.deep_linking import create_start_link
+    from aiogram_dialog import StartMode
+
+    from tgbot.misc.helpers import format_fullname, tz_perm
+
+    try:
+        # Получаем информацию о сделке
+        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+
+        if not exchange:
+            await message.answer("❌ Сделка не найдена")
+            await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+            return
+
+        # Проверяем, что пользователь является участником сделки
+        is_participant = (
+            exchange.owner_id == user.user_id or exchange.counterpart_id == user.user_id
+        )
+
+        if not is_participant:
+            await message.answer("❌ Вы не являетесь участником данной сделки")
+            await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+            return
+
+        # Проверяем статус сделки
+        if exchange.status != "sold":
+            await message.answer(
+                "❌ Изменить дату оплаты можно только для завершенных сделок"
+            )
+            await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+            return
+
+        # Проверяем что сделка не оплачена
+        if exchange.is_paid:
+            await message.answer(
+                "❌ Нельзя изменить дату оплаты для уже оплаченной сделки"
+            )
+            await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+            return
+
+        # Определяем инициатора изменения (другого участника)
+        initiator_id = (
+            exchange.counterpart_id
+            if exchange.owner_id == user.user_id
+            else exchange.owner_id
+        )
+
+        # Создаем deeplink для просмотра сделки
+        exchange_deeplink = await create_start_link(
+            bot=message.bot, payload=f"exchange_{exchange.id}", encode=True
+        )
+
+        user_fullname = format_fullname(user, True, True)
+
+        if approved and new_date_str:
+            try:
+                # Парсим и валидируем новую дату
+                new_date = datetime.fromisoformat(new_date_str).date()
+                current_date = datetime.now(tz=tz_perm).date()
+
+                if new_date < current_date:
+                    await message.answer("❌ Нельзя установить дату оплаты в прошлом")
+                    await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+                    return
+
+                # Обновляем дату оплаты
+                new_datetime = datetime.combine(new_date, datetime.min.time())
+                await stp_repo.exchange.update_payment_timing(
+                    exchange_id, "on_date", new_datetime
+                )
+
+                formatted_date = new_date.strftime("%d.%m.%Y")
+
+                # Уведомляем инициатора об одобрении
+                if initiator_id:
+                    try:
+                        await message.bot.send_message(
+                            chat_id=initiator_id,
+                            text=f"""✅ <b>Изменение даты оплаты одобрено</b>
+
+🤝 Партнер: {user_fullname}
+🏷️ Номер сделки: #{exchange.id}
+📅 Новая дата оплаты: {formatted_date}
+💰 Сумма к оплате: {exchange.price} ₽""",
+                            reply_markup=InlineKeyboardMarkup(
+                                inline_keyboard=[
+                                    [
+                                        InlineKeyboardButton(
+                                            text="🎭 Открыть сделку",
+                                            url=exchange_deeplink,
+                                        )
+                                    ]
+                                ]
+                            ),
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Ошибка отправки уведомления об одобрении изменения даты оплаты {exchange_id}: {e}"
+                        )
+
+                # Подтверждаем одобрение пользователю
+                await message.answer(f"✅ Дата оплаты изменена на {formatted_date}")
+
+            except ValueError:
+                await message.answer("❌ Некорректная дата")
+                await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)
+                return
+
+        else:
+            # Отклонение изменения
+            if initiator_id:
+                try:
+                    await message.bot.send_message(
+                        chat_id=initiator_id,
+                        text=f"""❌ <b>Изменение даты оплаты отклонено</b>
+
+🤝 Партнер: {user_fullname}
+🏷️ Номер сделки: #{exchange.id}
+
+Ваше предложение об изменении даты оплаты было отклонено.""",
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=[
+                                [
+                                    InlineKeyboardButton(
+                                        text="🎭 Открыть сделку",
+                                        url=exchange_deeplink,
+                                    )
+                                ]
+                            ]
+                        ),
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Ошибка отправки уведомления об отклонении изменения даты оплаты {exchange_id}: {e}"
+                    )
+
+            # Подтверждаем отклонение пользователю
+            await message.answer("❌ Предложение об изменении даты оплаты отклонено")
+
+        # Переходим к детальному просмотру сделки
+        await dialog_manager.start(
+            Exchanges.my_detail,
+            mode=StartMode.RESET_STACK,
+            data={"exchange_id": exchange_id},
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка при обработке изменения даты оплаты {exchange_id}: {e}")
+        await message.answer("❌ Произошла ошибка при обработке запроса")
+        await dialog_manager.start(UserSG.menu, mode=StartMode.RESET_STACK)

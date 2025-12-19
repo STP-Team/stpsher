@@ -119,6 +119,41 @@ async def start_deeplink(
                 message, user, stp_repo, dialog_manager, exchange_id
             )
             return
+        elif payload.startswith("approve_payment_date_"):
+            # Формат: approve_payment_date_{exchange_id}_{date}
+            parts = payload.split("_", 4)
+            if len(parts) >= 5:
+                exchange_id = int(parts[3])
+                date_str = parts[4]
+
+                from tgbot.handlers.inline.exchanges import handle_payment_date_approval
+
+                await handle_payment_date_approval(
+                    message,
+                    user,
+                    stp_repo,
+                    dialog_manager,
+                    exchange_id,
+                    date_str,
+                    approved=True,
+                )
+            return
+        elif payload.startswith("decline_payment_date_"):
+            # Формат: decline_payment_date_{exchange_id}
+            exchange_id = int(payload.split("_", 3)[3])
+
+            from tgbot.handlers.inline.exchanges import handle_payment_date_approval
+
+            await handle_payment_date_approval(
+                message,
+                user,
+                stp_repo,
+                dialog_manager,
+                exchange_id,
+                None,
+                approved=False,
+            )
+            return
         elif payload.startswith("subscription_"):
             subscription_id = int(payload.split("_", 1)[1])
             subscription = await stp_repo.exchange.get_subscription_by_id(

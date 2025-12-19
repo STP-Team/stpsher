@@ -113,7 +113,7 @@ my_detail_window = Window(
     Format("""
 📊 <b>Статус:</b> {status_text}"""),
     Format(
-        """💸 <b>Оплачено:</b> {is_paid}""",
+        """💸 <b>Оплачено:</b> {is_paid_text}""",
         when="has_other_party",
     ),
     Format("""
@@ -170,6 +170,12 @@ my_detail_window = Window(
                 id="exchange_to_calendar",
                 on_click=on_add_to_calendar,
             ),
+        ),
+        SwitchTo(
+            Const("📅 Изменить дату оплаты"),
+            id="edit_sold_payment_date",
+            state=Exchanges.edit_offer_payment_date,
+            when=(~F["is_paid"]) & (F["current_user_should_get_paid"]),
         ),
         Button(
             Const("✋ Предложить отмену"),

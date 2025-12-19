@@ -2,7 +2,7 @@
 
 import logging
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional, Tuple
 
 from aiogram import Bot
@@ -725,22 +725,153 @@ async def on_edit_payment_timing_selected(
 
 
 async def on_edit_payment_date_selected(
-    _event: CallbackQuery,
+    event: CallbackQuery,
     _widget: Calendar,
     dialog_manager: DialogManager,
-    selected_date: datetime,
+    selected_date: date,
 ) -> None:
     """Обработчик выбора даты оплаты.
 
     Args:
-        _event: Callback query от Telegram
+        event: Callback query от Telegram
         _widget: Виджет календаря
         dialog_manager: Менеджер диалога
         selected_date: Выбранная дата
     """
-    payment_type = dialog_manager.dialog_data.get("edit_payment_type", "on_date")
+    # Проверяем, что дата не в прошлом
+    current_date = datetime.now(tz=tz_perm).date()
+    if selected_date < current_date:
+        await event.answer("❌ Нельзя выбрать дату в прошлом", show_alert=True)
+        return
 
-    await _update_payment_timing(dialog_manager, payment_type, selected_date)
+    # Проверяем, является ли это предложением изменения даты оплаты
+    is_proposal = dialog_manager.dialog_data.get("is_payment_date_proposal", False)
+
+    # Если не установлен флаг предложения, проверяем статус сделки
+    if not is_proposal:
+        stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+        exchange_id = dialog_manager.dialog_data.get("exchange_id")
+
+        if exchange_id:
+            try:
+                exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+                # Для проданных сделок всегда отправляем предложение
+                if exchange and exchange.status == "sold" and not exchange.is_paid:
+                    is_proposal = True
+            except Exception:
+                pass  # В случае ошибки используем обычную логику
+
+    if is_proposal:
+        await _send_payment_date_change_proposal(event, dialog_manager, selected_date)
+    else:
+        payment_type = dialog_manager.dialog_data.get("edit_payment_type", "on_date")
+
+        # Конвертируем date в datetime для совместимости с _update_payment_timing
+        selected_datetime = datetime.combine(selected_date, datetime.min.time())
+
+        await _update_payment_timing(dialog_manager, payment_type, selected_datetime)
+
+
+async def _send_payment_date_change_proposal(
+    event: CallbackQuery,
+    dialog_manager: DialogManager,
+    selected_date: date,
+) -> None:
+    """Отправляет предложение об изменении даты оплаты партнеру.
+
+    Args:
+        event: Callback query от Telegram
+        dialog_manager: Менеджер диалога
+        selected_date: Выбранная новая дата оплаты
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    bot: Bot = dialog_manager.middleware_data["bot"]
+    user: Employee = dialog_manager.middleware_data["user"]
+    exchange_id = dialog_manager.dialog_data["exchange_id"]
+
+    try:
+        exchange = await stp_repo.exchange.get_exchange_by_id(exchange_id)
+        if not exchange:
+            await event.answer("❌ Сделка не найдена", show_alert=True)
+            return
+
+        # Определяем контрагента
+        counterpart_id = (
+            exchange.counterpart_id
+            if exchange.owner_id == user.user_id
+            else exchange.owner_id
+        )
+
+        if not counterpart_id:
+            await event.answer("❌ Партнер не найден", show_alert=True)
+            return
+
+        # Создаем deeplink для просмотра сделки
+        exchange_deeplink = await create_start_link(
+            bot=bot, payload=f"exchange_{exchange.id}", encode=True
+        )
+
+        # Создаем deeplink для одобрения изменения даты оплаты
+        approve_date_deeplink = await create_start_link(
+            bot=bot,
+            payload=f"approve_payment_date_{exchange.id}_{selected_date.isoformat()}",
+            encode=True,
+        )
+
+        # Создаем deeplink для отклонения изменения даты оплаты
+        decline_date_deeplink = await create_start_link(
+            bot=bot, payload=f"decline_payment_date_{exchange.id}", encode=True
+        )
+
+        # Форматируем дату для отображения
+        formatted_date = selected_date.strftime("%d.%m.%Y")
+
+        # Отправляем предложение об изменении даты оплаты контрагенту
+        user_fullname = format_fullname(user, True, True)
+        await bot.send_message(
+            chat_id=counterpart_id,
+            text=f"""📅 <b>Предложение изменения даты оплаты</b>
+
+{user_fullname} предлагает изменить дату оплаты сделки #{exchange.id} на {formatted_date}
+
+💰 <b>Сумма к оплате:</b> {exchange.price} ₽""",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="🎭 Открыть сделку",
+                            url=exchange_deeplink,
+                        )
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            text="✅ Одобрить изменение",
+                            url=approve_date_deeplink,
+                        ),
+                        InlineKeyboardButton(
+                            text="❌ Отклонить",
+                            url=decline_date_deeplink,
+                        ),
+                    ],
+                ]
+            ),
+        )
+
+        # Очищаем флаг предложения и возвращаемся к деталям сделки
+        dialog_manager.dialog_data.pop("is_payment_date_proposal", None)
+        await event.answer(
+            "✅ Предложение об изменении даты оплаты отправлено партнеру",
+            show_alert=True,
+        )
+        await dialog_manager.switch_to(Exchanges.my_detail)
+
+    except Exception as e:
+        logger.error(
+            f"Ошибка отправки предложения об изменении даты оплаты {exchange_id}: {e}"
+        )
+        await event.answer(
+            "❌ Произошла ошибка при отправке предложения", show_alert=True
+        )
 
 
 async def _update_payment_timing(
