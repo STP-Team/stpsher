@@ -273,6 +273,34 @@ def normalize_timezone(dt: datetime) -> datetime:
     return dt
 
 
+def should_notify_payment_today(exchange: Exchange) -> bool:
+    """Проверяет, должна ли сделка уведомляться сегодня о платеже.
+
+    Args:
+        exchange: Экземпляр сделки с моделью Exchange
+
+    Returns:
+        bool: True если нужно уведомлять сегодня
+    """
+    # Если payment_type не "on_date", уведомляем сразу
+    if exchange.payment_type != "on_date":
+        return True
+
+    # Если payment_type == "on_date", но payment_date не установлена, уведомляем
+    if not exchange.payment_date:
+        return True
+
+    # Проверяем, наступила ли дата оплаты
+    current_local_time = datetime.now(tz_perm)
+    today = current_local_time.date()
+
+    # Приводим payment_date к локальной временной зоне для сравнения
+    payment_date = normalize_timezone(exchange.payment_date).date()
+
+    # Уведомляем только если дата оплаты наступила
+    return today >= payment_date
+
+
 def can_reschedule_exchange(exchange: Exchange) -> bool:
     """Проверяет, можно ли автоматически перенести сделку.
 
@@ -859,6 +887,10 @@ async def notify_daily_payment_reminder(
         seller_exchanges = []
 
         for exchange in exchanges:
+            # Проверяем, должна ли сделка уведомляться сегодня
+            if not should_notify_payment_today(exchange):
+                continue
+
             # Определяем роль пользователя на основе owner_intent
             if exchange.owner_intent == "sell":
                 # В sell: owner_id = продавец, counterpart_id = покупатель
