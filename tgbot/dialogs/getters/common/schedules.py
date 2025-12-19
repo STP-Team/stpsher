@@ -12,7 +12,7 @@ from stp_database.repo.Stats import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
-from tgbot.misc.helpers import format_fullname
+from tgbot.misc.helpers import format_fullname, strftime_date
 from tgbot.services.files_processing.formatters.schedule import (
     get_current_date,
     get_current_month,
@@ -258,8 +258,15 @@ async def tutors_schedule_getter(
                 )
                 tutors_text += f"📝 <b>Тип:</b> {type_text}\n"
             tutors_text += "\n"
+
+        # Добавляем информацию о времени создания данных (используем первую запись)
     else:
-        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n📭 На выбранный день стажеров не найдено"
+        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n📭 На выбранный день стажеров не найдено\n"
+
+    data_created_at = trainees_schedule[0].created_at.strftime(strftime_date)
+    menu_updated_at = datetime.now().strftime(strftime_date)
+    tutors_text += f"""\n<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <code>{data_created_at}</code>
+Меню обновлено в <code>{menu_updated_at}</code></i>"""
 
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == get_current_date().date()

@@ -206,13 +206,13 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 Ночными часами считается локальное время 22:00 - 6:00
 Праздничные дни считаются по производственному <a href='https://www.consultant.ru/law/ref/calendar/proizvodstvennye/'>календарю</a></blockquote>
 
-<i>Расчет от: {result.calculation_time.strftime(strftime_date)}</i>
-<i>Данные премии от: {
+<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{
             result.premium_updated_at.replace(tzinfo=datetime.timezone.utc)
             .astimezone(datetime.timezone(datetime.timedelta(hours=5)))
             .strftime(strftime_date)
             if result.premium_updated_at
             else "—"
-        }</i>"""
+        }</code>
+Меню обновлено в <code>{result.calculation_time.strftime(strftime_date)}</code></i>"""
 
         return message_text
