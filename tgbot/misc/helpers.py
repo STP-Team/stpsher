@@ -1,5 +1,6 @@
 """Функции-помощники для основного кода."""
 
+import calendar
 import random
 import string
 from datetime import date
@@ -346,7 +347,7 @@ def calculate_age(birthday):
         birthday: Дата рождения (строка в формате DD.MM.YYYY)
 
     Returns:
-        int: Возраст в годах, или None если дата невалидна
+        str: Возраст с правильным склонением (например, "32 года"), или None если дата невалидна
     """
     if not birthday:
         return None
@@ -366,6 +367,92 @@ def calculate_age(birthday):
         if (today.month, today.day) < (birthday.month, birthday.day):
             age -= 1
 
-        return age
+        # Правильное склонение для возраста
+        if age % 10 == 1 and age % 100 != 11:
+            return f"{age} год"
+        elif age % 10 in [2, 3, 4] and age % 100 not in [12, 13, 14]:
+            return f"{age} года"
+        else:
+            return f"{age} лет"
+
+    except (ValueError, AttributeError):
+        return None
+
+
+def calculate_work_experience(employment_date):
+    """Вычисляет стаж работы на основе даты трудоустройства.
+
+    Args:
+        employment_date: Дата трудоустройства (строка в формате DD.MM.YYYY)
+
+    Returns:
+        str: Стаж в виде "X лет Y месяцев Z дней" или None если дата невалидна
+    """
+    if not employment_date:
+        return None
+
+    try:
+        # Парсим дату в формате DD.MM.YYYY
+        if isinstance(employment_date, str):
+            day, month, year = employment_date.split(".")
+            emp_date = date(int(year), int(month), int(day))
+        elif hasattr(employment_date, "date"):
+            emp_date = employment_date.date()
+        else:
+            emp_date = employment_date
+
+        today = date.today()
+
+        # Вычисляем разность
+        years = today.year - emp_date.year
+        months = today.month - emp_date.month
+        days = today.day - emp_date.day
+
+        # Корректируем, если текущий день меньше дня трудоустройства
+        if days < 0:
+            months -= 1
+            # Получаем количество дней в предыдущем месяце
+            if today.month == 1:
+                prev_month_days = calendar.monthrange(today.year - 1, 12)[1]
+            else:
+                prev_month_days = calendar.monthrange(today.year, today.month - 1)[1]
+            days += prev_month_days
+
+        # Корректируем, если текущий месяц меньше месяца трудоустройства
+        if months < 0:
+            years -= 1
+            months += 12
+
+        # Форматируем результат
+        parts = []
+        if years > 0:
+            if years == 1:
+                parts.append("1 год")
+            elif 2 <= years <= 4:
+                parts.append(f"{years} года")
+            else:
+                parts.append(f"{years} лет")
+
+        if months > 0:
+            if months == 1:
+                parts.append("1 месяц")
+            elif 2 <= months <= 4:
+                parts.append(f"{months} месяца")
+            else:
+                parts.append(f"{months} месяцев")
+
+        if days > 0 and len(parts) < 2:  # Показываем дни только если нет и лет, и месяцев
+            if days == 1:
+                parts.append("1 день")
+            elif 2 <= days <= 4:
+                parts.append(f"{days} дня")
+            else:
+                parts.append(f"{days} дней")
+
+        if not parts:
+            return "меньше дня"
+
+        return " ".join(parts)
+
     except (ValueError, AttributeError):
         return None
