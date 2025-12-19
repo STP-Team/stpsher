@@ -279,7 +279,7 @@ async def broadcast_detail_getter(
     creator = await stp_repo.employee.get_users(user_id=int(broadcast.user_id))
 
     # Получаем информацию о пользователях, которым не удалось отправить сообщение
-    failed_user_ids = getattr(broadcast, 'failed_recipients', None) or []
+    failed_user_ids = getattr(broadcast, "failed_recipients", None) or []
     failed_users = []
     failed_users_formatted = []
     for index, user_id in enumerate(failed_user_ids, 1):
@@ -299,5 +299,7 @@ async def broadcast_detail_getter(
         "creator_name": format_fullname(creator, True, True),
         "failed_users": failed_users,
         "failed_users_formatted": failed_users_formatted,
-        "failed_users_text": "\n".join(failed_users_formatted) if failed_users_formatted else "Нет",
+        "failed_users_text": "\n".join(failed_users_formatted)
+        if failed_users_formatted
+        else "Нет",
     }
