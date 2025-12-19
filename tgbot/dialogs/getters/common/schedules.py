@@ -274,7 +274,15 @@ async def tutors_schedule_getter(
     # Получаем выбранный режим отображения
     selected_mode = dialog_manager.find("tutors_schedule_mode").get_checked()
 
-    # Фильтруем данные в зависимости от выбранного режима
+    # Сначала получаем все данные для извлечения времени создания
+    all_trainees_schedule: Sequence[
+        TutorsSchedule
+    ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
+        training_date=selected_date,
+        division=user.division,
+    )
+
+    # Затем фильтруем данные в зависимости от выбранного режима
     if selected_mode == "mine":
         trainees_schedule: Sequence[
             TutorsSchedule
@@ -284,12 +292,7 @@ async def tutors_schedule_getter(
             division=user.division,
         )
     else:
-        trainees_schedule: Sequence[
-            TutorsSchedule
-        ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
-            training_date=selected_date,
-            division=user.division,
-        )
+        trainees_schedule = all_trainees_schedule
 
     # Формируем текст для отображения
     if trainees_schedule:
@@ -371,9 +374,9 @@ async def tutors_schedule_getter(
 
         tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n{empty_message}\n\n"
 
-    # Добавляем информацию о времени создания данных (если есть записи)
-    if trainees_schedule:
-        data_created_at = trainees_schedule[0].created_at.strftime(strftime_date)
+    # Добавляем информацию о времени создания данных (используем общие данные для получения времени)
+    if all_trainees_schedule:
+        data_created_at = all_trainees_schedule[0].created_at.strftime(strftime_date)
     else:
         data_created_at = "Неизвестно"
 
