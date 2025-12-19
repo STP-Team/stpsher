@@ -6,7 +6,7 @@ from aiogram.types import Message
 from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.misc.helpers import format_fullname, get_role
+from tgbot.misc.helpers import calculate_age, format_fullname, get_role
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +46,19 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
     if user.email:
         message_parts.append(f"<b>📧 Email:</b> {user.email}")
 
-    message_parts.append(
-        f"\n🛡️ <b> Уровень доступа:</b> {get_role(user.role)['name']}\n"
-    )
-
     if user.birthday:
-        message_parts.append(f"<b>🍰 День рождения:</b> {user.birthday}")
+        age = calculate_age(user.birthday)
+        birthday_text = f"\n<b>🍰 День рождения:</b> {user.birthday}"
+        if age is not None:
+            birthday_text += f" ({age} лет)"
+        message_parts.append(birthday_text)
 
     if user.employment_date:
         message_parts.append(f"<b>📅 Дата трудоустройства:</b> {user.employment_date}")
+
+    message_parts.append(
+        f"\n🛡️ <b> Уровень доступа:</b> {get_role(user.role)['name']}\n"
+    )
 
     return "\n".join(message_parts)
 

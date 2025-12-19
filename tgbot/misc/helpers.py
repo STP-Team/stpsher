@@ -2,6 +2,7 @@
 
 import random
 import string
+from datetime import date
 
 import pytz
 from stp_database.models.STP import Employee
@@ -336,3 +337,35 @@ def format_currency_price(
         return f"{price:g} {currency}/ч. ({total_price:g} {currency})"
     else:
         return f"{price:g} ₽/ч. ({total_price:g} ₽)"
+
+
+def calculate_age(birthday):
+    """Вычисляет возраст на основе даты рождения.
+
+    Args:
+        birthday: Дата рождения (строка в формате DD.MM.YYYY)
+
+    Returns:
+        int: Возраст в годах, или None если дата невалидна
+    """
+    if not birthday:
+        return None
+
+    try:
+        # Парсим дату в формате DD.MM.YYYY
+        if isinstance(birthday, str):
+            day, month, year = birthday.split(".")
+            birthday = date(int(year), int(month), int(day))
+        elif hasattr(birthday, "date"):
+            birthday = birthday.date()
+
+        today = date.today()
+        age = today.year - birthday.year
+
+        # Корректируем возраст, если день рождения ещё не наступил в этом году
+        if (today.month, today.day) < (birthday.month, birthday.day):
+            age -= 1
+
+        return age
+    except (ValueError, AttributeError):
+        return None
