@@ -118,7 +118,7 @@ my_window = Window(
         Radio(
             Format("🔘 {item[1]}"),
             Format("⚪️ {item[1]}"),
-            id="schedule_mode",
+            id="my_schedule_mode",
             item_id_getter=operator.itemgetter(0),
             items="mode_options",
         ),
@@ -300,6 +300,15 @@ tutors_window = Window(
             state=Schedules.tutors_calendar,
         ),
     ),
+    Row(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="tutors_schedule_mode",
+            item_id_getter=operator.itemgetter(0),
+            items="mode_options",
+        ),
+    ),
     Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.menu), HOME_BTN),
     getter=tutors_schedule_getter,
     state=Schedules.tutors,
@@ -342,9 +351,13 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
         _on_start: Дополнительные параметры запуска диалога
         dialog_manager: Менеджер диалога
     """
-    # Стандартный режим отображения графика на "Кратко"
-    schedule_mode: ManagedRadio = dialog_manager.find("schedule_mode")
-    await schedule_mode.set_checked("compact")
+    # Стандартный режим отображения личного графика на "Кратко"
+    my_schedule_mode: ManagedRadio = dialog_manager.find("my_schedule_mode")
+    await my_schedule_mode.set_checked("compact")
+
+    # Стандартный режим отображения графика наставников на "Только мое"
+    tutors_schedule_mode: ManagedRadio = dialog_manager.find("tutors_schedule_mode")
+    await tutors_schedule_mode.set_checked("mine")
 
 
 schedules_dialog = Dialog(

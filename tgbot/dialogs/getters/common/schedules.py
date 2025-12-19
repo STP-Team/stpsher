@@ -65,7 +65,7 @@ async def user_schedule_getter(
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
 
-    selected_mode = dialog_manager.find("schedule_mode").get_checked()
+    selected_mode = dialog_manager.find("my_schedule_mode").get_checked()
     is_detailed_mode = selected_mode == "detailed"
     button_text = "📋 Кратко" if is_detailed_mode else "📋 Подробнее"
 
@@ -258,6 +258,11 @@ async def tutors_schedule_getter(
     Returns:
         Словарь с текстом графика наставников
     """
+    mode_options = [
+        ("mine", "Только мое"),
+        ("all", "Общее"),
+    ]
+
     current_date_str = dialog_manager.dialog_data.get("current_date")
     if current_date_str is None:
         current_date = get_current_date()
@@ -266,12 +271,25 @@ async def tutors_schedule_getter(
 
     selected_date = current_date.date()
 
-    trainees_schedule: Sequence[
-        TutorsSchedule
-    ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
-        training_date=selected_date,
-        division=user.division,
-    )
+    # Получаем выбранный режим отображения
+    selected_mode = dialog_manager.find("tutors_schedule_mode").get_checked()
+
+    # Фильтруем данные в зависимости от выбранного режима
+    if selected_mode == "mine":
+        trainees_schedule: Sequence[
+            TutorsSchedule
+        ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
+            tutor_fullname=user.fullname,
+            training_date=selected_date,
+            division=user.division,
+        )
+    else:
+        trainees_schedule: Sequence[
+            TutorsSchedule
+        ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
+            training_date=selected_date,
+            division=user.division,
+        )
 
     # Формируем текст для отображения
     if trainees_schedule:
@@ -345,9 +363,20 @@ async def tutors_schedule_getter(
 
         # Добавляем информацию о времени создания данных (используем первую запись)
     else:
-        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n📭 На выбранный день стажеров не найдено\n"
+        # Персонализированное сообщение в зависимости от режима
+        if selected_mode == "mine":
+            empty_message = "📭 На выбранный день у тебя нет стажеров"
+        else:
+            empty_message = "📭 На выбранный день стажеров не найдено"
 
-    data_created_at = trainees_schedule[0].created_at.strftime(strftime_date)
+        tutors_text = f"<b>🎓 Наставничество на {current_date.strftime('%d.%m.%Y')}</b>\n\n{empty_message}\n\n"
+
+    # Добавляем информацию о времени создания данных (если есть записи)
+    if trainees_schedule:
+        data_created_at = trainees_schedule[0].created_at.strftime(strftime_date)
+    else:
+        data_created_at = "Неизвестно"
+
     menu_updated_at = datetime.now().strftime(strftime_date)
     tutors_text += f"""<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <code>{data_created_at}</code>
 Меню обновлено в <code>{menu_updated_at}</code></i>"""
@@ -359,6 +388,7 @@ async def tutors_schedule_getter(
         "tutors_text": tutors_text,
         "date_display": date_display,
         "is_today": is_today,
+        "mode_options": mode_options,
     }
 
 

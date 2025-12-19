@@ -441,7 +441,9 @@ def calculate_work_experience(employment_date):
             else:
                 parts.append(f"{months} месяцев")
 
-        if days > 0 and len(parts) < 2:  # Показываем дни только если нет и лет, и месяцев
+        if (
+            days > 0 and len(parts) < 2
+        ):  # Показываем дни только если нет и лет, и месяцев
             if days == 1:
                 parts.append("1 день")
             elif 2 <= days <= 4:
