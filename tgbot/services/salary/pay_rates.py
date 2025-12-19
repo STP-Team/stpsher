@@ -66,3 +66,8 @@ class PayRateService:
     def get_night_holiday_multiplier() -> float:
         """Получает множитель ночных праздничных часов."""
         return 2.4
+
+    @staticmethod
+    def get_remote_work_compensation() -> float:
+        """Получает компенсацию за удаленную работу (за рабочий день)."""
+        return 35.0

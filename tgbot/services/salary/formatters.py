@@ -109,6 +109,13 @@ class SalaryFormatter:
 Сумма доп. смен: {cls.format_value(result.additional_shift_salary, " ₽")}</blockquote>'''
             if result.additional_shift_salary > 0
             else ""
+        }{
+            f'''
+
+🏠 <b>Компенсация за удаленную работу:</b>
+<blockquote>Рабочих дней: {result.working_days} × 35 ₽ = {cls.format_value(result.remote_work_compensation_amount, " ₽")}</blockquote>'''
+            if result.remote_work_compensation_amount > 0
+            else ""
         }
 
 🎁 <b>Премия:</b>
@@ -187,7 +194,7 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 <i>(включая ночные/праздничные доплаты)</i></blockquote>
 
 💵 Основная часть: ~<b>{cls.format_value(result.main_payment, " ₽")}</b>
-<blockquote><i>(вторая половина + премии + доп. смены)</i></blockquote></blockquote>
+<blockquote><i>(вторая половина + премии + допки + компенсация)</i></blockquote></blockquote>
 
 <blockquote expandable>⚠️ <b>Важное</b>
 

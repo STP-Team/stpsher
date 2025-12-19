@@ -46,6 +46,7 @@ class SalaryCalculationResult:
         base_salary: Базовая зарплата (без премии)
         additional_shift_salary: Зарплата за дополнительные смены
         additional_shift_rate: Единая ставка для всех дополнительных смен (2x + премия пользователя)
+        remote_work_compensation_amount: Компенсация за удаленную работу (35₽ за рабочий день)
 
         csi_premium_amount: Сумма премии CSI
         flr_premium_amount: Сумма премии FLR
@@ -94,6 +95,7 @@ class SalaryCalculationResult:
     base_salary: float
     additional_shift_salary: float
     additional_shift_rate: float
+    remote_work_compensation_amount: float
 
     # Премия
     csi_premium_amount: float
@@ -628,6 +630,11 @@ class SalaryCalculator:
         # Все часы дополнительных смен оплачиваются по единой ставке (без доплат за ночь/праздники)
         additional_shift_salary = additional_shift_hours * additional_shift_rate
 
+        # Считаем компенсацию за удаленную работу
+        remote_work_compensation_amount = (
+            working_days * PayRateService.get_remote_work_compensation()
+        )
+
         # Считаем индивидуальную сумму для каждого показателя премии (основываясь на базовой зарплате)
         # Проверяем тип премиум данных по роли пользователя
         is_head_premium = user.role == 2
@@ -674,7 +681,12 @@ class SalaryCalculator:
         # Считаем общую сумму премии
         premium_multiplier = (premium_data.total_premium or 0) / 100
         premium_amount = base_salary * premium_multiplier
-        total_salary = base_salary + premium_amount + additional_shift_salary
+        total_salary = (
+            base_salary
+            + premium_amount
+            + additional_shift_salary
+            + remote_work_compensation_amount
+        )
 
         # Считаем часы и полную стоимость первой половины месяца для аванса
         first_half_hours = cls._calculate_first_half_hours(schedule_data)
@@ -682,7 +694,7 @@ class SalaryCalculator:
         advance_payment = await cls._calculate_first_half_salary(
             schedule_data, pay_rate, target_year, selected_month_num
         )
-        # Основная часть = полная зарплата - аванс (зарплата второй половины + премии + доп. смены)
+        # Основная часть = полная зарплата - аванс (зарплата второй половины + премии + доп. смены + компенсация за удаленную работу)
         main_payment = total_salary - advance_payment
 
         return SalaryCalculationResult(
@@ -705,6 +717,7 @@ class SalaryCalculator:
             base_salary=base_salary,
             additional_shift_salary=additional_shift_salary,
             additional_shift_rate=additional_shift_rate,
+            remote_work_compensation_amount=remote_work_compensation_amount,
             csi_premium_amount=csi_premium_amount,
             flr_premium_amount=flr_premium_amount,
             gok_premium_amount=gok_premium_amount,
