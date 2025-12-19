@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from stp_database.models.STP import Employee
+from stp_database.repo.STP import MainRequestsRepo
 
 from infrastructure.api.production_calendar import production_calendar
 from tgbot.misc.dicts import russian_months
@@ -61,6 +62,11 @@ class SalaryCalculationResult:
 
         total_salary: Итоговая зарплата
 
+        exchange_income: Доходы от биржевых операций за месяц
+        exchange_expenses: Расходы на биржевые операции за месяц
+        exchange_net_profit: Чистая прибыль от биржевых операций (доходы - расходы)
+        total_with_exchanges: Итоговая зарплата с учетом биржевых операций
+
         first_half_hours: Часы работы в первой половине месяца (1-15 числа)
         advance_payment: Аванс (первая половина месяца × ставка)
         main_payment: Основная часть зарплаты (полная зарплата - аванс)
@@ -111,6 +117,12 @@ class SalaryCalculationResult:
 
     # Финальный подсчет зарплаты
     total_salary: float
+
+    # Биржевые операции
+    exchange_income: float
+    exchange_expenses: float
+    exchange_net_profit: float
+    total_with_exchanges: float
 
     # Аванс и основная часть зарплаты
     first_half_hours: float
@@ -514,7 +526,11 @@ class SalaryCalculator:
 
     @classmethod
     async def calculate_salary(
-        cls, user: Employee, premium_data, current_month: Optional[str] = None
+        cls,
+        user: Employee,
+        premium_data,
+        stp_repo: MainRequestsRepo,
+        current_month: Optional[str] = None,
     ) -> SalaryCalculationResult:
         """Выполняет полный расчет зарплаты сотрудника за месяц.
 
@@ -527,6 +543,7 @@ class SalaryCalculator:
                 должности, подразделении и ФИО
             premium_data: Объект с данными о премиях (SpecPremium или HeadPremium)
                 содержащий процентные значения всех видов премий
+            stp_repo: Репозиторий для работы с базой данных STP
             current_month: Название месяца для расчета (по умолчанию текущий)
 
         Returns:
@@ -697,6 +714,31 @@ class SalaryCalculator:
         # Основная часть = полная зарплата - аванс (зарплата второй половины + премии + доп. смены + компенсация за удаленную работу)
         main_payment = total_salary - advance_payment
 
+        # Расчет биржевых операций за выбранный месяц
+        # Создаем диапазон дат для выбранного месяца
+        start_date = datetime.datetime(target_year, selected_month_num, 1)
+
+        # Конец месяца
+        if selected_month_num == 12:
+            end_date = datetime.datetime(target_year + 1, 1, 1)
+        else:
+            end_date = datetime.datetime(target_year, selected_month_num + 1, 1)
+
+        # Получаем финансовую статистику биржевых операций за период
+        exchange_income = await stp_repo.exchange.get_user_total_gain(
+            user_id=user.user_id, start_date=start_date, end_date=end_date
+        )
+
+        exchange_expenses = await stp_repo.exchange.get_user_total_loss(
+            user_id=user.user_id, start_date=start_date, end_date=end_date
+        )
+
+        # Вычисляем чистую прибыль от биржевых операций
+        exchange_net_profit = exchange_income - exchange_expenses
+
+        # Итоговая сумма с учетом биржевых операций
+        total_with_exchanges = total_salary + exchange_net_profit
+
         return SalaryCalculationResult(
             user=user,
             current_month_name=current_month_name,
@@ -729,6 +771,10 @@ class SalaryCalculator:
             head_adjust_premium_amount=head_adjust_premium_amount,
             premium_amount=premium_amount,
             total_salary=total_salary,
+            exchange_income=exchange_income,
+            exchange_expenses=exchange_expenses,
+            exchange_net_profit=exchange_net_profit,
+            total_with_exchanges=total_with_exchanges,
             first_half_hours=first_half_hours,
             advance_payment=advance_payment,
             main_payment=main_payment,

@@ -8,6 +8,7 @@ from stp_database.models.Stats.head_premium import HeadPremium
 from stp_database.models.Stats.spec_premium import SpecPremium
 from stp_database.models.STP import Employee
 from stp_database.repo.Stats.requests import StatsRequestsRepo
+from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.misc.helpers import strftime_date
@@ -238,6 +239,7 @@ async def kpi_requirements_getter(
 
 async def salary_getter(
     user: Employee,
+    stp_repo: MainRequestsRepo,
     stats_repo: StatsRequestsRepo,
     dialog_manager: DialogManager,
     **_kwargs,
@@ -246,6 +248,7 @@ async def salary_getter(
 
     Args:
         user: Экземпляр пользователя с моделью Employee
+        stp_repo: Репозиторий операций с базой STP
         stats_repo: Репозиторий операций с базой KPI
         dialog_manager: Менеджер диалога для получения выбранного месяца
 
@@ -265,7 +268,10 @@ async def salary_getter(
 
     try:
         salary_result = await SalaryCalculator.calculate_salary(
-            user=user, premium_data=premium, current_month=data.get("current_month")
+            user=user,
+            premium_data=premium,
+            stp_repo=stp_repo,
+            current_month=data.get("current_month"),
         )
     except Exception as e:
         salary_result = f"""💰 <b>Зарплата</b>

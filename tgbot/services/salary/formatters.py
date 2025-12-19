@@ -187,7 +187,11 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
         message_text += f"""</blockquote>
 
 💰 <b>Итого к выплате:</b>
-<blockquote>Полная зарплата: ~<b>{cls.format_value(result.total_salary, " ₽")}</b>
+<blockquote>Полная зарплата: ~<b>{cls.format_value(result.total_salary, " ₽")}</b>{
+            f" <tg-spoiler>(+{cls.format_value(result.exchange_net_profit, ' ₽')} за сделки = {cls.format_value(result.total_with_exchanges, ' ₽')})</tg-spoiler>"
+            if result.exchange_net_profit != 0
+            else ""
+        }
 
 🏦 Аванс (1-15 числа): ~<b>{cls.format_value(result.advance_payment, " ₽")}</b>
 <blockquote>Часы первой половины: {cls.format_value(result.first_half_hours, "ч")}
@@ -211,7 +215,9 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 Ночными часами считается локальное время 22:00 - 6:00
 Праздничные дни считаются по производственному <a href='https://www.consultant.ru/law/ref/calendar/proizvodstvennye/'>календарю</a></blockquote>
 
-<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{result.premium_updated_at.strftime(strftime_date)}</code>
+<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{
+            result.premium_updated_at.strftime(strftime_date)
+        }</code>
 Меню обновлено в <code>{result.calculation_time.strftime(strftime_date)}</code></i>"""
 
         return message_text
