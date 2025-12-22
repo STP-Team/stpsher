@@ -303,7 +303,7 @@ groups_members_window = Window(
             on_click=on_member_selected,
         ),
         id="members_scroll",
-        width=1,
+        width=2,
         height=6,
         when="has_members",
         hide_on_single_page=True,

@@ -578,11 +578,23 @@ async def groups_members_getter(
             ))
             available_roles.add("unregistered")
 
-    # Сортируем: сначала сотрудники, потом остальные, внутри каждой группы по имени
-    members_list.sort(key=lambda x: (x[2] != "employee", x[0]))
+    def get_sort_name(member_tuple):
+        """Извлекает имя для сортировки, убирая эмодзи и символы."""
+        display_name = member_tuple[0]
+        # Убираем эмодзи и лишние символы для правильной сортировки
+        import re
+
+        # Убираем эмодзи в начале строки (до первого пробела)
+        clean_name = re.sub(r"^[^\w\s]+\s*", "", display_name)
+        # Убираем @ символы и другие спецсимволы
+        clean_name = re.sub(r"[@()]+", "", clean_name)
+        return clean_name.strip().lower()
+
+    # Сортируем: сначала сотрудники, потом остальные, внутри каждой группы по имени (алфавитно)
+    members_list.sort(key=lambda x: (x[2] != "employee", get_sort_name(x)))
 
     # Создаем список доступных фильтров по ролям
-    role_filters = [("all", "Без фильтра")]
+    role_filters = [("all", "Все")]
 
     # Добавляем фильтры для ролей сотрудников
     for role_id in sorted(available_roles):
@@ -611,7 +623,7 @@ async def groups_members_getter(
     # Фильтруем участников по выбранной роли
     if current_filter == "all":
         filtered_members = [(m[0], m[1], m[2], m[3]) for m in members_list]
-        current_filter_name = "Без фильтра"
+        current_filter_name = "Все"
     else:
         filtered_members = []
         current_filter_name = "Неизвестный фильтр"
@@ -627,6 +639,9 @@ async def groups_members_getter(
             member_role = member[4]  # роль находится на 5-й позиции
             if str(member_role) == current_filter:
                 filtered_members.append((member[0], member[1], member[2], member[3]))
+
+        # Сортируем отфильтрованных участников алфавитно
+        filtered_members.sort(key=lambda x: get_sort_name(x))
 
     # Получаем тип группы для правильного отображения
     group_settings = await stp_repo.group.get_groups(group_id=group_id)
