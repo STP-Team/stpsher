@@ -4,9 +4,9 @@ import logging
 from datetime import datetime
 
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import DialogManager
+from aiogram_dialog import ChatEvent, DialogManager
 from aiogram_dialog.widgets.input import ManagedTextInput
-from aiogram_dialog.widgets.kbd import Button, ManagedCalendar
+from aiogram_dialog.widgets.kbd import Button, ManagedCalendar, Select
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.events.common.exchanges.create.sell import (
@@ -129,8 +129,8 @@ async def on_buy_price_input(
         # Сохраняем цену за час
         dialog_manager.dialog_data["buy_price_per_hour"] = price_per_hour
 
-        # Переходим к комментарию
-        await dialog_manager.switch_to(ExchangeCreateBuy.comment)
+        # Переходим к выбору времени оплаты
+        await dialog_manager.switch_to(ExchangeCreateBuy.payment_timing)
 
     except ValueError:
         await message.answer("❌ Введите корректную цену (например: 500 или 750)")
@@ -225,8 +225,13 @@ async def on_confirm_buy(
             await event.answer("❌ Ты заблокирован от участия в бирже", show_alert=True)
             return
 
-        # Получаем комментарий
+        # Получаем комментарий и данные об оплате
         comment = data.get("buy_comment")
+        payment_type = data.get("buy_payment_type", "immediate")
+        payment_date = None
+
+        if payment_type == "on_date" and data.get("buy_payment_date"):
+            payment_date = datetime.fromisoformat(data["buy_payment_date"])
 
         # Создаем запрос на покупку
         exchange = await stp_repo.exchange.create_exchange(
@@ -234,8 +239,8 @@ async def on_confirm_buy(
             start_time=start_time,
             end_time=end_time,
             price=price_per_hour,  # Цена за час
-            payment_type="immediate",  # Для buy-запросов всегда немедленная оплата
-            payment_date=None,
+            payment_type=payment_type,  # Используем выбранный пользователем тип оплаты
+            payment_date=payment_date,
             comment=comment,
             owner_intent="buy",  # Указываем тип как покупка смены
             is_private=False,  # По умолчанию создаем публичные обмены
@@ -272,3 +277,45 @@ async def on_confirm_buy(
 
     except Exception:
         await event.answer("❌ Произошла ошибка при создании запроса", show_alert=True)
+
+
+async def on_buy_payment_timing_selected(
+    _event: CallbackQuery,
+    _widget: Select,
+    dialog_manager: DialogManager,
+    item_id: str,
+):
+    """Обработчик выбора времени оплаты для покупки."""
+    if item_id == "immediate":
+        dialog_manager.dialog_data["buy_payment_type"] = "immediate"
+        dialog_manager.dialog_data["buy_payment_date"] = None
+        # Переходим к комментарию
+        await dialog_manager.switch_to(ExchangeCreateBuy.comment)
+    elif item_id == "on_date":
+        dialog_manager.dialog_data["buy_payment_type"] = "on_date"
+        # Переходим к выбору даты платежа
+        await dialog_manager.switch_to(ExchangeCreateBuy.payment_date)
+    elif item_id == "by_agreement":
+        dialog_manager.dialog_data["buy_payment_type"] = "by_agreement"
+        dialog_manager.dialog_data["buy_payment_date"] = None
+        # Переходим к комментарию
+        await dialog_manager.switch_to(ExchangeCreateBuy.comment)
+
+
+async def on_buy_payment_date_selected(
+    event: ChatEvent,
+    _widget: ManagedCalendar,
+    dialog_manager: DialogManager,
+    selected_date: datetime,
+):
+    """Обработчик выбора даты платежа для покупки."""
+    # Проверяем, что дата платежа не в прошлом
+    if selected_date < datetime.now().date():
+        await event.answer("❌ Дата платежа не может быть в прошлом", show_alert=True)
+        return
+
+    # Сохраняем дату платежа
+    dialog_manager.dialog_data["buy_payment_date"] = selected_date.isoformat()
+
+    # Переходим к комментарию
+    await dialog_manager.switch_to(ExchangeCreateBuy.comment)

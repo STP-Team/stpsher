@@ -1,11 +1,15 @@
 """Генерация диалога создания покупки на бирже."""
 
+import operator
+
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
     Button,
     Cancel,
+    Group,
     Row,
+    Select,
     SwitchTo,
 )
 from aiogram_dialog.widgets.text import Const, Format
@@ -16,6 +20,8 @@ from tgbot.dialogs.events.common.exchanges.create.buy import (
     on_buy_date_skip,
     on_buy_hours_input,
     on_buy_hours_skip,
+    on_buy_payment_date_selected,
+    on_buy_payment_timing_selected,
     on_buy_price_input,
     on_buy_skip_comment,
     on_confirm_buy,
@@ -28,9 +34,12 @@ from tgbot.dialogs.getters.common.exchanges.create.buy import (
     buy_confirmation_getter,
     buy_date_getter,
     buy_hours_getter,
+    buy_payment_date_getter,
+    buy_payment_timing_getter,
     buy_price_getter,
 )
 from tgbot.dialogs.states.common.exchanges import ExchangeCreateBuy
+from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
@@ -102,13 +111,65 @@ price_window = Window(
     state=ExchangeCreateBuy.price,
 )
 
+payment_timing_window = Window(
+    Const("💳 <b>Шаг 4: Условия оплаты</b>"),
+    Format("""
+<blockquote>📅 <b>Дата:</b> <code>{date_info}</code>
+🕐 <b>Время:</b> <code>{time_info}</code>
+💰 <b>Цена за час:</b> <code>{price_per_hour} ₽</code></blockquote>"""),
+    Format("\nВыбери когда должна поступить оплата:"),
+    Group(
+        Select(
+            Format("{item[1]}"),
+            id="buy_payment_timing",
+            items=[
+                ("immediate", "💸 Сразу"),
+                ("by_agreement", "🤝 По договоренности"),
+                ("on_date", "📅 Выбрать дату"),
+            ],
+            item_id_getter=operator.itemgetter(0),
+            on_click=on_buy_payment_timing_selected,
+        ),
+        width=1,
+    ),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateBuy.price),
+        HOME_BTN,
+    ),
+    getter=buy_payment_timing_getter,
+    state=ExchangeCreateBuy.payment_timing,
+)
+
+payment_date_window = Window(
+    Const("📅 <b>Шаг 5: Дата платежа</b>"),
+    Format("""
+<blockquote>📅 <b>Дата:</b> <code>{date_info}</code>
+🕐 <b>Время:</b> <code>{time_info}</code>
+💰 <b>Цена за час:</b> <code>{price_per_hour} ₽</code></blockquote>"""),
+    Format("\nВыбери крайнюю дату для оплаты:"),
+    Format("<i>Можно выбрать любую дату, начиная с сегодня</i>"),
+    RussianCalendar(
+        id="buy_payment_date_calendar",
+        on_click=on_buy_payment_date_selected,
+    ),
+    Button(Const("✋ Отмена"), id="cancel", on_click=finish_exchanges_dialog),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateBuy.payment_timing),
+        HOME_BTN,
+    ),
+    getter=buy_payment_date_getter,
+    state=ExchangeCreateBuy.payment_date,
+)
+
 comment_window = Window(
-    Const("💬 <b>Шаг 4: Комментарий (необязательно)</b>"),
+    Const("💬 <b>Шаг 6: Комментарий (необязательно)</b>"),
     Format("Дата: <code>{selected_date}</code>", when="selected_date"),
     Format("Дата: Любая", when="any_date"),
     Format("Время: <code>{hours_range}</code>", when="hours_range"),
     Format("Время: Любое", when="any_hours"),
     Format("Цена за час: <code>{price_per_hour} ₽</code>"),
+    Format("Оплата: <code>{payment_type}</code>"),
     Format("\nМожешь добавить комментарий к запросу или нажать <b>➡️ Пропустить</b>"),
     TextInput(
         id="buy_comment_input",
@@ -119,7 +180,7 @@ comment_window = Window(
         Button(Const("➡️ Пропустить"), id="skip_comment", on_click=on_buy_skip_comment),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateBuy.price),
+        SwitchTo(Const("↩️ Назад"), id="back", state=ExchangeCreateBuy.payment_timing),
         HOME_BTN,
     ),
     getter=buy_comment_getter,
@@ -127,12 +188,13 @@ comment_window = Window(
 )
 
 confirmation_window = Window(
-    Const("✅ <b>Подтверждение сделки</b>"),
+    Const("✅ <b>Шаг 7: Подтверждение сделки</b>"),
     Format("""
 Проверь данные перед публикацией:
 
 📅 <b>Предложение:</b> <code>{date_info} {time_info} ПРМ</code>
-💰 <b>Цена за час:</b> <code>{price_per_hour} ₽</code>"""),
+💰 <b>Цена за час:</b> <code>{price_per_hour} ₽</code>
+💳 <b>Оплата:</b> <code>{payment_info}</code>"""),
     Format(
         "💬 <b>Комментарий:</b>\n<blockquote expandable>{comment}</blockquote>",
         when="comment",
@@ -154,6 +216,8 @@ exchanges_buy_dialog = Dialog(
     date_window,
     hours_window,
     price_window,
+    payment_timing_window,
+    payment_date_window,
     comment_window,
     confirmation_window,
 )

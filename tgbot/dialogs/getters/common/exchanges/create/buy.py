@@ -93,8 +93,19 @@ async def buy_comment_getter(
     end_time = data.get("end_time")
     any_hours = data.get("any_hours", False)
     price_per_hour = data.get("buy_price_per_hour", 0)
+    payment_type = data.get("buy_payment_type", "immediate")
 
-    result = {"price_per_hour": price_per_hour}
+    # Форматируем тип оплаты
+    if payment_type == "immediate":
+        payment_type_text = "Сразу"
+    elif payment_type == "on_date":
+        payment_type_text = "В выбранную дату"
+    elif payment_type == "by_agreement":
+        payment_type_text = "По договоренности"
+    else:
+        payment_type_text = "Не указано"
+
+    result = {"price_per_hour": price_per_hour, "payment_type": payment_type_text}
 
     # Дата
     if buy_date:
@@ -128,6 +139,8 @@ async def buy_confirmation_getter(
     end_time = data.get("end_time")
     price_per_hour = data.get("buy_price_per_hour", 0)
     comment = data.get("buy_comment")
+    payment_type = data.get("buy_payment_type", "immediate")
+    payment_date = data.get("buy_payment_date")
 
     # Информация о дате
     if buy_date:
@@ -146,14 +159,96 @@ async def buy_confirmation_getter(
     else:
         time_info = "Любое время"
 
+    # Информация об оплате
+    if payment_type == "immediate":
+        payment_info = "Сразу"
+    elif payment_type == "on_date" and payment_date:
+        date_obj = datetime.fromisoformat(payment_date).date()
+        payment_info = f"До {date_obj.strftime('%d.%m.%Y')}"
+    elif payment_type == "by_agreement":
+        payment_info = "По договоренности"
+    else:
+        payment_info = "Не указано"
+
     result = {
         "date_info": date_info,
         "time_info": time_info,
         "price_per_hour": price_per_hour,
+        "payment_info": payment_info,
     }
 
     # Добавляем комментарий если есть
     if comment:
         result["comment"] = comment
+
+    return result
+
+
+async def buy_payment_timing_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна выбора времени оплаты покупки."""
+    data = dialog_manager.dialog_data
+
+    buy_date = data.get("buy_date")
+    any_date = data.get("any_date", False)
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    any_hours = data.get("any_hours", False)
+    price_per_hour = data.get("buy_price_per_hour", 0)
+
+    result = {"price_per_hour": price_per_hour}
+
+    # Информация о дате
+    if buy_date:
+        date_obj = datetime.fromisoformat(buy_date).date()
+        result["date_info"] = date_obj.strftime("%d.%m.%Y")
+    elif any_date:
+        result["date_info"] = "Любая дата"
+
+    # Информация о времени
+    if start_time and end_time:
+        start_time_str = (
+            start_time.split("T")[1][:5] if "T" in start_time else start_time
+        )
+        end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+        result["time_info"] = f"{start_time_str}-{end_time_str}"
+    elif any_hours:
+        result["time_info"] = "Любое время"
+
+    return result
+
+
+async def buy_payment_date_getter(
+    dialog_manager: DialogManager, **_kwargs
+) -> Dict[str, Any]:
+    """Геттер для окна выбора даты платежа покупки."""
+    data = dialog_manager.dialog_data
+
+    buy_date = data.get("buy_date")
+    any_date = data.get("any_date", False)
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+    any_hours = data.get("any_hours", False)
+    price_per_hour = data.get("buy_price_per_hour", 0)
+
+    result = {"price_per_hour": price_per_hour}
+
+    # Информация о дате
+    if buy_date:
+        date_obj = datetime.fromisoformat(buy_date).date()
+        result["date_info"] = date_obj.strftime("%d.%m.%Y")
+    elif any_date:
+        result["date_info"] = "Любая дата"
+
+    # Информация о времени
+    if start_time and end_time:
+        start_time_str = (
+            start_time.split("T")[1][:5] if "T" in start_time else start_time
+        )
+        end_time_str = end_time.split("T")[1][:5] if "T" in end_time else end_time
+        result["time_info"] = f"{start_time_str}-{end_time_str}"
+    elif any_hours:
+        result["time_info"] = "Любое время"
 
     return result
