@@ -74,6 +74,7 @@ menu_window = Window(
         Const("🎓 Наставники"),
         id="schedule_tutors",
         state=Schedules.tutors,
+        when=F["is_tutor"],
     ),
     Button(
         Const("🎭 Биржа подмен"),
