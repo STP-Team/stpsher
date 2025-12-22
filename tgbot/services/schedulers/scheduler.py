@@ -16,6 +16,7 @@ from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.exchanges import ExchangesScheduler
 from tgbot.services.schedulers.hr import HRScheduler
 from tgbot.services.schedulers.studies import StudiesScheduler
+from tgbot.services.schedulers.tutors import TutorsScheduler
 
 config = load_config(".env")
 logger = logging.getLogger(__name__)
@@ -28,13 +29,14 @@ class SchedulerManager:
         """Инициализация менеджера планировщика.
 
         Создает экземпляр AsyncIOScheduler, настраивает его параметры
-        и инициализирует все специализированные планировщики (HR, достижения, обучения).
+        и инициализирует все специализированные планировщики (HR, достижения, обучения, наставничество).
 
         Attributes:
             self.scheduler: Асинхронный планировщик задач APScheduler
             self.hr: Планировщик задач по HR
             self.achievements: Планировщик задач по достижениям
             self.studies: Планировщик задач по обучениям
+            self.tutors: Планировщик задач по наставничеству
         """
         self.scheduler = AsyncIOScheduler()
         self._configure_scheduler()
@@ -44,6 +46,7 @@ class SchedulerManager:
         self.achievements = AchievementScheduler()
         self.studies = StudiesScheduler()
         self.exchanges = ExchangesScheduler()
+        self.tutors = TutorsScheduler()
 
     def _configure_scheduler(self):
         job_defaults = {
@@ -103,6 +106,11 @@ class SchedulerManager:
 
         # Задачи биржи
         self.exchanges.setup_jobs(self.scheduler, stp_session_pool, bot=bot)
+
+        # Задачи наставничества
+        self.tutors.setup_jobs(
+            self.scheduler, stp_session_pool, stats_session_pool, bot
+        )
 
         logger.info("[Планировщик] Все задачи настроены")
 
