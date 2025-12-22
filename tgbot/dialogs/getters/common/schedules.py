@@ -35,7 +35,6 @@ async def schedules_getter(
     """
     exchange_banned = await stp_repo.exchange.is_user_exchange_banned(user.user_id)
     tutors_access = True if user.is_tutor or user.role in [2, 3, 10] else False
-    print(tutors_access)
     return {"exchange_banned": exchange_banned, "tutor_access": tutors_access}
 
 
