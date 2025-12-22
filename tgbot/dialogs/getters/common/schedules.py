@@ -33,9 +33,10 @@ async def schedules_getter(
     Returns:
         Словарь с доступом сотрудника к бирже
     """
-    is_banned = await stp_repo.exchange.is_user_exchange_banned(user.user_id)
+    exchange_banned = await stp_repo.exchange.is_user_exchange_banned(user.user_id)
     tutors_access = True if user.is_tutor or user.role in [2, 3, 10] else False
-    return {"is_banned": is_banned, "tutor_access": tutors_access}
+    print(tutors_access)
+    return {"exchange_banned": exchange_banned, "tutor_access": tutors_access}
 
 
 async def user_schedule_getter(
