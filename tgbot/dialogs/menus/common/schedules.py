@@ -80,7 +80,7 @@ menu_window = Window(
         Const("🎭 Биржа подмен"),
         id="exchanges",
         on_click=start_exchanges_dialog,
-        when=~F["is_banned"],
+        when=~F["tutor_access"],
     ),
     HOME_BTN,
     getter=schedules_getter,
