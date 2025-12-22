@@ -596,16 +596,19 @@ async def groups_members_getter(
     # Создаем список доступных фильтров по ролям
     role_filters = [("all", "Все")]
 
-    # Добавляем фильтры для ролей сотрудников
-    for role_id in sorted(available_roles):
-        if role_id != "unregistered":
-            role_info = get_role(role_id)
-            role_name = (
-                f"{role_info['emoji']} {role_info['name']}"
-                if role_info["emoji"]
-                else role_info["name"]
-            )
-            role_filters.append((str(role_id), role_name))
+    # Разделяем роли на числовые и строковые для правильной сортировки
+    numeric_roles = [role_id for role_id in available_roles if isinstance(role_id, int)]
+    string_roles = [role_id for role_id in available_roles if isinstance(role_id, str)]
+
+    # Добавляем фильтры для ролей сотрудников (только числовые роли)
+    for role_id in sorted(numeric_roles):
+        role_info = get_role(role_id)
+        role_name = (
+            f"{role_info['emoji']} {role_info['name']}"
+            if role_info["emoji"]
+            else role_info["name"]
+        )
+        role_filters.append((str(role_id), role_name))
 
     # Добавляем фильтр для незарегистрированных, если они есть
     if "unregistered" in available_roles:
