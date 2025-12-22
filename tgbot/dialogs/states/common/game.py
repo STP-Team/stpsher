@@ -43,3 +43,7 @@ class Game(StatesGroup):
     # Комментарии менеджера
     activation_approve_comment = State()
     activation_reject_comment = State()
+
+    # История активаций
+    activations_history = State()
+    activations_history_details = State()

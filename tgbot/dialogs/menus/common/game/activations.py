@@ -17,13 +17,16 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.events.common.game.activations import (
     on_activation_approve_comment_input,
     on_activation_click,
+    on_activation_history_click,
     on_activation_reject_comment_input,
     on_skip_approve_comment,
     on_skip_reject_comment,
 )
 from tgbot.dialogs.getters.common.game.activations import (
     activation_detail_getter,
+    activation_history_detail_getter,
     activations_getter,
+    activations_history_getter,
 )
 from tgbot.dialogs.states.common.game import Game
 from tgbot.dialogs.widgets.buttons import HOME_BTN
@@ -55,7 +58,11 @@ activations_window = Window(
         id="activations_scroll",
         on_page_changed=sync_scroll("activations_list"),
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
+        SwitchTo(Const("📜 История"), id="history", state=Game.activations_history),
+    ),
+    Row(HOME_BTN),
     getter=activations_getter,
     state=Game.activations,
 )
@@ -161,4 +168,88 @@ no_activations_window = Window(
 Нет предметов, ожидающих активации 😊"""),
     Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
     state=Game.no_activations,
+)
+
+activations_history_window = Window(
+    Format("""📜 <b>История активаций</b>
+
+Всего записей в истории: {total_history}
+"""),
+    List(
+        Format("""<b>{pos}. {item[1]}</b>
+<blockquote>👤 Специалист: {item[2]}
+{item[3]}
+👨‍💼 Менеджер: {item[4]}</blockquote>
+"""),
+        items="activations_history",
+        id="history_list",
+        page_size=4,
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{pos}. {item[1]}"),
+            id="history_activation",
+            items="activations_history",
+            item_id_getter=operator.itemgetter(0),
+            on_click=on_activation_history_click,
+        ),
+        width=2,
+        height=2,
+        hide_on_single_page=True,
+        id="history_scroll",
+        on_page_changed=sync_scroll("history_list"),
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back_to_activations", state=Game.activations),
+        HOME_BTN,
+    ),
+    getter=activations_history_getter,
+    state=Game.activations_history,
+)
+
+activations_history_details_window = Window(
+    Format("""<b>📜 Детали активации</b>
+
+<b>🏆 О предмете</b>
+<blockquote><b>Название</b>
+{history_activation[product_name]}
+
+<b>📝 Описание</b>
+{history_activation[product_description]}
+
+<b>💵 Стоимость</b>
+{history_activation[product_cost]} баллов
+
+<b>📍 Использований</b>
+{history_activation[usage_count]} из {history_activation[product_count]}</blockquote>
+
+<b>👤 О специалисте</b>
+<blockquote><b>ФИО</b>
+{history_activation[user_name]}
+
+<b>Должность</b>
+{history_activation[user_position]} {history_activation[user_division]}
+
+<b>Руководитель</b>
+{history_activation[user_head]}</blockquote>
+
+<b>👨‍💼 О менеджере</b>
+<blockquote><b>ФИО</b>
+{history_activation[manager_name]}
+
+<b>Должность</b>
+{history_activation[manager_position]}</blockquote>
+
+<b>📅 Даты</b>
+<blockquote><b>Покупка:</b> {history_activation[bought_at]}
+<b>Обработка:</b> {history_activation[updated_at]}</blockquote>
+{user_comment_text}{manager_comment_text}"""),
+    Row(
+        SwitchTo(
+            Const("↩️ К истории"), id="back_to_history", state=Game.activations_history
+        ),
+        HOME_BTN,
+    ),
+    getter=activation_history_detail_getter,
+    state=Game.activations_history_details,
 )

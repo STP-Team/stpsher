@@ -18,6 +18,8 @@ from tgbot.dialogs.menus.common.game.activations import (
     activation_approve_comment_window,
     activation_details_window,
     activation_reject_comment_window,
+    activations_history_details_window,
+    activations_history_window,
     activations_window,
     no_activations_window,
 )
@@ -155,6 +157,8 @@ game_dialog = Dialog(
     activation_details_window,
     activation_approve_comment_window,
     activation_reject_comment_window,
+    activations_history_window,
+    activations_history_details_window,
     inventory_window,
     inventory_details_window,
     inventory_activation_comment_window,

@@ -282,3 +282,20 @@ async def on_skip_reject_comment(
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
         await event.answer("❌ Ошибка при отклонении активации", show_alert=True)
+
+
+async def on_activation_history_click(
+    _event: CallbackQuery, _widget: Widget, dialog_manager: DialogManager, item_id
+) -> None:
+    """Обработчик нажатия на предмет в истории активаций.
+
+    Args:
+        _event: Callback query от Telegram
+        _widget: Данные виджета
+        dialog_manager: Менеджер диалога
+        item_id: Идентификатор выбранного варианта
+    """
+    dialog_manager.dialog_data["history_purchase_id"] = item_id
+
+    # Переходим к детальному просмотру истории
+    await dialog_manager.switch_to(Game.activations_history_details)
