@@ -762,19 +762,34 @@ class GroupsMiddleware(BaseMiddleware):
     async def _add_group_member(
         self, group_id: int, user_id: int, stp_repo: MainRequestsRepo
     ) -> None:
-        """Добавление участника в группу."""
+        """Добавление участника в группу с проверкой существования."""
         try:
+            # Сначала проверяем, не является ли уже участником
+            try:
+                if await stp_repo.group_member.is_member(group_id, user_id):
+                    logger.debug(
+                        f"[Группы] Участник {user_id} уже существует в группе {group_id}"
+                    )
+                    return
+            except Exception as check_ex:
+                logger.debug(
+                    f"[Группы] Не удалось проверить существование участника {user_id} "
+                    f"в группе {group_id}, продолжаем попытку добавления: {check_ex}"
+                )
+
+            # Пытаемся добавить участника
             result = await stp_repo.group_member.add_member(group_id, user_id)
             if result:
                 logger.info(f"[Группы] Добавлен участник {user_id} в группу {group_id}")
             else:
                 logger.warning(
-                    f"[Группы] Не удалось добавить участника {user_id} в группу {group_id}"
+                    f"[Группы] Не удалось добавить участника {user_id} в группу {group_id} "
+                    "(метод вернул False)"
                 )
         except Exception as e:
             # Обработка ошибки дублирования записи (race condition)
             error_str = str(e).lower()
-            if any(
+            is_duplicate_error = any(
                 keyword in error_str
                 for keyword in [
                     "duplicate",
@@ -785,8 +800,10 @@ class GroupsMiddleware(BaseMiddleware):
                     "record has changed",
                     "unique constraint",
                 ]
-            ):
-                # Проверяем, что пользователь действительно в базе
+            )
+
+            if is_duplicate_error:
+                # Для ошибок дублирования проверяем, что пользователь действительно в базе
                 try:
                     if await stp_repo.group_member.is_member(group_id, user_id):
                         logger.debug(
@@ -794,9 +811,19 @@ class GroupsMiddleware(BaseMiddleware):
                             "(обработана ошибка дублирования)"
                         )
                         return
-                except Exception:
-                    pass
+                except Exception as check_ex:
+                    logger.debug(
+                        f"[Группы] Не удалось проверить существование участника {user_id} "
+                        f"в группе {group_id}: {check_ex}"
+                    )
+                    # Если не можем проверить, но это ошибка дублирования, считаем успешным
+                    logger.debug(
+                        f"[Группы] Предполагаем, что участник {user_id} уже в группе {group_id} "
+                        "(ошибка дублирования)"
+                    )
+                    return
 
+            # Логируем ошибку только если это не ошибка дублирования или проверка провалилась
             logger.error(
                 f"[Группы] Ошибка добавления участника {user_id} в группу {group_id}: {e}"
             )
