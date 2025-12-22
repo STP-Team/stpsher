@@ -124,6 +124,11 @@ class GroupsMiddleware(BaseMiddleware):
     - Логирование всех действий по безопасности
     """
 
+    def __init__(self):
+        # Отслеживание текущих операций для предотвращения дубликатов
+        self._processing_operations: set = set()
+        super().__init__()
+
     async def _safe_execute(
         self,
         operation: str,
@@ -187,6 +192,76 @@ class GroupsMiddleware(BaseMiddleware):
         }
         return context
 
+    async def _process_user_in_group(
+        self,
+        user_id: int,
+        group_id: int,
+        stp_repo: MainRequestsRepo,
+        bot: Optional[Bot] = None,
+        user: Optional[User] = None,
+        action: str = "обработки пользователя",
+        send_notification: bool = False,
+    ) -> bool:
+        """Централизованная обработка пользователя в группе с дедупликацией.
+
+        Единственная точка входа для всех операций с пользователями в группах.
+        Предотвращает дублирование операций для одного пользователя.
+
+        Args:
+            user_id: ID пользователя
+            group_id: ID группы
+            stp_repo: Репозиторий базы данных
+            bot: Экземпляр бота (для Telegram операций)
+            user: Объект пользователя Telegram
+            action: Описание действия для логирования
+            send_notification: Отправлять ли уведомление о новом участнике
+
+        Returns:
+            True если пользователь успешно обработан, False если операция уже выполняется
+        """
+        operation_key = f"{group_id}:{user_id}"
+
+        # Проверяем, не обрабатывается ли уже этот пользователь в этой группе
+        if operation_key in self._processing_operations:
+            logger.debug(
+                f"[Группы] Операция для пользователя {user_id} в группе {group_id} "
+                "уже выполняется, пропускаем дублированный запрос"
+            )
+            return False
+
+        # Добавляем операцию в список обрабатываемых
+        self._processing_operations.add(operation_key)
+
+        try:
+            # Получаем контекст пользователя
+            user_context = await self._get_user_context(
+                user_id, group_id, stp_repo, user
+            )
+
+            # Выполняем обработку доступа и членства
+            result = await self._handle_user_access_and_membership(
+                user_context, stp_repo, bot, action
+            )
+
+            # Отправляем уведомление если требуется
+            if result and send_notification and user_context["group"]:
+                group = user_context["group"]
+                if group.new_user_notify and bot:
+                    await self._send_user_notification_from_context_safe(
+                        bot, user_context, stp_repo
+                    )
+
+            return result
+
+        except Exception as e:
+            logger.error(
+                f"[Группы] Ошибка обработки пользователя {user_id} в группе {group_id}: {e}"
+            )
+            return False
+        finally:
+            # Убираем операцию из списка обрабатываемых
+            self._processing_operations.discard(operation_key)
+
     async def _handle_user_access_and_membership(
         self,
         user_context: Dict[str, Any],
@@ -233,10 +308,16 @@ class GroupsMiddleware(BaseMiddleware):
             )
             return False
 
-        if access_granted and not await stp_repo.group_member.is_member(
-            group_id, user_id
-        ):
-            await self._add_group_member(group_id, user_id, stp_repo)
+        if access_granted:
+            # Проверяем, что пользователь действительно является участником Telegram группы
+            # перед добавлением в базу данных
+            if bot and await self._verify_telegram_membership(bot, group_id, user_id):
+                # Всегда пытаемся добавить пользователя в группу при наличии доступа
+                # _add_group_member теперь обрабатывает дублирование записей gracefully
+                await self._add_group_member(group_id, user_id, stp_repo)
+            elif not bot:
+                # Если нет доступа к боту, добавляем без проверки (для обратной совместимости)
+                await self._add_group_member(group_id, user_id, stp_repo)
 
         return access_granted
 
@@ -273,6 +354,29 @@ class GroupsMiddleware(BaseMiddleware):
                     return False, "должность"
 
         return True, ""
+
+    async def _verify_telegram_membership(
+        self, bot: Bot, group_id: int, user_id: int
+    ) -> bool:
+        """Проверка, что пользователь действительно является участником Telegram группы."""
+        try:
+            member = await bot.get_chat_member(chat_id=group_id, user_id=user_id)
+            # Считаем пользователя участником если он имеет активный статус
+            is_member = member.status in MEMBER_STATUSES["ACTIVE"]
+
+            if not is_member:
+                logger.debug(
+                    f"[Группы] Пользователь {user_id} не является участником группы {group_id} "
+                    f"(статус: {member.status})"
+                )
+
+            return is_member
+        except Exception as e:
+            # Если не можем проверить статус, считаем что пользователь не участник
+            logger.warning(
+                f"[Группы] Не удалось проверить членство {user_id} в группе {group_id}: {e}"
+            )
+            return False
 
     async def __call__(
         self,
@@ -344,10 +448,15 @@ class GroupsMiddleware(BaseMiddleware):
         bot: Bot,
         action: str,
     ) -> None:
-        """Обработка членства пользователя в группе."""
-        user_context = await self._get_user_context(user_id, group_id, stp_repo, user)
-        await self._handle_user_access_and_membership(
-            user_context, stp_repo, bot, action
+        """Обработка членства пользователя в группе (через централизованный процессор)."""
+        await self._process_user_in_group(
+            user_id=user_id,
+            group_id=group_id,
+            stp_repo=stp_repo,
+            bot=bot,
+            user=user,
+            action=action,
+            send_notification=False,  # Уведомления только при присоединении, не при сообщениях
         )
 
     async def _handle_membership_event(
@@ -434,21 +543,16 @@ class GroupsMiddleware(BaseMiddleware):
         group: Group,
         stp_repo: MainRequestsRepo,
     ) -> None:
-        """Процесс добавления пользователя в группу."""
-        user_context = await self._get_user_context(
-            user_id, group_id, stp_repo, event.new_chat_member.user
+        """Процесс добавления пользователя в группу (через централизованный процессор)."""
+        await self._process_user_in_group(
+            user_id=user_id,
+            group_id=group_id,
+            stp_repo=stp_repo,
+            bot=event.bot,
+            user=event.new_chat_member.user,
+            action="присоединении",
+            send_notification=True,  # Отправляем уведомления при присоединении
         )
-        # Переопределяем группу из контекста, так как у нас уже есть эта информация
-        user_context["group"] = group
-
-        access_granted = await self._handle_user_access_and_membership(
-            user_context, stp_repo, event.bot, "присоединении"
-        )
-
-        if access_granted and group.new_user_notify:
-            await self._send_user_notification_from_context(
-                event, user_context, stp_repo
-            )
 
     async def _send_user_notification_from_context(
         self,
@@ -483,6 +587,39 @@ class GroupsMiddleware(BaseMiddleware):
             stp_repo=stp_repo,
         )
 
+    async def _send_user_notification_from_context_safe(
+        self,
+        bot: Bot,
+        user_context: Dict[str, Any],
+        stp_repo: MainRequestsRepo,
+    ) -> None:
+        """Безопасная отправка уведомления о новом участнике на основе контекста."""
+        employee = user_context["employee"]
+        user = user_context["user"]
+        user_id = user_context["user_id"]
+        group_id = user_context["group_id"]
+
+        if employee:
+            position = (
+                f"{employee.position} {employee.division}".strip() or "Не указана"
+            )
+            text = NOTIFICATIONS["user_welcome"].format(
+                user_info=format_fullname(employee, True, True), position=position
+            )
+        else:
+            user_info = self._format_telegram_user_info(user, user_id)
+            text = NOTIFICATIONS["user_new"].format(user_info=user_info)
+
+        await self._safe_execute(
+            "отправки уведомления о новом участнике",
+            bot.send_message,
+            chat_id=group_id,
+            text=text,
+            group_id=group_id,
+            user_id=user_id,
+            stp_repo=stp_repo,
+        )
+
     async def _handle_user_leave(
         self,
         group_id: int,
@@ -492,18 +629,18 @@ class GroupsMiddleware(BaseMiddleware):
     ) -> None:
         """Обработка выхода пользователя из группы."""
         try:
-            if await stp_repo.group_member.is_member(group_id, user_id):
-                result = await stp_repo.group_member.remove_member(group_id, user_id)
-                action = "исключен" if was_kicked else "покинул группу"
+            # Всегда пытаемся удалить пользователя, даже если он уже не в базе
+            result = await stp_repo.group_member.remove_member(group_id, user_id)
+            action = "исключен" if was_kicked else "покинул группу"
 
-                if result:
-                    logger.info(
-                        f"[Группы] Пользователь {user_id} {action} и удален из группы {group_id}"
-                    )
-                else:
-                    logger.warning(
-                        f"[Группы] Не удалось удалить {user_id} из группы {group_id}"
-                    )
+            if result:
+                logger.info(
+                    f"[Группы] Пользователь {user_id} {action} и удален из группы {group_id}"
+                )
+            else:
+                logger.debug(
+                    f"[Группы] Пользователь {user_id} уже не был в группе {group_id} при попытке удаления"
+                )
 
         except Exception as e:
             logger.error(
@@ -635,6 +772,31 @@ class GroupsMiddleware(BaseMiddleware):
                     f"[Группы] Не удалось добавить участника {user_id} в группу {group_id}"
                 )
         except Exception as e:
+            # Обработка ошибки дублирования записи (race condition)
+            error_str = str(e).lower()
+            if any(
+                keyword in error_str
+                for keyword in [
+                    "duplicate",
+                    "already exists",
+                    "constraint",
+                    "1062",
+                    "1020",
+                    "record has changed",
+                    "unique constraint",
+                ]
+            ):
+                # Проверяем, что пользователь действительно в базе
+                try:
+                    if await stp_repo.group_member.is_member(group_id, user_id):
+                        logger.debug(
+                            f"[Группы] Участник {user_id} уже существует в группе {group_id} "
+                            "(обработана ошибка дублирования)"
+                        )
+                        return
+                except Exception:
+                    pass
+
             logger.error(
                 f"[Группы] Ошибка добавления участника {user_id} в группу {group_id}: {e}"
             )
