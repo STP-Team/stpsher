@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.kbd import (
     Checkbox,
     Group,
     Multiselect,
+    Radio,
     Row,
     ScrollingGroup,
     Select,
@@ -17,12 +18,16 @@ from aiogram_dialog.widgets.text import Const, Format
 from magic_filter import F
 
 from tgbot.dialogs.events.common.groups import (
+    on_ban_member,
     on_confirm_delete_group,
     on_division_selected,
     on_kick_all_inappropriate_users,
     on_kick_inappropriate_user,
+    on_kick_member,
+    on_member_selected,
     on_only_employees_click,
     on_position_selected,
+    on_role_filter_changed,
     on_role_selected,
     on_service_message_selected,
 )
@@ -31,7 +36,9 @@ from tgbot.dialogs.getters.common.groups import (
     group_remove_getter,
     groups_access_getter,
     groups_access_roles_getter,
+    groups_members_getter,
     inappropriate_users_getter,
+    member_details_getter,
     settings_access_divisions_getter,
     settings_access_positions_getter,
 )
@@ -45,6 +52,11 @@ groups_access_window = Window(
 Доступ по должности доступен только после выбора допустимых направлений
 
 <i>Если не выбрана ни одна опция - доступ открыт для всех</i>"""
+    ),
+    SwitchTo(
+        Const("👥 Список участников"),
+        id="view_members",
+        state=Groups.settings_members,
     ),
     Checkbox(
         Const("✓ 👔 Только сотрудники 👔"),
@@ -264,4 +276,82 @@ inappropriate_users_window = Window(
     ),
     state=Groups.inappropriate_users,
     getter=inappropriate_users_getter,
+)
+
+groups_members_window = Window(
+    Format(
+        """👥 <b>Участники {group_type}</b>: {group_name}
+
+📊 <b>Всего участников:</b> {members_count}
+🔍 <b>Фильтр:</b> {current_filter_name}
+
+<i>Выбери участника для просмотра детальной информации</i>""",
+        when="has_members",
+    ),
+    Format(
+        """👥 <b>Участники {group_type}</b>: {group_name}
+
+В группе нет участников или произошла ошибка при их загрузке.""",
+        when=~F["has_members"],
+    ),
+    ScrollingGroup(
+        Select(
+            Format("{item[0]}"),
+            id="members_select",
+            item_id_getter=operator.itemgetter(1),
+            items="filtered_members",
+            on_click=on_member_selected,
+        ),
+        id="members_scroll",
+        width=1,
+        height=6,
+        when="has_members",
+        hide_on_single_page=True,
+    ),
+    Group(
+        Radio(
+            Format("🔘 {item[1]}"),
+            Format("⚪️ {item[1]}"),
+            id="role_filter",
+            item_id_getter=operator.itemgetter(0),
+            items="available_role_filters",
+            on_state_changed=on_role_filter_changed,
+        ),
+        width=3,
+        when="has_role_filters",
+    ),
+    Row(
+        SwitchTo(Const("↩️ Назад"), id="back_to_access", state=Groups.settings_access),
+        HOME_BTN,
+    ),
+    getter=groups_members_getter,
+    state=Groups.settings_members,
+)
+
+
+member_details_window = Window(
+    Format("👤 <b>Информация об участнике</b>\n<b>Группа:</b> {group_name}\n"),
+    Format("{member_info}"),
+    Row(
+        Button(
+            Const("👤 Исключить"),
+            id="kick_member",
+            on_click=on_kick_member,
+            when="can_kick",
+        ),
+        Button(
+            Const("🚫 Забанить"),
+            id="ban_member",
+            on_click=on_ban_member,
+            when="can_kick",
+        ),
+    ),
+    Row(
+        SwitchTo(
+            Const("↩️ К списку"), id="back_to_members", state=Groups.settings_members
+        ),
+        HOME_BTN,
+    ),
+    getter=member_details_getter,
+    state=Groups.member_details,
 )

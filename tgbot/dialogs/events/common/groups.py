@@ -7,6 +7,7 @@ from aiogram_dialog.widgets.kbd import (
     ManagedCheckbox,
     ManagedMultiselect,
     Multiselect,
+    Radio,
     Select,
 )
 from stp_database.repo.STP import MainRequestsRepo
@@ -396,3 +397,120 @@ async def on_kick_all_inappropriate_users(
         await event.answer(
             f"❌ Ошибка при массовом исключении: {str(e)}", show_alert=True
         )
+
+
+async def on_member_selected(
+    _event: CallbackQuery,
+    _widget: Select,
+    dialog_manager: DialogManager,
+    item_id: str,
+) -> None:
+    """Обработчик выбора участника из списка для просмотра деталей.
+
+    Args:
+        _event: Callback query от Telegram
+        _widget: Данные виджета Select
+        dialog_manager: Менеджер диалога
+        item_id: ID выбранного участника
+    """
+    dialog_manager.dialog_data["selected_member_id"] = int(item_id)
+    await dialog_manager.switch_to(Groups.member_details)
+
+
+async def on_kick_member(
+    event: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик исключения участника из группы.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+    member_id = dialog_manager.dialog_data.get("selected_member_id")
+
+    if not member_id:
+        await event.answer("❌ Участник не выбран", show_alert=True)
+        return
+
+    try:
+        # Исключаем пользователя из группы в Telegram (временный бан и разбан)
+        await event.bot.ban_chat_member(chat_id=group_id, user_id=member_id)
+        await event.bot.unban_chat_member(chat_id=group_id, user_id=member_id)
+
+        # Удаляем пользователя из БД
+        await stp_repo.group_member.remove_member(
+            group_id=group_id, member_id=member_id
+        )
+
+        await event.answer("✅ Участник исключен из группы", show_alert=True)
+
+        # Возвращаемся к списку участников
+        await dialog_manager.switch_to(Groups.settings_members)
+
+    except Exception as e:
+        await event.answer(
+            f"❌ Ошибка при исключении участника: {str(e)}", show_alert=True
+        )
+
+
+async def on_ban_member(
+    event: CallbackQuery,
+    _widget: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Обработчик бана участника группы.
+
+    Args:
+        event: Callback query от Telegram
+        _widget: Button виджет
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    group_id = dialog_manager.dialog_data.get("group_id")
+    member_id = dialog_manager.dialog_data.get("selected_member_id")
+
+    if not member_id:
+        await event.answer("❌ Участник не выбран", show_alert=True)
+        return
+
+    try:
+        # Банируем пользователя в Telegram (постоянный бан)
+        await event.bot.ban_chat_member(chat_id=group_id, user_id=member_id)
+
+        # Удаляем пользователя из БД
+        await stp_repo.group_member.remove_member(
+            group_id=group_id, member_id=member_id
+        )
+
+        await event.answer("✅ Участник заблокирован в группе", show_alert=True)
+
+        # Возвращаемся к списку участников
+        await dialog_manager.switch_to(Groups.settings_members)
+
+    except Exception as e:
+        await event.answer(
+            f"❌ Ошибка при блокировке участника: {str(e)}", show_alert=True
+        )
+
+
+async def on_role_filter_changed(
+    _event: CallbackQuery,
+    _widget: Radio,
+    dialog_manager: DialogManager,
+    _item_id: str,
+) -> None:
+    """Обработчик изменения фильтра по ролям.
+
+    Args:
+        _event: Callback query от Telegram
+        _widget: Radio виджет
+        dialog_manager: Менеджер диалога
+        _item_id: ID выбранной роли для фильтрации
+    """
+    # Фильтрация происходит автоматически через getter при обновлении окна
+    pass

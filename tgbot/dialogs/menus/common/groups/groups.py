@@ -32,9 +32,11 @@ from tgbot.dialogs.getters.common.groups import (
 from tgbot.dialogs.menus.common.groups.settings import (
     groups_access_roles_window,
     groups_access_window,
+    groups_members_window,
     groups_remove_bot_window,
     groups_service_messages_window,
     inappropriate_users_window,
+    member_details_window,
     settings_access_divisions_window,
     settings_access_positions_window,
 )
@@ -232,12 +234,22 @@ async def on_start(_on_start: Any, dialog_manager: DialogManager, **_kwargs):
     groups_cmds_filter: ManagedRadio = dialog_manager.find("groups_cmds_filter")
     await groups_cmds_filter.set_checked("user")
 
+    # Инициализация фильтра ролей на "Без фильтра"
+    try:
+        role_filter: ManagedRadio = dialog_manager.find("role_filter")
+        await role_filter.set_checked("all")
+    except Exception:
+        # Если виджет не найден, это нормально - он может быть не во всех окнах
+        pass
+
 
 groups_dialog = Dialog(
     groups_window,
     groups_list_window,
     groups_list_detail_window,
     groups_cmds_window,
+    groups_members_window,
+    member_details_window,
     groups_access_window,
     groups_service_messages_window,
     groups_access_roles_window,

@@ -13,7 +13,7 @@ from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import roles
-from tgbot.misc.helpers import short_name
+from tgbot.misc.helpers import get_role, short_name
 
 
 async def groups_getter(bot: Bot, **_kwargs) -> dict:
@@ -477,6 +477,277 @@ async def group_remove_getter(
 
     return {
         "group_name": group_name,
+    }
+
+
+async def groups_members_getter(
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна списка участников группы.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        bot: Экземпляр бота
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с данными участников группы
+    """
+    group_id = dialog_manager.dialog_data["group_id"]
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError) as e:
+        return {
+            "group_name": f"ID: {group_id}",
+            "members": [],
+            "has_members": False,
+            "members_count": 0,
+            "error": str(e),
+        }
+
+    # Получаем всех участников группы
+    group_members = await stp_repo.group_member.get_group_members(group_id=group_id)
+
+    # Собираем информацию о всех участниках и их ролях
+    members_list = []
+    available_roles = set()
+
+    for member in group_members:
+        try:
+            # Сначала проверяем, есть ли пользователь в базе сотрудников
+            employee = await stp_repo.employee.get_users(user_id=member.member_id)
+
+            if employee:
+                # Если сотрудник найден, показываем его с ролевым эмодзи
+                role_info = get_role(employee.role)
+                role_emoji = role_info["emoji"] if role_info["emoji"] else "👤"
+                display_name = f"{role_emoji} {short_name(employee.fullname)}"
+                member_type = "employee"
+                member_role = employee.role
+                position = (
+                    f"{employee.position} {employee.division}"
+                    if employee.position and employee.division
+                    else ""
+                )
+                # Добавляем роль в доступные фильтры
+                available_roles.add(employee.role)
+            else:
+                # Если не сотрудник, получаем информацию из Telegram с дефолтным эмодзи
+                try:
+                    telegram_user = await bot.get_chat_member(
+                        chat_id=group_id, user_id=member.member_id
+                    )
+                    user_name = (
+                        telegram_user.user.full_name or f"ID: {member.member_id}"
+                    )
+                    if telegram_user.user.username:
+                        user_name += f" (@{telegram_user.user.username})"
+                    display_name = f"👤 {user_name}"
+                    member_type = "user"
+                    member_role = "unregistered"
+                    position = "Не сотрудник"
+                except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
+                    display_name = f"👤 ID: {member.member_id}"
+                    member_type = "user"
+                    member_role = "unregistered"
+                    position = "Неизвестный"
+
+                # Добавляем "неавторизованных" в доступные фильтры
+                available_roles.add("unregistered")
+
+            members_list.append((
+                display_name,
+                str(member.member_id),
+                member_type,
+                position,
+                member_role,
+            ))
+
+        except Exception:
+            # Если что-то пошло не так, добавляем с минимальной информацией
+            members_list.append((
+                f"👤 ID: {member.member_id}",
+                str(member.member_id),
+                "user",
+                "Ошибка",
+                "unregistered",
+            ))
+            available_roles.add("unregistered")
+
+    # Сортируем: сначала сотрудники, потом остальные, внутри каждой группы по имени
+    members_list.sort(key=lambda x: (x[2] != "employee", x[0]))
+
+    # Создаем список доступных фильтров по ролям
+    role_filters = [("all", "Без фильтра")]
+
+    # Добавляем фильтры для ролей сотрудников
+    for role_id in sorted(available_roles):
+        if role_id != "unregistered":
+            role_info = get_role(role_id)
+            role_name = (
+                f"{role_info['emoji']} {role_info['name']}"
+                if role_info["emoji"]
+                else role_info["name"]
+            )
+            role_filters.append((str(role_id), role_name))
+
+    # Добавляем фильтр для незарегистрированных, если они есть
+    if "unregistered" in available_roles:
+        role_filters.append(("unregistered", "👤 Незарегистрированные"))
+
+    # Получаем текущий выбранный фильтр из dialog_data
+    from aiogram_dialog.widgets.kbd import ManagedRadio
+
+    try:
+        role_filter_radio: ManagedRadio = dialog_manager.find("role_filter")
+        current_filter = role_filter_radio.get_checked() or "all"
+    except Exception:
+        current_filter = "all"
+
+    # Фильтруем участников по выбранной роли
+    if current_filter == "all":
+        filtered_members = [(m[0], m[1], m[2], m[3]) for m in members_list]
+        current_filter_name = "Без фильтра"
+    else:
+        filtered_members = []
+        current_filter_name = "Неизвестный фильтр"
+
+        # Находим название текущего фильтра
+        for filter_id, filter_name in role_filters:
+            if filter_id == current_filter:
+                current_filter_name = filter_name
+                break
+
+        # Фильтруем участников
+        for member in members_list:
+            member_role = member[4]  # роль находится на 5-й позиции
+            if str(member_role) == current_filter:
+                filtered_members.append((member[0], member[1], member[2], member[3]))
+
+    # Получаем тип группы для правильного отображения
+    group_settings = await stp_repo.group.get_groups(group_id=group_id)
+    group_type = "канала" if group_settings.group_type == "channel" else "группы"
+
+    return {
+        "group_name": chat.title,
+        "group_type": group_type,
+        "members": members_list,  # полный список для подсчета
+        "filtered_members": filtered_members,  # отфильтрованный список для отображения
+        "has_members": len(members_list) > 0,
+        "members_count": len(members_list),
+        "filtered_count": len(filtered_members),
+        "available_role_filters": role_filters,
+        "has_role_filters": len(role_filters)
+        > 1,  # показываем фильтры только если есть больше одной опции
+        "current_filter_name": current_filter_name,
+    }
+
+
+async def member_details_getter(
+    stp_repo: MainRequestsRepo,
+    bot: Bot,
+    dialog_manager: DialogManager,
+    **_kwargs,
+) -> dict:
+    """Геттер для окна детальной информации о участнике группы.
+
+    Args:
+        stp_repo: Репозиторий операций с базой STP
+        bot: Экземпляр бота
+        dialog_manager: Менеджер диалога
+
+    Returns:
+        Словарь с детальной информацией об участнике
+    """
+    group_id = dialog_manager.dialog_data["group_id"]
+    member_id = dialog_manager.dialog_data.get("selected_member_id")
+
+    if not member_id:
+        return {
+            "error": "Не выбран участник для просмотра",
+            "group_name": "Ошибка",
+            "member_info": "Участник не найден",
+            "is_employee": False,
+            "can_kick": False,
+        }
+
+    try:
+        chat = await bot.get_chat(chat_id=group_id)
+        group_name = chat.title
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
+        group_name = f"ID: {group_id}"
+
+    try:
+        # Проверяем, является ли администратором или создателем
+        chat_admins = await bot.get_chat_administrators(chat_id=group_id)
+        is_admin = any(admin.user.id == int(member_id) for admin in chat_admins)
+        is_creator = any(
+            admin.user.id == int(member_id) and admin.status == "creator"
+            for admin in chat_admins
+        )
+
+        # Нельзя кикнуть администратора или создателя
+        can_kick = not is_admin and not is_creator
+
+    except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
+        can_kick = True  # Если не можем проверить, разрешаем попробовать
+
+    # Проверяем, есть ли пользователь в базе сотрудников
+    employee = await stp_repo.employee.get_users(user_id=int(member_id))
+
+    if employee:
+        # Если сотрудник - используем функцию из whois.py
+        from tgbot.handlers.groups.user.whois import create_user_info_message
+
+        # Получаем информацию о руководителе, если указан
+        user_head = None
+        if employee.head:
+            user_head = await stp_repo.employee.get_users(fullname=employee.head)
+
+        member_info = create_user_info_message(employee, user_head)
+        is_employee = True
+
+    else:
+        # Если не сотрудник - показываем базовую информацию из Telegram
+        try:
+            telegram_user = await bot.get_chat_member(
+                chat_id=group_id, user_id=int(member_id)
+            )
+            user = telegram_user.user
+
+            member_info = f"<b>{user.full_name or 'Неизвестное имя'}</b>\n\n"
+
+            if user.username:
+                member_info += f"<b>👤 Username:</b> @{user.username}\n"
+
+            member_info += f"<b>🆔 ID:</b> <code>{user.id}</code>\n"
+            member_info += (
+                f"<b>🤖 Тип:</b> {'Бот' if user.is_bot else 'Пользователь'}\n"
+            )
+
+            # Информация о статусе в группе
+            if telegram_user.status == "administrator":
+                member_info += "<b>🛡️ Статус:</b> Администратор\n"
+            elif telegram_user.status == "creator":
+                member_info += "<b>👑 Статус:</b> Создатель\n"
+            else:
+                member_info += "<b>👤 Статус:</b> Участник\n"
+
+        except (TelegramBadRequest, TelegramForbiddenError, TelegramAPIError):
+            member_info = f"<b>ID: {member_id}</b>\n\nИнформация недоступна"
+
+        is_employee = False
+
+    return {
+        "group_name": group_name,
+        "member_info": member_info,
+        "is_employee": is_employee,
+        "can_kick": can_kick,
+        "member_id": member_id,
     }
 
 

@@ -23,5 +23,6 @@ class Groups(StatesGroup):
     settings_access_positions = State()
     settings_services = State()
     settings_members = State()
+    member_details = State()
     settings_remove = State()
     inappropriate_users = State()
