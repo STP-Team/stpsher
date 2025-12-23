@@ -20,4 +20,11 @@ async def db_getter(
     Returns:
         Словарь с базовыми данными о сотруднике и репозиториях баз данных
     """
-    return {"user": user, "stp_repo": stp_repo, "stats_repo": stats_repo}
+    user_tests = await stats_repo.tests.get_tests(employee_fullname=user.fullname)
+
+    return {
+        "user": user,
+        "stp_repo": stp_repo,
+        "stats_repo": stats_repo,
+        "have_tests": True if user_tests else False,
+    }

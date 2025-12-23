@@ -4,8 +4,18 @@ from typing import Any
 
 from aiogram import F
 from aiogram_dialog import Dialog, DialogManager
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo, Url
-from aiogram_dialog.widgets.text import Const, Format
+from aiogram_dialog.widgets.kbd import (
+    Button,
+    CurrentPage,
+    FirstPage,
+    LastPage,
+    NextPage,
+    PrevPage,
+    Row,
+    SwitchTo,
+    Url,
+)
+from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.game.game import start_game_dialog
@@ -14,6 +24,7 @@ from tgbot.dialogs.events.common.kpi import start_kpi_dialog
 from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
+from tgbot.dialogs.getters.user.main import tests_getter
 from tgbot.dialogs.states.user import UserSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN, SUPPORT_BTN
 
@@ -35,6 +46,12 @@ menu_window = Window(
             state=UserSG.horn,
             when=F["user"].division == "НЦК",  # type: ignore[arg-type]
         ),
+    ),
+    SwitchTo(
+        Const("🧪 Непройденные тесты"),
+        id="tests",
+        state=UserSG.tests,
+        when="have_tests",
     ),
     Row(
         Button(
@@ -63,6 +80,46 @@ horn_window = Window(
     state=UserSG.horn,
 )
 
+tests_window = Window(
+    Const("🧪 <b>Непройденные тесты</b>\n"),
+    List(
+        Format("""{pos}. <b><a href='okc.ertelecom.ru/yii/testing/lk/test?id={item.test_id}'>{item.test_name}</a></b>
+<b>Назначен:</b> {item.active_from}
+<b>Создатель:</b> {item.creator_fullname}\n"""),
+        items="tests",
+        id="tests_list",
+        page_size=6,
+    ),
+    Row(
+        FirstPage(
+            scroll="tests_list",
+            text=Format("1"),
+        ),
+        PrevPage(
+            scroll="tests_list",
+            text=Format("<"),
+        ),
+        CurrentPage(
+            scroll="tests_list",
+            text=Format("{current_page1}"),
+        ),
+        NextPage(
+            scroll="tests_list",
+            text=Format(">"),
+        ),
+        LastPage(
+            scroll="tests_list",
+            text=Format("{target_page1}"),
+        ),
+    ),
+    Format(
+        "<i>Данные из <b><a href='okc.ertelecom.ru/yii/testing/lk/profile'>Тестов</a></b> на <b>{created_at_str}</b>\nМеню обновлено в <b>{current_time_str}</b></i>"
+    ),
+    HOME_BTN,
+    getter=tests_getter,
+    state=UserSG.tests,
+)
+
 
 async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
     """Установка параметров диалога по умолчанию при запуске.
@@ -76,5 +133,6 @@ async def on_start(_on_start: Any, _dialog_manager: DialogManager, **_kwargs):
 user_dialog = Dialog(
     menu_window,
     horn_window,
+    tests_window,
     on_start=on_start,
 )

@@ -9,6 +9,7 @@ class UserSG(StatesGroup):
     # Меню
     menu = State()
     horn = State()
+    tests = State()
     settings = State()
 
 

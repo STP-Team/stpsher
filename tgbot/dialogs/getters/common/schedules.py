@@ -382,7 +382,7 @@ async def tutors_schedule_getter(
         data_created_at = "Неизвестно"
 
     menu_updated_at = datetime.now().strftime(strftime_date)
-    tutors_text += f"""<i>Данные из <b><a href='https://okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <code>{data_created_at}</code>
+    tutors_text += f"""<i>Данные из <b><a href='okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <code>{data_created_at}</code>
 Меню обновлено в <code>{menu_updated_at}</code></i>"""
 
     date_display = current_date.strftime("%d.%m")

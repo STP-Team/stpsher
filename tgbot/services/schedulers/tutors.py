@@ -200,7 +200,7 @@ class TutorsScheduler(BaseScheduler):
         # Уведомление наставнику
         if tutor_user and tutor_user.user_id:
             tutor_message = (
-                f"🎓 Наставничество\n\n"
+                f"🎓 <b>Наставничество</b>\n\n"
                 f"<b>Время стажировки:</b> {training_start_time}-{training_end_time} ПРМ\n"
                 f"<b>Стажер:</b> {format_fullname(trainee_user, True, True) or 'Не указан'}\n\n"
                 f"Занятие начнется через час"
