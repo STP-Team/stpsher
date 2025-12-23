@@ -26,6 +26,8 @@ class TutorsScheduler(BaseScheduler):
     def __init__(self):
         """Инициализация планировщика наставничества."""
         super().__init__("tutors")
+        self._sent_notifications = set()  # Отслеживание отправленных уведомлений
+        self._last_reset_date = None  # Дата последнего сброса
 
     def setup_jobs(
         self,
@@ -71,6 +73,28 @@ class TutorsScheduler(BaseScheduler):
                 "Проверка предстоящих занятий", success=False, error=str(e)
             )
 
+    def _reset_notifications_tracking_if_needed(self, current_date):
+        """Сбрасывает отслеживание уведомлений в начале нового дня.
+
+        Args:
+            current_date: Текущая дата
+        """
+        if self._last_reset_date != current_date:
+            self._sent_notifications.clear()
+            self._last_reset_date = current_date
+            self.logger.info("Сброшен список отправленных уведомлений для нового дня")
+
+    def _get_notification_key(self, training):
+        """Создает уникальный ключ для отслеживания отправленных уведомлений.
+
+        Args:
+            training: Объект с данными о занятии
+
+        Returns:
+            str: Уникальный ключ уведомления
+        """
+        return f"{training.tutor_fullname}|{training.trainee_fullname}|{training.training_start_time.strftime('%H:%M')}"
+
     async def _check_upcoming_training(
         self,
         stp_session_pool: async_sessionmaker,
@@ -86,6 +110,10 @@ class TutorsScheduler(BaseScheduler):
         """
         now = datetime.now(tz_perm)
         current_date = now.date()
+
+        # Сбрасываем отслеживание уведомлений для нового дня
+        self._reset_notifications_tracking_if_needed(current_date)
+
         notification_time = now + timedelta(hours=1)
 
         # Окно для поиска занятий (±2 минуты от целевого времени уведомления)
@@ -115,12 +143,21 @@ class TutorsScheduler(BaseScheduler):
             training_start_aware = tz_perm.localize(training.training_start_time)
 
             if time_window_start <= training_start_aware <= time_window_end:
-                upcoming_trainings.append(training)
+                # Проверяем, не отправлялось ли уже уведомление для этого занятия
+                notification_key = self._get_notification_key(training)
+                if notification_key not in self._sent_notifications:
+                    upcoming_trainings.append(training)
+                else:
+                    self.logger.debug(
+                        f"Уведомление уже отправлено для занятия: {notification_key}"
+                    )
 
         if not upcoming_trainings:
             return
 
-        self.logger.info(f"Найдено {len(upcoming_trainings)} предстоящих занятий")
+        self.logger.info(
+            f"Найдено {len(upcoming_trainings)} новых предстоящих занятий для уведомления"
+        )
 
         # Отправляем уведомления
         async with stp_session_pool() as main_session:
@@ -128,7 +165,10 @@ class TutorsScheduler(BaseScheduler):
                 main_repo = MainRequestsRepo(main_session)
 
                 for training in upcoming_trainings:
+                    notification_key = self._get_notification_key(training)
                     await self._send_training_notifications(main_repo, bot, training)
+                    # Помечаем уведомление как отправленное
+                    self._sent_notifications.add(notification_key)
 
     async def _send_training_notifications(
         self, main_repo: MainRequestsRepo, bot: Bot, training
@@ -161,7 +201,7 @@ class TutorsScheduler(BaseScheduler):
         if tutor_user and tutor_user.user_id:
             tutor_message = (
                 f"🎓 Наставничество\n\n"
-                f"<b>Время стажировки:</b> {training_start_time}-{training_end_time}\n"
+                f"<b>Время стажировки:</b> {training_start_time}-{training_end_time} ПРМ\n"
                 f"<b>Стажер:</b> {format_fullname(trainee_user, True, True) or 'Не указан'}\n\n"
                 f"Занятие начнется через час"
             )
@@ -180,7 +220,7 @@ class TutorsScheduler(BaseScheduler):
         if trainee_user and trainee_user.user_id:
             trainee_message = (
                 f"📚 Стажировка\n\n"
-                f"<b>Время стажировки:</b> {training_start_time}-{training_end_time}\n"
+                f"<b>Время стажировки:</b> {training_start_time}-{training_end_time} ПРМ\n"
                 f"<b>Наставник:</b> {format_fullname(tutor_user, True, True) or 'Не указан'}\n\n"
                 f"Занятие начнется через час"
             )
