@@ -8,8 +8,11 @@ services:
       - ".env"
     volumes:
       - ./uploads:/app/uploads
-    expose:
-      - "8443"
+    ports:
+      - "8443:8443"
+    labels:
+      caddy: webhook.dom-stp.ru
+      caddy.reverse_proxy: "{{upstreams 8443}}"
 
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8443/health" ]
@@ -30,7 +33,7 @@ services:
 
     networks:
       - stp_bots
-      - caddy-network
+      - caddy
 
     deploy:
       resources:
@@ -73,5 +76,5 @@ volumes:
 networks:
   stp_bots:
     external: true
-  caddy-network:
+  caddy:
     external: true
