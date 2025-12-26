@@ -1289,7 +1289,7 @@ wheels = [
 [[package]]
 name = "stp-database"
 version = "2.0"
-source = { git = "https://github.com/ERTG-BOTS/stp-database.git#5505418f8e03ea0cfbb5aa16992033473691f751" }
+source = { git = "https://github.com/ERTG-BOTS/stp-database.git#6efb116167a69a723f96449d2f3c7cced84da5e3" }
 dependencies = [
     { name = "aiomysql" },
     { name = "infrastructure" },
@@ -1346,11 +1346,11 @@ requires-dist = [
 
 [[package]]
 name = "tatsu"
-version = "5.13.2"
+version = "5.14.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/19/69/0dd8b975d30637701fde9ff3f8ea52a15fc64317ac9642f4cdeab8a93ad1/tatsu-5.13.2.tar.gz", hash = "sha256:d55aa0bdde2ab5efec73d96f9ce41b8a4aef5cee58eb6e05d1951ad3e03151d9", size = 132236, upload-time = "2025-09-25T22:41:44.561Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/5e/0c3a1ca27ac8cb4599ae936ea5aee9bb6a40add9096fb14d30065ddf65bc/tatsu-5.14.0.tar.gz", hash = "sha256:dac8a83411c48d61e2cb2b9ff718aff6dd65981d91217974adfb815ee01b16c6", size = 132590, upload-time = "2025-12-25T23:25:56.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/57/bb1b683d46a78cf48aa40130d4f1ef82f50a73c72a9d9836d6347a3efbef/tatsu-5.13.2-py3-none-any.whl", hash = "sha256:482c6117e92e54fa770664b758f13b1729a01d5c94d7ccbc270d5ffa1dfe2d8a", size = 80340, upload-time = "2025-09-25T22:41:42.661Z" },
+    { url = "https://files.pythonhosted.org/packages/55/50/e2419fbb7a34a984d93edcf3e12f259175ae3b294b8228bfa680b61fba69/tatsu-5.14.0-py3-none-any.whl", hash = "sha256:8d3d6f259b22b033f111f786cbc963cef96c53dcad102bd96db9d8f7c6502e55", size = 80853, upload-time = "2025-12-25T23:25:54.824Z" },
 ]
 
 [[package]]
