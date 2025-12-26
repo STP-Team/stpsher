@@ -48,7 +48,7 @@ class TgBot:
         use_redis = env.bool("USE_REDIS")
         use_webhook = env.bool("USE_WEBHOOK", False)
         webhook_domain = env.str("WEBHOOK_DOMAIN", None)
-        webhook_path = env.str("WEBHOOK_PATH", "/webhook")
+        webhook_path = env.str("WEBHOOK_PATH", "/stpsher")
         webhook_secret = env.str("WEBHOOK_SECRET", None)
         webhook_port = env.int("WEBHOOK_PORT", 8443)
 
