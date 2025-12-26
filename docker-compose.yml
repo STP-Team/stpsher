@@ -40,12 +40,14 @@ services:
         reservations:
           memory: 256M
 
-  redis_cache:
-    image: redis:8.0.5-alpine
+  cache:
+    image: valkey/valkey:9-alpine3.23
     restart: unless-stopped
+
     command: >
-      redis-server --port $REDIS_PORT 
-      --save 20 1 --loglevel warning 
+      valkey-server --port $REDIS_PORT
+      --save 20 1
+      --loglevel warning
       --requirepass $REDIS_PASSWORD
 
     env_file:
@@ -53,12 +55,6 @@ services:
 
     volumes:
       - cache:/data
-
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping" ]
-      interval: 5s
-      timeout: 3s
-      retries: 15
 
     networks:
       - stp_bots
