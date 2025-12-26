@@ -327,7 +327,7 @@ async def main() -> None:
         username=bot_config.db.user,
         password=bot_config.db.password,
     )
-    kpi_engine = create_engine(
+    stats_engine = create_engine(
         db_name=bot_config.db.stats_db,
         host=bot_config.db.host,
         username=bot_config.db.user,
@@ -335,7 +335,7 @@ async def main() -> None:
     )
 
     stp_session_pool = create_session_pool(stp_engine)
-    stats_session_pool = create_session_pool(kpi_engine)
+    stats_session_pool = create_session_pool(stats_engine)
 
     # Храним сессии в диспетчере для доступа из error handlers
     dp["stp_session_pool"] = stp_session_pool
@@ -418,6 +418,7 @@ async def main() -> None:
         if bot_config.tg_bot.use_webhook:
             await on_shutdown_webhook(bot)
         await stp_engine.dispose()
+        await stats_engine.dispose()
 
 
 if __name__ == "__main__":
