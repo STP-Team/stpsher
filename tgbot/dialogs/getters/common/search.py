@@ -368,7 +368,9 @@ async def search_kpi_getter(
     selected_user = await stp_repo.employee.get_users(user_id=int(selected_user_id))
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    kpi_data = await kpi_getter(user=selected_user, stats_repo=stats_repo)
+    kpi_data = await kpi_getter(
+        user=selected_user, stats_repo=stats_repo, dialog_manager=dialog_manager
+    )
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
@@ -406,7 +408,7 @@ async def search_kpi_requirements_getter(
 
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
-        user=selected_user, stats_repo=stats_repo
+        user=selected_user, stats_repo=stats_repo, dialog_manager=dialog_manager
     )
 
     # Добавляем информацию о пользователе в начало текста
@@ -445,7 +447,10 @@ async def search_salary_getter(
 
     # Вызываем оригинальный геттер с выбранным пользователем
     salary_data = await salary_getter(
-        user=selected_user, stats_repo=stats_repo, dialog_manager=dialog_manager
+        user=selected_user,
+        stats_repo=stats_repo,
+        stp_repo=stp_repo,
+        dialog_manager=dialog_manager,
     )
 
     # Добавляем информацию о пользователе в начало текста

@@ -263,7 +263,7 @@ async def member_kpi_requirements_getter(
 
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
-        user=selected_user, stats_repo=stats_repo
+        user=selected_user, stats_repo=stats_repo, dialog_manager=dialog_manager
     )
 
     # Добавляем информацию о пользователе в начало текста
@@ -305,7 +305,12 @@ async def member_salary_getter(
     premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
-    salary_data = await salary_getter(user=selected_user, stats_repo=stats_repo)
+    salary_data = await salary_getter(
+        user=selected_user,
+        stats_repo=stats_repo,
+        stp_repo=stp_repo,
+        dialog_manager=dialog_manager,
+    )
 
     # Добавляем информацию о пользователе в начало текста
     user_name = format_fullname(
