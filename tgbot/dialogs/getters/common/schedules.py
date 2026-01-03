@@ -63,6 +63,7 @@ async def user_schedule_getter(
         current_date = datetime.fromisoformat(current_date_str)
 
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
+    current_year = dialog_manager.dialog_data.get("current_year", datetime.now().year)
 
     month_emoji = months_emojis.get(current_month.lower(), "📅")
 
@@ -78,12 +79,13 @@ async def user_schedule_getter(
     schedule_text = await schedule_service.get_user_schedule_response(
         user=user,
         month=current_month,
+        year=current_year,
         compact=not is_detailed_mode,
         stp_repo=stp_repo,
         bot=bot,
     )
 
-    # Get latest schedule file metadata
+    # Get schedule file metadata for the selected month/year
     file_name = "Файл не найден"
     upload_date = "Неизвестно"
 
@@ -91,13 +93,38 @@ async def user_schedule_getter(
         # Query all files and filter for division schedules
         all_files = await stp_repo.upload.get_files()
 
-        # Filter files that match schedule pattern for this division
-        division_pattern = f"ГРАФИК {user.division}"
-        matching_files = [
-            f
-            for f in all_files
-            if f.file_name and f.file_name.startswith(division_pattern)
-        ]
+        # Определяем период (I или II) на основе месяца
+        month_to_num = {
+            "январь": 1,
+            "февраль": 2,
+            "март": 3,
+            "апрель": 4,
+            "май": 5,
+            "июнь": 6,
+            "июль": 7,
+            "август": 8,
+            "сентябрь": 9,
+            "октябрь": 10,
+            "ноябрь": 11,
+            "декабрь": 12,
+        }
+        month_num = month_to_num.get(current_month.lower(), 1)
+        period = "I" if month_num <= 6 else "II"
+
+        # Filter files that match schedule pattern for this division, period, and year
+        matching_files = []
+        for f in all_files:
+            if f.file_name:
+                # Check if file matches pattern: ГРАФИК {division} {period} {year}
+                name_parts = f.file_name.split()
+                if (
+                    len(name_parts) >= 4
+                    and name_parts[0] == "ГРАФИК"
+                    and name_parts[1] == user.division
+                    and name_parts[2].upper() == period
+                    and name_parts[3] == str(current_year)
+                ):
+                    matching_files.append(f)
 
         if matching_files:
             latest_file = matching_files[0]
@@ -468,6 +495,7 @@ async def prepare_schedule_calendar_data(
     user: Employee,
     dialog_manager: DialogManager,
     target_month: str = None,
+    target_year: int = None,
 ) -> None:
     """Подготавливает данные календаря для отображения рабочих дней в графике.
 
@@ -476,6 +504,7 @@ async def prepare_schedule_calendar_data(
         user: Пользователь
         dialog_manager: Менеджер диалога
         target_month: Целевой месяц для загрузки (если None, то текущий)
+        target_year: Целевой год для загрузки (если None, то текущий)
     """
     try:
         # Получаем календарный виджет
@@ -495,10 +524,24 @@ async def prepare_schedule_calendar_data(
         else:
             month_name = get_current_month()
 
-        # Проверяем, не загружали ли мы уже данные для этого месяца
-        # Если loaded_schedule_month пустой, значит нужно загрузить данные заново
+        # Определяем год для загрузки
+        if target_year:
+            year = target_year
+        elif calendar_widget:
+            current_offset = calendar_widget.get_offset()
+            if current_offset:
+                year = current_offset.year
+            else:
+                year = dialog_manager.dialog_data.get(
+                    "current_year", datetime.now().year
+                )
+        else:
+            year = dialog_manager.dialog_data.get("current_year", datetime.now().year)
+
+        # Проверяем, не загружали ли мы уже данные для этого месяца и года
         loaded_month = dialog_manager.dialog_data.get("loaded_schedule_month", "")
-        if loaded_month and loaded_month == month_name:
+        loaded_year = dialog_manager.dialog_data.get("loaded_schedule_year", "")
+        if loaded_month and loaded_month == month_name and loaded_year == str(year):
             return
 
         # Очищаем предыдущие данные при смене месяца
@@ -512,16 +555,18 @@ async def prepare_schedule_calendar_data(
         try:
             # Получаем расписание с дежурствами (включает в себя базовое расписание)
             schedule_dict = await parser.get_user_schedule_with_duties(
-                user.fullname,
-                month_name,
-                user.division,
-                stp_repo,
+                fullname=user.fullname,
+                month=month_name,
+                year=year,
+                division=user.division,
+                stp_repo=stp_repo,
                 current_day_only=False,
             )
 
             if not schedule_dict:
                 dialog_manager.dialog_data["shift_dates"] = {}
                 dialog_manager.dialog_data["loaded_schedule_month"] = month_name
+                dialog_manager.dialog_data["loaded_schedule_year"] = str(year)
                 return
 
             # Получаем номер месяца
@@ -547,11 +592,14 @@ async def prepare_schedule_calendar_data(
                             "duty_info": duty_info,
                             "month": month_num,
                             "day": int(day_num),
-                            "year": current_date.year,
+                            "year": year,
                         }
 
-                        # Для текущего месяца сохраняем также простой ключ
-                        if month_name.lower() == get_current_month().lower():
+                        # Для текущего месяца и года сохраняем также простой ключ
+                        if (
+                            month_name.lower() == get_current_month().lower()
+                            and year == datetime.now().year
+                        ):
                             all_shift_dates[day_num] = {
                                 "schedule": schedule,
                                 "duty_info": duty_info,
@@ -563,6 +611,7 @@ async def prepare_schedule_calendar_data(
         # Сохраняем данные в dialog_data
         dialog_manager.dialog_data["shift_dates"] = all_shift_dates
         dialog_manager.dialog_data["loaded_schedule_month"] = month_name
+        dialog_manager.dialog_data["loaded_schedule_year"] = str(year)
 
     except Exception:
         dialog_manager.dialog_data["shift_dates"] = {}
@@ -581,9 +630,10 @@ async def my_schedule_calendar_getter(
     Returns:
         Словарь с данными для календарного отображения
     """
-    # Получаем отображаемый месяц из календаря
+    # Получаем отображаемый месяц и год из календаря
     calendar_widget = dialog_manager.find("my_schedule_calendar")
     displayed_month_name = get_current_month()
+    displayed_year = datetime.now().year
 
     if calendar_widget:
         try:
@@ -592,6 +642,7 @@ async def my_schedule_calendar_getter(
                 displayed_month_name = russian_months.get(
                     current_offset.month, get_current_month()
                 )
+                displayed_year = current_offset.year
         except Exception:
             pass
 
@@ -599,7 +650,7 @@ async def my_schedule_calendar_getter(
     # Форсируем перезагрузку данных при каждом вызове геттера
     dialog_manager.dialog_data["loaded_schedule_month"] = ""
     await prepare_schedule_calendar_data(
-        stp_repo, user, dialog_manager, displayed_month_name
+        stp_repo, user, dialog_manager, displayed_month_name, displayed_year
     )
 
     month_emoji = months_emojis.get(displayed_month_name.lower(), "📅")

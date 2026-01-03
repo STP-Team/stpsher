@@ -28,34 +28,44 @@ class ScheduleFileManager:
         """
         self.uploads_folder = Path(uploads_folder)
 
-    def find_schedule_file(self, division: str) -> Optional[Path]:
+    def find_schedule_file(
+        self, division: str, month: str = None, year: int = None
+    ) -> Optional[Path]:
         """Ищет файл графиков с использованием кеширования.
 
         Args:
             division: Направление пользователя
+            month: Название месяца для поиска (опционально)
+            year: Год для поиска (опционально)
 
         Returns:
             Путь к файлу графиков или None если не найдено
         """
+        # Если месяц и год указаны, создаем ключ кеша с учетом месяца и года
+        cache_key = f"{division}_{month}_{year}" if month and year else division
+
         # Сперва проверяем кеш
         current_time = time.time()
-        if division in self._cache:
-            cached_path, cached_time = self._cache[division]
+        if cache_key in self._cache:
+            cached_path, cached_time = self._cache[cache_key]
             if current_time - cached_time < self._CACHE_TTL:
                 # Проверяем существует ли файл до сих пор
                 if cached_path and cached_path.exists():
                     logger.debug(
-                        f"[График] Используем кешированный файл для {division}: {cached_path}"
+                        f"[График] Используем кешированный файл для {cache_key}: {cached_path}"
                     )
                     return cached_path
                 # Файл был удален, инвалидируем кеш
-                del self._cache[division]
+                del self._cache[cache_key]
 
         # Файл не в кеше, или кеш истек - производим поиск
-        result = self._search_schedule_file(division)
+        if month and year:
+            result = self._search_schedule_file_for_month(division, month, year)
+        else:
+            result = self._search_schedule_file(division)
 
         # Кешируем результат
-        self._cache[division] = (result, current_time)
+        self._cache[cache_key] = (result, current_time)
 
         return result
 
@@ -107,6 +117,107 @@ class ScheduleFileManager:
         except Exception as e:
             logger.error(f"[График] Ошибка нахождения файла: {e}")
             return None
+
+    def _search_schedule_file_for_month(
+        self, division: str, month: str, year: int
+    ) -> Optional[Path]:
+        """Ищет файл графиков для указанного месяца и года.
+
+        Файлы имеют формат: ГРАФИК {division} {I/II} {year}.xlsx
+        где I - первая половина года (январь-июнь), II - вторая (июль-декабрь)
+
+        Args:
+            division: Направление
+            month: Название месяца
+            year: Год
+
+        Returns:
+            Путь к файлу графиков или None если не найдено
+        """
+        try:
+            # Определяем период (I или II) на основе месяца
+            month_to_num = {
+                "январь": 1,
+                "февраль": 2,
+                "март": 3,
+                "апрель": 4,
+                "май": 5,
+                "июнь": 6,
+                "июль": 7,
+                "август": 8,
+                "сентябрь": 9,
+                "октябрь": 10,
+                "ноябрь": 11,
+                "декабрь": 12,
+                "ЯНВАРЬ": 1,
+                "ФЕВРАЛЬ": 2,
+                "МАРТ": 3,
+                "АПРЕЛЬ": 4,
+                "МАЙ": 5,
+                "ИЮНЬ": 6,
+                "ИЮЛЬ": 7,
+                "АВГУСТ": 8,
+                "СЕНТЯБРЬ": 9,
+                "ОКТЯБРЬ": 10,
+                "НОЯБРЬ": 11,
+                "ДЕКАБРЬ": 12,
+            }
+
+            month_num = month_to_num.get(month)
+            if not month_num:
+                logger.warning(f"[График] Неизвестный месяц: {month}")
+                return self._search_schedule_file(
+                    division
+                )  # Fallback to default search
+
+            # I - первая половина (январь-июнь), II - вторая (июль-декабрь)
+            period = "I" if month_num <= 6 else "II"
+
+            # Ищем файл, соответствующий периоду и году
+            all_files = []
+            for root, dirs, files in os.walk(self.uploads_folder, followlinks=True):
+                for name in files:
+                    if name.startswith("ГРАФИК"):
+                        all_files.append(Path(root) / name)
+
+            # Фильтруем файлы по направлению, периоду и году
+            pattern_parts = [division.upper(), period, str(year)]
+            matching_files = []
+
+            for file in all_files:
+                name_parts = file.stem.split()
+                logger.debug(
+                    f"[График] Процессим файл: {file.name}, части названия: {name_parts}"
+                )
+
+                # Проверяем соответствие шаблону
+                if len(name_parts) >= 4:
+                    file_division = name_parts[1]
+                    file_period = name_parts[2].upper()
+                    file_year = name_parts[3]
+
+                    if (
+                        file_division == division.upper()
+                        and file_period == period
+                        and file_year == str(year)
+                    ):
+                        logger.debug(f"[График] СОВПАДЕНИЕ: {file.name}")
+                        matching_files.append(file)
+
+            if matching_files:
+                latest_file = max(matching_files, key=lambda f: f.stat().st_mtime)
+                logger.debug(f"[График] Найден файл графиков: {latest_file}")
+                return latest_file
+
+            # Если не нашли точное совпадение, пробуем найти любой файл для этого направления и года
+            logger.warning(
+                f"[График] Файл для {division} {period} {year} не найден, пробуем fallback"
+            )
+            return self._search_schedule_file(division)
+
+        except Exception as e:
+            logger.error(f"[График] Ошибка нахождения файла для месяца: {e}")
+            return self._search_schedule_file(division)  # Fallback to default search
 
     def clear_cache(self, division: Optional[str] = None) -> None:
         """Очищает кеш.

@@ -107,6 +107,7 @@ class ScheduleHandlerService:
         self,
         user: Employee,
         month: str,
+        year: int = None,
         compact: bool = True,
         stp_repo: MainRequestsRepo = None,
         bot: Bot = None,
@@ -116,6 +117,7 @@ class ScheduleHandlerService:
         Args:
             user: Объект сотрудника
             month: Название месяца
+            year: Год (опционально, по умолчанию текущий)
             compact: Использовать компактный формат
             stp_repo: Репозиторий операций с базой STP
             bot: Экземпляр бота
@@ -130,6 +132,7 @@ class ScheduleHandlerService:
                     await self.schedule_parser.get_user_schedule_formatted_with_duties(
                         fullname=user.fullname,
                         month=month,
+                        year=year,
                         division=user.division,
                         compact=compact,
                         stp_repo=stp_repo,
@@ -141,6 +144,7 @@ class ScheduleHandlerService:
                 return self.schedule_parser.get_user_schedule_formatted(
                     fullname=user.fullname,
                     month=month,
+                    year=year,
                     division=user.division,
                     compact=compact,
                 )

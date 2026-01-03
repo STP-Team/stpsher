@@ -16,14 +16,17 @@ from tgbot.services.files_processing.formatters.schedule import get_current_mont
 from tgbot.services.salary import KPICalculator, SalaryCalculator, SalaryFormatter
 
 
-def get_extraction_period_from_month(month_name: str) -> datetime.datetime:
-    """Получает extraction_period на основе названия месяца.
+def get_extraction_period_from_month(
+    month_name: str, year: int = None
+) -> datetime.datetime:
+    """Получает extraction_period на основе названия месяца и года.
 
     Args:
         month_name: Название месяца на русском языке
+        year: Год (опционально, по умолчанию текущий)
 
     Returns:
-        datetime для первого дня указанного месяца текущего года
+        datetime для первого дня указанного месяца и года
     """
     # Получаем номер месяца из русского названия
     month_to_num = {name: num for num, name in russian_months.items()}
@@ -35,8 +38,8 @@ def get_extraction_period_from_month(month_name: str) -> datetime.datetime:
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
 
-    # Получаем текущий год
-    current_year = datetime.datetime.today().year
+    # Получаем год из параметра или используем текущий
+    current_year = year if year is not None else datetime.datetime.today().year
 
     return datetime.datetime(
         year=current_year,
@@ -60,20 +63,24 @@ async def base_kpi_data(
     Args:
         user: Экземпляр пользователя с моделью Employee
         stats_repo: Репозиторий операций с базой KPI
-        dialog_manager: Менеджер диалога для получения выбранного месяца
+        dialog_manager: Менеджер диалога для получения выбранного месяца и года
 
     Returns:
         Словарь с информацией о премии пользователя
     """
-    # Получаем выбранный месяц из dialog_manager или используем текущий
+    # Получаем выбранный месяц и год из dialog_manager или используем текущие
     if dialog_manager:
         current_month = dialog_manager.dialog_data.get(
             "current_month", get_current_month()
         )
+        current_year = dialog_manager.dialog_data.get(
+            "current_year", datetime.datetime.now().year
+        )
     else:
         current_month = get_current_month()
+        current_year = datetime.datetime.now().year
 
-    extraction_period = get_extraction_period_from_month(current_month)
+    extraction_period = get_extraction_period_from_month(current_month, current_year)
 
     if user.role == 2:
         premium: HeadPremium = await stats_repo.head_premium.get_premium(
@@ -272,6 +279,9 @@ async def salary_getter(
             premium_data=premium,
             stp_repo=stp_repo,
             current_month=data.get("current_month"),
+            current_year=data.get("extraction_period").year
+            if data.get("extraction_period")
+            else None,
         )
     except Exception as e:
         salary_result = f"""💰 <b>Зарплата</b>

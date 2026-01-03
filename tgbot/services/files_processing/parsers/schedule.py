@@ -42,7 +42,7 @@ class ScheduleParser(BaseParser):
         self.formatter = ScheduleFormatter()
 
     def get_user_schedule(
-        self, fullname: str, month: str, division: str
+        self, fullname: str, month: str, division: str, year: int = None
     ) -> Dict[str, str]:
         """Получает график пользователя.
 
@@ -50,6 +50,7 @@ class ScheduleParser(BaseParser):
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
+            year: Год (опционально)
 
         Returns:
             Словарь с графиком {день: значение}
@@ -58,7 +59,7 @@ class ScheduleParser(BaseParser):
             FileNotFoundError: Если файл графика не найден
         """
         try:
-            schedule_file = self.file_manager.find_schedule_file(division)
+            schedule_file = self.file_manager.find_schedule_file(division, month, year)
             if not schedule_file:
                 raise FileNotFoundError(f"Файл графика для {division} не найден")
 
@@ -79,6 +80,7 @@ class ScheduleParser(BaseParser):
         fullname: str,
         month: str,
         division: str,
+        year: int = None,
         stp_repo=None,
         current_day_only: bool = False,
         bot: Bot = None,
@@ -89,6 +91,7 @@ class ScheduleParser(BaseParser):
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
+            year: Год (опционально)
             stp_repo: Репозиторий операций с базой STP
             current_day_only: Если True, получает дежурство только для текущего дня
             bot: Экземпляр бота
@@ -97,7 +100,7 @@ class ScheduleParser(BaseParser):
             Словарь с маппингом день -> (график, информация_о_дежурстве_и_обменах)
         """
         try:
-            schedule_data = self.get_user_schedule(fullname, month, division)
+            schedule_data = self.get_user_schedule(fullname, month, division, year)
 
             if not schedule_data or not stp_repo:
                 return {
@@ -251,7 +254,7 @@ class ScheduleParser(BaseParser):
 
         except Exception as e:
             logger.error(f"[Excel] Ошибка получения графика с дежурными: {e}")
-            schedule_data = self.get_user_schedule(fullname, month, division)
+            schedule_data = self.get_user_schedule(fullname, month, division, year)
             return {day: (schedule, None) for day, schedule in schedule_data.items()}
 
     def get_user_schedule_formatted(
@@ -259,6 +262,7 @@ class ScheduleParser(BaseParser):
         fullname: str,
         month: str,
         division: str,
+        year: int = None,
         compact: bool = False,
     ) -> str:
         """Получает отформатированный график пользователя.
@@ -267,13 +271,14 @@ class ScheduleParser(BaseParser):
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
+            year: Год (опционально)
             compact: Использовать компактный формат
 
         Returns:
             Отформатированная строка с графиком
         """
         try:
-            schedule_data = self.get_user_schedule(fullname, month, division)
+            schedule_data = self.get_user_schedule(fullname, month, division, year)
 
             if not schedule_data:
                 return f"❌ Не найден график для <b>{fullname}</b> на {month}"
@@ -294,6 +299,7 @@ class ScheduleParser(BaseParser):
         fullname: str,
         month: str,
         division: str,
+        year: int = None,
         compact: bool = False,
         stp_repo=None,
         bot: Bot = None,
@@ -307,6 +313,7 @@ class ScheduleParser(BaseParser):
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
+            year: Год (опционально)
             compact: Использовать компактный формат
             stp_repo: Репозиторий операций с базой STP
             bot: Экземпляр бота
@@ -319,6 +326,7 @@ class ScheduleParser(BaseParser):
                 fullname,
                 month,
                 division,
+                year,
                 stp_repo,
                 current_day_only=compact,
                 bot=bot,
@@ -383,7 +391,7 @@ class ScheduleParser(BaseParser):
         return False
 
     def get_user_schedule_with_additional_shifts(
-        self, fullname: str, month: str, division: str
+        self, fullname: str, month: str, division: str, year: int = None
     ) -> Tuple[Dict[str, str], Dict[str, str]]:
         """Получает график пользователя с разделением на обычные и дополнительные смены.
 
@@ -393,6 +401,7 @@ class ScheduleParser(BaseParser):
             fullname: ФИО пользователя
             month: Название месяца
             division: Направление
+            year: Год (опционально)
 
         Returns:
             Кортеж (обычный_график, дополнительные_смены)
@@ -402,7 +411,7 @@ class ScheduleParser(BaseParser):
             ValueError: Если пользователь не найден
         """
         try:
-            schedule_file = self.file_manager.find_schedule_file(division)
+            schedule_file = self.file_manager.find_schedule_file(division, month, year)
             if not schedule_file:
                 raise FileNotFoundError(f"Файл графика для {division} не найден")
 

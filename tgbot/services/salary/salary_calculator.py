@@ -531,6 +531,7 @@ class SalaryCalculator:
         premium_data,
         stp_repo: MainRequestsRepo,
         current_month: Optional[str] = None,
+        current_year: Optional[int] = None,
     ) -> SalaryCalculationResult:
         """Выполняет полный расчет зарплаты сотрудника за месяц.
 
@@ -545,6 +546,7 @@ class SalaryCalculator:
                 содержащий процентные значения всех видов премий
             stp_repo: Репозиторий для работы с базой данных STP
             current_month: Название месяца для расчета (по умолчанию текущий)
+            current_year: Год для расчета (по умолчанию текущий)
 
         Returns:
             SalaryCalculationResult: Полный результат расчета зарплаты
@@ -563,12 +565,15 @@ class SalaryCalculator:
         now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5)))
         current_month_name = current_month or russian_months[now.month]
 
-        # Определяем год для выбранного месяца
-        if current_month:
-            # Получаем номер месяца из названия
-            month_to_num = {name: num for num, name in russian_months.items()}
-            selected_month_num = month_to_num.get(current_month_name.lower(), now.month)
+        # Определяем год и номер месяца для выбранного месяца
+        month_to_num = {name: num for num, name in russian_months.items()}
+        selected_month_num = month_to_num.get(current_month_name.lower(), now.month)
 
+        if current_year:
+            # Используем переданный год
+            target_year = current_year
+        elif current_month:
+            # Обратная совместимость: если год не передан, определяем его логически
             # Если выбранный месяц больше текущего, это прошлый год
             if selected_month_num > now.month:
                 target_year = now.year - 1
@@ -576,7 +581,6 @@ class SalaryCalculator:
                 target_year = now.year
         else:
             target_year = now.year
-            selected_month_num = now.month
 
         # Получаем ЧТС
         pay_rate = PayRateService.get_pay_rate(user.division, user.position)
@@ -588,7 +592,7 @@ class SalaryCalculator:
         try:
             schedule_data, additional_shifts_data = (
                 schedule_parser.get_user_schedule_with_additional_shifts(
-                    user.fullname, current_month_name, user.division
+                    user.fullname, current_month_name, user.division, target_year
                 )
             )
         except Exception as e:

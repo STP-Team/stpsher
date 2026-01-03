@@ -129,20 +129,6 @@ my_window = Window(
     state=Schedules.my,
 )
 
-my_schedule_calendar_window = Window(
-    Format("<b>👔 Мой график • {month}</b>\n\n· Точками отмечены рабочие дни"),
-    ExchangeCalendar(id="my_schedule_calendar"),
-    Button(
-        Const("📝 Вид текста"),
-        id="text_view",
-        on_click=switch_to_text_view,
-    ),
-    Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.my), HOME_BTN),
-    getter=my_schedule_calendar_getter,
-    state=Schedules.my_calendar,
-)
-
 duties_window = Window(
     Format(
         """{duties_text}
@@ -316,6 +302,20 @@ tutors_window = Window(
 )
 
 # Окна календарей
+my_schedule_calendar_window = Window(
+    Format("<b>👔 Мой график • {month}</b>\n\n· Точками отмечены рабочие дни"),
+    ExchangeCalendar(id="my_schedule_calendar"),
+    Button(
+        Const("📝 Вид текста"),
+        id="text_view",
+        on_click=switch_to_text_view,
+    ),
+    Button(Const("🗳 Мои сделки"), id="my_exchanges", on_click=open_my_exchanges),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Schedules.my), HOME_BTN),
+    getter=my_schedule_calendar_getter,
+    state=Schedules.my_calendar,
+)
+
 duties_calendar_window = Window(
     Const("<b>📅 Выбор даты для дежурных</b>\n\nВыберите дату из календаря:"),
     RussianCalendar(id="duties_calendar", on_click=on_date_selected),

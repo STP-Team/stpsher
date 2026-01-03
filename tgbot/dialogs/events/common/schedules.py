@@ -113,8 +113,12 @@ async def prev_month(
         dialog_manager: Менеджер диалога
     """
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
-    prev_month_name = get_prev_month(current_month)
+    current_year = dialog_manager.dialog_data.get(
+        "current_year", datetime.datetime.now().year
+    )
+    prev_month_name, prev_year = get_prev_month(current_month, current_year)
     dialog_manager.dialog_data["current_month"] = prev_month_name
+    dialog_manager.dialog_data["current_year"] = prev_year
 
 
 async def next_month(
@@ -128,8 +132,12 @@ async def next_month(
         dialog_manager: Менеджер диалога
     """
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
-    next_month_name = get_next_month(current_month)
+    current_year = dialog_manager.dialog_data.get(
+        "current_year", datetime.datetime.now().year
+    )
+    next_month_name, next_year = get_next_month(current_month, current_year)
     dialog_manager.dialog_data["current_month"] = next_month_name
+    dialog_manager.dialog_data["current_year"] = next_year
 
 
 async def do_nothing(
@@ -145,14 +153,15 @@ async def do_nothing(
     pass
 
 
-def get_prev_month(current_month: str) -> str:
-    """Получает название предыдущего месяца.
+def get_prev_month(current_month: str, current_year: int) -> tuple[str, int]:
+    """Получает название предыдущего месяца и год.
 
     Args:
         current_month: Название текущего месяца
+        current_year: Текущий год
 
     Returns:
-        Название предыдущего месяца
+        Кортеж (название_предыдущего_месяца, год)
     """
     month_to_num = {name: num for num, name in russian_months.items()}
 
@@ -161,26 +170,35 @@ def get_prev_month(current_month: str) -> str:
 
     # Считаем номер предыдущего месяца (1-12)
     prev_num = 12 if current_num == 1 else current_num - 1
-    return russian_months[prev_num]
+
+    # Если переходим с января на декабрь, уменьшаем год
+    prev_year = current_year - 1 if current_num == 1 else current_year
+
+    return russian_months[prev_num], prev_year
 
 
-def get_next_month(current_month: str) -> str:
-    """Получает название следующего месяца.
+def get_next_month(current_month: str, current_year: int) -> tuple[str, int]:
+    """Получает название следующего месяца и год.
 
     Args:
         current_month: Название текущего месяца
+        current_year: Текущий год
 
     Returns:
-        Название следующего месяца
+        Кортеж (название_следующего_месяца, год)
     """
     month_to_num = {name: num for num, name in russian_months.items()}
 
     # Получаем номер текущего месяца
     current_num = month_to_num.get(current_month.lower())
 
-    # Считаем номер предыдущего месяца (1-12)
-    prev_num = 1 if current_num == 12 else current_num + 1
-    return russian_months[prev_num]
+    # Считаем номер следующего месяца (1-12)
+    next_num = 1 if current_num == 12 else current_num + 1
+
+    # Если переходим с декабря на январь, увеличиваем год
+    next_year = current_year + 1 if current_num == 12 else current_year
+
+    return russian_months[next_num], next_year
 
 
 async def on_date_selected(
@@ -222,8 +240,11 @@ async def switch_to_calendar_view(
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    # Получаем текущий месяц из текстового вида
+    # Получаем текущий месяц и год из текстового вида
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
+    current_year = dialog_manager.dialog_data.get(
+        "current_year", datetime.datetime.now().year
+    )
 
     # Переключаемся в календарный вид
     await dialog_manager.switch_to(Schedules.my_calendar)
@@ -237,8 +258,8 @@ async def switch_to_calendar_view(
         if month_num:
             from datetime import date
 
-            # Устанавливаем offset календаря на нужный месяц
-            target_date = date(date.today().year, month_num, 1)
+            # Устанавливаем offset календаря на нужный месяц и год
+            target_date = date(current_year, month_num, 1)
             calendar_widget.set_offset(target_date)
 
 
@@ -252,16 +273,18 @@ async def switch_to_text_view(
         _widget: Виджет кнопки
         dialog_manager: Менеджер диалога
     """
-    # Получаем текущий месяц из календарного вида
+    # Получаем текущий месяц и год из календарного вида
     calendar_widget = dialog_manager.find("my_schedule_calendar")
     if calendar_widget:
         try:
             current_offset = calendar_widget.get_offset()
             if current_offset:
                 displayed_month_name = russian_months.get(current_offset.month)
+                displayed_year = current_offset.year
                 if displayed_month_name:
-                    # Сохраняем выбранный месяц для текстового вида
+                    # Сохраняем выбранный месяц и год для текстового вида
                     dialog_manager.dialog_data["current_month"] = displayed_month_name
+                    dialog_manager.dialog_data["current_year"] = displayed_year
         except Exception:
             pass
 
