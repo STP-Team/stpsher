@@ -6,6 +6,7 @@ from typing import Any, Dict, Sequence
 
 from aiogram import Bot
 from aiogram_dialog import DialogManager
+from sqlalchemy import func, select
 from stp_database.models.Stats.tutors_schedule import TutorsSchedule
 from stp_database.models.STP import Employee
 from stp_database.repo.Stats import StatsRequestsRepo
@@ -302,29 +303,63 @@ async def tutors_schedule_getter(
         current_date = datetime.fromisoformat(current_date_str)
 
     selected_date = current_date.date()
+    today = get_current_date().date()
+    is_historical = selected_date != today
 
     # Получаем выбранный режим отображения
     selected_mode = dialog_manager.find("tutors_schedule_mode").get_checked()
 
-    # Сначала получаем все данные для извлечения времени создания
-    all_trainees_schedule: Sequence[
-        TutorsSchedule
-    ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
-        training_date=selected_date,
-        division=user.division,
-    )
+    # Для исторических дат используем кастомный запрос без фильтрации по extraction_period
+    # Это позволяет видеть данные, которые были выгружены в прошлом
+    if is_historical:
+        # Создаем базовый запрос без фильтра extraction_period
+        base_query = select(TutorsSchedule).where(
+            func.date(TutorsSchedule.training_day) == selected_date
+        )
 
-    # Затем фильтруем данные в зависимости от выбранного режима
-    if selected_mode == "mine":
-        trainees_schedule: Sequence[
+        # Применяем фильтр подразделения
+        division_value = "НТП НЦК" if user.division == "НЦК" else user.division
+        base_query = base_query.where(TutorsSchedule.tutor_division == division_value)
+
+        # Для режима "Только мое" добавляем фильтр по наставнику
+        if selected_mode == "mine":
+            base_query = base_query.where(TutorsSchedule.tutor_fullname == user.fullname)
+
+        base_query = base_query.order_by(TutorsSchedule.training_start_time)
+
+        # Выполняем запрос
+        result = await stats_repo.session.execute(base_query)
+        trainees_schedule: Sequence[TutorsSchedule] = result.scalars().all()
+
+        # Для всех данных (нужны для получения created_at) берем без фильтра по наставнику
+        all_query = select(TutorsSchedule).where(
+            func.date(TutorsSchedule.training_day) == selected_date
+        )
+        all_query = all_query.where(TutorsSchedule.tutor_division == division_value)
+        all_query = all_query.order_by(TutorsSchedule.training_start_time)
+
+        all_result = await stats_repo.session.execute(all_query)
+        all_trainees_schedule: Sequence[TutorsSchedule] = all_result.scalars().all()
+    else:
+        # Для текущего дня используем существующий метод с фильтрацией по MAX extraction_period
+        all_trainees_schedule: Sequence[
             TutorsSchedule
         ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
-            tutor_fullname=user.fullname,
             training_date=selected_date,
             division=user.division,
         )
-    else:
-        trainees_schedule = all_trainees_schedule
+
+        # Затем фильтруем данные в зависимости от выбранного режима
+        if selected_mode == "mine":
+            trainees_schedule: Sequence[
+                TutorsSchedule
+            ] = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
+                tutor_fullname=user.fullname,
+                training_date=selected_date,
+                division=user.division,
+            )
+        else:
+            trainees_schedule = all_trainees_schedule
 
     # Формируем текст для отображения
     if trainees_schedule:
