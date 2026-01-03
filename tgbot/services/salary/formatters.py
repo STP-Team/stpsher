@@ -1,3 +1,5 @@
+import datetime
+
 from ...misc.helpers import strftime_date
 from .salary_calculator import SalaryCalculationResult
 
@@ -219,6 +221,10 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 <i>Данные из <b><a href='okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{
             result.premium_updated_at.strftime(strftime_date)
         }</code>
-Меню обновлено в <code>{result.calculation_time.strftime(strftime_date)}</code></i>"""
+Меню обновлено в <code>{
+            datetime.datetime.now(
+                datetime.timezone(datetime.timedelta(hours=5))
+            ).strftime(strftime_date)
+        }</code></i>"""
 
         return message_text

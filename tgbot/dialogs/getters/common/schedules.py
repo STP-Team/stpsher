@@ -1,7 +1,7 @@
 """Геттеры для функций графиков."""
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Sequence
 
 from aiogram import Bot
@@ -115,23 +115,25 @@ async def user_schedule_getter(
         matching_files = []
         for f in all_files:
             if f.file_name:
-                # Check if file matches pattern: ГРАФИК {division} {period} {year}
+                # Check if file matches pattern: ГРАФИК {division} {period} {year}.xlsx
                 name_parts = f.file_name.split()
+                year_part = name_parts[3].split('.')[0] if len(name_parts) >= 4 else ""
                 if (
                     len(name_parts) >= 4
                     and name_parts[0] == "ГРАФИК"
                     and name_parts[1] == user.division
                     and name_parts[2].upper() == period
-                    and name_parts[3] == str(current_year)
+                    and year_part == str(current_year)
                 ):
                     matching_files.append(f)
 
         if matching_files:
             latest_file = matching_files[0]
             file_name = latest_file.file_name or "Неизвестный файл"
-            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+            if latest_file.uploaded_at:
+                upload_date = latest_file.uploaded_at.strftime(strftime_date)
     except Exception:
-        pass  # Use default values
+        pass
 
     return {
         "current_month": current_month,
@@ -195,9 +197,10 @@ async def duty_schedule_getter(
         if matching_files:
             latest_file = matching_files[0]
             file_name = latest_file.file_name or "Неизвестный файл"
-            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+            if latest_file.uploaded_at:
+                upload_date = latest_file.uploaded_at.strftime(strftime_date)
     except Exception:
-        pass  # Use default values
+        pass
 
     return {
         "duties_text": duties_text,
@@ -254,9 +257,10 @@ async def head_schedule_getter(
         if matching_files:
             latest_file = matching_files[0]
             file_name = latest_file.file_name or "Неизвестный файл"
-            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+            if latest_file.uploaded_at:
+                upload_date = latest_file.uploaded_at.strftime(strftime_date)
     except Exception:
-        pass  # Use default values
+        pass
 
     return {
         "heads_text": heads_text,
@@ -391,8 +395,6 @@ async def tutors_schedule_getter(
                 )
                 tutors_text += f"📝 <b>Тип:</b> {type_text}\n"
             tutors_text += "\n"
-
-        # Добавляем информацию о времени создания данных (используем первую запись)
     else:
         # Персонализированное сообщение в зависимости от режима
         if selected_mode == "mine":
@@ -408,10 +410,6 @@ async def tutors_schedule_getter(
     else:
         data_created_at = "Неизвестно"
 
-    menu_updated_at = datetime.now().strftime(strftime_date)
-    tutors_text += f"""<i>Данные из <b><a href='okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <code>{data_created_at}</code>
-Меню обновлено в <code>{menu_updated_at}</code></i>"""
-
     date_display = current_date.strftime("%d.%m")
     is_today = current_date.date() == get_current_date().date()
 
@@ -420,6 +418,8 @@ async def tutors_schedule_getter(
         "date_display": date_display,
         "is_today": is_today,
         "mode_options": mode_options,
+        "data_created_at": data_created_at,
+        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(strftime_date),
     }
 
 
@@ -476,9 +476,10 @@ async def group_schedule_getter(
         if matching_files:
             latest_file = matching_files[0]
             file_name = latest_file.file_name or "Неизвестный файл"
-            upload_date = latest_file.uploaded_at.strftime(strftime_date)
+            if latest_file.uploaded_at:
+                upload_date = latest_file.uploaded_at.strftime(strftime_date)
     except Exception:
-        pass  # Use default values
+        pass
 
     return {
         "group_text": group_text,

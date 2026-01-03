@@ -89,10 +89,7 @@ menu_window = Window(
 
 my_window = Window(
     Format(
-        """{schedule_text}
-
-<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
-Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+        "{schedule_text}\n<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>\nМеню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"
     ),
     Row(
         Button(
@@ -131,10 +128,7 @@ my_window = Window(
 
 duties_window = Window(
     Format(
-        """{duties_text}
-        
-<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
-Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+        "{duties_text}\n<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>\nМеню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"
     ),
     Row(
         Button(
@@ -173,10 +167,7 @@ duties_window = Window(
 
 group_window = Window(
     Format(
-        """{group_text}
-        
-<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
-Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+        "{group_text}\n<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>\nМеню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"
     ),
     Row(
         Button(
@@ -215,10 +206,7 @@ group_window = Window(
 
 heads_window = Window(
     Format(
-        """{heads_text}
-        
-<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>
-Меню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"""
+        "{heads_text}\n<tg-spoiler><i>Данные из файла <b>{file_name}</b> от <b>{upload_date}</b>\nМеню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"
     ),
     Row(
         Button(
@@ -256,7 +244,9 @@ heads_window = Window(
 )
 
 tutors_window = Window(
-    Format("{tutors_text}"),
+    Format(
+        "{tutors_text}\n\n<tg-spoiler><i>Данные из <b><a href='okc.ertelecom.ru/yii/tutor-graph/stp/graph'>Графика наставников</a></b> на <b>{data_created_at}</b>\nМеню обновлено в <b>{current_time_str}</b></i></tg-spoiler>"
+    ),
     Row(
         Button(
             Const("<"),
