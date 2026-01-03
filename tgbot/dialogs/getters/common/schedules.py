@@ -118,7 +118,7 @@ async def user_schedule_getter(
             if f.file_name:
                 # Check if file matches pattern: ГРАФИК {division} {period} {year}.xlsx
                 name_parts = f.file_name.split()
-                year_part = name_parts[3].split('.')[0] if len(name_parts) >= 4 else ""
+                year_part = name_parts[3].split(".")[0] if len(name_parts) >= 4 else ""
                 if (
                     len(name_parts) >= 4
                     and name_parts[0] == "ГРАФИК"
@@ -147,7 +147,9 @@ async def user_schedule_getter(
         "selected_mode": selected_mode,
         "file_name": file_name,
         "upload_date": upload_date,
-        "current_time_str": current_date.strftime(strftime_date),
+        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(
+            strftime_date
+        ),
     }
 
 
@@ -209,7 +211,9 @@ async def duty_schedule_getter(
         "is_today": is_today,
         "file_name": file_name,
         "upload_date": upload_date,
-        "current_time_str": current_date.strftime(strftime_date),
+        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(
+            strftime_date
+        ),
     }
 
 
@@ -269,7 +273,9 @@ async def head_schedule_getter(
         "is_today": is_today,
         "file_name": file_name,
         "upload_date": upload_date,
-        "current_time_str": current_date.strftime(strftime_date),
+        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(
+            strftime_date
+        ),
     }
 
 
@@ -323,7 +329,9 @@ async def tutors_schedule_getter(
 
         # Для режима "Только мое" добавляем фильтр по наставнику
         if selected_mode == "mine":
-            base_query = base_query.where(TutorsSchedule.tutor_fullname == user.fullname)
+            base_query = base_query.where(
+                TutorsSchedule.tutor_fullname == user.fullname
+            )
 
         base_query = base_query.order_by(TutorsSchedule.training_start_time)
 
@@ -454,7 +462,9 @@ async def tutors_schedule_getter(
         "is_today": is_today,
         "mode_options": mode_options,
         "data_created_at": data_created_at,
-        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(strftime_date),
+        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(
+            strftime_date
+        ),
     }
 
 
@@ -522,7 +532,9 @@ async def group_schedule_getter(
         "is_today": is_today,
         "file_name": file_name,
         "upload_date": upload_date,
-        "current_time_str": current_date.strftime(strftime_date),
+        "current_time_str": datetime.now(timezone(timedelta(hours=5))).strftime(
+            strftime_date
+        ),
     }
 
 
