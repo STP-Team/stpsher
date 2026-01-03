@@ -18,7 +18,7 @@ from stp_database.models.STP import Employee, Product, Purchase
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.game import Game
-from tgbot.misc.helpers import strftime_date, tz_perm
+from tgbot.misc.helpers import format_fullname, strftime_date, tz_perm
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.files_processing.parsers.schedule import DutyScheduleParser
 from tgbot.services.mailing import (
@@ -107,7 +107,7 @@ async def send_product_activation_notifications(
             notification_text = f"""<b>🔔 Новый предмет на активацию</b>
 
 <b>🛒 Предмет:</b> {product_name}
-<b>👤 Заявитель:</b> <a href='t.me/{user.username}'>{user.fullname}</a>
+<b>👤 Заявитель:</b> {format_fullname(user)}
 <b>📋 Описание:</b> {product.description}
 {f"<b>💬 Комментарий:</b> {comment}" if comment else ""}"""
 
