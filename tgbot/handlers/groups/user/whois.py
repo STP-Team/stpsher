@@ -53,14 +53,16 @@ def create_user_info_message(user: Employee, user_head: Employee = None) -> str:
 
     if user.birthday:
         age = calculate_age(user.birthday)
-        birthday_text = f"\n<b>🍰 День рождения:</b> {user.birthday}"
+        birthday_text = (
+            f"\n<b>🍰 День рождения:</b> {user.birthday.strftime('%d.%m.%Y')}"
+        )
         if age is not None:
             birthday_text += f" <tg-spoiler>({age})</tg-spoiler>"
         message_parts.append(birthday_text)
 
     if user.employment_date:
         work_experience = calculate_work_experience(user.employment_date)
-        employment_text = f"<b>📅 Дата трудоустройства:</b> {user.employment_date}"
+        employment_text = f"<b>📅 Дата трудоустройства:</b> {user.employment_date.strftime('%d.%m.%Y')}"
         if work_experience:
             employment_text += f" <tg-spoiler>({work_experience})</tg-spoiler>"
         message_parts.append(employment_text)
