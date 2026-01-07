@@ -320,7 +320,15 @@ class SalaryCalculator:
 
                     # Проверка на праздничный день
                     try:
-                        work_date = datetime.date(target_year, target_month, int(day))
+                        # Извлекаем число из строки дня (формат: "1 (Пн)", "2 (Вт)", etc.)
+                        day_match = re.search(r"(\d+)", day)
+                        if not day_match:
+                            raise ValueError(
+                                f"Could not extract day number from: {day}"
+                            )
+                        day_num = int(day_match.group(1))
+
+                        work_date = datetime.date(target_year, target_month, day_num)
                         is_holiday = await production_calendar.is_holiday(work_date)
                         holiday_name = await production_calendar.get_holiday_name(
                             work_date
