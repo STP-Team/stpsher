@@ -9,7 +9,6 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiogram.types import (
     BotCommand,
-    BotCommandScopeAllChatAdministrators,
     BotCommandScopeAllPrivateChats,
     ErrorEvent,
 )
@@ -311,12 +310,12 @@ async def main() -> None:
         ],
         scope=BotCommandScopeAllPrivateChats(),
     )
-    await bot.set_my_commands(
-        commands=[
-            BotCommand(command="settings", description="Настройки группы"),
-        ],
-        scope=BotCommandScopeAllChatAdministrators(),
-    )
+    # await bot.set_my_commands(
+    #     commands=[
+    #         BotCommand(command="settings", description="Настройки группы"),
+    #     ],
+    #     scope=BotCommandScopeAllChatAdministrators(),
+    # )
 
     dp = Dispatcher(storage=storage)
 
