@@ -159,7 +159,7 @@ class ExchangeCalendar(Calendar):
         self,
         id: str,
         on_click=None,
-        config: CalendarConfig = None,
+        config: CalendarConfig = CalendarConfig(min_date=date.today()),
     ):
         """Инициализация календаря биржи подмен.
 
@@ -214,11 +214,10 @@ class SubscriptionDateText(Text):
         month = selected_date.month
         year = selected_date.year
 
-        # Проверяем, является ли дата прошедшей
+        # Получаем текущую дату для проверок
         from datetime import datetime
 
         current_date = datetime.now().date()
-        is_past = selected_date < current_date
 
         # Получаем данные о сменах из dialog_data
         shift_dates = dialog_manager.dialog_data.get("shift_dates", {})
@@ -378,7 +377,7 @@ class SubscriptionCalendar(Calendar):
         self,
         id: str,
         on_click=None,
-        config: CalendarConfig = None,
+        config: CalendarConfig = CalendarConfig(min_date=date.today()),
     ):
         """Инициализация календаря подписок.
 
