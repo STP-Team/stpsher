@@ -111,6 +111,7 @@ tests_window = Window(
             scroll="tests_list",
             text=Format("{target_page1}"),
         ),
+        when=F["tests_length"] > 6,
     ),
     Format(
         "<i>Данные из <b><a href='okc.ertelecom.ru/yii/testing/lk/profile'>Тестов</a></b> на <b>{created_at_str}</b>\nМеню обновлено в <b>{current_time_str}</b></i>"

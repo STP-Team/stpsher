@@ -48,6 +48,7 @@ async def tests_getter(
 
     return {
         "tests": user_tests,
+        "tests_length": len(user_tests),
         "created_at_str": created_at_str,
         "current_time_str": current_time_str,
     }
