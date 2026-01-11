@@ -31,6 +31,7 @@ from tgbot.dialogs.states.mip import MipSG
 from tgbot.dialogs.states.root import RootSG
 from tgbot.dialogs.states.user import UserSG
 from tgbot.handlers import routers_list
+from tgbot.middlewares.AccessMiddleware import AccessMiddleware
 from tgbot.middlewares.ConfigMiddleware import ConfigMiddleware
 from tgbot.middlewares.DatabaseMiddleware import DatabaseMiddleware
 from tgbot.middlewares.EventLoggingMiddleware import EventLoggingMiddleware
@@ -208,6 +209,7 @@ def register_middlewares(
     users_middleware = UsersMiddleware()
     groups_middleware = GroupsMiddleware()
     event_logging_middleware = EventLoggingMiddleware()
+    access_middleware = AccessMiddleware()
 
     for middleware in [
         config_middleware,
@@ -215,6 +217,7 @@ def register_middlewares(
         users_middleware,
         groups_middleware,
         event_logging_middleware,
+        access_middleware,
     ]:
         dp.message.outer_middleware(middleware)
         dp.callback_query.outer_middleware(middleware)
