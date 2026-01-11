@@ -3,6 +3,7 @@
 import operator
 from typing import Any
 
+from aiogram import F
 from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import (
@@ -30,6 +31,7 @@ from tgbot.dialogs.events.common.schedules import (
     prev_month,
 )
 from tgbot.dialogs.events.common.search import (
+    on_access_click,
     on_back_to_menu,
     on_casino_click,
     on_exchanges_click,
@@ -206,12 +208,12 @@ query_no_results_window = Window(
 details_window = Window(
     Format("{user_info}"),
     Const(
-        """\n<blockquote><b>Обозначения:</b>
+        """<blockquote><b>Обозначения:</b>
 🟢 - Опция включена
 🔴 - Опция выключена
 
 <i>Уровень доступа не влияет на статус стажера</i></blockquote>""",
-        when="is_head" or "is_root",
+        when=((F["is_head"]) | (F["is_root"])) & F["searched_default_user"],
     ),
     Group(
         Row(
@@ -264,6 +266,13 @@ details_window = Window(
             Const("🛡️ Уровень доступа"),
             id="access_level",
             state=Search.details_access_level_window,
+            when="searched_default_user",
+        ),
+        Checkbox(
+            Const("🟢 Доступ"),
+            Const("🔴 Доступ"),
+            id="have_access",
+            on_click=on_access_click,
             when="searched_default_user",
         ),
         when="is_head",
@@ -364,6 +373,13 @@ details_window = Window(
             Const("🛡️ Уровень доступа"),
             id="access_level",
             state=Search.details_access_level_window,
+        ),
+        Checkbox(
+            Const("🟢 Доступ"),
+            Const("🔴 Доступ"),
+            id="have_access",
+            on_click=on_access_click,
+            when="searched_default_user",
         ),
         when="is_root",
     ),

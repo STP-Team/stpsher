@@ -89,6 +89,10 @@ async def on_user_select(
     if trainee_checkbox:
         await trainee_checkbox.set_checked(searched_user.is_trainee)
 
+    access_checkbox: ManagedCheckbox = dialog_manager.find("have_access")
+    if access_checkbox:
+        await access_checkbox.set_checked(searched_user.access)
+
     exchanges_checkbox: ManagedCheckbox = dialog_manager.find("exchanges_access")
     if exchanges_checkbox:
         await exchanges_checkbox.set_checked(not searched_user.is_exchange_banned)
@@ -203,6 +207,24 @@ async def on_exchanges_click(
 
     await stp_repo.employee.update_user(
         user_id=selected_user_id, is_exchange_banned=not widget.is_checked()
+    )
+
+
+async def on_access_click(
+    _event: CallbackQuery, widget: ManagedCheckbox, dialog_manager: DialogManager
+):
+    """Обработчик изменения доступа к бирже подмен.
+
+    Args:
+        _event: Callback query от Telegram
+        widget: Управляемый чекбокс
+        dialog_manager: Менеджер диалога
+    """
+    stp_repo: MainRequestsRepo = dialog_manager.middleware_data["stp_repo"]
+    selected_user_id = dialog_manager.dialog_data.get("selected_user_id")
+
+    await stp_repo.employee.update_user(
+        user_id=selected_user_id, access=not widget.is_checked()
     )
 
 
