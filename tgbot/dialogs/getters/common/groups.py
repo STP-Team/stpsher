@@ -598,7 +598,6 @@ async def groups_members_getter(
 
     # Разделяем роли на числовые и строковые для правильной сортировки
     numeric_roles = [role_id for role_id in available_roles if isinstance(role_id, int)]
-    string_roles = [role_id for role_id in available_roles if isinstance(role_id, str)]
 
     # Добавляем фильтры для ролей сотрудников (только числовые роли)
     for role_id in sorted(numeric_roles):

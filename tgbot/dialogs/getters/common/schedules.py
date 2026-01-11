@@ -57,12 +57,6 @@ async def user_schedule_getter(
     Returns:
         Словарь для смены месяца графика
     """
-    current_date_str = dialog_manager.dialog_data.get("current_date")
-    if current_date_str is None:
-        current_date = get_current_date()
-    else:
-        current_date = datetime.fromisoformat(current_date_str)
-
     current_month = dialog_manager.dialog_data.get("current_month", get_current_month())
     current_year = dialog_manager.dialog_data.get("current_year", datetime.now().year)
 
@@ -598,7 +592,6 @@ async def prepare_schedule_calendar_data(
         # Загружаем данные расписания
         parser = ScheduleParser()
         all_shift_dates = {}
-        current_date = datetime.now().date()
 
         try:
             # Получаем расписание с дежурствами (включает в себя базовое расписание)

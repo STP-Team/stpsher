@@ -15,7 +15,7 @@ from tgbot.services.files_processing.utils.files import (
 )
 
 
-async def get_local_files(**kwargs) -> dict:
+async def get_local_files(**_kwargs) -> dict:
     """Получает список файлов из папки /uploads."""
     uploads_dir = Path("uploads")
 

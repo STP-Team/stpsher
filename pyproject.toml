@@ -29,7 +29,7 @@ dependencies = [
 preview = true
 
 [tool.ruff.lint]
-select = ["D", "E", "F", "I"]
+select = ["E", "F", "I", "ARG001"]
 ignore = ["D417", "E501"]
 
 [tool.ruff.lint.pydocstyle]

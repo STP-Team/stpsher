@@ -9,7 +9,6 @@ from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.getters.common.kpi import (
-    base_kpi_data,
     kpi_getter,
     kpi_requirements_getter,
     salary_getter,
@@ -212,10 +211,6 @@ async def member_kpi_getter(
     selected_user_id = dialog_manager.dialog_data.get("selected_member_id")
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
-    # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, stats_repo=stats_repo)
-    premium = premium_data.get("premium")
-
     # Вызываем оригинальный геттер с выбранным пользователем
     kpi_data = await kpi_getter(
         user=selected_user,
@@ -257,10 +252,6 @@ async def member_kpi_requirements_getter(
     selected_user_id = dialog_manager.dialog_data.get("selected_member_id")
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
 
-    # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, stats_repo=stats_repo)
-    premium = premium_data.get("premium")
-
     # Вызываем оригинальный геттер с выбранным пользователем
     requirements_data = await kpi_requirements_getter(
         user=selected_user, stats_repo=stats_repo, dialog_manager=dialog_manager
@@ -299,10 +290,6 @@ async def member_salary_getter(
     """
     selected_user_id = dialog_manager.dialog_data.get("selected_member_id")
     selected_user = await stp_repo.employee.get_users(main_id=int(selected_user_id))
-
-    # Получаем данные премии
-    premium_data = await base_kpi_data(user=selected_user, stats_repo=stats_repo)
-    premium = premium_data.get("premium")
 
     # Вызываем оригинальный геттер с выбранным пользователем
     salary_data = await salary_getter(

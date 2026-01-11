@@ -181,7 +181,6 @@ class ScheduleFileManager:
                         all_files.append(Path(root) / name)
 
             # Фильтруем файлы по направлению, периоду и году
-            pattern_parts = [division.upper(), period, str(year)]
             matching_files = []
 
             for file in all_files:

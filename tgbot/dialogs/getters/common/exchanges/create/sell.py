@@ -31,7 +31,7 @@ async def sell_date_getter(
     return {}
 
 
-async def sell_hours_getter(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+async def sell_hours_getter(dialog_manager: DialogManager, **_kwargs) -> Dict[str, Any]:
     """Геттер для окна выбора часов."""
     data = dialog_manager.dialog_data
 

@@ -82,6 +82,28 @@ class HRScheduler(BaseScheduler):
             minute=30,
         )
 
+        # Задача обновления статусов отпусков - каждый день в 9:00
+        self._add_job(
+            scheduler=scheduler,
+            func=self._process_vacation_status_job,
+            args=[stp_session_pool],
+            trigger="cron",
+            job_id="process_vacation_status",
+            name="Обработка статусов отпусков",
+            hour=9,
+            minute=0,
+        )
+
+        # Запуск обработки отпусков при старте
+        scheduler.add_job(
+            func=self._process_vacation_status_job,
+            args=[stp_session_pool],
+            trigger="date",
+            id="hr_startup_process_vacation_status",
+            name="Запуск при старте: Обработка статусов отпусков",
+            run_date=None,
+        )
+
     async def _process_fired_users_job(
         self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
     ) -> None:
@@ -120,6 +142,23 @@ class HRScheduler(BaseScheduler):
                 "Уведомления о неавторизованных пользователях",
                 success=False,
                 error=str(e),
+            )
+
+    async def _process_vacation_status_job(
+        self, stp_session_pool: async_sessionmaker[AsyncSession]
+    ) -> None:
+        """Обёртка для задачи обработки статусов отпусков.
+
+        Args:
+            stp_session_pool: Пул сессий с базой STP
+        """
+        self._log_job_execution_start("Обработка статусов отпусков")
+        try:
+            await process_vacation_status(stp_session_pool)
+            self._log_job_execution_end("Обработка статусов отпусков", success=True)
+        except Exception as e:
+            self._log_job_execution_end(
+                "Обработка статусов отпусков", success=False, error=str(e)
             )
 
 
@@ -623,3 +662,182 @@ def format_unauthorized_users_summary(unauthorized_users: List) -> str:
         summary_parts.append(f"• {division}: {count}")
 
     return ", ".join(summary_parts)
+
+
+# Функции для работы с отпусками
+def get_users_on_vacation_from_excel(
+    files_list: list[str] = None,
+) -> Dict[str, datetime]:
+    """Получение списка сотрудников на отпуске из Excel файлов.
+
+    Args:
+        files_list: Список файлов для получения сотрудников на отпуске
+
+    Returns:
+        Словарь {ФИО: дата_отпуска} сотрудников, у которых отпуск сегодня
+    """
+    users_on_vacation = {}
+    uploads_path = Path("uploads")
+    current_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+    if not uploads_path.exists():
+        logger.warning("[Отпуска] Папка uploads не найдена")
+        return users_on_vacation
+
+    if not files_list:
+        schedule_files = []
+        for root, dirs, files in os.walk(uploads_path, followlinks=True):
+            for name in files:
+                if name.startswith("ГРАФИК") and name.endswith(".xlsx"):
+                    schedule_files.append(Path(root) / name)
+
+        if not schedule_files:
+            logger.info("[Отпуска] Файлы графиков не найдены")
+            return users_on_vacation
+    else:
+        schedule_files = []
+        for file_name in files_list:
+            for root, dirs, files in os.walk(uploads_path, followlinks=True):
+                for name in files:
+                    if Path(name).match(file_name):
+                        schedule_files.append(Path(root) / name)
+
+    for file_path in schedule_files:
+        try:
+            logger.info(f"[Отпуска] Обрабатываем файл: {file_path.name}")
+
+            try:
+                df = pd.read_excel(file_path, sheet_name="ЗАЯВЛЕНИЯ", header=None)
+            except Exception as e:
+                logger.debug(
+                    f"[Отпуска] Лист ЗАЯВЛЕНИЯ не найден в {file_path.name}: {e}"
+                )
+                continue
+
+            for row_idx in range(len(df)):
+                try:
+                    fullname = (
+                        str(df.iloc[row_idx, 0])
+                        if pd.notna(df.iloc[row_idx, 0])
+                        else ""
+                    )
+                    vacation_date = (
+                        df.iloc[row_idx, 1] if pd.notna(df.iloc[row_idx, 1]) else None
+                    )
+                    vacation_type = (
+                        str(df.iloc[row_idx, 2])
+                        if pd.notna(df.iloc[row_idx, 2])
+                        else ""
+                    )
+
+                    # Проверяем тип отпуска (отпуск или отпуск бс)
+                    if vacation_type.strip().lower() not in ["отпуск", "отпуск бс"]:
+                        continue
+                    if not fullname:
+                        continue
+                    if vacation_date is None:
+                        continue
+
+                    # Проверяем, что дата отпуска совпадает с сегодняшним днём
+                    if isinstance(vacation_date, datetime):
+                        vacation_date_normalized = vacation_date.replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
+                    else:
+                        continue
+
+                    if vacation_date_normalized == current_date:
+                        users_on_vacation[fullname.strip()] = vacation_date_normalized
+                        logger.debug(
+                            f"[Отпуска] Найден сотрудник в отпуске: {fullname.strip()}"
+                        )
+
+                except Exception as e:
+                    logger.debug(
+                        f"[Отпуска] Ошибка обработки строки {row_idx} в файле {file_path.name}: {e}"
+                    )
+                    continue
+
+        except Exception as e:
+            logger.error(f"[Отпуска] Ошибка обработки файла {file_path}: {e}")
+            continue
+
+    logger.info(
+        f"[Отпуска] Найдено {len(users_on_vacation)} сотрудников в отпуске на сегодня"
+    )
+    return users_on_vacation
+
+
+async def process_vacation_status(
+    stp_session_pool: async_sessionmaker[AsyncSession],
+) -> None:
+    """Обработка статусов отпусков - обновление on_vacation в базе данных.
+
+    Args:
+        stp_session_pool: Пул сессий с базой STP
+    """
+    try:
+        users_on_vacation = get_users_on_vacation_from_excel()
+
+        # Получение сессии из пула
+        async with stp_session_pool() as session:
+            user_repo = EmployeeRepo(session)
+
+            # Получаем всех сотрудников из БД
+            all_employees = await user_repo.get_users()
+
+            total_set_on_vacation = 0
+            total_removed_from_vacation = 0
+            processed_fullnames = set()
+
+            # Сначала устанавливаем on_vacation = True для тех, кто в отпуске сегодня
+            for fullname in users_on_vacation.keys():
+                processed_fullnames.add(fullname)
+                try:
+                    employee = await user_repo.get_users(fullname=fullname)
+
+                    if not employee:
+                        logger.debug(f"[Отпуска] Сотрудник {fullname} не найден в БД")
+                        continue
+
+                    if not employee.on_vacation:
+                        employee.on_vacation = True
+                        total_set_on_vacation += 1
+                        logger.info(
+                            f"[Отпуска] Сотрудник {fullname} установлен в отпуск"
+                        )
+                    else:
+                        logger.debug(f"[Отпуска] Сотрудник {fullname} уже в отпуске")
+
+                except Exception as e:
+                    logger.error(
+                        f"[Отпуска] Ошибка обновления сотрудника {fullname}: {e}"
+                    )
+
+            # Теперь проверяем тех, кто уже был в отпуске, но не в списке на сегодня
+            for employee in all_employees:
+                if (
+                    employee.on_vacation
+                    and employee.fullname not in processed_fullnames
+                ):
+                    try:
+                        employee.on_vacation = False
+                        total_removed_from_vacation += 1
+                        logger.info(
+                            f"[Отпуска] Сотрудник {employee.fullname} удален из отпуска"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"[Отпуска] Ошибка удаления из отпуска {employee.fullname}: {e}"
+                        )
+
+            # Фиксируем изменения
+            await session.commit()
+
+            logger.info(
+                f"[Отпуска] Обработка завершена. Установлено в отпуск: {total_set_on_vacation}, "
+                f"удалено из отпуска: {total_removed_from_vacation}"
+            )
+
+    except Exception as e:
+        logger.error(f"[Отпуска] Критическая ошибка при обработке отпусков: {e}")

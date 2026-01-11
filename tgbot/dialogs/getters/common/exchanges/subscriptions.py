@@ -572,14 +572,10 @@ async def subscription_create_confirmation_getter(
     # Детальная сводка критериев
     criteria_summary = _get_detailed_criteria_summary(dialog_manager)
 
-    # Сводка уведомлений
-    notification_summary = _get_notification_summary(dialog_manager)
-
     return {
         "subscription_name": subscription_name,
         "exchange_type": exchange_type,
         "criteria_summary": criteria_summary,
-        "notification_summary": notification_summary,
     }
 
 
@@ -737,12 +733,6 @@ def _get_detailed_criteria_summary(dialog_manager: DialogManager) -> str:
         criteria_parts.append(f"• Сотрудник: {seller_short}")
 
     return "\n".join(criteria_parts) if criteria_parts else "• Все обмены"
-
-
-def _get_notification_summary(dialog_manager: DialogManager) -> str:
-    """Получить сводку настроек уведомлений."""
-    # Всегда включены мгновенные уведомления о новых/отредактированных обменах
-    return "• Мгновенные уведомления о новых и отредактированных обменах"
 
 
 async def subscription_create_seller_search_getter(

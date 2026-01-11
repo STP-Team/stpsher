@@ -213,7 +213,7 @@ async def on_broadcast_send(
     await dialog_manager.switch_to(Broadcast.new_broadcast_progress)
 
     # Callback для обновления прогресса
-    async def update_progress(current: int, total: int) -> None:
+    async def update_progress(current: int, _total: int) -> None:
         dialog_manager.dialog_data["current_progress"] = current
         await dialog_manager.update({})
 
@@ -347,7 +347,7 @@ async def on_broadcast_resend(
     await dialog_manager.switch_to(Broadcast.new_broadcast_progress)
 
     # Callback для обновления прогресса
-    async def update_progress(current: int, total: int) -> None:
+    async def update_progress(current: int, _total: int) -> None:
         dialog_manager.dialog_data["current_progress"] = current
         await dialog_manager.update({})
 

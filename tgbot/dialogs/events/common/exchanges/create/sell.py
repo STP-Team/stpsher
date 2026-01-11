@@ -770,7 +770,6 @@ async def on_hours_selected(
     """
     shift_date_str = dialog_manager.dialog_data["shift_date"]
     shift_schedule = dialog_manager.dialog_data["shift_schedule"]
-    shift_end = dialog_manager.dialog_data["shift_end"]
 
     if item_id == "full":
         # Полная смена - извлекаем все временные диапазоны для создания отдельных сделок
@@ -863,7 +862,6 @@ async def on_time_input(
         return
 
     shift_schedule = dialog_manager.dialog_data["shift_schedule"]
-    shift_end = dialog_manager.dialog_data["shift_end"]
 
     # Проверяем, что время в пределах смены пользователя
     if not is_time_within_shift(data, shift_schedule):

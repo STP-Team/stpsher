@@ -263,14 +263,14 @@ def format_result(game_type: str, value: int, multiplier: float, net_win: int) -
 
 async def start_slots(
     event: CallbackQuery,
-    widget: Button,
+    _widget: Button,
     dialog_manager: DialogManager,
 ) -> None:
     """Обработчик запуска игры в слоты.
 
     Args:
         event: Callback query от пользователя
-        widget: Button виджет
+        _widget: Button виджет
         dialog_manager: Менеджер диалога
     """
     if not await check_casino_access(event, dialog_manager):

@@ -520,12 +520,11 @@ async def get_exchange_text(
     return exchange_text
 
 
-async def exchanges_getter(user: Employee, stp_repo: MainRequestsRepo, **_kwargs):
+async def exchanges_getter(user: Employee, **_kwargs):
     """Геттер для главного меню подмен.
 
     Args:
         user: Экземпляр пользователя с моделью Employee
-        stp_repo: Репозиторий для работы с базой данных
 
     Returns:
         Словарь с информацией о дивизионе и рыночной статистике
@@ -1009,7 +1008,7 @@ async def exchange_buy_detail_getter(
 
 
 async def exchange_sell_detail_getter(
-    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **kwargs
+    user: Employee, stp_repo: MainRequestsRepo, dialog_manager: DialogManager, **_kwargs
 ) -> Dict[str, Any]:
     """Геттер для детального просмотра запроса на покупку.
 
