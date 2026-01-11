@@ -667,18 +667,23 @@ def format_unauthorized_users_summary(unauthorized_users: List) -> str:
 # Функции для работы с отпусками
 def get_users_on_vacation_from_excel(
     files_list: list[str] = None,
-) -> Dict[str, datetime]:
+) -> List[str]:
     """Получение списка сотрудников на отпуске из Excel файлов.
+
+    Проверяет ячейку сегодняшнего дня в графике каждого сотрудника.
+    Если ячейка содержит 'отпуск' или 'отпуск бс', сотрудник считается в отпуске.
 
     Args:
         files_list: Список файлов для получения сотрудников на отпуске
 
     Returns:
-        Словарь {ФИО: дата_отпуска} сотрудников, у которых отпуск сегодня
+        Список ФИО сотрудников, у которых отпуск сегодня
     """
-    users_on_vacation = {}
+    from tgbot.services.files_processing.core.excel import ExcelReader
+
+    users_on_vacation = []
     uploads_path = Path("uploads")
-    current_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    current_date = datetime.now()
 
     if not uploads_path.exists():
         logger.warning("[Отпуска] Папка uploads не найдена")
@@ -707,54 +712,44 @@ def get_users_on_vacation_from_excel(
             logger.info(f"[Отпуска] Обрабатываем файл: {file_path.name}")
 
             try:
-                df = pd.read_excel(file_path, sheet_name="ЗАЯВЛЕНИЯ", header=None)
+                reader = ExcelReader(file_path, "ГРАФИК")
             except Exception as e:
+                logger.debug(f"[Отпуска] Лист ГРАФИК не найден в {file_path.name}: {e}")
+                continue
+
+            # Находим столбец с сегодняшней датой
+            today_col = reader.find_date_column(current_date)
+            if today_col is None:
                 logger.debug(
-                    f"[Отпуска] Лист ЗАЯВЛЕНИЯ не найден в {file_path.name}: {e}"
+                    f"[Отпуска] Столбец для сегодняшней даты не найден в {file_path.name}"
                 )
                 continue
 
-            for row_idx in range(len(df)):
+            # Получаем всех пользователей из файла
+            all_users = reader.extract_all_users()
+            logger.debug(f"[Отпуска] Найдено {len(all_users)} пользователей в файле")
+
+            for fullname in all_users:
                 try:
-                    fullname = (
-                        str(df.iloc[row_idx, 0])
-                        if pd.notna(df.iloc[row_idx, 0])
-                        else ""
-                    )
-                    vacation_date = (
-                        df.iloc[row_idx, 1] if pd.notna(df.iloc[row_idx, 1]) else None
-                    )
-                    vacation_type = (
-                        str(df.iloc[row_idx, 2])
-                        if pd.notna(df.iloc[row_idx, 2])
-                        else ""
-                    )
-
-                    # Проверяем тип отпуска (отпуск или отпуск бс)
-                    if vacation_type.strip().lower() not in ["отпуск", "отпуск бс"]:
-                        continue
-                    if not fullname:
-                        continue
-                    if vacation_date is None:
+                    # Находим строку пользователя
+                    user_row = reader.find_user_row(fullname)
+                    if user_row is None:
                         continue
 
-                    # Проверяем, что дата отпуска совпадает с сегодняшним днём
-                    if isinstance(vacation_date, datetime):
-                        vacation_date_normalized = vacation_date.replace(
-                            hour=0, minute=0, second=0, microsecond=0
-                        )
-                    else:
-                        continue
+                    # Получаем значение ячейки на сегодняшний день
+                    cell_value = reader.get_cell(user_row, today_col).strip().lower()
 
-                    if vacation_date_normalized == current_date:
-                        users_on_vacation[fullname.strip()] = vacation_date_normalized
-                        logger.debug(
-                            f"[Отпуска] Найден сотрудник в отпуске: {fullname.strip()}"
-                        )
+                    # Проверяем, является ли значение отпуском
+                    if cell_value in ["отпуск", "отпуск бс"]:
+                        if fullname not in users_on_vacation:
+                            users_on_vacation.append(fullname)
+                            logger.debug(
+                                f"[Отпуска] Найден сотрудник в отпуске: {fullname}"
+                            )
 
                 except Exception as e:
                     logger.debug(
-                        f"[Отпуска] Ошибка обработки строки {row_idx} в файле {file_path.name}: {e}"
+                        f"[Отпуска] Ошибка обработки пользователя {fullname} в файле {file_path.name}: {e}"
                     )
                     continue
 
@@ -791,7 +786,7 @@ async def process_vacation_status(
             processed_fullnames = set()
 
             # Сначала устанавливаем on_vacation = True для тех, кто в отпуске сегодня
-            for fullname in users_on_vacation.keys():
+            for fullname in users_on_vacation:
                 processed_fullnames.add(fullname)
                 try:
                     employee = await user_repo.get_users(fullname=fullname)
