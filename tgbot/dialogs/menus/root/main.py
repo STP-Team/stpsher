@@ -10,6 +10,7 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
 from tgbot.dialogs.events.common.groups import start_groups_dialog
+from tgbot.dialogs.events.common.schedules import start_schedules_dialog
 from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.states.root import RootSG
 
@@ -19,6 +20,7 @@ menu_window = Window(
 Я - бот-помощник СТП
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
+    Button(Const("📅 Графики"), id="exchanges", on_click=start_schedules_dialog),
     Row(
         Button(Const("📂 Файлы"), id="files", on_click=start_files_dialog),
         Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),

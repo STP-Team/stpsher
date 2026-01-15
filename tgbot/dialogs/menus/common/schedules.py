@@ -51,11 +51,13 @@ menu_window = Window(
             Const("👔 Мой график"),
             id="schedule_my",
             state=Schedules.my,
+            when=F["role"] != 10,
         ),
         SwitchTo(
             Const("❤️ Моя группа"),
             id="schedule_group",
             state=Schedules.group,
+            when=F["role"] != 10,
         ),
     ),
     Row(
@@ -80,7 +82,7 @@ menu_window = Window(
         Const("🎭 Биржа подмен"),
         id="exchanges",
         on_click=start_exchanges_dialog,
-        when=~F["exchange_banned"],
+        when=~F["exchange_banned"] & F["role"] != 10,
     ),
     HOME_BTN,
     getter=schedules_getter,
