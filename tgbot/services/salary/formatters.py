@@ -51,7 +51,7 @@ class SalaryFormatter:
         Returns:
             Форматированное сообщение
         """
-        # Форматирование блока рабочих часов
+        # Форматирование блока рабочих часов (базовая ставка)
         hours_details = []
         if result.regular_hours > 0:
             hours_details.append(
@@ -59,15 +59,15 @@ class SalaryFormatter:
             )
         if result.night_hours > 0:
             hours_details.append(
-                f"Ночные часы: {result.night_hours:g}ч × {result.pay_rate * 1.2:g} ₽ = {result.night_hours * result.pay_rate * 1.2:g} ₽"
+                f"Ночные часы: {result.night_hours:g}ч × {result.pay_rate:g} ₽ = {result.night_hours * result.pay_rate:g} ₽"
             )
         if result.holiday_hours > 0:
             hours_details.append(
-                f"Праздничные часы: {result.holiday_hours:g}ч × {result.pay_rate * 2:g} ₽ = {result.holiday_hours * result.pay_rate * 2:g} ₽"
+                f"Праздничные часы: {result.holiday_hours:g}ч × {result.pay_rate:g} ₽ = {result.holiday_hours * result.pay_rate:g} ₽"
             )
         if result.night_holiday_hours > 0:
             hours_details.append(
-                f"Ночные праздничные часы: {result.night_holiday_hours:g}ч × {result.pay_rate * 2.4:g} ₽ = {result.night_holiday_hours * result.pay_rate * 2.4:g} ₽"
+                f"Ночные праздники: {result.night_holiday_hours:g}ч × {result.pay_rate:g} ₽ = {result.night_holiday_hours * result.pay_rate:g} ₽"
             )
 
         # Форматирование блока дополнительных смен
@@ -102,7 +102,17 @@ class SalaryFormatter:
 
 {chr(10).join(hours_details)}
 
-Сумма оклада: {cls.format_value(result.base_salary, " ₽")}</blockquote>{
+<b>Базовая часть (для премии):</b> {cls.format_value(result.base_salary, " ₽")}{f'''
+
+<b>Доплаты (не облагаются премией):</b>
+За ночные часы: {cls.format_value(result.night_bonus_amount, " ₽")}
+За праздничные дни: {cls.format_value(result.holiday_bonus_amount, " ₽")}
+За ночные праздники: {cls.format_value(result.night_holiday_bonus_amount, " ₽")}
+
+<b>Итого оклад:</b> {cls.format_value(result.base_salary + result.night_bonus_amount + result.holiday_bonus_amount + result.night_holiday_bonus_amount, " ₽")}'''
+            if result.night_bonus_amount > 0 or result.holiday_bonus_amount > 0 or result.night_holiday_bonus_amount > 0
+            else ""
+        }</blockquote>{
             f'''
 
 ⭐ <b>Доп. смены:</b>
@@ -209,10 +219,11 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 Продажа оборудования и платный сервис не участвуют в расчете
 
 🧪 <b>Формулы</b>
-Обычные часы: часы × ставка
-Праздничные часы: часы × ставка × 2
-Ночные часы: часы × ставка × 1.2
-Ночные праздничные часы: часы × ставка × 2.4
+Базовая часть: все часы × ставка (для расчета премии)
+Доплаты (не облагаются премией):
+• За ночные часы: часы × ставка × 20%
+• За праздники: часы × ставка × 100%
+• За ночные праздники: часы × ставка × 20%
 Доп. смены: часы × (ставка × 2 × (1 + премия%))
 
 Ночными часами считается локальное время 22:00 - 6:00

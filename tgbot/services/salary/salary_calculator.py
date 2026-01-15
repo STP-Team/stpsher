@@ -99,6 +99,9 @@ class SalaryCalculationResult:
 
     # Компоненты зарплаты
     base_salary: float
+    night_bonus_amount: float
+    holiday_bonus_amount: float
+    night_holiday_bonus_amount: float
     additional_shift_salary: float
     additional_shift_rate: float
     remote_work_compensation_amount: float
@@ -637,17 +640,18 @@ class SalaryCalculator:
             total_working_hours - holiday_hours - night_hours - night_holiday_hours
         )
 
-        # Считаем базовую зарплату
-        base_salary = (
-            (regular_hours * pay_rate)
-            + (holiday_hours * pay_rate * PayRateService.get_holiday_multiplier())
-            + (night_hours * pay_rate * PayRateService.get_night_multiplier())
-            + (
-                night_holiday_hours
-                * pay_rate
-                * PayRateService.get_night_holiday_multiplier()
-            )
-        )
+        # Базовая зарплата (все часы по базовой ставке, без доплат)
+        # Премия считается от базовой ставки всех часов
+        base_salary = total_working_hours * pay_rate
+
+        # Доплаты (не облагаются премией)
+        night_bonus_amount = night_hours * pay_rate * 0.2  # 20% за ночные часы
+        holiday_bonus_amount = (
+            holiday_hours * pay_rate * 1.0
+        )  # 100% за праздничные дни (двойная оплата)
+        night_holiday_bonus_amount = (
+            night_holiday_hours * pay_rate * 0.2
+        )  # 20% за ночные часы в праздники
 
         # Считаем зарплату за дополнительные смены
         # Используем двойную ставку + собственную премию пользователя (вместо фиксированных 63%)
@@ -712,6 +716,9 @@ class SalaryCalculator:
         premium_amount = base_salary * premium_multiplier
         total_salary = (
             base_salary
+            + night_bonus_amount
+            + holiday_bonus_amount
+            + night_holiday_bonus_amount
             + premium_amount
             + additional_shift_salary
             + remote_work_compensation_amount
@@ -769,6 +776,9 @@ class SalaryCalculator:
             additional_shift_night_holiday_hours=additional_shift_night_holiday_hours,
             additional_shift_days_worked=additional_shift_days_worked,
             base_salary=base_salary,
+            night_bonus_amount=night_bonus_amount,
+            holiday_bonus_amount=holiday_bonus_amount,
+            night_holiday_bonus_amount=night_holiday_bonus_amount,
             additional_shift_salary=additional_shift_salary,
             additional_shift_rate=additional_shift_rate,
             remote_work_compensation_amount=remote_work_compensation_amount,

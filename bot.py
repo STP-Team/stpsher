@@ -19,7 +19,6 @@ from aiohttp import web
 from aiohttp.web import Response
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database import create_engine, create_session_pool
-from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.config import Config, load_config
@@ -134,7 +133,7 @@ async def _unknown_intent(error: ErrorEvent, dialog_manager: DialogManager):
                 logger.error("Unable to determine user_id from update")
                 return
 
-            user: Employee | None = await stp_repo.employee.get_users(user_id=user_id)
+            user = await stp_repo.employee.get_users(user_id=user_id)
 
             async with stats_session_pool() as stats_session:
                 from stp_database.repo.Stats.requests import StatsRequestsRepo
@@ -219,7 +218,7 @@ def register_middlewares(
         event_logging_middleware,
         access_middleware,
     ]:
-        dp.message.outer_middleware(middleware)
+        dp.message.outer_middleware(middleware)  # noqa
         dp.callback_query.outer_middleware(middleware)
         dp.inline_query.outer_middleware(middleware)
         dp.my_chat_member.outer_middleware(middleware)
