@@ -49,15 +49,28 @@ KPI_MAPPING = {
         "attribute": "paid_service_conversion",
         "display_name": "Конверсия платного сервиса",
     },
+    "SC_ONE_PERC": {
+        "attribute": "target_normative_rate_first",
+        "display_name": "Выполнение плана 1",
+    },
+    "SC_TWO_PERC": {
+        "attribute": "target_normative_rate_second",
+        "display_name": "Выполнение плана 2",
+    },
+    "PERC_THANKS": {
+        "attribute": "thanks_premium",
+        "display_name": "Премия за благодарности",
+    },
 }
 
 
-def _get_kpi_value(user_kpi, kpi_name: str):
+def _get_kpi_value(user_kpi, kpi_name: str, user_premium=None):
     """Получает значение KPI по имени.
 
     Args:
-        user_kpi: Объект KPI пользователя
+        user_kpi: Объект KPI пользователя (из SpecKpi*)
         kpi_name: Имя KPI показателя
+        user_premium: Объект Premium пользователя (из SpecPremium), опционально
 
     Returns:
         Значение KPI или None если не найдено
@@ -66,6 +79,14 @@ def _get_kpi_value(user_kpi, kpi_name: str):
         return None
 
     attribute_name = KPI_MAPPING[kpi_name]["attribute"]
+
+    # Сначала пытаемся получить из Premium (для параметров из SpecPremium)
+    if user_premium is not None:
+        value = getattr(user_premium, attribute_name, None)
+        if value is not None:
+            return value
+
+    # Если не найдено в Premium, пробуем получить из KPI
     return getattr(user_kpi, attribute_name, None)
 
 
@@ -372,6 +393,9 @@ async def _check_user_achievements(
             )
             return earned_achievements
 
+        # Получаем SpecPremium данные для параметров из премиальной таблицы
+        user_premium = await stats_repo.spec_premium.get_premium(user.fullname, extraction_period)
+
         # Получаем существующие достижения одним запросом
         (
             existing_transactions,
@@ -409,13 +433,13 @@ async def _check_user_achievements(
                     continue
 
                 # Проверяем KPI критерии
-                if await _check_kpi_criteria(user_kpi, achievement.kpi):
+                if await _check_kpi_criteria(user_kpi, achievement.kpi, user_premium):
                     earned_achievements.append({
                         "id": achievement.id,
                         "name": achievement.name,
                         "description": achievement.description,
                         "reward_points": achievement.reward,
-                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi),
+                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi, user_premium),
                         "extraction_period": extraction_period,
                     })
                     logger.info(
@@ -603,12 +627,13 @@ def _user_matches_achievement_criteria(user, achievement) -> bool:
         return False
 
 
-async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
+async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str, user_premium=None) -> bool:
     """Проверяет соответствие KPI пользователя критериям достижения.
 
     Args:
         user_kpi: KPI пользователя за день
         kpi_criteria_str: JSON строка с критериями (например: {"AHT":[0,740],"CC":[20,99999]})
+        user_premium: Premium пользователя из SpecPremium, опционально
 
     Returns:
         True если KPI соответствует критериям
@@ -620,7 +645,7 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
             min_val, max_val = criteria_range[0], criteria_range[1]
 
             # Получаем значение KPI пользователя через унифицированную функцию
-            user_value = _get_kpi_value(user_kpi, kpi_name)
+            user_value = _get_kpi_value(user_kpi, kpi_name, user_premium)
 
             if user_value is None:
                 logger.debug(
@@ -639,12 +664,13 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str) -> bool:
         return False
 
 
-def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
+def _get_user_kpi_values(user_kpi, kpi_criteria_str: str, user_premium=None) -> Dict:
     """Получает актуальные значения KPI пользователя согласно критериям.
 
     Args:
         user_kpi: KPI пользователя за день
         kpi_criteria_str: JSON строка с критериями
+        user_premium: Premium пользователя из SpecPremium, опционально
 
     Returns:
         Словарь с актуальными значениями KPI
@@ -657,7 +683,7 @@ def _get_user_kpi_values(user_kpi, kpi_criteria_str: str) -> Dict:
         for kpi_name in kpi_criteria.keys():
             # Получаем отображаемое название и значение через унифицированные функции
             display_name = KPI_MAPPING.get(kpi_name, {}).get("display_name", kpi_name)
-            kpi_value = _get_kpi_value(user_kpi, kpi_name)
+            kpi_value = _get_kpi_value(user_kpi, kpi_name, user_premium)
 
             if kpi_value is not None:
                 kpi_values[display_name] = kpi_value
