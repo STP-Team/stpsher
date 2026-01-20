@@ -7,7 +7,7 @@
 import json
 import logging
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Sequence
 
@@ -32,7 +32,7 @@ KPI_MAPPING = {
     "CSI": {"attribute": "csi", "display_name": "Оценка"},
     "POK": {"attribute": "pok", "display_name": "Отклик"},
     "DELAY": {"attribute": "delay", "display_name": "Задержка"},
-    "SalesCount": {"attribute": "sales_count", "display_name": "Продаж"},
+    "SalesCount": {"attribute": "sales", "display_name": "Продаж"},
     "SalesPotential": {
         "attribute": "sales_potential",
         "display_name": "Потенциальных продаж",
@@ -42,11 +42,11 @@ KPI_MAPPING = {
         "display_name": "Конверсия продаж",
     },
     "PaidServiceCount": {
-        "attribute": "paid_service_count",
+        "attribute": "services",
         "display_name": "Платных сервисов",
     },
     "PaidServiceConversion": {
-        "attribute": "paid_service_conversion",
+        "attribute": "services_conversion",
         "display_name": "Конверсия платного сервиса",
     },
     "SC_ONE_PERC": {
@@ -70,7 +70,7 @@ def _get_kpi_value(user_kpi, kpi_name: str, user_premium=None):
     Args:
         user_kpi: Объект KPI пользователя (из SpecKpi*)
         kpi_name: Имя KPI показателя
-        user_premium: Объект Premium пользователя (из SpecPremium), опционально
+        user_premium: Объект Premium пользователя из SpecPremium, опционально
 
     Returns:
         Значение KPI или None если не найдено
@@ -80,7 +80,7 @@ def _get_kpi_value(user_kpi, kpi_name: str, user_premium=None):
 
     attribute_name = KPI_MAPPING[kpi_name]["attribute"]
 
-    # Сначала пытаемся получить из Premium (для параметров из SpecPremium)
+    # Сначала проверяем Premium (для всех типов KPI)
     if user_premium is not None:
         value = getattr(user_premium, attribute_name, None)
         if value is not None:
@@ -394,7 +394,8 @@ async def _check_user_achievements(
             return earned_achievements
 
         # Получаем SpecPremium данные для параметров из премиальной таблицы
-        user_premium = await stats_repo.spec_premium.get_premium(user.fullname, extraction_period)
+        extraction_date = extraction_period.date() if isinstance(extraction_period, datetime) else extraction_period
+        user_premium = await stats_repo.spec_premium.get_premium(user.fullname, extraction_date)
 
         # Получаем существующие достижения одним запросом
         (
@@ -414,25 +415,12 @@ async def _check_user_achievements(
         # Проверяем каждое доступное достижение
         for achievement in achievements_list:
             try:
-                # Пропускаем достижение если уже получено с этим kpi_extracted_at
-                if achievement.id in existing_achievement_ids:
-                    logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено для extraction_period {extraction_period}"
-                    )
+                if achievement.id in existing_achievement_ids or achievement.id in recent_achievement_ids:
                     continue
 
-                # Пропускаем если достижение было получено за последний период
-                if achievement.id in recent_achievement_ids:
-                    logger.debug(
-                        f"[Достижения] Достижение {achievement.name} уже получено за последний период ({period.description})"
-                    )
-                    continue
-
-                # Проверяем соответствие пользователя критериям достижения
                 if not _user_matches_achievement_criteria(user, achievement):
                     continue
 
-                # Проверяем KPI критерии
                 if await _check_kpi_criteria(user_kpi, achievement.kpi, user_premium):
                     earned_achievements.append({
                         "id": achievement.id,
@@ -627,7 +615,9 @@ def _user_matches_achievement_criteria(user, achievement) -> bool:
         return False
 
 
-async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str, user_premium=None) -> bool:
+async def _check_kpi_criteria(
+    user_kpi, kpi_criteria_str: str, user_premium=None
+) -> bool:
     """Проверяет соответствие KPI пользователя критериям достижения.
 
     Args:
@@ -643,17 +633,11 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str, user_premium=None
 
         for kpi_name, criteria_range in kpi_criteria.items():
             min_val, max_val = criteria_range[0], criteria_range[1]
-
-            # Получаем значение KPI пользователя через унифицированную функцию
             user_value = _get_kpi_value(user_kpi, kpi_name, user_premium)
 
             if user_value is None:
-                logger.debug(
-                    f"[Достижения] Нет данных по KPI {kpi_name} для пользователя"
-                )
                 return False
 
-            # Проверяем диапазон
             if not (min_val <= user_value <= max_val):
                 return False
 
@@ -664,7 +648,9 @@ async def _check_kpi_criteria(user_kpi, kpi_criteria_str: str, user_premium=None
         return False
 
 
-def _get_user_kpi_values(user_kpi, kpi_criteria_str: str, user_premium=None) -> Dict:
+def _get_user_kpi_values(
+    user_kpi, kpi_criteria_str: str, user_premium=None
+) -> Dict:
     """Получает актуальные значения KPI пользователя согласно критериям.
 
     Args:
@@ -681,7 +667,6 @@ def _get_user_kpi_values(user_kpi, kpi_criteria_str: str, user_premium=None) -> 
         kpi_criteria = json.loads(kpi_criteria_str)
 
         for kpi_name in kpi_criteria.keys():
-            # Получаем отображаемое название и значение через унифицированные функции
             display_name = KPI_MAPPING.get(kpi_name, {}).get("display_name", kpi_name)
             kpi_value = _get_kpi_value(user_kpi, kpi_name, user_premium)
 
