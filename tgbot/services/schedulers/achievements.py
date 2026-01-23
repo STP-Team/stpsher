@@ -26,6 +26,12 @@ logger = logging.getLogger(__name__)
 
 # Константы для KPI маппинга
 KPI_MAPPING = {
+    "CSAT": {"attribute": "csat", "display_name": "CSAT"},
+    "CSAT_HIGH_RATED": {
+        "attribute": "csat_high_rated",
+        "display_name": "CSAT Кол-во высоких оценок",
+    },
+    "CSAT_RATED": {"attribute": "csat_rated", "display_name": "CSAT Кол-во оценок"},
     "AHT": {"attribute": "aht", "display_name": "AHT"},
     "CC": {"attribute": "contacts_count", "display_name": "Контактов"},
     "FLR": {"attribute": "flr", "display_name": "FLR"},
@@ -394,8 +400,14 @@ async def _check_user_achievements(
             return earned_achievements
 
         # Получаем SpecPremium данные для параметров из премиальной таблицы
-        extraction_date = extraction_period.date() if isinstance(extraction_period, datetime) else extraction_period
-        user_premium = await stats_repo.spec_premium.get_premium(user.fullname, extraction_date)
+        extraction_date = (
+            extraction_period.date()
+            if isinstance(extraction_period, datetime)
+            else extraction_period
+        )
+        user_premium = await stats_repo.spec_premium.get_premium(
+            user.fullname, extraction_date
+        )
 
         # Получаем существующие достижения одним запросом
         (
@@ -415,7 +427,10 @@ async def _check_user_achievements(
         # Проверяем каждое доступное достижение
         for achievement in achievements_list:
             try:
-                if achievement.id in existing_achievement_ids or achievement.id in recent_achievement_ids:
+                if (
+                    achievement.id in existing_achievement_ids
+                    or achievement.id in recent_achievement_ids
+                ):
                     continue
 
                 if not _user_matches_achievement_criteria(user, achievement):
@@ -427,7 +442,9 @@ async def _check_user_achievements(
                         "name": achievement.name,
                         "description": achievement.description,
                         "reward_points": achievement.reward,
-                        "kpi_values": _get_user_kpi_values(user_kpi, achievement.kpi, user_premium),
+                        "kpi_values": _get_user_kpi_values(
+                            user_kpi, achievement.kpi, user_premium
+                        ),
                         "extraction_period": extraction_period,
                     })
                     logger.info(
@@ -648,9 +665,7 @@ async def _check_kpi_criteria(
         return False
 
 
-def _get_user_kpi_values(
-    user_kpi, kpi_criteria_str: str, user_premium=None
-) -> Dict:
+def _get_user_kpi_values(user_kpi, kpi_criteria_str: str, user_premium=None) -> Dict:
     """Получает актуальные значения KPI пользователя согласно критериям.
 
     Args:
