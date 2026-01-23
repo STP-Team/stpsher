@@ -59,15 +59,15 @@ def _get_medal_emoji(position: int) -> str:
 
 
 async def _get_kpi_data_by_period(
-    stats_repo: StatsRequestsRepo, fullnames: list[str], period: str
+    stats_repo: StatsRequestsRepo, employee_ids: list[int | Mapped[int]], period: str
 ) -> Sequence[SpecDayKPI] | Sequence[SpecWeekKPI] | Sequence[SpecMonthKPI] | list[Any]:
     """Получить KPI данные по периоду."""
     if period == "day":
-        return await stats_repo.spec_day_kpi.get_kpi(fullnames)
+        return await stats_repo.spec_day_kpi.get_kpi(employee_ids)
     elif period == "week":
-        return await stats_repo.spec_week_kpi.get_kpi(fullnames)
+        return await stats_repo.spec_week_kpi.get_kpi(employee_ids)
     elif period == "month":
-        return await stats_repo.spec_month_kpi.get_kpi(fullnames)
+        return await stats_repo.spec_month_kpi.get_kpi(employee_ids)
     return []
 
 
@@ -191,19 +191,19 @@ async def get_rating_display_data(
             "rating_text": "❌ В твоей группе нет сотрудников",
         }
 
-    # Получаем ФИО всех сотрудников
-    fullnames = [member.fullname for member in team_members]
+    # Получаем ID всех сотрудников
+    employee_ids = [member.employee_id for member in team_members]
 
     # Получаем KPI данные
-    kpi_data = await _get_kpi_data_by_period(stats_repo, fullnames, period)
+    kpi_data = await _get_kpi_data_by_period(stats_repo, employee_ids, period)
 
-    # Создаем словарь для быстрого доступа к KPI по ФИО
-    kpi_dict = {kpi.fullname: kpi for kpi in kpi_data}
+    # Создаем словарь для быстрого доступа к KPI по ID сотрудника
+    kpi_dict = {kpi.employee_id: kpi for kpi in kpi_data}
 
     # Создаем список сотрудников с их показателями
     employees_with_ratings = []
     for member in team_members:
-        kpi = kpi_dict.get(member.fullname)
+        kpi = kpi_dict.get(member.employee_id)
         if kpi:
             value = _extract_normative_value(kpi, normative)
             if value is not None:

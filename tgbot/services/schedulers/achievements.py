@@ -384,7 +384,7 @@ async def _check_user_achievements(
             return earned_achievements
 
         # Получаем KPI пользователя за период
-        user_kpi = await kpi_method.get_kpi(user.fullname)
+        user_kpi = await kpi_method.get_kpi(user.employee_id)
         if not user_kpi:
             logger.debug(
                 f"[Достижения] Нет {period.description} KPI данных для пользователя {user.fullname}"
@@ -406,7 +406,7 @@ async def _check_user_achievements(
             else extraction_period
         )
         user_premium = await stats_repo.spec_premium.get_premium(
-            user.fullname, extraction_date
+            user.employee_id, extraction_date
         )
 
         # Получаем существующие достижения одним запросом

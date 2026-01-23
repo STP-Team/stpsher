@@ -102,7 +102,8 @@ class SalaryFormatter:
 
 {chr(10).join(hours_details)}
 
-<b>Базовая часть (для премии):</b> {cls.format_value(result.base_salary, " ₽")}{f'''
+<b>Базовая часть (для премии):</b> {cls.format_value(result.base_salary, " ₽")}{
+            f'''
 
 <b>Доплаты (не облагаются премией):</b>
 За ночные часы: {cls.format_value(result.night_bonus_amount, " ₽")}
@@ -110,7 +111,9 @@ class SalaryFormatter:
 За ночные праздники: {cls.format_value(result.night_holiday_bonus_amount, " ₽")}
 
 <b>Итого оклад:</b> {cls.format_value(result.base_salary + result.night_bonus_amount + result.holiday_bonus_amount + result.night_holiday_bonus_amount, " ₽")}'''
-            if result.night_bonus_amount > 0 or result.holiday_bonus_amount > 0 or result.night_holiday_bonus_amount > 0
+            if result.night_bonus_amount > 0
+            or result.holiday_bonus_amount > 0
+            or result.night_holiday_bonus_amount > 0
             else ""
         }</blockquote>{
             f'''
