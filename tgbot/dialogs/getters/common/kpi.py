@@ -84,11 +84,11 @@ async def base_kpi_data(
 
     if user.role == 2:
         premium: HeadPremium = await stats_repo.head_premium.get_premium(
-            user.fullname, extraction_period=extraction_period
+            user.employee_id, extraction_period=extraction_period
         )
     else:
         premium: SpecPremium = await stats_repo.spec_premium.get_premium(
-            user.fullname, extraction_period=extraction_period
+            user.employee_id, extraction_period=extraction_period
         )
 
     # Получаем month_display для UI
