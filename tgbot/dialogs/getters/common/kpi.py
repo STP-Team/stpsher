@@ -122,6 +122,11 @@ async def kpi_getter(
     data = await base_kpi_data(user, stats_repo, dialog_manager, **_kwargs)
     premium = data.get("premium")
 
+    # Получаем месячный KPI для CSAT (только для специалистов)
+    user_kpi = None
+    if user.role != 2:
+        user_kpi = await stats_repo.spec_month_kpi.get_kpi(user.employee_id)
+
     if not premium:
         return {
             "kpi_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
@@ -163,11 +168,23 @@ async def kpi_getter(
             else f"📈 Всего звонков: {SalaryFormatter.format_value(premium.contacts_count)}"
         )
 
+        # Получаем CSAT из месячного KPI
+        csat_value = None
+        if user_kpi:
+            csat_value = getattr(user_kpi, "csat", None)
+
+        csat_block = ""
+        if csat_value is not None:
+            csat_block = f"""🌟 <b>CSAT</b>
+<blockquote>Факт: {SalaryFormatter.format_value(csat_value)}</blockquote>
+
+"""
+
         kpi_text = f"""🌟 <b>Показатели</b>
-    
-📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
+
+{csat_block}📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}</blockquote>
-    
+
 🎯 <b>Отклик</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}</blockquote>
     
