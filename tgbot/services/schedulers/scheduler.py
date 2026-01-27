@@ -89,10 +89,10 @@ class SchedulerManager:
         """
         logger.info("[Планировщик] Настройка запланированных задач...")
 
-        # HR задачи
-        self.hr.setup_jobs(self.scheduler, stp_session_pool, bot)
-
         if not IS_DEVELOPMENT:
+            # HR задачи
+            self.hr.setup_jobs(self.scheduler, stp_session_pool, bot)
+
             # Задачи достижений
             self.achievements.setup_jobs(
                 self.scheduler,

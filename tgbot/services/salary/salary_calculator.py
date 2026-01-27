@@ -658,7 +658,7 @@ class SalaryCalculator:
             working_days * PayRateService.get_remote_work_compensation()
         )
 
-        # Считаем индивидуальную сумму для каждого показателя премии (основываясь на базовой зарплате)
+        # Считаем общую сумму премии (основываясь на базовой зарплате за весь месяц)
         # Проверяем тип премиум данных по роли пользователя
         is_head_premium = user.role == 2
 
@@ -678,15 +678,6 @@ class SalaryCalculator:
         # Считаем общую сумму премии
         premium_multiplier = (premium_data.total_premium or 0) / 100
         premium_amount = base_salary * premium_multiplier
-        total_salary = (
-            base_salary
-            + night_bonus_amount
-            + holiday_bonus_amount
-            + night_holiday_bonus_amount
-            + premium_amount
-            + additional_shift_salary
-            + remote_work_compensation_amount
-        )
 
         # Считаем часы и полную стоимость первой половины месяца для аванса
         first_half_hours = cls._calculate_first_half_hours(schedule_data)
@@ -694,8 +685,22 @@ class SalaryCalculator:
         advance_payment = await cls._calculate_first_half_salary(
             schedule_data, pay_rate, target_year, selected_month_num
         )
-        # Основная часть = полная зарплата - аванс (зарплата второй половины + премии + доп. смены + компенсация за удаленную работу)
-        main_payment = total_salary - advance_payment
+
+        # Рассчитываем основную часть зарплаты отдельно (вторая половина месяца)
+        # Основная часть включает: базовую зарплату второй половины + премии + доп. смены + компенсация
+        # Премии начисляются за весь месяц, а не только за вторую половину
+        second_half_hours = total_working_hours - first_half_hours
+        second_half_base_salary = second_half_hours * pay_rate
+
+        main_payment = (
+            second_half_base_salary  # Базовая зарплата за вторую половину
+            + premium_amount  # Все премии за весь месяц
+            + additional_shift_salary  # Дополнительные смены
+            + remote_work_compensation_amount  # Компенсация за удаленную работу
+        )
+
+        # Полная зарплата = аванс + основная часть
+        total_salary = advance_payment + main_payment
 
         # Расчет биржевых операций за выбранный месяц
         # Создаем диапазон дат для выбранного месяца
