@@ -150,7 +150,7 @@ class SalaryFormatter:
         is_head_premium = result.user.role == 2
 
         if is_head_premium:
-            # Для руководителей - только FLR, GOK, цель и корректировка руководителя
+            # Для руководителей - FLR, GOK, AHT
             message_text += f"""
 FLR: {cls.format_percentage(premium_data.flr_premium)} = {
                 cls.format_value(result.flr_premium_amount, " ₽")
@@ -158,45 +158,20 @@ FLR: {cls.format_percentage(premium_data.flr_premium)} = {
 ГОК: {cls.format_percentage(premium_data.gok_premium)} = {
                 cls.format_value(result.gok_premium_amount, " ₽")
             }
-Цель: {cls.format_percentage(premium_data.target_premium)} = {
-                cls.format_value(result.target_premium_amount, " ₽")
-            }
-
-💼 Дополнительно:
-Корректировка руководителя: {
-                cls.format_percentage(premium_data.head_adjust_premium)
-            } = {cls.format_value(result.head_adjust_premium_amount, " ₽")}"""
+AHT: {cls.format_percentage(premium_data.aht_premium)} = {
+                cls.format_value(result.aht_premium_amount, " ₽")
+            }"""
         else:
-            # Для специалистов - все показатели
+            # Для специалистов - CSAT, GOK, AHT
             message_text += f"""
-Оценка: {cls.format_percentage(premium_data.csi_premium)} = {
-                cls.format_value(result.csi_premium_amount, " ₽")
-            }
-FLR: {cls.format_percentage(premium_data.flr_premium)} = {
-                cls.format_value(result.flr_premium_amount, " ₽")
+CSAT: {cls.format_percentage(premium_data.csat_premium)} = {
+                cls.format_value(result.csat_premium_amount, " ₽")
             }
 ГОК: {cls.format_percentage(premium_data.gok_premium)} = {
                 cls.format_value(result.gok_premium_amount, " ₽")
             }
-Цель: {cls.format_percentage(premium_data.target_premium)} = {
-                cls.format_value(result.target_premium_amount, " ₽")
-            }
-
-💼 Дополнительно:
-Дисциплина: {cls.format_percentage(premium_data.discipline_premium)} = {
-                cls.format_value(result.discipline_premium_amount, " ₽")
-            }
-Тестирование: {cls.format_percentage(premium_data.tests_premium)} = {
-                cls.format_value(result.tests_premium_amount, " ₽")
-            }
-Благодарности: {cls.format_percentage(premium_data.thanks_premium)} = {
-                cls.format_value(result.thanks_premium_amount, " ₽")
-            }
-Наставничество: {cls.format_percentage(premium_data.tutors_premium)} = {
-                cls.format_value(result.tutors_premium_amount, " ₽")
-            }
-Ручная правка: {cls.format_percentage(premium_data.head_adjust_premium)} = {
-                cls.format_value(result.head_adjust_premium_amount, " ₽")
+AHT: {cls.format_percentage(premium_data.aht_premium)} = {
+                cls.format_value(result.aht_premium_amount, " ₽")
             }"""
 
         message_text += f"""</blockquote>

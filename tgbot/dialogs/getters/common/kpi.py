@@ -122,11 +122,6 @@ async def kpi_getter(
     data = await base_kpi_data(user, stats_repo, dialog_manager, **_kwargs)
     premium = data.get("premium")
 
-    # Получаем месячный KPI для CSAT (только для специалистов)
-    user_kpi = None
-    if user.role != 2:
-        user_kpi = await stats_repo.spec_month_kpi.get_kpi(user.employee_id)
-
     if not premium:
         return {
             "kpi_text": "🌟 <b>Показатели</b>\n\nНе смог найти твои показатели в премиуме :(",
@@ -151,9 +146,8 @@ async def kpi_getter(
 ⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}</blockquote>
 
-🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
-<blockquote>Тип: {premium.target_type or "—"}
-Факт: {SalaryFormatter.format_value(premium.target)}</blockquote>
+⏱️ <b>AHT - {SalaryFormatter.format_percentage(premium.aht_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.aht)}</blockquote>
 
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
@@ -168,43 +162,17 @@ async def kpi_getter(
             else f"📈 Всего звонков: {SalaryFormatter.format_value(premium.contacts_count)}"
         )
 
-        # Получаем CSAT из месячного KPI
-        csat_value = None
-        if user_kpi:
-            csat_value = getattr(user_kpi, "csat", None)
-
-        csat_block = ""
-        if csat_value is not None:
-            csat_block = f"""🌟 <b>CSAT</b>
-<blockquote>Факт: {SalaryFormatter.format_value(csat_value)}</blockquote>
-
-"""
-
         kpi_text = f"""🌟 <b>Показатели</b>
 
-{csat_block}📊 <b>Оценка клиента - {SalaryFormatter.format_percentage(premium.csi_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.csi)}</blockquote>
+🌟 <b>CSAT - {SalaryFormatter.format_percentage(premium.csat_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.csat)}</blockquote>
 
-🎯 <b>Отклик</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.csi_response)}</blockquote>
-    
-🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}</blockquote>
-    
+⏱️ <b>AHT - {SalaryFormatter.format_percentage(premium.aht_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.aht)}</blockquote>
+
 ⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}</blockquote>
-    
-🎯 <b>Цель - {SalaryFormatter.format_percentage(premium.target_premium)}</b>
-<blockquote>Тип: {premium.target_type or "—"}
-Факт: {SalaryFormatter.format_value(premium.target)}</blockquote>
-    
-💼 <b>Дополнительно</b>
-<blockquote>Дисциплина: {SalaryFormatter.format_percentage(premium.discipline_premium)}
-Тестирование: {SalaryFormatter.format_percentage(premium.tests_premium)}
-Благодарности: {SalaryFormatter.format_percentage(premium.thanks_premium)}
-Наставничество: {SalaryFormatter.format_percentage(premium.tutors_premium)}
-Ручная правка: {SalaryFormatter.format_percentage(premium.head_adjust_premium)}</blockquote>
-    
+
 💰 <b>Итого:</b>
 <b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
 

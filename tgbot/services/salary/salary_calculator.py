@@ -49,15 +49,10 @@ class SalaryCalculationResult:
         additional_shift_rate: Единая ставка для всех дополнительных смен (2x + премия пользователя)
         remote_work_compensation_amount: Компенсация за удаленную работу (35₽ за рабочий день)
 
-        csi_premium_amount: Сумма премии CSI
-        flr_premium_amount: Сумма премии FLR
+        csat_premium_amount: Сумма премии CSAT (для специалистов)
+        aht_premium_amount: Сумма премии AHT
+        flr_premium_amount: Сумма премии FLR (только для руководителей)
         gok_premium_amount: Сумма премии GOK
-        target_premium_amount: Сумма премии за выполнение цели
-        discipline_premium_amount: Сумма премии за дисциплину
-        tests_premium_amount: Сумма премии за тесты
-        thanks_premium_amount: Сумма премии за благодарности
-        tutors_premium_amount: Сумма премии за наставничество
-        head_adjust_premium_amount: Корректировка премии руководителем
         premium_amount: Общая сумма премии
 
         total_salary: Итоговая зарплата
@@ -107,15 +102,10 @@ class SalaryCalculationResult:
     remote_work_compensation_amount: float
 
     # Премия
-    csi_premium_amount: float
+    csat_premium_amount: float
+    aht_premium_amount: float
     flr_premium_amount: float
     gok_premium_amount: float
-    target_premium_amount: float
-    discipline_premium_amount: float
-    tests_premium_amount: float
-    thanks_premium_amount: float
-    tutors_premium_amount: float
-    head_adjust_premium_amount: float
     premium_amount: float
 
     # Финальный подсчет зарплаты
@@ -673,43 +663,17 @@ class SalaryCalculator:
         is_head_premium = user.role == 2
 
         if is_head_premium:
-            # Для руководителей - только FLR, GOK, цель и корректировка руководителя
-            csi_premium_amount = 0
+            # Для руководителей: FLR, GOK, AHT
+            csat_premium_amount = 0
             flr_premium_amount = base_salary * ((premium_data.flr_premium or 0) / 100)
             gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
-            target_premium_amount = base_salary * (
-                (premium_data.target_premium or 0) / 100
-            )
-            discipline_premium_amount = 0
-            tests_premium_amount = 0
-            thanks_premium_amount = 0
-            tutors_premium_amount = 0
-            head_adjust_premium_amount = base_salary * (
-                (premium_data.head_adjust_premium or 0) / 100
-            )
+            aht_premium_amount = base_salary * ((premium_data.aht_premium or 0) / 100)
         else:
-            # Для специалистов - все показатели
-            csi_premium_amount = base_salary * ((premium_data.csi_premium or 0) / 100)
-            flr_premium_amount = base_salary * ((premium_data.flr_premium or 0) / 100)
+            # Для специалистов: CSAT, GOK, AHT
+            csat_premium_amount = base_salary * ((premium_data.csat_premium or 0) / 100)
+            flr_premium_amount = 0
             gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
-            target_premium_amount = base_salary * (
-                (premium_data.target_premium or 0) / 100
-            )
-            discipline_premium_amount = base_salary * (
-                (premium_data.discipline_premium or 0) / 100
-            )
-            tests_premium_amount = base_salary * (
-                (premium_data.tests_premium or 0) / 100
-            )
-            thanks_premium_amount = base_salary * (
-                (premium_data.thanks_premium or 0) / 100
-            )
-            tutors_premium_amount = base_salary * (
-                (premium_data.tutors_premium or 0) / 100
-            )
-            head_adjust_premium_amount = base_salary * (
-                (premium_data.head_adjust_premium or 0) / 100
-            )
+            aht_premium_amount = base_salary * ((premium_data.aht_premium or 0) / 100)
 
         # Считаем общую сумму премии
         premium_multiplier = (premium_data.total_premium or 0) / 100
@@ -782,15 +746,10 @@ class SalaryCalculator:
             additional_shift_salary=additional_shift_salary,
             additional_shift_rate=additional_shift_rate,
             remote_work_compensation_amount=remote_work_compensation_amount,
-            csi_premium_amount=csi_premium_amount,
+            csat_premium_amount=csat_premium_amount,
+            aht_premium_amount=aht_premium_amount,
             flr_premium_amount=flr_premium_amount,
             gok_premium_amount=gok_premium_amount,
-            target_premium_amount=target_premium_amount,
-            discipline_premium_amount=discipline_premium_amount,
-            tests_premium_amount=tests_premium_amount,
-            thanks_premium_amount=thanks_premium_amount,
-            tutors_premium_amount=tutors_premium_amount,
-            head_adjust_premium_amount=head_adjust_premium_amount,
             premium_amount=premium_amount,
             total_salary=total_salary,
             exchange_income=exchange_income,

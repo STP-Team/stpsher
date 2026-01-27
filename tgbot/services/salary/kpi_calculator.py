@@ -1,7 +1,6 @@
 """Калькулятор показателей и порогов премии."""
 
 import datetime
-from typing import Optional
 
 from stp_database.models.Stats import HeadPremium, SpecPremium
 from stp_database.models.STP import Employee
@@ -14,59 +13,72 @@ class KPICalculator:
     """Сервиса для расчета показателей и выполнения порогов премии."""
 
     @staticmethod
-    def calculate_csi_needed(division: str, current_csi, normative):
-        """Расчет оценки, необходимой для достижения уровней премии.
+    def calculate_csat_needed(division: str, current_csat, normative):
+        """Расчет CSAT, необходимого для достижения уровней премии.
 
         Args:
             division: Направление сотрудника
-            current_csi: Текущее значение оценки
-            normative: Норматив оценки
+            current_csat: Текущее значение CSAT
+            normative: Норматив CSAT
 
         Returns:
-            Строку с выполнением норматива оценки
+            Строку с выполнением норматива CSAT
         """
         if normative == 0 or normative is None:
             return "—"
 
-        current_csi = current_csi or 0
+        current_csat = current_csat or 0
+
+        # Вычисляем текущий процент выполнения норматива
+        current_rate = (current_csat / normative * 100) if normative > 0 else 0
 
         results = []
 
-        if division == "НЦК":
-            thresholds = [
-                (101, 20, "≥ 101%"),
-                (100.5, 15, "≥ 100,5%"),
-                (100, 10, "≥ 100%"),
-                (98, 5, "≥ 98%"),
-                (0, 0, "&lt; 98%"),
-            ]
-        elif division == "НТП1":
-            thresholds = [
-                (101, 20, "≥ 101%"),
-                (100.5, 15, "≥ 100,5%"),
-                (100, 10, "≥ 100%"),
-                (98, 5, "≥ 98%"),
-                (0, 0, "&lt; 98%"),
-            ]
-        else:
-            thresholds = [
-                (100.8, 20, "≥ 100.8%"),
-                (100.4, 15, "≥ 100.4%"),
-                (100, 10, "≥ 100%"),
-                (98, 5, "≥ 98%"),
-                (0, 0, "&lt; 98%"),
-            ]
+        # Новые пороги для CSAT (одинаковые для всех направлений)
+        csat_thresholds = [
+            (110, 21.45, "≥ 110,0%"),
+            (109, 21.26, "109,0% - 109,99%"),
+            (108, 21.06, "108,0% - 108,99%"),
+            (107, 20.87, "107,0% - 107,99%"),
+            (106, 20.67, "106,0% - 106,99%"),
+            (105, 20.48, "105,0% - 105,99%"),
+            (104, 20.28, "104,0% - 104,99%"),
+            (103, 20.09, "103,0% - 103,99%"),
+            (102, 19.89, "102,0% - 102,99%"),
+            (101, 19.70, "101,0% - 101,99%"),
+            (100, 19.50, "100,0% - 100,99%"),
+            (95, 17.55, "95,0% - 99,99%"),
+            (90, 15.60, "90,0% - 94,99%"),
+            (0, 0.00, "&lt; 90%"),
+        ]
 
-        for threshold, premium_percent, description in thresholds:
-            needed_csi = (threshold / 100) * normative
+        for threshold, premium_percent, description in csat_thresholds:
+            # Проверяем, попадает ли текущий процент в диапазон
+            if threshold == 110:
+                # Для верхнего порога проверяем >= 110
+                is_in_range = current_rate >= threshold
+            elif threshold == 0:
+                # Для нижнего порога проверяем < 90
+                is_in_range = current_rate < 90
+            else:
+                # Для промежуточных порогов: threshold <= current_rate < (threshold+1)
+                is_in_range = threshold <= current_rate < (threshold + 1)
 
-            if current_csi >= needed_csi:
+            if is_in_range:
                 results.append(f"{premium_percent}%: ✅ ({description})")
             else:
-                difference = needed_csi - current_csi
-                results.append(
-                    f"{premium_percent}%: {needed_csi:.3f} [+{difference:.3f}] ({description})"
-                )
+                # Вычисляем значение CSAT для достижения этого диапазона
+                needed_csat = (threshold / 100) * normative
+                if threshold > 0 and current_csat < needed_csat:
+                    difference = needed_csat - current_csat
+                    results.append(
+                        f"{premium_percent}%: {needed_csat:.2f} [+{difference:.2f}] ({description})"
+                    )
+                elif threshold == 0:
+                    # Для нижнего порога не показываем разницу
+                    results.append(f"{premium_percent}%: — ({description})")
+                else:
+                    results.append(f"{premium_percent}%: ✅ ({description})")
 
         return "\n".join(results)
 
@@ -176,274 +188,129 @@ class KPICalculator:
 
         current_gok = current_gok or 0
 
-        thresholds = []
+        # Вычисляем текущий процент выполнения норматива
+        current_rate = (current_gok / normative * 100) if normative > 0 else 0
+
         results = []
 
-        if is_head:
-            # Пороги для руководителей
-            if division == "НЦК":
-                thresholds = [
-                    (104, 20, "≥ 104%"),
-                    (102, 18, "≥ 102%"),
-                    (100, 16, "≥ 100%"),
-                    (96, 14, "≥ 96%"),
-                    (91, 12, "≥ 91%"),
-                    (80, 10, "≥ 80%"),
-                    (0, 0, "&lt; 80%"),
-                ]
-            elif division in ["НТП1", "НТП2"]:
-                thresholds = [
-                    (104, 20, "≥ 104%"),
-                    (102, 18, "≥ 102%"),
-                    (100, 16, "≥ 100%"),
-                    (96, 14, "≥ 96%"),
-                    (91, 12, "≥ 91%"),
-                    (80, 10, "≥ 80%"),
-                    (0, 0, "&lt; 80%"),
-                ]
-        else:
-            # Пороги для специалистов
-            if division == "НЦК":
-                thresholds = [
-                    (100, 17, "≥ 100%"),
-                    (95, 15, "≥ 95%"),
-                    (90, 12, "≥ 90%"),
-                    (85, 9, "≥ 85%"),
-                    (80, 5, "≥ 80%"),
-                    (0, 0, "&lt; 80%"),
-                ]
-            elif division == "НТП1":
-                thresholds = [
-                    (100, 17, "≥ 100%"),
-                    (95, 15, "≥ 95%"),
-                    (90, 12, "≥ 90%"),
-                    (85, 9, "≥ 85%"),
-                    (80, 5, "≥ 80%"),
-                    (0, 0, "&lt; 80%"),
-                ]
-            elif division == "НТП2":
-                thresholds = [
-                    (100, 17, "≥ 100%"),
-                    (95, 15, "≥ 95%"),
-                    (90, 12, "≥ 90%"),
-                    (84, 9, "≥ 84%"),
-                    (70, 5, "≥ 70%"),
-                    (0, 0, "&lt; 70%"),
-                ]
+        # Новые пороги для ГОК (одинаковые для всех направлений и ролей)
+        gok_thresholds = [
+            (110, 21.45, "≥ 110,0%"),
+            (109, 21.26, "109,0% - 109,99%"),
+            (108, 21.06, "108,0% - 108,99%"),
+            (107, 20.87, "107,0% - 107,99%"),
+            (106, 20.67, "106,0% - 106,99%"),
+            (105, 20.48, "105,0% - 105,99%"),
+            (104, 20.28, "104,0% - 104,99%"),
+            (103, 20.09, "103,0% - 103,99%"),
+            (102, 19.89, "102,0% - 102,99%"),
+            (101, 19.70, "101,0% - 101,99%"),
+            (100, 19.50, "100,0% - 100,99%"),
+            (95, 17.55, "95,0% - 99,99%"),
+            (90, 15.60, "90,0% - 94,99%"),
+            (0, 0.00, "&lt; 90%"),
+        ]
 
-        for threshold, premium_percent, description in thresholds:
-            needed_gok = (threshold / 100) * normative
+        for threshold, premium_percent, description in gok_thresholds:
+            # Проверяем, попадает ли текущий процент в диапазон
+            if threshold == 110:
+                # Для верхнего порога проверяем >= 110
+                is_in_range = current_rate >= threshold
+            elif threshold == 0:
+                # Для нижнего порога проверяем < 90
+                is_in_range = current_rate < 90
+            else:
+                # Для промежуточных порогов: threshold <= current_rate < (threshold+1)
+                is_in_range = threshold <= current_rate < (threshold + 1)
 
-            if current_gok >= needed_gok:
+            if is_in_range:
                 results.append(f"{premium_percent}%: ✅ ({description})")
             else:
-                difference = needed_gok - current_gok
-                results.append(
-                    f"{premium_percent}%: {needed_gok:.3f} [+{difference:.3f}] ({description})"
-                )
+                # Вычисляем значение ГОК для достижения этого диапазона
+                needed_gok = (threshold / 100) * normative
+                if threshold > 0 and current_gok < needed_gok:
+                    difference = needed_gok - current_gok
+                    results.append(
+                        f"{premium_percent}%: {needed_gok:.2f} [+{difference:.2f}] ({description})"
+                    )
+                elif threshold == 0:
+                    # Для нижнего порога не показываем разницу
+                    results.append(f"{premium_percent}%: — ({description})")
+                else:
+                    results.append(f"{premium_percent}%: ✅ ({description})")
 
         return "\n".join(results)
 
     @staticmethod
-    def calculate_target_needed(
-        current_target,
-        target_normative_first,
-        target_normative_second,
-        target_type: Optional[str] = None,
-        is_head: bool = False,
-    ):
-        """Расчет специальной цели, необходимого для достижения уровней премии.
+    def calculate_aht_needed(division: str, current_aht, normative):
+        """Расчет AHT, необходимого для достижения уровней премии.
 
         Args:
-            current_target: Текущее значение цели
-            target_normative_first: Первый норматив спец. цели
-            target_normative_second: Второй норматив спец. цели
-            target_type: Тип спец. цели
-            is_head: Является ли сотрудник руководителем
+            division: Направление сотрудника
+            current_aht: Текущее значение AHT
+            normative: Норматив AHT
 
         Returns:
-            Строку с выполнением норматива спец. цели
+            Строку с выполнением норматива AHT
         """
-        if target_normative_first is None and target_normative_second is None:
+        if normative == 0 or normative is None:
             return "—"
 
-        current_target = current_target or 0
+        current_aht = current_aht or 0
 
-        # Определяем, является ли цель продажами (чем выше, тем лучше) или цель - AHT (чем ниже, тем лучше)
-        is_sales_target = target_type and "Продажа оборудования" in target_type
-        is_aht_target = target_type and "AHT" in target_type
+        # Вычисляем текущий процент выполнения норматива
+        # Для AHT: чем ниже значение, тем лучше, поэтому считаем наоборот
+        current_rate = (normative / current_aht * 100) if current_aht > 0 else 0
 
         results = []
 
-        # Для руководителей используем упрощенную систему премий
-        if is_head:
-            # Определяем основной норматив (приоритет - target_normative_second, если есть)
-            normative = (
-                target_normative_second
-                if target_normative_second and target_normative_second > 0
-                else target_normative_first
-            )
+        # Пороги для AHT (одинаковые для всех направлений)
+        # Для AHT норматив считается наоборот: чем ниже текущее значение, тем выше процент
+        aht_thresholds = [
+            (110, 28.60, "≥ 110,0%"),
+            (109, 28.34, "109,0% - 109,99%"),
+            (108, 28.08, "108,0% - 108,99%"),
+            (107, 27.82, "107,0% - 107,99%"),
+            (106, 27.56, "106,0% - 106,99%"),
+            (105, 27.30, "105,0% - 105,99%"),
+            (104, 27.04, "104,0% - 104,99%"),
+            (103, 26.78, "103,0% - 103,99%"),
+            (102, 26.52, "102,0% - 102,99%"),
+            (101, 26.26, "101,0% - 101,99%"),
+            (100, 26.00, "100,0% - 100,99%"),
+            (95, 23.40, "95,0% - 99,99%"),
+            (90, 20.80, "90,0% - 94,99%"),
+            (0, 0.00, "&lt; 90%"),
+        ]
 
-            if not normative:
-                return "—"
-
-            if is_aht_target:
-                # Для AHT, чем ниже, тем лучше
-                target_rate = (
-                    (normative / current_target * 100) if current_target > 0 else 0
-                )
-            elif is_sales_target:
-                # Для продаж, чем выше, тем лучше
-                target_rate = (current_target / normative * 100) if normative > 0 else 0
+        for threshold, premium_percent, description in aht_thresholds:
+            # Проверяем, попадает ли текущий процент в диапазон
+            if threshold == 110:
+                # Для верхнего порога проверяем >= 110
+                is_in_range = current_rate >= threshold
+            elif threshold == 0:
+                # Для нижнего порога проверяем < 90
+                is_in_range = current_rate < 90
             else:
-                # Поведение по умолчанию (чем выше, тем лучше)
-                target_rate = (current_target / normative * 100) if normative > 0 else 0
+                # Для промежуточных порогов: threshold <= current_rate < (threshold+1)
+                is_in_range = threshold <= current_rate < (threshold + 1)
 
-            # Упрощенные пороги для руководителей (НЦК и НТП1/НТП2 одинаковые)
-            if target_rate > 100.01:
-                results.append("25%: ✅ (> 100,01% - норматив 2 и более)")
+            if is_in_range:
+                results.append(f"{premium_percent}%: ✅ ({description})")
             else:
-                if is_aht_target:
-                    needed_for_25 = normative / (100.01 / 100)
-                    difference = current_target - needed_for_25
+                # Вычисляем значение AHT для достижения этого диапазона
+                # Для AHT считаем наоборот: нужно разделить норматив на процент
+                needed_aht = (normative * 100) / threshold if threshold > 0 else 0
+                if threshold > 0 and current_aht > needed_aht:
+                    difference = current_aht - needed_aht
                     results.append(
-                        f"25%: {needed_for_25:.2f} [-{difference:.2f}] (> 100,01% - норматив 2 и более)"
+                        f"{premium_percent}%: {needed_aht:.2f} [-{difference:.2f}] ({description})"
                     )
+                elif threshold == 0:
+                    # Для нижнего порога не показываем разницу
+                    results.append(f"{premium_percent}%: — ({description})")
                 else:
-                    needed_for_25 = (100.01 / 100) * normative
-                    difference = needed_for_25 - current_target
-                    results.append(
-                        f"25%: {needed_for_25:.2f} [+{difference:.2f}] (> 100,01% - норматив 2 и более)"
-                    )
-
-            if target_rate >= 100.00:
-                results.append("16%: ✅ (= 100,00% - норматив 1 и менее норматива 2)")
-            else:
-                if is_aht_target:
-                    needed_for_16 = normative / (100.00 / 100)
-                    difference = current_target - needed_for_16
-                    results.append(
-                        f"16%: {needed_for_16:.2f} [-{difference:.2f}] (= 100,00% - норматив 1 и менее норматива 2)"
-                    )
-                else:
-                    needed_for_16 = (100.00 / 100) * normative
-                    difference = needed_for_16 - current_target
-                    results.append(
-                        f"16%: {needed_for_16:.2f} [+{difference:.2f}] (= 100,00% - норматив 1 и менее норматива 2)"
-                    )
-
-            if target_rate < 99.99:
-                results.append("0%: — (&lt; 99,99% - менее норматива 1)")
-            else:
-                results.append("0%: ✅ (&lt; 99,99% - менее норматива 1)")
-
-            return "\n".join(results)
-
-        # Для специалистов
-        if target_normative_second and target_normative_second > 0:
-            # Когда есть вторая цель, используем ее как основной план
-            normative = target_normative_second
-
-            if is_aht_target:
-                # Для AHT, чем ниже, тем лучше — процент рассчитывается как (план / текущий * 100)
-                target_rate = (
-                    (normative / current_target * 100) if current_target > 0 else 0
-                )
-            elif is_sales_target:
-                # Для продаж, чем выше, тем лучше — процент рассчитывается как (текущее / план * 100)
-                target_rate = (current_target / normative * 100) if normative > 0 else 0
-            else:
-                # Поведение по умолчанию (чем выше, тем лучше) — процент рассчитывается как (текущее / план * 100)
-                target_rate = (current_target / normative * 100) if normative > 0 else 0
-
-            if target_rate > 100.01:
-                results.append("28%: ✅ (≥ 100,01% - план 2 и более)")
-            else:
-                if is_aht_target:
-                    # Для AHT нужно быть ниже плана
-                    needed_for_28 = normative / (100.01 / 100)
-                    difference = current_target - needed_for_28
-                    results.append(
-                        f"28%: {needed_for_28:.2f} [-{difference:.2f}] (≥ 100,01% - план 2 и более)"
-                    )
-                else:
-                    # Для продаж нужно превысить план
-                    needed_for_28 = (100.01 / 100) * normative
-                    difference = needed_for_28 - current_target
-                    results.append(
-                        f"28%: {needed_for_28:.2f} [+{difference:.2f}] (≥ 100,01% - план 2 и более)"
-                    )
-
-            if target_rate >= 100.00:
-                results.append("18%: ✅ (≥ 100,00% - план 1 и менее плана 2)")
-            else:
-                if is_aht_target:
-                    needed_for_18 = normative / (100.00 / 100)
-                    difference = current_target - needed_for_18
-                    results.append(
-                        f"18%: {needed_for_18:.2f} [-{difference:.2f}] (= 100,00% - план 1 и менее плана 2)"
-                    )
-                else:
-                    needed_for_18 = (100.00 / 100) * normative
-                    difference = needed_for_18 - current_target
-                    results.append(
-                        f"18%: {needed_for_18:.2f} [+{difference:.2f}] (= 100,00% - план 1 и менее плана 2)"
-                    )
-
-            if target_rate < 99.99:
-                results.append("0%: — (&lt; 99,99% - менее плана 1)")
-            else:
-                results.append("0%: ✅ (&lt; 99,99% - менее плана 1)")
-
-        elif target_normative_first and target_normative_first > 0:
-            # Когда есть только первая цель, используем ее как план
-            normative = target_normative_first
-
-            if is_aht_target:
-                target_rate = (
-                    (normative / current_target * 100) if current_target > 0 else 0
-                )
-            elif is_sales_target:
-                target_rate = (current_target / normative * 100) if normative > 0 else 0
-            else:
-                target_rate = (current_target / normative * 100) if normative > 0 else 0
-
-            if target_rate > 100.01:
-                results.append("28%: ✅ (≥ 100,01% - план 2 и более)")
-            else:
-                if is_aht_target:
-                    needed_for_28 = normative / (100.01 / 100)
-                    difference = current_target - needed_for_28
-                    results.append(
-                        f"28%: {needed_for_28:.2f} [-{difference:.2f}] (≥ 100,01% - план 2 и более)"
-                    )
-                else:
-                    needed_for_28 = (100.01 / 100) * normative
-                    difference = needed_for_28 - current_target
-                    results.append(
-                        f"28%: {needed_for_28:.2f} [+{difference:.2f}] (≥ 100,01% - план 2 и более)"
-                    )
-
-            if target_rate >= 100.00:
-                results.append("18%: ✅ (≥ 100,00% - план 1 и менее плана 2)")
-            else:
-                if is_aht_target:
-                    needed_for_18 = normative / (100.00 / 100)
-                    difference = current_target - needed_for_18
-                    results.append(
-                        f"18%: {needed_for_18:.2f} [-{difference:.2f}] (≥ 100,00% - план 1 и менее плана 2)"
-                    )
-                else:
-                    needed_for_18 = (100.00 / 100) * normative
-                    difference = needed_for_18 - current_target
-                    results.append(
-                        f"18%: {needed_for_18:.2f} [+{difference:.2f}] (≥ 100,00% - план 1 и менее плана 2)"
-                    )
-
-            if target_rate < 99.99:
-                results.append("0%: — (&lt; 99,99% - менее плана 1)")
-            else:
-                results.append("0%: ✅ (&lt; 99,99% - менее плана 1)")
+                    results.append(f"{premium_percent}%: ✅ ({description})")
 
         return "\n".join(results)
 
@@ -461,27 +328,18 @@ class KPICalculator:
         Returns:
             Форматированную строку для отображения в боте
         """
-        csi_calculation = ""
-        if not is_head:
-            csi_calculation = cls.calculate_csi_needed(
-                user.division, premium.csi, premium.csi_normative
+        if is_head:
+            # Для руководителей: FLR, GOK, AHT
+            flr_calculation = cls.calculate_flr_needed(
+                user.division, premium.flr, premium.flr_normative, is_head=is_head
+            )
+            gok_calculation = cls.calculate_gok_needed(
+                user.division, premium.gok, premium.gok_normative, is_head=is_head
+            )
+            aht_calculation = cls.calculate_aht_needed(
+                user.division, premium.aht, premium.aht_normative
             )
 
-        flr_calculation = cls.calculate_flr_needed(
-            user.division, premium.flr, premium.flr_normative, is_head=is_head
-        )
-        gok_calculation = cls.calculate_gok_needed(
-            user.division, premium.gok, premium.gok_normative, is_head=is_head
-        )
-        target_calculation = cls.calculate_target_needed(
-            premium.target,
-            premium.target_normative_first,
-            premium.target_normative_second,
-            premium.target_type,
-            is_head=is_head,
-        )
-
-        if is_head:
             message_text = f"""🧮 <b>Калькулятор KPI</b>
 
 🔧 <b>FLR</b>
@@ -498,31 +356,35 @@ class KPICalculator:
 <b>Для премии:</b>
 {gok_calculation}</blockquote>
 
-🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(premium.target_normative_rate_first)} / {SalaryFormatter.format_percentage(premium.target_normative_rate_second)})
-План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}
+⏱️ <b>AHT</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(premium.aht)} ({SalaryFormatter.format_percentage(premium.aht_normative_rate)})
+План: {SalaryFormatter.format_value(premium.aht_normative)}
 
 <b>Для премии:</b>
-{target_calculation}</blockquote>
+{aht_calculation}</blockquote>
 
 <i>Данные из <b><a href='okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{premium.updated_at.strftime(strftime_date)}</code>
 Меню обновлено в <code>{datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</code></i>"""
         else:
+            # Для специалистов: CSAT, GOK, AHT
+            csat_calculation = cls.calculate_csat_needed(
+                user.division, premium.csat, premium.csat_normative
+            )
+            gok_calculation = cls.calculate_gok_needed(
+                user.division, premium.gok, premium.gok_normative, is_head=is_head
+            )
+            aht_calculation = cls.calculate_aht_needed(
+                user.division, premium.aht, premium.aht_normative
+            )
+
             message_text = f"""🧮 <b>Калькулятор KPI</b>
 
-📊 <b>Оценка клиента</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(premium.csi)} ({SalaryFormatter.format_percentage(premium.csi_normative_rate)})
-План: {SalaryFormatter.format_value(premium.csi_normative)}
+🌟 <b>CSAT</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(premium.csat)} ({SalaryFormatter.format_percentage(premium.csat_normative_rate)})
+План: {SalaryFormatter.format_value(premium.csat_normative)}
 
 <b>Для премии:</b>
-{csi_calculation}</blockquote>
-
-🔧 <b>FLR</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(premium.flr)} ({SalaryFormatter.format_percentage(premium.flr_normative_rate)})
-План: {SalaryFormatter.format_value(premium.flr_normative)}
-
-<b>Для премии:</b>
-{flr_calculation}</blockquote>
+{csat_calculation}</blockquote>
 
 ⚖️ <b>ГОК</b>
 <blockquote>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
@@ -531,14 +393,12 @@ class KPICalculator:
 <b>Для премии:</b>
 {gok_calculation}</blockquote>
 
-🎯 <b>Цель</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.target)} ({SalaryFormatter.format_percentage(round((premium.target_normative_first / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_normative_first else (premium.target / premium.target_normative_second * 100) if premium.target_normative_first and premium.target_normative_first > 0 else 0))} / {SalaryFormatter.format_percentage(round((premium.target_normative_second / premium.target * 100) if premium.target_type and "AHT" in premium.target_type and premium.target and premium.target > 0 and premium.target_normative_second else (premium.target / premium.target_normative_second * 100) if premium.target_normative_second and premium.target_normative_second > 0 else 0))})
-План: {SalaryFormatter.format_value(round(premium.target_normative_first))} / {SalaryFormatter.format_value(round(premium.target_normative_second))}
-
-Требуется минимум 100 {"чатов" if user.division == "НЦК" else "звонков"} для получения премии за цель
+⏱️ <b>AHT</b>
+<blockquote>Текущий: {SalaryFormatter.format_value(premium.aht)} ({SalaryFormatter.format_percentage(premium.aht_normative_rate)})
+План: {SalaryFormatter.format_value(premium.aht_normative)}
 
 <b>Для премии:</b>
-{target_calculation}</blockquote>
+{aht_calculation}</blockquote>
 
 <i>Данные из <b><a href='okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <code>{premium.updated_at.strftime(strftime_date) if premium.updated_at else "—"}</code>
 Меню обновлено в <code>{datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5))).strftime(strftime_date)}</code></i>"""

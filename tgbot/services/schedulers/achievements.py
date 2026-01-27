@@ -55,18 +55,6 @@ KPI_MAPPING = {
         "attribute": "services_conversion",
         "display_name": "Конверсия платного сервиса",
     },
-    "SC_ONE_PERC": {
-        "attribute": "target_normative_rate_first",
-        "display_name": "Выполнение плана 1",
-    },
-    "SC_TWO_PERC": {
-        "attribute": "target_normative_rate_second",
-        "display_name": "Выполнение плана 2",
-    },
-    "PERC_THANKS": {
-        "attribute": "thanks_premium",
-        "display_name": "Премия за благодарности",
-    },
 }
 
 
