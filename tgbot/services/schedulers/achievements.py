@@ -26,35 +26,41 @@ logger = logging.getLogger(__name__)
 
 # Константы для KPI маппинга
 KPI_MAPPING = {
-    "CSAT": {"attribute": "csat", "display_name": "CSAT"},
+    "CSAT": {"attribute": "csat", "display_name": "CSAT", "from_premium": False},
     "CSAT_HIGH_RATED": {
         "attribute": "csat_high_rated",
         "display_name": "CSAT Кол-во высоких оценок",
+        "from_premium": False,
     },
-    "CSAT_RATED": {"attribute": "csat_rated", "display_name": "CSAT Кол-во оценок"},
-    "AHT": {"attribute": "aht", "display_name": "AHT"},
-    "CC": {"attribute": "contacts_count", "display_name": "Контактов"},
-    "FLR": {"attribute": "flr", "display_name": "FLR"},
-    "CSI": {"attribute": "csi", "display_name": "Оценка"},
-    "POK": {"attribute": "pok", "display_name": "Отклик"},
-    "DELAY": {"attribute": "delay", "display_name": "Задержка"},
-    "SalesCount": {"attribute": "sales", "display_name": "Продаж"},
+    "CSAT_RATED": {"attribute": "csat_rated", "display_name": "CSAT Кол-во оценок", "from_premium": False},
+    "AHT": {"attribute": "aht", "display_name": "AHT", "from_premium": False},
+    "CC": {"attribute": "contacts_count", "display_name": "Контактов", "from_premium": False},
+    "FLR": {"attribute": "flr", "display_name": "FLR", "from_premium": False},
+    "CSI": {"attribute": "csi", "display_name": "Оценка", "from_premium": False},
+    "POK": {"attribute": "pok", "display_name": "Отклик", "from_premium": False},
+    "DELAY": {"attribute": "delay", "display_name": "Задержка", "from_premium": False},
+    "SalesCount": {"attribute": "sales", "display_name": "Продаж", "from_premium": False},
     "SalesPotential": {
         "attribute": "sales_potential",
         "display_name": "Потенциальных продаж",
+        "from_premium": False,
     },
     "SalesConversion": {
         "attribute": "sales_conversion",
         "display_name": "Конверсия продаж",
+        "from_premium": False,
     },
     "PaidServiceCount": {
         "attribute": "services",
         "display_name": "Платных сервисов",
+        "from_premium": False,
     },
     "PaidServiceConversion": {
         "attribute": "services_conversion",
         "display_name": "Конверсия платного сервиса",
+        "from_premium": False,
     },
+    "GOK": {"attribute": "gok", "display_name": "ГОК", "from_premium": True},
 }
 
 
@@ -72,15 +78,17 @@ def _get_kpi_value(user_kpi, kpi_name: str, user_premium=None):
     if kpi_name not in KPI_MAPPING:
         return None
 
-    attribute_name = KPI_MAPPING[kpi_name]["attribute"]
+    kpi_config = KPI_MAPPING[kpi_name]
+    attribute_name = kpi_config["attribute"]
+    from_premium = kpi_config.get("from_premium", False)
 
-    # Сначала проверяем Premium (для всех типов KPI)
-    if user_premium is not None:
+    # Проверяем Premium только если флаг from_premium=True
+    if from_premium and user_premium is not None:
         value = getattr(user_premium, attribute_name, None)
         if value is not None:
             return value
 
-    # Если не найдено в Premium, пробуем получить из KPI
+    # Получаем из KPI (по умолчанию или если не найдено в Premium)
     return getattr(user_kpi, attribute_name, None)
 
 
