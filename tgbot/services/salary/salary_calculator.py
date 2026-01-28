@@ -483,15 +483,16 @@ class SalaryCalculator:
                                 )
 
                                 if is_holiday:
-                                    # Праздничные часы: дневные × 2.0 + ночные × (2.0 + 0.2)
+                                    # Праздничные часы: дневные × 2.0 + ночные × 2.2
                                     holiday_day_hours = day_hours - shift_night_hours
                                     day_salary = (
                                         holiday_day_hours
                                         * pay_rate
-                                        * PayRateService.get_holiday_multiplier()
+                                        * 2.0  # Дневные праздничные
                                     ) + (
                                         shift_night_hours
-                                        * (pay_rate * 2.0 + pay_rate * 0.2)
+                                        * pay_rate
+                                        * 2.2  # Ночные праздничные
                                     )
                                 else:
                                     # Обычные часы: дневные × 1.0 + ночные × 1.2
@@ -629,13 +630,13 @@ class SalaryCalculator:
         # Базовая зарплата с учетом коэффициентов за разные типы часов
         # Обычные часы: час × ЧТС
         # Ночные часы: час × (ЧТС + ЧТС×0.2) = час × ЧТС×1.2
-        # Праздничные (дневные): час × (ЧТС×2)
-        # Ночные праздничные: час × (ЧТС×2 + ЧТС×0.2) = час × ЧТС×2.2
+        # Праздничные дневные: час × ЧТС × 2.0
+        # Праздничные ночные: час × ЧТС × 2.2
         base_salary = (
             regular_hours * pay_rate  # Обычные часы
             + night_hours * pay_rate * 1.2  # Ночные часы
             + holiday_hours * pay_rate * 2.0  # Праздничные (дневные)
-            + night_holiday_hours * (pay_rate * 2.0 + pay_rate * 0.2)  # Ночные праздничные
+            + night_holiday_hours * pay_rate * 2.2  # Ночные праздничные
         )
 
         # Доплаты не нужны отдельно, так как уже учтены в base_salary
@@ -644,11 +645,9 @@ class SalaryCalculator:
         night_holiday_bonus_amount = 0.0
 
         # Считаем зарплату за дополнительные смены
-        # Используем двойную ставку + собственную премию пользователя (вместо фиксированных 63%)
-        additional_shift_premium_multiplier = 1 + (
-            (premium_data.total_premium or 0) / 100
-        )
-        additional_shift_rate = pay_rate * 2.0 * additional_shift_premium_multiplier
+        # Используем двойную ставку + собственную премию пользователя
+        additional_shift_premium_multiplier = (premium_data.total_premium or 0) / 100
+        additional_shift_rate = pay_rate * (2.0 + additional_shift_premium_multiplier)
 
         # Все часы дополнительных смен оплачиваются по единой ставке (без доплат за ночь/праздники)
         additional_shift_salary = additional_shift_hours * additional_shift_rate
@@ -668,15 +667,27 @@ class SalaryCalculator:
         if is_head_premium:
             # Для руководителей: FLR, GOK, AHT
             csat_premium_amount = 0
-            flr_premium_amount = base_salary_for_premium * ((premium_data.flr_premium or 0) / 100)
-            gok_premium_amount = base_salary_for_premium * ((premium_data.gok_premium or 0) / 100)
-            aht_premium_amount = base_salary_for_premium * ((premium_data.aht_premium or 0) / 100)
+            flr_premium_amount = base_salary_for_premium * (
+                (premium_data.flr_premium or 0) / 100
+            )
+            gok_premium_amount = base_salary_for_premium * (
+                (premium_data.gok_premium or 0) / 100
+            )
+            aht_premium_amount = base_salary_for_premium * (
+                (premium_data.aht_premium or 0) / 100
+            )
         else:
             # Для специалистов: CSAT, GOK, AHT
-            csat_premium_amount = base_salary_for_premium * ((premium_data.csat_premium or 0) / 100)
+            csat_premium_amount = base_salary_for_premium * (
+                (premium_data.csat_premium or 0) / 100
+            )
             flr_premium_amount = 0
-            gok_premium_amount = base_salary_for_premium * ((premium_data.gok_premium or 0) / 100)
-            aht_premium_amount = base_salary_for_premium * ((premium_data.aht_premium or 0) / 100)
+            gok_premium_amount = base_salary_for_premium * (
+                (premium_data.gok_premium or 0) / 100
+            )
+            aht_premium_amount = base_salary_for_premium * (
+                (premium_data.aht_premium or 0) / 100
+            )
 
         # Считаем общую сумму премии
         premium_multiplier = (premium_data.total_premium or 0) / 100
@@ -690,13 +701,12 @@ class SalaryCalculator:
         )
 
         # Рассчитываем основную часть зарплаты отдельно (вторая половина месяца)
-        # Основная часть включает: базовую зарплату второй половины + премии + доп. смены + компенсация
+        # Основная часть включает: полная базовая зарплата - аванс + премии + доп. смены + компенсация
         # Премии начисляются за весь месяц, а не только за вторую половину
-        second_half_hours = total_working_hours - first_half_hours
-        second_half_base_salary = second_half_hours * pay_rate
 
         main_payment = (
-            second_half_base_salary  # Базовая зарплата за вторую половину
+            base_salary  # Полная базовая зарплата
+            - advance_payment  # Минус аванс (который уже включает правильные коэффициенты)
             + premium_amount  # Все премии за весь месяц
             + additional_shift_salary  # Дополнительные смены
             + remote_work_compensation_amount  # Компенсация за удаленную работу

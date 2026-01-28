@@ -75,9 +75,8 @@ class SalaryFormatter:
                 f"Праздничные часы: {result.holiday_hours:g}ч × {result.pay_rate * 2.0:g} ₽ = {result.holiday_hours * result.pay_rate * 2.0:g} ₽"
             )
         if result.night_holiday_hours > 0:
-            night_holiday_rate = result.pay_rate * 2.0 + result.pay_rate * 0.2
             hours_details.append(
-                f"Ночные праздники: {result.night_holiday_hours:g}ч × {night_holiday_rate:g} ₽ = {result.night_holiday_hours * night_holiday_rate:g} ₽"
+                f"Ночные праздники: {result.night_holiday_hours:g}ч × {result.pay_rate * 2.2:g} ₽ = {result.night_holiday_hours * result.pay_rate * 2.2:g} ₽"
             )
 
         # Форматирование блока дополнительных смен
@@ -203,12 +202,12 @@ AHT: {cls.format_percentage(premium_data.aht_premium)} = {
 Базовая часть (с коэффициентами):
 • Обычные часы: час × ставка
 • Ночные часы: час × (ставка + ставка×0.2) = час × ставка × 1.2
-• Праздничные (дневные): час × (ставка×2)
-• Ночные праздничные: час × (ставка×2 + ставка×0.2) = час × ставка × 2.2
+• Праздничные дневные: час × ставка × 2.0
+• Праздничные ночные: час × ставка × 2.2
 
 Премия считается от базовой ставки: все часы × ставка × премия%
 
-Доп. смены: часы × (ставка × 2 × (1 + премия%))
+Доп. смены: часы × ставка × (2.0 + премия%)
 
 Ночными часами считается локальное время 22:00 - 6:00
 Праздничные дни считаются по производственному <a href='https://www.consultant.ru/law/ref/calendar/proizvodstvennye/'>календарю</a></blockquote>
