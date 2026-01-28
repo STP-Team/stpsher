@@ -342,7 +342,7 @@ async def search_schedule_getter(
 
     if "schedule_text" in schedule_data:
         schedule_data["schedule_text"] = (
-            f"<b>{user_name}</b>\n\n<blockquote>{schedule_data['schedule_text']}</blockquote>"
+            f"<b>{user_name}</b>\n\n{schedule_data['schedule_text']}"
         )
 
     return schedule_data
@@ -380,9 +380,7 @@ async def search_kpi_getter(
     )
 
     if "kpi_text" in kpi_data:
-        kpi_data["kpi_text"] = (
-            f"<b>{user_name}</b>\n\n<blockquote>{kpi_data['kpi_text']}</blockquote>"
-        )
+        kpi_data["kpi_text"] = f"<b>{user_name}</b>\n\n{kpi_data['kpi_text']}"
 
     return kpi_data
 
@@ -420,7 +418,7 @@ async def search_kpi_requirements_getter(
 
     if "requirements_text" in requirements_data:
         requirements_data["requirements_text"] = (
-            f"<b>{user_name}</b>\n\n<blockquote>{requirements_data['requirements_text']}</blockquote>"
+            f"<b>{user_name}</b>\n\n{requirements_data['requirements_text']}"
         )
 
     return requirements_data
@@ -462,7 +460,7 @@ async def search_salary_getter(
 
     if "salary_text" in salary_data:
         salary_data["salary_text"] = (
-            f"<b>{user_name}</b>\n\n<blockquote>{salary_data['salary_text']}</blockquote>"
+            f"<b>{user_name}</b>\n\n{salary_data['salary_text']}"
         )
 
     return salary_data

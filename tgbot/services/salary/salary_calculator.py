@@ -32,7 +32,7 @@ class SalaryCalculationResult:
 
         working_days: Количество отработанных дней
         total_working_hours: Общее количество отработанных часов
-        regular_hours: Обычные рабочие часы (дневные, не праздничные)
+        total_billable_hours: Все оплачиваемые часы (включая ночные и праздничные)
         night_hours: Ночные часы (22:00-06:00)
         holiday_hours: Дневные часы в праздничные дни
         night_holiday_hours: Ночные часы в праздничные дни
@@ -79,7 +79,7 @@ class SalaryCalculationResult:
     # Рабочие часы
     working_days: float
     total_working_hours: float
-    regular_hours: float
+    total_billable_hours: float
     night_hours: float
     holiday_hours: float
     night_holiday_hours: float
@@ -305,11 +305,8 @@ class SalaryCalculator:
                         )
                         shift_night_hours += range_night_hours
 
-                    # Если был вычет на обед, пропорционально уменьшаем ночные часы
-                    if total_raw_hours > day_hours and shift_night_hours > 0:
-                        shift_night_hours = shift_night_hours * (
-                            day_hours / total_raw_hours
-                        )
+                    # НЕ уменьшаем ночные часы при вычете обеда
+                    # Обед вычитается только из дневных часов
 
                     # Проверка на праздничный день
                     try:
@@ -473,11 +470,8 @@ class SalaryCalculator:
                                 )
                                 shift_night_hours += range_night_hours
 
-                            # Если был вычет на обед, пропорционально уменьшаем ночные часы
-                            if total_raw_hours > day_hours and shift_night_hours > 0:
-                                shift_night_hours = shift_night_hours * (
-                                    day_hours / total_raw_hours
-                                )
+                            # НЕ уменьшаем ночные часы при вычете обеда
+                            # Обед вычитается только из дневных часов
 
                             # Проверка на праздничный день
                             try:
@@ -489,7 +483,7 @@ class SalaryCalculator:
                                 )
 
                                 if is_holiday:
-                                    # Праздничные часы: дневные × 2.0 + ночные × 2.4
+                                    # Праздничные часы: дневные × 2.0 + ночные × (2.0 + 0.2)
                                     holiday_day_hours = day_hours - shift_night_hours
                                     day_salary = (
                                         holiday_day_hours
@@ -497,8 +491,7 @@ class SalaryCalculator:
                                         * PayRateService.get_holiday_multiplier()
                                     ) + (
                                         shift_night_hours
-                                        * pay_rate
-                                        * PayRateService.get_night_holiday_multiplier()
+                                        * (pay_rate * 2.0 + pay_rate * 0.2)
                                     )
                                 else:
                                     # Обычные часы: дневные × 1.0 + ночные × 1.2
@@ -630,18 +623,25 @@ class SalaryCalculator:
             total_working_hours - holiday_hours - night_hours - night_holiday_hours
         )
 
-        # Базовая зарплата (все часы по базовой ставке, без доплат)
-        # Премия считается от базовой ставки всех часов
-        base_salary = total_working_hours * pay_rate
+        # Все оплачиваемые часы (общее количество часов для статистики)
+        total_billable_hours = total_working_hours
 
-        # Доплаты (не облагаются премией)
-        night_bonus_amount = night_hours * pay_rate * 0.2  # 20% за ночные часы
-        holiday_bonus_amount = (
-            holiday_hours * pay_rate * 1.0
-        )  # 100% за праздничные дни (двойная оплата)
-        night_holiday_bonus_amount = (
-            night_holiday_hours * pay_rate * 0.2
-        )  # 20% за ночные часы в праздники
+        # Базовая зарплата с учетом коэффициентов за разные типы часов
+        # Обычные часы: час × ЧТС
+        # Ночные часы: час × (ЧТС + ЧТС×0.2) = час × ЧТС×1.2
+        # Праздничные (дневные): час × (ЧТС×2)
+        # Ночные праздничные: час × (ЧТС×2 + ЧТС×0.2) = час × ЧТС×2.2
+        base_salary = (
+            regular_hours * pay_rate  # Обычные часы
+            + night_hours * pay_rate * 1.2  # Ночные часы
+            + holiday_hours * pay_rate * 2.0  # Праздничные (дневные)
+            + night_holiday_hours * (pay_rate * 2.0 + pay_rate * 0.2)  # Ночные праздничные
+        )
+
+        # Доплаты не нужны отдельно, так как уже учтены в base_salary
+        night_bonus_amount = 0.0
+        holiday_bonus_amount = 0.0
+        night_holiday_bonus_amount = 0.0
 
         # Считаем зарплату за дополнительные смены
         # Используем двойную ставку + собственную премию пользователя (вместо фиксированных 63%)
@@ -658,26 +658,29 @@ class SalaryCalculator:
             working_days * PayRateService.get_remote_work_compensation()
         )
 
-        # Считаем общую сумму премии (основываясь на базовой зарплате за весь месяц)
+        # База для расчета премии: все часы по базовой ставке (без коэффициентов)
+        base_salary_for_premium = total_working_hours * pay_rate
+
+        # Считаем общую сумму премии (основываясь на базовой ставке, без коэффициентов)
         # Проверяем тип премиум данных по роли пользователя
         is_head_premium = user.role == 2
 
         if is_head_premium:
             # Для руководителей: FLR, GOK, AHT
             csat_premium_amount = 0
-            flr_premium_amount = base_salary * ((premium_data.flr_premium or 0) / 100)
-            gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
-            aht_premium_amount = base_salary * ((premium_data.aht_premium or 0) / 100)
+            flr_premium_amount = base_salary_for_premium * ((premium_data.flr_premium or 0) / 100)
+            gok_premium_amount = base_salary_for_premium * ((premium_data.gok_premium or 0) / 100)
+            aht_premium_amount = base_salary_for_premium * ((premium_data.aht_premium or 0) / 100)
         else:
             # Для специалистов: CSAT, GOK, AHT
-            csat_premium_amount = base_salary * ((premium_data.csat_premium or 0) / 100)
+            csat_premium_amount = base_salary_for_premium * ((premium_data.csat_premium or 0) / 100)
             flr_premium_amount = 0
-            gok_premium_amount = base_salary * ((premium_data.gok_premium or 0) / 100)
-            aht_premium_amount = base_salary * ((premium_data.aht_premium or 0) / 100)
+            gok_premium_amount = base_salary_for_premium * ((premium_data.gok_premium or 0) / 100)
+            aht_premium_amount = base_salary_for_premium * ((premium_data.aht_premium or 0) / 100)
 
         # Считаем общую сумму премии
         premium_multiplier = (premium_data.total_premium or 0) / 100
-        premium_amount = base_salary * premium_multiplier
+        premium_amount = base_salary_for_premium * premium_multiplier
 
         # Считаем часы и полную стоимость первой половины месяца для аванса
         first_half_hours = cls._calculate_first_half_hours(schedule_data)
@@ -734,7 +737,7 @@ class SalaryCalculator:
             pay_rate=pay_rate,
             working_days=working_days,
             total_working_hours=total_working_hours,
-            regular_hours=regular_hours,
+            total_billable_hours=total_billable_hours,
             night_hours=night_hours,
             holiday_hours=holiday_hours,
             night_holiday_hours=night_holiday_hours,
