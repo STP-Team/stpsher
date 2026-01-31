@@ -6,6 +6,7 @@ from stp_database.models.STP import Employee
 from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
+from tgbot.misc.constants import EMOJI, tg_emoji
 from tgbot.misc.helpers import format_fullname, short_name, strftime_date
 
 
@@ -51,4 +52,10 @@ async def tests_getter(
         "tests_length": len(user_tests),
         "created_at_str": created_at_str,
         "current_time_str": current_time_str,
+    }
+
+
+async def horn_getter(**_kwargs):
+    return {
+        **{name: tg_emoji(name) for name in EMOJI},
     }

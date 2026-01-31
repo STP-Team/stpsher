@@ -4,6 +4,8 @@ from stp_database.models.STP import Employee
 from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
+from tgbot.misc.constants import EMOJI, tg_emoji
+
 
 async def db_getter(
     user: Employee, stp_repo: MainRequestsRepo, stats_repo: StatsRequestsRepo, **_kwargs
@@ -21,10 +23,10 @@ async def db_getter(
         Словарь с базовыми данными о сотруднике и репозиториях баз данных
     """
     user_tests = await stats_repo.tests.get_tests(employee_fullname=user.fullname)
-
     return {
         "user": user,
         "stp_repo": stp_repo,
         "stats_repo": stats_repo,
         "have_tests": True if user_tests else False,
+        **{name: tg_emoji(name) for name in EMOJI},
     }

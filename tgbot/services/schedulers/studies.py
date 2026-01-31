@@ -26,7 +26,12 @@ class StudiesScheduler(BaseScheduler):
     def __init__(self):
         super().__init__("Обучения")
 
-    def setup_jobs(self, scheduler: AsyncIOScheduler, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot):
+    def setup_jobs(
+        self,
+        scheduler: AsyncIOScheduler,
+        stp_session_pool: async_sessionmaker[AsyncSession],
+        bot: Bot,
+    ):
         scheduler.add_job(
             func=self._check_job,
             args=[stp_session_pool, bot],
@@ -36,7 +41,9 @@ class StudiesScheduler(BaseScheduler):
             minutes=30,
         )
 
-    async def _check_job(self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot):
+    async def _check_job(
+        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+    ):
         self._log_job_execution("Проверка обучений", True)
         try:
             await check_upcoming_studies(stp_session_pool, bot)
@@ -45,7 +52,9 @@ class StudiesScheduler(BaseScheduler):
             self._log_job_execution("Проверка обучений", False, str(e))
 
 
-async def check_upcoming_studies(stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot):
+async def check_upcoming_studies(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+):
     """Check upcoming studies and send notifications."""
     if not STUDIES_FILE.exists():
         logger.warning("[Studies] File not found")
@@ -58,7 +67,8 @@ async def check_upcoming_studies(stp_session_pool: async_sessionmaker[AsyncSessi
 
     now = datetime.now()
     upcoming = [
-        s for s in all_sessions
+        s
+        for s in all_sessions
         if abs((s.date - now) - timedelta(hours=2)) <= CHECK_WINDOW
         or abs((s.date - now) - timedelta(hours=1)) <= CHECK_WINDOW
     ]
@@ -70,10 +80,17 @@ async def check_upcoming_studies(stp_session_pool: async_sessionmaker[AsyncSessi
     total = sum(results.values())
     logger.info(f"[Studies] Sent {total} notifications for {len(upcoming)} sessions")
 
-    return {"status": "success", "sessions": len(upcoming), "notifications": total, "results": results}
+    return {
+        "status": "success",
+        "sessions": len(upcoming),
+        "notifications": total,
+        "results": results,
+    }
 
 
-async def send_study_notifications(sessions, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot) -> dict:
+async def send_study_notifications(
+    sessions, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+) -> dict:
     """Send notifications to study participants."""
     results = {}
 
@@ -85,7 +102,9 @@ async def send_study_notifications(sessions, stp_session_pool: async_sessionmake
             sent = 0
 
             participants: Set[str] = {
-                name.strip() for _, name, _, _, _ in session_obj.participants if name and name.strip()
+                name.strip()
+                for _, name, _, _, _ in session_obj.participants
+                if name and name.strip()
             }
 
             for name in participants:
@@ -94,7 +113,7 @@ async def send_study_notifications(sessions, stp_session_pool: async_sessionmake
                     if not user or not user.user_id:
                         continue
 
-                    msg = await _create_notification_message(session_obj, repo, user)
+                    msg = await _create_notification_message(session_obj, repo)
                     if await send_message(bot, user.user_id, msg):
                         sent += 1
                 except Exception as e:
@@ -106,7 +125,7 @@ async def send_study_notifications(sessions, stp_session_pool: async_sessionmake
     return results
 
 
-async def _create_notification_message(session, repo, user) -> str:
+async def _create_notification_message(session, repo) -> str:
     """Create study notification message."""
     time_diff = session.date - datetime.now()
 
@@ -116,7 +135,9 @@ async def _create_notification_message(session, repo, user) -> str:
         time_text = "через 1 час"
     else:
         days = (session.date.date() - datetime.now().date()).days
-        time_text = "сегодня" if days == 0 else "завтра" if days == 1 else f"через {days} дн."
+        time_text = (
+            "сегодня" if days == 0 else "завтра" if days == 1 else f"через {days} дн."
+        )
 
     trainer = session.trainer
     if trainer:

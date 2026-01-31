@@ -1,5 +1,6 @@
 import datetime
 
+from ...misc.constants import tg_emoji
 from ...misc.helpers import strftime_date
 from .salary_calculator import SalaryCalculationResult
 
@@ -86,7 +87,7 @@ class SalaryFormatter:
                 f"Доп. смены: {result.additional_shift_hours:g}ч × {result.additional_shift_rate:g} ₽ = {result.additional_shift_salary:g} ₽"
             )
 
-        message_text = f"""💰 <b>Зарплата</b>
+        message_text = f"""{tg_emoji("money_bag")} <b>Зарплата</b>
 
 ⏰ <b>Рабочие часы:</b>
 <blockquote>Рабочих дней: {result.working_days}
@@ -100,13 +101,13 @@ class SalaryFormatter:
         }{
             f'''
 
-⭐ Доп. смены: {result.additional_shift_hours:g}ч
+{tg_emoji("star")} Доп. смены: {result.additional_shift_hours:g}ч
 {chr(10).join(result.additional_shift_days_worked)}'''
             if result.additional_shift_days_worked
             else ""
         }</blockquote>
 
-💵 <b>Оклад:</b>
+{tg_emoji("banknote")} <b>Оклад:</b>
 <blockquote expandable>Ставка в час: {cls.format_value(result.pay_rate, " ₽")}
 
 <b>Базовая часть:</b> {cls.format_value(result.base_salary, " ₽")}
@@ -120,7 +121,7 @@ class SalaryFormatter:
 {chr(10).join(hours_details)}</blockquote>{
             f'''
 
-⭐ <b>Доп. смены:</b>
+{tg_emoji("star")} <b>Доп. смены:</b>
 <blockquote>{chr(10).join(additional_shifts_details)}
 
 Сумма доп. смен: {cls.format_value(result.additional_shift_salary, " ₽")}</blockquote>'''
@@ -128,7 +129,7 @@ class SalaryFormatter:
             else ""
         }
 
-🎁 <b>Премия:</b>
+{tg_emoji("pig")} <b>Премия:</b>
 <blockquote expandable>Общий процент премии: {
             cls.format_percentage(premium_data.total_premium)
         }
@@ -139,7 +140,7 @@ class SalaryFormatter:
             else "0 ₽"
         }
 
-🌟 Показатели:"""
+{tg_emoji("star")} Показатели:"""
 
         # Определяем тип премиум данных по роли пользователя
         is_head_premium = result.user.role == 2
@@ -172,27 +173,31 @@ AHT: {cls.format_percentage(premium_data.aht_premium)} = {
         message_text += f"""</blockquote>{
             f'''
 
-🏠 <b>Компенсация за удаленную работу:</b>
+{tg_emoji("house")} <b>Компенсация за удаленную работу:</b>
 <blockquote>Рабочих дней: {result.working_days} × 35 ₽ = {cls.format_value(result.remote_work_compensation_amount, " ₽")}</blockquote>'''
             if result.remote_work_compensation_amount > 0
             else ""
         }
 
-💰 <b>Итого к выплате:</b>
+{tg_emoji("money_bag")} <b>Итого к выплате:</b>
 <blockquote>Полная зарплата: ~<b>{cls.format_value(result.total_salary, " ₽")}</b>{
             f" <tg-spoiler>(+{cls.format_value(result.exchange_net_profit, ' ₽')} за сделки = {cls.format_value(result.total_with_exchanges, ' ₽')})</tg-spoiler>"
             if result.exchange_net_profit != 0
             else ""
         }
 
-🏦 Аванс (1-15 числа): ~<b>{cls.format_value(result.advance_payment, " ₽")}</b>
+{tg_emoji("bank")} Аванс (1-15 числа): ~<b>{
+            cls.format_value(result.advance_payment, " ₽")
+        }</b>
 <blockquote>Часы первой половины: {cls.format_value(result.first_half_hours, "ч")}
 <i>(включая ночные/праздничные доплаты)</i></blockquote>
 
-💵 Основная часть: ~<b>{cls.format_value(result.main_payment, " ₽")}</b>
+{tg_emoji("banknote")} Основная часть: ~<b>{
+            cls.format_value(result.main_payment, " ₽")
+        }</b>
 <blockquote><i>(вторая половина + премии + допки + компенсация)</i></blockquote></blockquote>
 
-<blockquote expandable>⚠️ <b>Важное</b>
+<blockquote expandable>️{tg_emoji("warning")} <b>Важное</b>
 
 Расчет представляет <b>примерную</b> сумму после вычета НДФЛ
 Районный коэффициент <b>не участвует в расчете</b>, т.к. примерно покрывает НДФЛ

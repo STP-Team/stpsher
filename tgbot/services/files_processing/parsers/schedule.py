@@ -481,8 +481,6 @@ class ScheduleParser(BaseParser):
 
 
 class DutyScheduleParser(BaseParser):
-    """Полностью оптимизированный парсер графика дежурных с кэшированием."""
-
     @staticmethod
     def get_duty_sheet_name(date: datetime) -> str:
         """Генерирует название листа для графика дежурных.
@@ -510,7 +508,7 @@ class DutyScheduleParser(BaseParser):
     async def get_duties_for_month(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> Dict[int, List[DutyInfo]]:
-        """Получает все дежурства за весь месяц (оптимизировано с кэшированием).
+        """Получает все дежурства за весь месяц.
 
         Args:
             date: Дата в нужном месяце
@@ -879,12 +877,10 @@ class DutyScheduleParser(BaseParser):
 
 
 class HeadScheduleParser(BaseParser):
-    """Полностью оптимизированный парсер графика руководителей с кэшированием."""
-
     async def get_heads_for_date(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
     ) -> List[HeadInfo]:
-        """Получает руководителей на дату (оптимизировано с кэшированием).
+        """Получает руководителей на дату.
 
         Args:
             date: Дата
@@ -1077,8 +1073,6 @@ class HeadScheduleParser(BaseParser):
 
 
 class GroupScheduleParser(BaseParser):
-    """Полностью оптимизированный парсер группового графика с кэшированием."""
-
     def __init__(self, uploads_folder: str = "uploads"):
         super().__init__(uploads_folder)
         self.duty_parser = DutyScheduleParser(uploads_folder)
@@ -1167,7 +1161,7 @@ class GroupScheduleParser(BaseParser):
     async def get_group_members(
         self, head_fullname: str, date: datetime, division: str, stp_repo
     ) -> List[GroupMemberInfo]:
-        """Получает членов группы для руководителя (оптимизировано с кэшированием).
+        """Получает членов группы для руководителя.
 
         Args:
             head_fullname: ФИО руководителя

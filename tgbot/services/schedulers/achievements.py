@@ -243,8 +243,6 @@ async def check_achievements(
 ) -> Dict[str, int]:
     """Универсальная проверка и вручение достижений для любого периода.
 
-    Оптимизированная версия с пакетной загрузкой данных и минимальными запросами к БД.
-
     Args:
         stp_session_pool: Пул сессий с базой STP
         stats_session_pool: Пул сессий с базой KPI
@@ -298,7 +296,7 @@ async def check_achievements(
 
             # Получаем KPI данные для всех пользователей пакетом
             all_kpi_data = await _batch_get_kpi_data(
-                kpi_method, stats_repo, playing_users, period
+                kpi_method, stats_repo, playing_users
             )
 
             # Получаем всю историю достижений одним запросом
@@ -325,7 +323,6 @@ async def check_achievements(
                         user_kpi,
                         achievements_index,
                         existing_by_user.get(user.user_id, set()),
-                        period,
                     )
 
                     if earned:
@@ -357,9 +354,6 @@ async def check_achievements(
     return stats
 
 
-# ========== Оптимизированные вспомогательные функции ==========
-
-
 def _build_achievements_index(achievements: List) -> Dict:
     """Строит индекс достижений по критериям для быстрого поиска.
 
@@ -380,7 +374,7 @@ def _build_achievements_index(achievements: List) -> Dict:
 
 
 async def _batch_get_kpi_data(
-    kpi_method, stats_repo: StatsRequestsRepo, users: List, period: AchievementPeriod
+    kpi_method, stats_repo: StatsRequestsRepo, users: List
 ) -> Dict:
     """Пакетное получение KPI данных для всех пользователей.
 
@@ -388,7 +382,6 @@ async def _batch_get_kpi_data(
         kpi_method: Метод для получения KPI
         stats_repo: Репозиторий статистики
         users: Список пользователей
-        period: Период достижений
 
     Returns:
         Словарь {employee_id: {"kpi": user_kpi, "premium": user_premium, "extraction": extraction_date}}
@@ -483,7 +476,6 @@ def _check_user_achievements_fast(
     user_kpi_data: Dict,
     achievements_index: Dict,
     existing_achievement_ids: set,
-    period: AchievementPeriod,
 ) -> List[Dict]:
     """Быстрая проверка достижений для пользователя с использованием индекса.
 
@@ -492,7 +484,6 @@ def _check_user_achievements_fast(
         user_kpi_data: Данные KPI пользователя
         achievements_index: Индекс достижений
         existing_achievement_ids: Множество уже полученных достижений
-        period: Период проверки
 
     Returns:
         Список заработанных достижений
@@ -546,7 +537,7 @@ def _check_user_achievements_fast(
 def _check_kpi_criteria_sync(
     user_kpi, kpi_criteria_str: str, user_premium=None
 ) -> bool:
-    """Синхронная проверка KPI критериев (оптимизированная версия).
+    """Синхронная проверка KPI критериев.
 
     Args:
         user_kpi: KPI пользователя
@@ -576,8 +567,6 @@ async def _batch_award_achievements(
     stp_repo: MainRequestsRepo, all_earned: List, bot: Bot
 ) -> None:
     """Пакетное вручение достижений с группировкой по пользователям.
-
-    Оптимизировано для использования bulk INSERT операций.
 
     Args:
         stp_repo: Репозиторий STP

@@ -8,14 +8,16 @@ from aiogram_dialog.widgets.kbd import Button, Row
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.game.game import start_game_dialog
-from tgbot.dialogs.events.common.groups import start_groups_dialog
-from tgbot.dialogs.events.common.kpi import start_kpi_dialog
-from tgbot.dialogs.events.common.schedules import start_schedules_dialog
-from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.events.heads.group import start_group_dialog
 from tgbot.dialogs.states.head import HeadSG
-from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
+from tgbot.dialogs.widgets.buttons import (
+    GAME_BTN,
+    GROUPS_BTN,
+    KPI_BTN,
+    SCHEDULES_BTN,
+    SEARCH_BTN,
+    SUPPORT_BTN,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +29,12 @@ menu_window = Window(
 
 <i>Используй меню для взаимодействия с ботом</i>"""),
     Row(
-        Button(Const("📅 Графики"), id="exchanges", on_click=start_schedules_dialog),
-        Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
+        SCHEDULES_BTN,
+        KPI_BTN,
     ),
-    Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
+    GAME_BTN,
     Button(Const("❤️ Моя группа"), id="my_group", on_click=start_group_dialog),
-    Row(
-        Button(
-            Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
-        ),
-        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
-    ),
+    Row(SEARCH_BTN, GROUPS_BTN),
     SUPPORT_BTN,
     state=HeadSG.menu,
 )

@@ -26,8 +26,13 @@ class TutorsScheduler(BaseScheduler):
         self._sent = set()
         self._last_reset = None
 
-    def setup_jobs(self, scheduler: AsyncIOScheduler, stp_session_pool: async_sessionmaker,
-                   stats_session_pool: async_sessionmaker, bot: Bot):
+    def setup_jobs(
+        self,
+        scheduler: AsyncIOScheduler,
+        stp_session_pool: async_sessionmaker,
+        stats_session_pool: async_sessionmaker,
+        bot: Bot,
+    ):
         self._add_job(
             scheduler=scheduler,
             func=self._check_job,
@@ -64,10 +69,13 @@ class TutorsScheduler(BaseScheduler):
 
         async with stats_session_pool() as stats_session:
             repo = StatsRequestsRepo(stats_session)
-            trainings = await repo.tutors_schedule.get_tutor_trainees_by_date(training_date=now.date())
+            trainings = await repo.tutors_schedule.get_tutor_trainees_by_date(
+                training_date=now.date()
+            )
 
         upcoming = [
-            t for t in trainings
+            t
+            for t in trainings
             if t.training_start_time
             and start <= tz_perm.localize(t.training_start_time) <= end
             and self._key(t) not in self._sent
@@ -87,8 +95,16 @@ class TutorsScheduler(BaseScheduler):
     async def _notify(self, repo: MainRequestsRepo, bot: Bot, training):
         times = f"{training.training_start_time.strftime('%H:%M')}-{training.training_end_time.strftime('%H:%M')} ПРМ"
 
-        tutor = await repo.employee.get_users(fullname=training.tutor_fullname) if training.tutor_fullname else None
-        trainee = await repo.employee.get_users(fullname=training.trainee_fullname) if training.trainee_fullname else None
+        tutor = (
+            await repo.employee.get_users(fullname=training.tutor_fullname)
+            if training.tutor_fullname
+            else None
+        )
+        trainee = (
+            await repo.employee.get_users(fullname=training.trainee_fullname)
+            if training.trainee_fullname
+            else None
+        )
 
         if tutor and tutor.user_id:
             msg = f"🎓 <b>Наставничество</b>\n\n<b>Время:</b> {times}\n<b>Стажер:</b> {format_fullname(trainee, True, True) or 'Не указан'}\n\nЗанятие начнется через час"
@@ -98,4 +114,6 @@ class TutorsScheduler(BaseScheduler):
             msg = f"📚 <b>Стажировка</b>\n\n<b>Время:</b> {times}\n<b>Наставник:</b> {format_fullname(tutor, True, True) or 'Не указан'}\n\nЗанятие начнется через час"
             await send_message(bot, trainee.user_id, msg)
 
-        logger.info(f"Notified: {training.tutor_fullname} -> {training.trainee_fullname}")
+        logger.info(
+            f"Notified: {training.tutor_fullname} -> {training.trainee_fullname}"
+        )

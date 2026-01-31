@@ -43,7 +43,7 @@ from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.dialogs.widgets.exchange_calendar import ExchangeCalendar
 
 menu_window = Window(
-    Format("""<b>📅 Меню графиков</b>
+    Format("""{calendar} <b>Меню графиков</b>
 
 Здесь ты найдешь все, что связано с графиками"""),
     Row(

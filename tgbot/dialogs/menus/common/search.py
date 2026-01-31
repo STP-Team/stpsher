@@ -77,7 +77,7 @@ menu_window = Window(
 
 specialists_window = Window(
     Format(
-        """👤 Специалисты
+        """👤 <b>Специалисты</b>
 
 Найдено специалистов: {total_specialists}""",
     ),
@@ -113,7 +113,7 @@ specialists_window = Window(
 
 heads_window = Window(
     Format(
-        """👑 Руководители
+        """👑 <b>Руководители</b>
 
 Найдено руководителей: {total_heads}""",
     ),

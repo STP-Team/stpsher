@@ -45,7 +45,9 @@ class BaseScheduler(ABC):
             self.logger.error(f"Task '{name or job_id}' error: {e}")
             raise
 
-    def _log_job_execution(self, job_name: str, success: bool = True, error: str = None) -> None:
+    def _log_job_execution(
+        self, job_name: str, success: bool = True, error: str = None
+    ) -> None:
         """Log job execution result."""
         if success:
             self.logger.info(f"Task completed: {job_name}")

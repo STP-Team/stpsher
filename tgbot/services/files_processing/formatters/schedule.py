@@ -6,6 +6,7 @@
 
 from typing import Dict, List, Optional, Tuple
 
+from tgbot.misc.constants import tg_emoji
 from tgbot.services.files_processing.core.models import DayInfo
 from tgbot.services.files_processing.utils.time_parser import (
     extract_day_number,
@@ -318,7 +319,7 @@ class ScheduleFormatter:
         for day_info in work_days:
             if extract_day_number(day_info.day) == current_day:
                 duty_text = f" ({duty_info})" if duty_info else ""
-                return f"<blockquote>📍 <b>Сегодня:</b> <code>{day_info.schedule}</code>{duty_text}</blockquote>"
+                return f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> <code>{day_info.schedule}</code>{duty_text}</blockquote>"
 
         # Check days off
         for day_info in days_off:
@@ -326,32 +327,34 @@ class ScheduleFormatter:
                 day_text = "🏠 Выходной"
                 if duty_info:
                     day_text += f" ({duty_info})"
-                return f"<blockquote>📍 <b>Сегодня:</b> {day_text}</blockquote>"
+                return f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> {day_text}</blockquote>"
 
         # Check vacation
         for day_info in vacation_days:
             if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏖 Отпуск</blockquote>"
+                return f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> 🏖 Отпуск</blockquote>"
 
         # Check vacation BS
         for day_info in vacation_bs_days:
             if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏖 БС</blockquote>"
+                return (
+                    f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> 🏖 БС</blockquote>"
+                )
 
         # Check army
         for day_info in army_days:
             if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🎖️ Военкомат</blockquote>"
+                return f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> 🎖️ Военкомат</blockquote>"
 
         # Check sick days
         for day_info in sick_days:
             if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🏥 Больничный</blockquote>"
+                return f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> 🏥 Больничный</blockquote>"
 
         # Check missing days
         for day_info in missing_days:
             if extract_day_number(day_info.day) == current_day:
-                return "<blockquote>📍 <b>Сегодня:</b> 🕵️‍♂️ Отсутствие</blockquote>"
+                return f"<blockquote>{tg_emoji('pin')} <b>Сегодня:</b> 🕵️‍♂️ Отсутствие</blockquote>"
 
         return None
 

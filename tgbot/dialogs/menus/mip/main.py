@@ -7,11 +7,8 @@ from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
-from tgbot.dialogs.events.common.game.game import start_game_dialog
-from tgbot.dialogs.events.common.groups import start_groups_dialog
-from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.states.mip import MipSG
-from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
+from tgbot.dialogs.widgets.buttons import GAME_BTN, GROUPS_BTN, SEARCH_BTN, SUPPORT_BTN
 
 menu_window = Window(
     Format("""👋 <b>Привет</b>!
@@ -23,13 +20,8 @@ menu_window = Window(
         Button(Const("📂 Файлы"), id="files", on_click=start_files_dialog),
         Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
     ),
-    Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
-    Row(
-        Button(
-            Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
-        ),
-        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
-    ),
+    GAME_BTN,
+    Row(SEARCH_BTN, GROUPS_BTN),
     SUPPORT_BTN,
     state=MipSG.menu,
 )

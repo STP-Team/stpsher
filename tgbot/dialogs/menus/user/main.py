@@ -5,7 +5,6 @@ from typing import Any
 from aiogram import F
 from aiogram_dialog import Dialog, DialogManager
 from aiogram_dialog.widgets.kbd import (
-    Button,
     CurrentPage,
     FirstPage,
     LastPage,
@@ -18,28 +17,33 @@ from aiogram_dialog.widgets.kbd import (
 from aiogram_dialog.widgets.text import Const, Format, List
 from aiogram_dialog.window import Window
 
-from tgbot.dialogs.events.common.game.game import start_game_dialog
-from tgbot.dialogs.events.common.groups import start_groups_dialog
-from tgbot.dialogs.events.common.kpi import start_kpi_dialog
-from tgbot.dialogs.events.common.schedules import start_schedules_dialog
-from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.getters.common.db import db_getter
-from tgbot.dialogs.getters.user.main import tests_getter
+from tgbot.dialogs.getters.user.main import horn_getter, tests_getter
 from tgbot.dialogs.states.user import UserSG
-from tgbot.dialogs.widgets.buttons import HOME_BTN, SUPPORT_BTN
+from tgbot.dialogs.widgets.buttons import (
+    GAME_BTN,
+    GROUPS_BTN,
+    HOME_BTN,
+    KPI_BTN,
+    SCHEDULES_BTN,
+    SEARCH_BTN,
+    SUPPORT_BTN,
+)
 
 menu_window = Window(
-    Format("""👋 <b>Привет</b>!
+    Format(
+        """{hi} <b>Привет</b>!
 
 Я - бот-помощник СТП
 
-<i>Используй меню для взаимодействия с ботом</i>"""),
-    Row(
-        Button(Const("📅 Графики"), id="exchanges", on_click=start_schedules_dialog),
-        Button(Const("🌟 Показатели"), id="kpi", on_click=start_kpi_dialog),
+<i>Используй меню для взаимодействия с ботом</i>""",
     ),
     Row(
-        Button(Const("🏮 Игра"), id="game", on_click=start_game_dialog),
+        SCHEDULES_BTN,
+        KPI_BTN,
+    ),
+    Row(
+        GAME_BTN,
         SwitchTo(
             Const("📣 Рупор"),
             id="horn",
@@ -53,12 +57,7 @@ menu_window = Window(
         state=UserSG.tests,
         when="have_tests",
     ),
-    Row(
-        Button(
-            Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
-        ),
-        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
-    ),
+    Row(SEARCH_BTN, GROUPS_BTN),
     SUPPORT_BTN,
     getter=db_getter,
     state=UserSG.menu,
@@ -66,7 +65,7 @@ menu_window = Window(
 
 
 horn_window = Window(
-    Const("📣 <b>Рупор</b>\n"),
+    Format("{megaphone} <b>Рупор</b>\n"),
     Const("""Возник вопрос по процессу работы? Не нужно гадать, кого спросить!
 По всем непонятным процессам, правилам, инструментам и идеям есть один пункт назначения – <b>Рупор</b>
 
@@ -77,6 +76,7 @@ horn_window = Window(
         Url(Const("💡 Задать вопрос"), url=Const("forms.gle/krFwo1Q16sTStMxHA")),
     ),
     HOME_BTN,
+    getter=horn_getter,
     state=UserSG.horn,
 )
 

@@ -5,6 +5,7 @@ import datetime
 from stp_database.models.Stats import HeadPremium, SpecPremium
 from stp_database.models.STP import Employee
 
+from tgbot.misc.constants import tg_emoji
 from tgbot.misc.helpers import strftime_date
 from tgbot.services.salary import SalaryFormatter
 
@@ -340,24 +341,24 @@ class KPICalculator:
                 user.division, premium.aht, premium.aht_normative
             )
 
-            message_text = f"""🧮 <b>Калькулятор KPI</b>
+            message_text = f"""{tg_emoji("abacus")} <b>Калькулятор KPI</b>
 
-🔧 <b>FLR</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(premium.flr)} ({SalaryFormatter.format_percentage(premium.flr_normative_rate)})
+{tg_emoji("gear")} <b>FLR</b>
+<blockquote expandable>Текущий: {SalaryFormatter.format_value(premium.flr)} ({SalaryFormatter.format_percentage(premium.flr_normative_rate)})
 План: {SalaryFormatter.format_value(premium.flr_normative)}
 
 <b>Для премии:</b>
 {flr_calculation}</blockquote>
 
-⚖️ <b>ГОК</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
+{tg_emoji("weights")} <b>ГОК</b>
+<blockquote expandable>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
 План: {SalaryFormatter.format_value(round(premium.gok_normative))}
 
 <b>Для премии:</b>
 {gok_calculation}</blockquote>
 
-⏱️ <b>AHT</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(premium.aht)} ({SalaryFormatter.format_percentage(premium.aht_normative_rate)})
+{tg_emoji("lightning")} <b>AHT</b>
+<blockquote expandable>Текущий: {SalaryFormatter.format_value(premium.aht)} ({SalaryFormatter.format_percentage(premium.aht_normative_rate)})
 План: {SalaryFormatter.format_value(premium.aht_normative)}
 
 <b>Для премии:</b>
@@ -377,24 +378,24 @@ class KPICalculator:
                 user.division, premium.aht, premium.aht_normative
             )
 
-            message_text = f"""🧮 <b>Калькулятор KPI</b>
+            message_text = f"""{tg_emoji("abacus")} <b>Калькулятор KPI</b>
 
-🌟 <b>CSAT</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(premium.csat)} ({SalaryFormatter.format_percentage(premium.csat_normative_rate)})
+{tg_emoji("percent")} <b>CSAT</b>
+<blockquote expandable>Текущий: {SalaryFormatter.format_value(premium.csat)} ({SalaryFormatter.format_percentage(premium.csat_normative_rate)})
 План: {SalaryFormatter.format_value(premium.csat_normative)}
 
 <b>Для премии:</b>
 {csat_calculation}</blockquote>
 
-⚖️ <b>ГОК</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
+{tg_emoji("weights")} <b>ГОК</b>
+<blockquote expandable>Текущий: {SalaryFormatter.format_value(round(premium.gok))} ({SalaryFormatter.format_percentage(premium.gok_normative_rate)})
 План: {SalaryFormatter.format_value(round(premium.gok_normative))}
 
 <b>Для премии:</b>
 {gok_calculation}</blockquote>
 
-⏱️ <b>AHT</b>
-<blockquote>Текущий: {SalaryFormatter.format_value(premium.aht)} ({SalaryFormatter.format_percentage(premium.aht_normative_rate)})
+{tg_emoji("lightning")} <b>AHT</b>
+<blockquote expandable>Текущий: {SalaryFormatter.format_value(premium.aht)} ({SalaryFormatter.format_percentage(premium.aht_normative_rate)})
 План: {SalaryFormatter.format_value(premium.aht_normative)}
 
 <b>Для премии:</b>

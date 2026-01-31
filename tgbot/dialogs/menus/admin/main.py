@@ -9,10 +9,8 @@ from aiogram_dialog.window import Window
 
 from tgbot.dialogs.events.common.broadcast import start_broadcast_dialog
 from tgbot.dialogs.events.common.files.files import start_files_dialog
-from tgbot.dialogs.events.common.groups import start_groups_dialog
-from tgbot.dialogs.events.common.search import start_search_dialog
 from tgbot.dialogs.states.admin import AdminSG
-from tgbot.dialogs.widgets.buttons import SUPPORT_BTN
+from tgbot.dialogs.widgets.buttons import GROUPS_BTN, SEARCH_BTN, SUPPORT_BTN
 
 menu_window = Window(
     Format("""👋 <b>Привет</b>!
@@ -24,12 +22,7 @@ menu_window = Window(
         Button(Const("📂 Файлы"), id="files", on_click=start_files_dialog),
         Button(Const("📢 Рассылки"), id="broadcast", on_click=start_broadcast_dialog),
     ),
-    Row(
-        Button(
-            Const("🕵🏻 Поиск сотрудника"), id="search", on_click=start_search_dialog
-        ),
-        Button(Const("👯‍♀️ Группы"), id="groups", on_click=start_groups_dialog),
-    ),
+    Row(SEARCH_BTN, GROUPS_BTN),
     SUPPORT_BTN,
     state=AdminSG.menu,
 )

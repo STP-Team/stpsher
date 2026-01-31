@@ -20,11 +20,36 @@ from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
 
-MONTH_MAP = {"янв": 1, "фев": 2, "мар": 3, "апр": 4, "май": 5, "июн": 6,
-             "июл": 7, "авг": 8, "сен": 9, "окт": 10, "ноя": 11, "дек": 12}
+MONTH_MAP = {
+    "янв": 1,
+    "фев": 2,
+    "мар": 3,
+    "апр": 4,
+    "май": 5,
+    "июн": 6,
+    "июл": 7,
+    "авг": 8,
+    "сен": 9,
+    "окт": 10,
+    "ноя": 11,
+    "дек": 12,
+}
 
 # Roman numerals for month matching in file names
-ROMAN_MONTHS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+ROMAN_MONTHS = [
+    "I",
+    "II",
+    "III",
+    "IV",
+    "V",
+    "VI",
+    "VII",
+    "VIII",
+    "IX",
+    "X",
+    "XI",
+    "XII",
+]
 
 
 class HRScheduler(BaseScheduler):
@@ -35,20 +60,54 @@ class HRScheduler(BaseScheduler):
 
     def setup_jobs(self, scheduler: AsyncIOScheduler, stp_session_pool, bot: Bot):
         # Process fired users
-        scheduler.add_job(func=self._fired_job, args=[stp_session_pool, bot], trigger="cron",
-                         id="hr_fired", name="Обработка увольнений", hour=9, minute=0)
-        scheduler.add_job(func=self._fired_job, args=[stp_session_pool, bot], trigger="date",
-                         id="hr_fired_startup", name="Запуск: Обработка увольнений", run_date=None)
+        scheduler.add_job(
+            func=self._fired_job,
+            args=[stp_session_pool, bot],
+            trigger="cron",
+            id="hr_fired",
+            name="Обработка увольнений",
+            hour=9,
+            minute=0,
+        )
+        scheduler.add_job(
+            func=self._fired_job,
+            args=[stp_session_pool, bot],
+            trigger="date",
+            id="hr_fired_startup",
+            name="Запуск: Обработка увольнений",
+            run_date=None,
+        )
 
         # Notify unauthorized users
-        self._add_job(scheduler, self._unauth_job, "cron", "notify_unauth",
-                      "Уведомления о неавторизованных", hour=10, minute=30, args=[stp_session_pool, bot])
+        self._add_job(
+            scheduler,
+            self._unauth_job,
+            "cron",
+            "notify_unauth",
+            "Уведомления о неавторизованных",
+            hour=10,
+            minute=30,
+            args=[stp_session_pool, bot],
+        )
 
         # Process vacations
-        scheduler.add_job(func=self._vacation_job, args=[stp_session_pool], trigger="cron",
-                         id="hr_vacation", name="Обработка отпусков", hour=9, minute=0)
-        scheduler.add_job(func=self._vacation_job, args=[stp_session_pool], trigger="date",
-                         id="hr_vacation_startup", name="Запуск: Обработка отпусков", run_date=None)
+        scheduler.add_job(
+            func=self._vacation_job,
+            args=[stp_session_pool],
+            trigger="cron",
+            id="hr_vacation",
+            name="Обработка отпусков",
+            hour=9,
+            minute=0,
+        )
+        scheduler.add_job(
+            func=self._vacation_job,
+            args=[stp_session_pool],
+            trigger="date",
+            id="hr_vacation_startup",
+            name="Запуск: Обработка отпусков",
+            run_date=None,
+        )
 
     async def _fired_job(self, stp_session_pool, bot):
         await self._run_wrapped(process_fired_users, stp_session_pool, bot)
@@ -100,7 +159,12 @@ def get_fired_users(files_list: List[str] = None) -> List[str]:
                     date_val = df.iloc[idx, 1] if pd.notna(df.iloc[idx, 1]) else None
                     type_val = str(df.iloc[idx, 2]) if pd.notna(df.iloc[idx, 2]) else ""
 
-                    if type_val.strip().lower() in ["увольнение", "декрет"] and fullname and date_val and date_val < today:
+                    if (
+                        type_val.strip().lower() in ["увольнение", "декрет"]
+                        and fullname
+                        and date_val
+                        and date_val < today
+                    ):
                         fired.append(fullname.strip())
                 except Exception:
                     continue
@@ -111,7 +175,9 @@ def get_fired_users(files_list: List[str] = None) -> List[str]:
     return fired
 
 
-def _find_schedule_files(uploads: Path, files_list: List[str] = None, month_only: bool = False) -> List[Path]:
+def _find_schedule_files(
+    uploads: Path, files_list: List[str] = None, month_only: bool = False
+) -> List[Path]:
     """Find schedule files.
 
     Args:
@@ -151,7 +217,9 @@ def _find_schedule_files(uploads: Path, files_list: List[str] = None, month_only
     ]
 
 
-async def process_fired_users(stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot = None):
+async def process_fired_users(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot = None
+):
     """Process fired users - delete from DB and groups."""
     fired = get_fired_users()
     if not fired:
@@ -169,7 +237,9 @@ async def process_fired_users(stp_session_pool: async_sessionmaker[AsyncSession]
         await remove_from_groups(stp_session_pool, bot, fired)
 
 
-async def remove_from_groups(stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot, fired: List[str]):
+async def remove_from_groups(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot, fired: List[str]
+):
     """Remove fired users from groups with remove_unemployed=True."""
     async with stp_session_pool() as session:
         repo = MainRequestsRepo(session)
@@ -187,15 +257,21 @@ async def remove_from_groups(stp_session_pool: async_sessionmaker[AsyncSession],
 
                 if await repo.group_member.remove_member(gm.group_id, employee.user_id):
                     try:
-                        await bot.ban_chat_member(chat_id=gm.group_id, user_id=employee.user_id)
+                        await bot.ban_chat_member(
+                            chat_id=gm.group_id, user_id=employee.user_id
+                        )
                         chat = await bot.get_chat(gm.group_id)
-                        await bot.send_message(employee.user_id,
-                            f"✋ Ты был исключен из {'группы' if group.group_type == 'group' else 'канала'} <code>{chat.title}</code>")
+                        await bot.send_message(
+                            employee.user_id,
+                            f"✋ Ты был исключен из {'группы' if group.group_type == 'group' else 'канала'} <code>{chat.title}</code>",
+                        )
                     except Exception as e:
                         logger.warning(f"[Увольнения] Failed to ban {fullname}: {e}")
 
 
-async def notify_unauthorized_users(stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot) -> Dict:
+async def notify_unauthorized_users(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
+) -> Dict:
     """Notify supervisors about unauthorized users."""
     async with stp_session_pool() as session:
         repo = MainRequestsRepo(session)
@@ -272,7 +348,10 @@ def get_vacation_users(files_list: List[str] = None) -> List[str]:
 
             for fullname in reader.extract_all_users():
                 row = reader.find_user_row(fullname)
-                if row and reader.get_cell(row, col).strip().lower() in ["отпуск", "отпуск бс"]:
+                if row and reader.get_cell(row, col).strip().lower() in [
+                    "отпуск",
+                    "отпуск бс",
+                ]:
                     users.append(fullname)
         except Exception:
             continue

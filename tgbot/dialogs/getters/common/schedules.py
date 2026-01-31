@@ -12,6 +12,7 @@ from stp_database.models.STP import Employee
 from stp_database.repo.Stats import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
+from tgbot.misc.constants import EMOJI, tg_emoji
 from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
 from tgbot.misc.helpers import format_fullname, strftime_date
 from tgbot.services.files_processing.handlers.schedule import schedule_service
@@ -40,6 +41,7 @@ async def schedules_getter(
         "exchange_banned": exchange_banned,
         "tutor_access": tutors_access,
         "role": user.role,
+        **{name: tg_emoji(name) for name in EMOJI},
     }
 
 

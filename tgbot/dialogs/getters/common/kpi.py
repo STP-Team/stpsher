@@ -10,6 +10,7 @@ from stp_database.models.STP import Employee
 from stp_database.repo.Stats.requests import StatsRequestsRepo
 from stp_database.repo.STP import MainRequestsRepo
 
+from tgbot.misc.constants import tg_emoji
 from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.misc.helpers import strftime_date
 from tgbot.services.files_processing.utils.time_parser import get_current_month
@@ -138,19 +139,18 @@ async def kpi_getter(
     ).strftime(strftime_date)
 
     if user.role == 2:
-        kpi_text = f"""🌟 <b>Показатели</b>
+        kpi_text = f"""{tg_emoji("star")} <b>Показатели</b>
 
-🔧 <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
+{tg_emoji("gear")} <b>FLR - {SalaryFormatter.format_percentage(premium.flr_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.flr)}</blockquote>
 
-⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
+{tg_emoji("weights")} <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}</blockquote>
 
-⏱️ <b>AHT - {SalaryFormatter.format_percentage(premium.aht_premium)}</b>
+{tg_emoji("lightning")} <b>AHT - {SalaryFormatter.format_percentage(premium.aht_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.aht)}</blockquote>
 
-💰 <b>Итого:</b>
-<b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
+{tg_emoji("money_bag")} <b>Итого:</b> {SalaryFormatter.format_percentage(premium.total_premium)}
 
 <i>Данные из <b><a href='okc.ertelecom.ru/yii/ure/report/index'>URE</a></b> на <b>{updated_at_str}</b>
 Меню обновлено в <b>{current_time_str}</b></i>"""
@@ -162,19 +162,18 @@ async def kpi_getter(
             else f"📈 Всего звонков: {SalaryFormatter.format_value(premium.contacts_count)}"
         )
 
-        kpi_text = f"""🌟 <b>Показатели</b>
+        kpi_text = f"""{tg_emoji("star")} <b>Показатели</b>
 
-🌟 <b>CSAT - {SalaryFormatter.format_percentage(premium.csat_premium)}</b>
+{tg_emoji("percent")} <b>CSAT - {SalaryFormatter.format_percentage(premium.csat_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.csat)}</blockquote>
 
-⏱️ <b>AHT - {SalaryFormatter.format_percentage(premium.aht_premium)}</b>
-<blockquote>Факт: {SalaryFormatter.format_value(premium.aht)}</blockquote>
-
-⚖️ <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
+{tg_emoji("weights")} <b>ГОК - {SalaryFormatter.format_percentage(premium.gok_premium)}</b>
 <blockquote>Факт: {SalaryFormatter.format_value(premium.gok)}</blockquote>
 
-💰 <b>Итого:</b>
-<b>Общая премия: {SalaryFormatter.format_percentage(premium.total_premium)}</b>
+{tg_emoji("lightning")} <b>AHT - {SalaryFormatter.format_percentage(premium.aht_premium)}</b>
+<blockquote>Факт: {SalaryFormatter.format_value(premium.aht)}</blockquote>
+
+{tg_emoji("money_bag")} <b>Итого:</b> {SalaryFormatter.format_percentage(premium.total_premium)}
 
 {contacts_text}
 
@@ -208,7 +207,7 @@ async def kpi_requirements_getter(
 
     if not premium:
         return {
-            "requirements_text": """🧮 <b>Нормативы</b>
+            "requirements_text": f"""{tg_emoji("abacus")} <b>Нормативы</b>
 
 Не смог найти твои показатели в премиуме :(""",
             "month_display": data.get("month_display", "📅 Месяц"),
@@ -219,7 +218,7 @@ async def kpi_requirements_getter(
             user=user, premium=premium, is_head=True if user.role == 2 else False
         )
     except Exception:
-        requirements_text = """🧮 <b>Нормативы</b>
+        requirements_text = f"""{tg_emoji("abacus")} <b>Нормативы</b>
         
 Кажется, нормативы пока что не выставлены 🤷‍♂️"""
 
@@ -252,7 +251,7 @@ async def salary_getter(
 
     if not premium:
         return {
-            "salary_text": """💰 <b>Зарплата</b>
+            "salary_text": f"""{tg_emoji("money_bag")} <b>Зарплата</b>
 
 Не смог найти твои показатели в премиуме :(""",
             "month_display": data.get("month_display", "📅 Месяц"),
@@ -269,7 +268,7 @@ async def salary_getter(
             else None,
         )
     except Exception as e:
-        salary_result = f"""💰 <b>Зарплата</b>
+        salary_result = f"""{tg_emoji("money_bag")} <b>Зарплата</b>
 
 Не смог посчитать твою зарплату 🥺
 
