@@ -73,6 +73,11 @@ KPI_MAPPING = {
         "from_premium": False,
     },
     "GOK": {"attribute": "gok", "display_name": "ГОК", "from_premium": True},
+    "Thanks": {
+        "attribute": "thanks",
+        "display_name": "Благодарностей",
+        "from_premium": False,
+    },
 }
 
 
