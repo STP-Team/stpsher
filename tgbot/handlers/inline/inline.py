@@ -21,8 +21,8 @@ from tgbot.handlers.inline.exchanges import handle_exchange_query, handle_user_e
 from tgbot.handlers.inline.helpers import CACHE_TIMES
 from tgbot.handlers.inline.search import InlineResultBuilder, handle_search_query
 from tgbot.handlers.inline.subscriptions import handle_subscription_query
-from tgbot.services.files_processing.formatters.schedule import get_current_month
 from tgbot.services.files_processing.handlers.schedule import schedule_service
+from tgbot.services.files_processing.utils.time_parser import get_current_month
 
 logger = logging.getLogger(__name__)
 

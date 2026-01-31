@@ -9,7 +9,10 @@ import pandas as pd
 
 from tgbot.misc.dicts import schedule_types
 
+from ..utils.excel_helpers import get_cell_value
+from ..utils.validators import is_valid_fullname
 from .cache import get_cache
+from .constants import MONTHS_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +59,7 @@ class ExcelReader:
             Строковое значение клетки
         """
         try:
-            if row < self.df.shape[0] and col < self.df.shape[1]:
-                value = self.df.iloc[row, col]
-                return str(value) if pd.notna(value) else ""
-            return ""
+            return get_cell_value(self.df, row, col, "")
         except Exception as e:
             logger.debug(
                 f"[Excel] Ошибка получения значения клетки ({row}, {col}): {e}"
@@ -106,21 +106,7 @@ class ExcelReader:
 
         # Handle datetime object
         if isinstance(date, datetime):
-            month_names = [
-                "ЯНВАРЬ",
-                "ФЕВРАЛЬ",
-                "МАРТ",
-                "АПРЕЛЬ",
-                "МАЙ",
-                "ИЮНЬ",
-                "ИЮЛЬ",
-                "АВГУСТ",
-                "СЕНТЯБРЬ",
-                "ОКТЯБРЬ",
-                "НОЯБРЬ",
-                "ДЕКАБРЬ",
-            ]
-            month_normalized = month_names[date.month - 1]
+            month_normalized = MONTHS_ORDER[date.month - 1]
             day = date.day
         # Handle tuple of (month, day)
         elif isinstance(date, tuple):
@@ -210,20 +196,7 @@ class ExcelReader:
         # Find month end (start of next month or end of sheet)
         end_col = self.df.shape[1] - 1
 
-        months_order = [
-            "ЯНВАРЬ",
-            "ФЕВРАЛЬ",
-            "МАРТ",
-            "АПРЕЛЬ",
-            "МАЙ",
-            "ИЮНЬ",
-            "ИЮЛЬ",
-            "АВГУСТ",
-            "СЕНТЯБРЬ",
-            "ОКТЯБРЬ",
-            "НОЯБРЬ",
-            "ДЕКАБРЬ",
-        ]
+        months_order = MONTHS_ORDER
 
         try:
             current_month_idx = months_order.index(month)
@@ -321,39 +294,11 @@ class ExcelReader:
             for col_idx in range(min(4, self.df.shape[1])):
                 cell_value = self.get_cell(row_idx, col_idx)
 
-                if self._is_valid_fullname(cell_value.strip()):
+                if is_valid_fullname(cell_value.strip()):
                     users.append(cell_value.strip())
                     break
 
         return users
-
-    @staticmethod
-    def _is_valid_fullname(text: str) -> bool:
-        """Проверяет является ли текст валидным ФИО.
-
-        Args:
-            text: Текст для проверки
-
-        Returns:
-            True если текст содержит валидное ФИО, иначе False
-        """
-        if not text or text.strip() in ["", "nan", "None", "ДАТА →"]:
-            return False
-
-        words = text.split()
-        if len(words) < 2:
-            return False
-
-        if not re.search(r"[А-Яа-я]", text):
-            return False
-
-        if re.search(r"\d", text):
-            return False
-
-        if text.upper() in ["СТАЖЕРЫ ОБЩЕГО РЯДА", "ДАТА", "ПЕРЕВОДЫ/УВОЛЬНЕНИЯ"]:
-            return False
-
-        return True
 
     def batch_get_cells(self, positions: List[Tuple[int, int]]) -> List[str]:
         """Пакетное извлечение нескольких ячеек эффективным способом.
@@ -383,8 +328,9 @@ class ExcelReader:
             end_row = self.df.shape[0]
 
         try:
-            column_data = self.df.iloc[start_row:end_row, col_idx].tolist()
-            return [str(val) if pd.notna(val) else "" for val in column_data]
+            from ..utils.excel_helpers import get_column_values
+
+            return get_column_values(self.df, col_idx, start_row, end_row)
         except Exception as e:
             logger.error(f"Error getting column {col_idx}: {e}")
             return []
@@ -402,12 +348,10 @@ class ExcelReader:
         Returns:
             Список значений ячеек
         """
-        if end_col is None:
-            end_col = self.df.shape[1]
-
         try:
-            row_data = self.df.iloc[row_idx, start_col:end_col].tolist()
-            return [str(val) if pd.notna(val) else "" for val in row_data]
+            from ..utils.excel_helpers import get_row_values
+
+            return get_row_values(self.df, row_idx, start_col, end_col)
         except Exception as e:
             logger.error(f"Error getting row {row_idx}: {e}")
             return []

@@ -9,7 +9,6 @@
 
 import asyncio
 import logging
-import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
@@ -20,6 +19,13 @@ from tgbot.misc.helpers import short_name
 from tgbot.services.files_processing.core.cache import get_cache
 from tgbot.services.files_processing.core.excel import ExcelReader
 from tgbot.services.files_processing.managers.files import ScheduleFileManager
+from tgbot.services.files_processing.utils.time_parser import (
+    get_duty_sheet_name,
+    is_time_format,
+    parse_duty_entry,
+    parse_time_range,
+)
+from tgbot.services.files_processing.utils.validators import is_valid_fullname
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +81,8 @@ class BaseParser(ABC):
         Returns:
             True если текст содержит указанный формат
         """
-        if not text:
-            return False
-        time_pattern = r"\d{1,2}:\d{2}-\d{1,2}:\d{2}"
-        return bool(re.search(time_pattern, text.strip()))
+
+        return is_time_format(text)
 
     @staticmethod
     def parse_time_range(time_str: str) -> Tuple[int, int]:
@@ -90,25 +94,7 @@ class BaseParser(ABC):
         Returns:
             Кортеж (start_minutes, end_minutes)
         """
-        try:
-            if "-" not in time_str:
-                return 0, 0
-
-            start_time, end_time = time_str.split("-")
-            start_parts = start_time.strip().split(":")
-            end_parts = end_time.strip().split(":")
-
-            start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
-            end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
-
-            # Работа в ночную смену
-            if end_minutes < start_minutes:
-                end_minutes += 24 * 60
-
-            return start_minutes, end_minutes
-
-        except (ValueError, IndexError):
-            return 0, 0
+        return parse_time_range(time_str)
 
     @staticmethod
     def names_match(name1: str, name2: str) -> bool:
@@ -149,14 +135,7 @@ class BaseParser(ABC):
         Returns:
             True если ячейка содержит валидные ФИО, иначе False
         """
-        return (
-            len(fullname_cell.split()) >= 3
-            and re.search(r"[А-Яа-я]", fullname_cell)
-            and not re.search(r"\d", fullname_cell)
-            and fullname_cell.strip() not in ["", "nan", "None"]
-            and "переводы" not in fullname_cell.lower()
-            and "увольнения" not in fullname_cell.lower()
-        )
+        return is_valid_fullname(fullname_cell)
 
     @abstractmethod
     def parse(self, *args, **kwargs):
@@ -269,22 +248,7 @@ class DutyParser(BaseParser):
         Returns:
             Название листа, например "Дежурство Январь"
         """
-        month_names = [
-            "Январь",
-            "Февраль",
-            "Март",
-            "Апрель",
-            "Май",
-            "Июнь",
-            "Июль",
-            "Август",
-            "Сентябрь",
-            "Октябрь",
-            "Ноябрь",
-            "Декабрь",
-        ]
-        month_name = month_names[date.month - 1]
-        return f"Дежурство {month_name}"
+        return get_duty_sheet_name(date)
 
     @staticmethod
     def parse_duty_entry(cell_value: str) -> Tuple[str, str]:
@@ -298,20 +262,7 @@ class DutyParser(BaseParser):
         Returns:
             Кортеж (shift_type, schedule)
         """
-        if not cell_value or cell_value.strip() in ["", "nan", "None"]:
-            return "", ""
-
-        cell_value = cell_value.strip()
-
-        if cell_value.startswith("П "):
-            return "П", cell_value[2:].strip()
-        elif cell_value.startswith("С "):
-            return "С", cell_value[2:].strip()
-        else:
-            if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", cell_value):
-                return "", cell_value
-            else:
-                return "", cell_value
+        return parse_duty_entry(cell_value)
 
     def parse(self, *args, **kwargs):
         """Реализация абстрактного метода parse."""

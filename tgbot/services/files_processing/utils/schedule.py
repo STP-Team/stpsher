@@ -12,6 +12,10 @@ from typing import Dict, Optional
 import pandas as pd
 from pandas import DataFrame
 
+from ..core.constants import MONTHS_ORDER
+from ..utils.excel_helpers import get_cell_value
+from ..utils.validators import is_valid_fullname
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,11 +73,7 @@ def extract_users_schedules(file_path: Path) -> Dict[str, Dict[str, str]]:
                         schedule_key = f"{month}_{day_name}"
 
                         if col_idx < len(df.columns):
-                            schedule_value = (
-                                str(df.iloc[row_idx, col_idx])
-                                if pd.notna(df.iloc[row_idx, col_idx])
-                                else ""
-                            )
+                            schedule_value = get_cell_value(df, row_idx, col_idx)
                             user_complete_schedule[schedule_key] = (
                                 schedule_value.strip()
                             )
@@ -100,20 +100,7 @@ def find_all_months_ranges(df: DataFrame) -> Dict[str, tuple]:
         Словарь доступных диапазонов месяцев
     """
     months_ranges = {}
-    months_order = [
-        "ЯНВАРЬ",
-        "ФЕВРАЛЬ",
-        "МАРТ",
-        "АПРЕЛЬ",
-        "МАЙ",
-        "ИЮНЬ",
-        "ИЮЛЬ",
-        "АВГУСТ",
-        "СЕНТЯБРЬ",
-        "ОКТЯБРЬ",
-        "НОЯБРЬ",
-        "ДЕКАБРЬ",
-    ]
+    months_order = MONTHS_ORDER
 
     def find_month_column(
         target_month: str, target_first_col: int = 0
@@ -170,11 +157,7 @@ def find_all_users_rows(df: DataFrame) -> Dict[str, int]:
 
     for row_idx in range(len(df)):
         for col_idx in range(min(4, len(df.columns))):
-            cell_value = (
-                str(df.iloc[row_idx, col_idx])
-                if pd.notna(df.iloc[row_idx, col_idx])
-                else ""
-            )
+            cell_value = get_cell_value(df, row_idx, col_idx)
 
             if is_valid_fullname(cell_value.strip()):
                 fullname = cell_value.strip()
@@ -201,11 +184,7 @@ def find_day_headers_in_range(
 
     for row_idx in range(min(5, len(df))):
         for col_idx in range(start_col, end_col + 1):
-            cell_value = (
-                str(df.iloc[row_idx, col_idx])
-                if pd.notna(df.iloc[row_idx, col_idx])
-                else ""
-            )
+            cell_value = get_cell_value(df, row_idx, col_idx)
 
             # Паттерн: число (1-31) + 1-2 кириллические буквы
             day_with_weekday_pattern = r"^(\d{1,2})([А-Яа-я]{1,2})$"
@@ -226,40 +205,6 @@ def find_day_headers_in_range(
         f"[График] Найдено {len(day_headers)} дней в диапазоне колонок {start_col}-{end_col}: {list(day_headers.values())}"
     )
     return day_headers
-
-
-def is_valid_fullname(text: str) -> bool:
-    """Проверяет, является ли текст корректным ФИО.
-
-    Args:
-        text: Текст для проверки
-
-    Returns:
-        True если текст является валидным ФИО
-    """
-    if not text or text.strip() in ["", "nan", "None", "ДАТА →"]:
-        return False
-
-    text = text.strip()
-    words = text.split()
-
-    # Должно быть минимум 2 слова (фамилия + имя)
-    if len(words) < 2:
-        return False
-
-    # Должны быть кириллические символы
-    if not re.search(r"[А-Яа-я]", text):
-        return False
-
-    # Не должно быть цифр
-    if re.search(r"\d", text):
-        return False
-
-    # Пропускаем служебные записи
-    if text.upper() in ["СТАЖЕРЫ ОБЩЕГО РЯДА", "ДАТА"]:
-        return False
-
-    return True
 
 
 def normalize_schedule_value(value: str) -> str:

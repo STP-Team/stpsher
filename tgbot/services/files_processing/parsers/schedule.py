@@ -28,6 +28,11 @@ from ..core.excel import ExcelReader
 from ..core.models import DutyInfo, GroupMemberInfo, HeadInfo
 from ..formatters.schedule import ScheduleFormatter
 from ..managers.files import MonthManager
+from ..utils.time_parser import (
+    get_duty_sheet_name,
+    parse_duty_entry,
+)
+from ..utils.validators import is_valid_fullname
 from .base import BaseParser
 
 logger = logging.getLogger(__name__)
@@ -488,22 +493,7 @@ class DutyScheduleParser(BaseParser):
         Returns:
             Название листа (например, "Дежурство Январь")
         """
-        month_names = [
-            "Январь",
-            "Февраль",
-            "Март",
-            "Апрель",
-            "Май",
-            "Июнь",
-            "Июль",
-            "Август",
-            "Сентябрь",
-            "Октябрь",
-            "Ноябрь",
-            "Декабрь",
-        ]
-        month_name = month_names[date.month - 1]
-        return f"Дежурство {month_name}"
+        return get_duty_sheet_name(date)
 
     @staticmethod
     def parse_duty_entry(cell_value: str) -> Tuple[str, str]:
@@ -515,20 +505,7 @@ class DutyScheduleParser(BaseParser):
         Returns:
             Кортеж (тип_смены, график)
         """
-        if not cell_value or cell_value.strip() in ["", "nan", "None"]:
-            return "", ""
-
-        cell_value = cell_value.strip()
-
-        if cell_value.startswith("П "):
-            return "П", cell_value[2:].strip()
-        elif cell_value.startswith("С "):
-            return "С", cell_value[2:].strip()
-        else:
-            if re.search(r"\d{1,2}:\d{2}-\d{1,2}:\d{2}", cell_value):
-                return "", cell_value
-            else:
-                return "", cell_value
+        return parse_duty_entry(cell_value)
 
     async def get_duties_for_month(
         self, date: datetime, division: str, stp_repo: MainRequestsRepo
@@ -577,11 +554,7 @@ class DutyScheduleParser(BaseParser):
                 for col_idx in range(min(3, df.shape[1])):
                     cell_value = reader.get_cell(row_idx, col_idx)
 
-                    if (
-                        len(cell_value.split()) >= 3
-                        and re.search(r"[А-Яа-я]", cell_value)
-                        and not re.search(r"\d", cell_value)
-                    ):
+                    if is_valid_fullname(cell_value):
                         name = cell_value.strip()
                         break
 

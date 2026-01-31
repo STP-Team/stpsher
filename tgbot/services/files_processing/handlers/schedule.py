@@ -21,13 +21,14 @@ from ..core.exceptions import (
     ScheduleFileNotFoundError,
     UserNotFoundError,
 )
-from ..formatters.schedule import ScheduleFormatter, get_current_date
+from ..formatters.schedule import ScheduleFormatter
 from ..parsers.schedule import (
     DutyScheduleParser,
     GroupScheduleParser,
     HeadScheduleParser,
     ScheduleParser,
 )
+from ..utils.time_parser import get_current_date
 
 logger = logging.getLogger(__name__)
 

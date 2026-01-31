@@ -11,7 +11,7 @@ from tgbot.dialogs.states.common.exchanges import Exchanges
 from tgbot.dialogs.states.common.schedule import Schedules
 from tgbot.dialogs.widgets import RussianCalendar
 from tgbot.misc.dicts import russian_months
-from tgbot.services.files_processing.formatters.schedule import (
+from tgbot.services.files_processing.utils.time_parser import (
     get_current_date,
     get_current_month,
 )

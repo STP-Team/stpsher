@@ -14,6 +14,10 @@ from typing import Any, Dict, Optional, Tuple
 import pandas as pd
 from cachetools import TTLCache
 
+from ..utils.excel_helpers import get_cell_value
+from ..utils.validators import is_valid_fullname
+from .constants import MONTH_NAMES_TITLE, MONTHS_ORDER
+
 logger = logging.getLogger(__name__)
 
 
@@ -207,13 +211,9 @@ class ExcelFileCache:
             user_index = {}
             for row_idx in range(df.shape[0]):
                 for col_idx in range(min(4, df.shape[1])):
-                    cell_value = (
-                        str(df.iloc[row_idx, col_idx])
-                        if pd.notna(df.iloc[row_idx, col_idx])
-                        else ""
-                    )
+                    cell_value = get_cell_value(df, row_idx, col_idx)
 
-                    if self._is_valid_fullname(cell_value.strip()):
+                    if is_valid_fullname(cell_value.strip()):
                         fullname = cell_value.strip()
                         user_index[fullname] = row_idx
                         break
@@ -223,36 +223,17 @@ class ExcelFileCache:
 
             # Создает индекс дат (месяц, день) -> col_idx
             date_index = {}
-            months = [
-                "ЯНВАРЬ",
-                "ФЕВРАЛЬ",
-                "МАРТ",
-                "АПРЕЛЬ",
-                "МАЙ",
-                "ИЮНЬ",
-                "ИЮЛЬ",
-                "АВГУСТ",
-                "СЕНТЯБРЬ",
-                "ОКТЯБРЬ",
-                "НОЯБРЬ",
-                "ДЕКАБРЬ",
-            ]
+            months = MONTHS_ORDER
 
             # Находит все столбцы месяца и их заголовки дней
             for col_idx in range(df.shape[1]):
                 for row_idx in range(min(5, df.shape[0])):
-                    cell_value = (
-                        str(df.iloc[row_idx, col_idx])
-                        if pd.notna(df.iloc[row_idx, col_idx])
-                        else ""
-                    )
+                    cell_value = get_cell_value(df, row_idx, col_idx)
 
                     # Проверяет наличие дневного паттерна, например "28Чт"
-                    import re
+                    from ..utils.time_parser import DAY_HEADER_PATTERN
 
-                    day_match = re.search(
-                        r"^(\d{1,2})[А-Яа-я]{0,2}$", cell_value.strip()
-                    )
+                    day_match = DAY_HEADER_PATTERN.search(cell_value.strip())
                     if day_match:
                         day = int(day_match.group(1))
                         # Находим какому месяцу принадлежит день
@@ -266,36 +247,6 @@ class ExcelFileCache:
 
         except Exception as e:
             logger.warning(f"[Cache] Ошибка построения индекса дат: {e}")
-
-    @staticmethod
-    def _is_valid_fullname(text: str) -> bool:
-        """Проверяет содержит ли текст ФИО.
-
-        Args:
-            text: Текст для проверки
-
-        Returns:
-            True если найдено ФИО, иначе False
-        """
-        if not text or text.strip() in ["", "nan", "None", "ДАТА →"]:
-            return False
-
-        words = text.split()
-        if len(words) < 2:
-            return False
-
-        import re
-
-        if not re.search(r"[А-Яа-я]", text):
-            return False
-
-        if re.search(r"\d", text):
-            return False
-
-        if text.upper() in ["СТАЖЕРЫ ОБЩЕГО РЯДА", "ДАТА"]:
-            return False
-
-        return True
 
     @staticmethod
     def _column_belongs_to_month(df: pd.DataFrame, col_idx: int, month: str) -> bool:
@@ -312,11 +263,7 @@ class ExcelFileCache:
         # Check column headers and nearby cells for month name
         for row_idx in range(min(3, df.shape[0])):
             for check_col in range(max(0, col_idx - 5), min(df.shape[1], col_idx + 1)):
-                cell_value = (
-                    str(df.iloc[row_idx, check_col])
-                    if pd.notna(df.iloc[row_idx, check_col])
-                    else ""
-                )
+                cell_value = get_cell_value(df, row_idx, check_col)
                 if month in cell_value.upper():
                     return True
         return False
@@ -447,22 +394,7 @@ class ExcelFileCache:
         sheet_names_to_warm = ["ГРАФИК"]
 
         # Добавляем листы дежурств для каждого месяца (в правильном регистре)
-        months = [
-            "Январь",
-            "Февраль",
-            "Март",
-            "Апрель",
-            "Май",
-            "Июнь",
-            "Июль",
-            "Август",
-            "Сентябрь",
-            "Октябрь",
-            "Ноябрь",
-            "Декабрь",
-        ]
-
-        for month in months:
+        for month in MONTH_NAMES_TITLE:
             sheet_names_to_warm.append(f"Дежурство {month}")
 
         # Прогреваем кэш для каждого файла
@@ -541,44 +473,9 @@ def normalize_month(month: str) -> str:
     Returns:
         Нормализованное название месяца в верхнем регистре
     """
-    month_mapping = {
-        "январь": "ЯНВАРЬ",
-        "jan": "ЯНВАРЬ",
-        "january": "ЯНВАРЬ",
-        "февраль": "ФЕВРАЛЬ",
-        "feb": "ФЕВРАЛЬ",
-        "february": "ФЕВРАЛЬ",
-        "март": "МАРТ",
-        "mar": "МАРТ",
-        "march": "МАРТ",
-        "апрель": "АПРЕЛЬ",
-        "apr": "АПРЕЛЬ",
-        "april": "АПРЕЛЬ",
-        "май": "МАЙ",
-        "may": "МАЙ",
-        "июнь": "ИЮНЬ",
-        "jun": "ИЮНЬ",
-        "june": "ИЮНЬ",
-        "июль": "ИЮЛЬ",
-        "jul": "ИЮЛЬ",
-        "july": "ИЮЛЬ",
-        "август": "АВГУСТ",
-        "aug": "АВГУСТ",
-        "august": "АВГУСТ",
-        "сентябрь": "СЕНТЯБРЬ",
-        "sep": "СЕНТЯБРЬ",
-        "september": "СЕНТЯБРЬ",
-        "октябрь": "ОКТЯБРЬ",
-        "oct": "ОКТЯБРЬ",
-        "october": "ОКТЯБРЬ",
-        "ноябрь": "НОЯБРЬ",
-        "nov": "НОЯБРЬ",
-        "november": "НОЯБРЬ",
-        "декабрь": "ДЕКАБРЬ",
-        "dec": "ДЕКАБРЬ",
-        "december": "ДЕКАБРЬ",
-    }
-    return month_mapping.get(month.lower(), month.upper())
+    from .constants import MONTH_MAPPING
+
+    return MONTH_MAPPING.get(month.lower(), month.upper())
 
 
 def warm_cache_on_startup(uploads_directory: str = "uploads") -> Dict[str, Any]:

@@ -10,6 +10,13 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from ..core.constants import (
+    MONTH_MAPPING,
+    MONTH_NAMES_TITLE,
+    MONTH_TO_NUMBER,
+    MONTHS_ORDER,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -136,34 +143,7 @@ class ScheduleFileManager:
         """
         try:
             # Определяем период (I или II) на основе месяца
-            month_to_num = {
-                "январь": 1,
-                "февраль": 2,
-                "март": 3,
-                "апрель": 4,
-                "май": 5,
-                "июнь": 6,
-                "июль": 7,
-                "август": 8,
-                "сентябрь": 9,
-                "октябрь": 10,
-                "ноябрь": 11,
-                "декабрь": 12,
-                "ЯНВАРЬ": 1,
-                "ФЕВРАЛЬ": 2,
-                "МАРТ": 3,
-                "АПРЕЛЬ": 4,
-                "МАЙ": 5,
-                "ИЮНЬ": 6,
-                "ИЮЛЬ": 7,
-                "АВГУСТ": 8,
-                "СЕНТЯБРЬ": 9,
-                "ОКТЯБРЬ": 10,
-                "НОЯБРЬ": 11,
-                "ДЕКАБРЬ": 12,
-            }
-
-            month_num = month_to_num.get(month)
+            month_num = MONTH_TO_NUMBER.get(month)
             if not month_num:
                 logger.warning(f"[График] Неизвестный месяц: {month}")
                 return self._search_schedule_file(
@@ -239,62 +219,13 @@ class MonthManager:
     и работы с порядком месяцев.
     """
 
-    MONTH_MAPPING = {
-        "январь": "ЯНВАРЬ",
-        "jan": "ЯНВАРЬ",
-        "january": "ЯНВАРЬ",
-        "февраль": "ФЕВРАЛЬ",
-        "feb": "ФЕВРАЛЬ",
-        "february": "ФЕВРАЛЬ",
-        "март": "МАРТ",
-        "mar": "МАРТ",
-        "march": "МАРТ",
-        "апрель": "АПРЕЛЬ",
-        "apr": "АПРЕЛЬ",
-        "april": "АПРЕЛЬ",
-        "май": "МАЙ",
-        "may": "МАЙ",
-        "июнь": "ИЮНЬ",
-        "jun": "ИЮНЬ",
-        "june": "ИЮНЬ",
-        "июль": "ИЮЛЬ",
-        "jul": "ИЮЛЬ",
-        "july": "ИЮЛЬ",
-        "август": "АВГУСТ",
-        "aug": "АВГУСТ",
-        "august": "АВГУСТ",
-        "сентябрь": "СЕНТЯБРЬ",
-        "sep": "СЕНТЯБРЬ",
-        "september": "СЕНТЯБРЬ",
-        "октябрь": "ОКТЯБРЬ",
-        "oct": "ОКТЯБРЬ",
-        "october": "ОКТЯБРЬ",
-        "ноябрь": "НОЯБРЬ",
-        "nov": "НОЯБРЬ",
-        "november": "НОЯБРЬ",
-        "декабрь": "ДЕКАБРЬ",
-        "dec": "ДЕКАБРЬ",
-        "december": "ДЕКАБРЬ",
-    }
-
-    MONTHS_ORDER = [
-        "ЯНВАРЬ",
-        "ФЕВРАЛЬ",
-        "МАРТ",
-        "АПРЕЛЬ",
-        "МАЙ",
-        "ИЮНЬ",
-        "ИЮЛЬ",
-        "АВГУСТ",
-        "СЕНТЯБРЬ",
-        "ОКТЯБРЬ",
-        "НОЯБРЬ",
-        "ДЕКАБРЬ",
-    ]
+    MONTH_MAPPING = MONTH_MAPPING
+    MONTHS_ORDER = MONTHS_ORDER
+    MONTH_NAMES_TITLE = MONTH_NAMES_TITLE
 
     @classmethod
     def normalize_month(cls, month: str) -> str:
-        """Нормализирует название месяца.
+        """Нормализует название месяца.
 
         Args:
             month: Название месяца

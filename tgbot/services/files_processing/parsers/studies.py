@@ -8,6 +8,8 @@ from typing import List, Optional, Tuple
 import pandas as pd
 from pandas import DataFrame
 
+from ..formatters.notifications import StudiesFormatter
+from ..utils.excel_helpers import get_cell_value
 from .base import BaseParser
 
 logger = logging.getLogger(__name__)
@@ -77,8 +79,8 @@ class StudiesScheduleParser(BaseParser):
 
                     # Parse new session header
                     date = row.iloc[0]
-                    time = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
-                    duration = str(row.iloc[2]) if pd.notna(row.iloc[2]) else ""
+                    time = get_cell_value(df, i, 1)
+                    duration = get_cell_value(df, i, 2)
 
                     # Get session details from next rows
                     title, experience_level, trainer = self._parse_session_details(
@@ -134,7 +136,7 @@ class StudiesScheduleParser(BaseParser):
                 break
 
             row = df.iloc[i]
-            first_col = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""
+            first_col = get_cell_value(df, i, 0)
 
             # Title is usually in quotes
             if title == "" and '"' in first_col:
@@ -146,7 +148,7 @@ class StudiesScheduleParser(BaseParser):
 
             # Trainer row usually starts with "Тренер"
             elif first_col.startswith("Тренер") and row.index.size > 1:
-                trainer_col = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
+                trainer_col = get_cell_value(df, i, 1)
                 trainer = trainer_col
 
         return title, experience_level, trainer
@@ -280,24 +282,18 @@ class StudiesScheduleParser(BaseParser):
         self, sessions: List[StudySession], title: str = "📚 Обучения"
     ) -> str:
         """Format study sessions for display."""
-        from ..formatters import StudiesFormatter
-
         return StudiesFormatter.format_studies_schedule(sessions, title)
 
     def format_user_studies_schedule(
         self, sessions: List[StudySession], user_fullname: str
     ) -> str:
         """Format study sessions for specific user."""
-        from ..formatters import StudiesFormatter
-
         return StudiesFormatter.format_user_studies_schedule(
             sessions, user_fullname, self.names_match
         )
 
     def format_studies_detailed(self, sessions: List[StudySession]) -> str:
         """Format study sessions with detailed participant information."""
-        from ..formatters import StudiesFormatter
-
         return StudiesFormatter.format_studies_detailed(sessions)
 
     def format_schedule(self, data: List, date: datetime) -> str:

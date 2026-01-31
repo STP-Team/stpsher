@@ -14,12 +14,12 @@ from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months, schedule_types
 from tgbot.misc.helpers import format_fullname, strftime_date
-from tgbot.services.files_processing.formatters.schedule import (
+from tgbot.services.files_processing.handlers.schedule import schedule_service
+from tgbot.services.files_processing.parsers.schedule import ScheduleParser
+from tgbot.services.files_processing.utils.time_parser import (
     get_current_date,
     get_current_month,
 )
-from tgbot.services.files_processing.handlers.schedule import schedule_service
-from tgbot.services.files_processing.parsers.schedule import ScheduleParser
 
 
 async def schedules_getter(

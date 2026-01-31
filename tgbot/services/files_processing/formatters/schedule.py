@@ -4,86 +4,14 @@
 в компактном и детальном форматах.
 """
 
-from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from tgbot.misc.helpers import tz_perm
 from tgbot.services.files_processing.core.models import DayInfo
-
-# Маппинг названий месяцев (Английский -> Русский)
-MONTH_NAMES_MAP = {
-    "january": "январь",
-    "february": "февраль",
-    "march": "март",
-    "april": "апрель",
-    "may": "май",
-    "june": "июнь",
-    "july": "июль",
-    "august": "август",
-    "september": "сентябрь",
-    "october": "октябрь",
-    "november": "ноябрь",
-    "december": "декабрь",
-}
-
-
-def extract_day_number(day_str: str) -> int:
-    """Извлекает номер дня из строки дня.
-
-    Args:
-        day_str: Строка дня (например, '15 (Пн)')
-
-    Returns:
-        Номер дня или 0 при ошибке
-    """
-    try:
-        return int(day_str.split()[0])
-    except (ValueError, IndexError):
-        return 0
-
-
-def is_current_month(month: str) -> bool:
-    """Проверяет является ли указанный месяц текущим.
-
-    Args:
-        month: Название месяца
-
-    Returns:
-        True если месяц текущий, иначе False
-    """
-    now = datetime.now()
-    current_month_en = now.strftime("%B").lower()
-    current_month_ru = MONTH_NAMES_MAP.get(current_month_en, current_month_en)
-    return month.lower() == current_month_ru
-
-
-def get_current_day() -> int:
-    """Получает текущий день месяца.
-
-    Returns:
-        Номер текущего дня
-    """
-    return datetime.now().day
-
-
-def get_current_month() -> str:
-    """Получает текущий месяц в русском формате.
-
-    Returns:
-        Название текущего месяца на русском языке
-    """
-    now = datetime.now()
-    current_month_en = now.strftime("%B").lower()
-    return MONTH_NAMES_MAP.get(current_month_en, current_month_en)
-
-
-def get_current_date() -> datetime:
-    """Получает текущую дату и время по Екатеринбургу.
-
-    Returns:
-        Текущая дата и время с учетом временной зоны
-    """
-    return datetime.now(tz_perm)
+from tgbot.services.files_processing.utils.time_parser import (
+    extract_day_number,
+    get_current_day,
+    is_current_month,
+)
 
 
 class ScheduleFormatter:

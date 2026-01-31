@@ -11,7 +11,7 @@ from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.dicts import months_emojis, russian_months
 from tgbot.misc.helpers import format_fullname
-from tgbot.services.files_processing.formatters.schedule import get_current_month
+from tgbot.services.files_processing.utils.time_parser import get_current_month
 
 logger = logging.getLogger(__name__)
 

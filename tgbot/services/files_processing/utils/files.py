@@ -2,13 +2,13 @@
 
 import fnmatch
 import logging
-import re
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
-from tgbot.services.files_processing.parsers.base import BaseParser
+from tgbot.services.files_processing.utils.excel_helpers import get_cell_value
+from tgbot.services.files_processing.utils.validators import is_valid_fullname
 from tgbot.services.schedulers.hr import get_fired_users_from_excel
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,7 @@ def find_header_columns(df: pd.DataFrame) -> Optional[dict]:
     for row_idx in range(min(10, len(df))):
         row_values = []
         for col_idx in range(min(10, len(df.columns))):
-            cell_value = (
-                str(df.iloc[row_idx, col_idx])
-                if pd.notna(df.iloc[row_idx, col_idx])
-                else ""
-            )
+            cell_value = get_cell_value(df, row_idx, col_idx)
             row_values.append(cell_value.strip().upper())
 
         position_col = head_col = None
@@ -150,13 +146,9 @@ class FileStatsExtractor:
 
         # Достаем пользователей
         for row_idx in range(header_info["header_row"] + 1, len(df)):
-            fullname_cell = (
-                str(df.iloc[row_idx, header_info["fullname_col"]])
-                if pd.notna(df.iloc[row_idx, header_info["fullname_col"]])
-                else ""
-            )
+            fullname_cell = get_cell_value(df, row_idx, header_info["fullname_col"])
 
-            if BaseParser.is_valid_fullname(fullname_cell):
+            if is_valid_fullname(fullname_cell):
                 users_found.add(fullname_cell.strip())
 
         return len(users_found)
@@ -175,21 +167,13 @@ class FileStatsExtractor:
 
         for row_idx in range(len(df)):
             for col_idx in range(min(4, len(df.columns))):
-                cell_value = (
-                    str(df.iloc[row_idx, col_idx])
-                    if pd.notna(df.iloc[row_idx, col_idx])
-                    else ""
-                )
-                if FileStatsExtractor._is_valid_person_name(cell_value.strip()):
+                cell_value = get_cell_value(df, row_idx, col_idx)
+                if is_valid_person_name(cell_value.strip()):
                     # Проверяем есть ли график у пользователя в его строке
                     has_schedule = False
                     for schedule_col in range(4, min(len(df.columns), 50)):
                         if schedule_col < len(df.columns):
-                            schedule_val = (
-                                str(df.iloc[row_idx, schedule_col])
-                                if pd.notna(df.iloc[row_idx, schedule_col])
-                                else ""
-                            )
+                            schedule_val = get_cell_value(df, row_idx, schedule_col)
                             if schedule_val.strip() and schedule_val.strip() not in [
                                 "",
                                 "nan",
@@ -203,39 +187,17 @@ class FileStatsExtractor:
 
         return schedule_count
 
-    @staticmethod
-    def _is_valid_person_name(text: str) -> bool:
-        """Проверяет содержит ли текст валидные ФИО.
 
-        Args:
-            text: Текст для проверки
+def is_valid_person_name(text: str) -> bool:
+    """Проверяет содержит ли текст валидные ФИО.
 
-        Returns:
-            True если текст содержит ФИО, иначе False
-        """
-        if not text or text.strip() in ["", "nan", "None", "ДАТА →"]:
-            return False
+    Args:
+        text: Текст для проверки
 
-        text = text.strip()
-        words = text.split()
-
-        # Должен содержать минимум 2 слова (фамилия + имя)
-        if len(words) < 2:
-            return False
-
-        # Должен содержать кириллические символы
-        if not re.search(r"[А-Яа-я]", text):
-            return False
-
-        # Не должен содержать цифры
-        if re.search(r"\d", text):
-            return False
-
-        # Пропускаем технические строки
-        if text.upper() in ["СТАЖЕРЫ ОБЩЕГО РЯДА", "ДАТА", "ПЕРЕВОДЫ/УВОЛЬНЕНИЯ"]:
-            return False
-
-        return True
+    Returns:
+        True если текст содержит ФИО, иначе False
+    """
+    return is_valid_fullname(text)
 
 
 class FileProcessor:
