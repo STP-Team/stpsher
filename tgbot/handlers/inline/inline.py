@@ -119,7 +119,7 @@ async def create_default_commands(
             results.append(
                 InlineQueryResultArticle(
                     id="schedule_option",
-                    title="📅 Мой график",
+                    title="👔 Мой график",
                     description=f"Твой график на {current_month}",
                     input_message_content=InputTextMessageContent(
                         message_text=schedule_text

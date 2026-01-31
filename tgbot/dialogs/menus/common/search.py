@@ -54,7 +54,7 @@ from tgbot.dialogs.getters.common.search import (
     search_specialists_getter,
     search_user_info_getter,
 )
-from tgbot.dialogs.states.common.search import Search
+from tgbot.dialogs.states.common.search import SearchSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.misc.helpers import get_status_emoji
 
@@ -66,13 +66,13 @@ menu_window = Window(
         SwitchTo(
             Const("👤 Специалисты"),
             id="specialists",
-            state=Search.specialists,
+            state=SearchSG.specialists,
         ),
-        SwitchTo(Const("👑 Руководители"), id="heads", state=Search.heads),
+        SwitchTo(Const("👑 Руководители"), id="heads", state=SearchSG.heads),
     ),
-    SwitchTo(Const("🕵🏻 Поиск"), id="game", state=Search.query),
+    SwitchTo(Const("🕵🏻 Поиск"), id="game", state=SearchSG.query),
     HOME_BTN,
-    state=Search.menu,
+    state=SearchSG.menu,
 )
 
 specialists_window = Window(
@@ -104,11 +104,11 @@ specialists_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=SearchSG.menu),
         HOME_BTN,
     ),
     getter=search_specialists_getter,
-    state=Search.specialists,
+    state=SearchSG.specialists,
 )
 
 heads_window = Window(
@@ -140,11 +140,11 @@ heads_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=Search.menu),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=SearchSG.menu),
         HOME_BTN,
     ),
     getter=search_heads_getter,
-    state=Search.heads,
+    state=SearchSG.heads,
 )
 
 query_window = Window(
@@ -157,8 +157,8 @@ query_window = Window(
 
 <i>Например: Иванов, 123456789, @username, username</i>"""),
     TextInput(id="search_query", on_success=on_search_query),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu), HOME_BTN),
-    state=Search.query,
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.menu), HOME_BTN),
+    state=SearchSG.query,
 )
 
 query_results_window = Window(
@@ -179,11 +179,11 @@ query_results_window = Window(
         id="search_results_scroll",
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.menu),
         HOME_BTN,
     ),
     getter=search_results_getter,
-    state=Search.query_results,
+    state=SearchSG.query_results,
 )
 
 query_no_results_window = Window(
@@ -196,13 +196,13 @@ query_no_results_window = Window(
 • Использовать только часть имени или фамилии
 • Поискать по username без @
 • Использовать числовой ID пользователя"""),
-    SwitchTo(Const("🔄 Новый поиск"), id="new_search", state=Search.query),
+    SwitchTo(Const("🔄 Новый поиск"), id="new_search", state=SearchSG.query),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.menu),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.menu),
         HOME_BTN,
     ),
     getter=search_results_getter,
-    state=Search.query_no_results,
+    state=SearchSG.query_no_results,
 )
 
 details_window = Window(
@@ -220,21 +220,23 @@ details_window = Window(
             SwitchTo(
                 Const("📅 График"),
                 id="files_processing",
-                state=Search.details_schedule_window,
+                state=SearchSG.details_schedule_window,
             ),
-            SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
+            SwitchTo(
+                Const("🌟 Показатели"), id="kpi", state=SearchSG.details_kpi_window
+            ),
         ),
         Row(
             SwitchTo(
                 Const("🎯 Достижения"),
                 id="achievements",
-                state=Search.details_game_achievements,
+                state=SearchSG.details_game_achievements,
                 when="searched_default_user",
             ),
             SwitchTo(
                 Const("🎒 Инвентарь"),
                 id="products",
-                state=Search.details_game_products,
+                state=SearchSG.details_game_products,
                 when="searched_default_user",
             ),
         ),
@@ -265,7 +267,7 @@ details_window = Window(
         SwitchTo(
             Const("🛡️ Уровень доступа"),
             id="access_level",
-            state=Search.details_access_level_window,
+            state=SearchSG.details_access_level_window,
             when="searched_default_user",
         ),
         Checkbox(
@@ -281,19 +283,19 @@ details_window = Window(
         SwitchTo(
             Const("📅 График"),
             id="files_processing",
-            state=Search.details_schedule_window,
+            state=SearchSG.details_schedule_window,
         ),
         Row(
             SwitchTo(
                 Const("🎯 Достижения"),
                 id="achievements",
-                state=Search.details_game_achievements,
+                state=SearchSG.details_game_achievements,
                 when="searched_default_user",
             ),
             SwitchTo(
                 Const("🎒 Инвентарь"),
                 id="products",
-                state=Search.details_game_products,
+                state=SearchSG.details_game_products,
                 when="searched_default_user",
             ),
         ),
@@ -311,12 +313,12 @@ details_window = Window(
             SwitchTo(
                 Const("📅 График"),
                 id="files_processing",
-                state=Search.details_schedule_window,
+                state=SearchSG.details_schedule_window,
             ),
             SwitchTo(
                 Const("🛡️ Уровень доступа"),
                 id="access_level",
-                state=Search.details_access_level_window,
+                state=SearchSG.details_access_level_window,
                 when="searched_default_user",
             ),
         ),
@@ -327,21 +329,23 @@ details_window = Window(
             SwitchTo(
                 Const("📅 График"),
                 id="files_processing",
-                state=Search.details_schedule_window,
+                state=SearchSG.details_schedule_window,
             ),
-            SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
+            SwitchTo(
+                Const("🌟 Показатели"), id="kpi", state=SearchSG.details_kpi_window
+            ),
         ),
         Row(
             SwitchTo(
                 Const("🎯 Достижения"),
                 id="achievements",
-                state=Search.details_game_achievements,
+                state=SearchSG.details_game_achievements,
                 when="searched_default_user",
             ),
             SwitchTo(
                 Const("🎒 Инвентарь"),
                 id="products",
-                state=Search.details_game_products,
+                state=SearchSG.details_game_products,
                 when="searched_default_user",
             ),
         ),
@@ -372,7 +376,7 @@ details_window = Window(
         SwitchTo(
             Const("🛡️ Уровень доступа"),
             id="access_level",
-            state=Search.details_access_level_window,
+            state=SearchSG.details_access_level_window,
         ),
         Checkbox(
             Const("🟢 Доступ"),
@@ -388,7 +392,7 @@ details_window = Window(
         HOME_BTN,
     ),
     getter=search_user_info_getter,
-    state=Search.details_window,
+    state=SearchSG.details_window,
 )
 
 
@@ -410,11 +414,11 @@ details_access_level_window = Window(
         width=2,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_access_level_getter,
-    state=Search.details_access_level_window,
+    state=SearchSG.details_access_level_window,
 )
 
 
@@ -446,11 +450,11 @@ details_schedule_window = Window(
         on_click=on_schedule_mode_select,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_schedule_getter,
-    state=Search.details_schedule_window,
+    state=SearchSG.details_schedule_window,
 )
 
 
@@ -460,63 +464,67 @@ details_kpi_window = Window(
         SwitchTo(
             Const("🧮 Нормативы"),
             id="calculator",
-            state=Search.details_kpi_requirements_window,
+            state=SearchSG.details_kpi_requirements_window,
         ),
         SwitchTo(
             Const("💰 Зарплата"),
             id="salary",
-            state=Search.details_kpi_salary_window,
+            state=SearchSG.details_kpi_salary_window,
         ),
     ),
-    SwitchTo(Const("🔄 Обновить"), id="update", state=Search.details_kpi_window),
+    SwitchTo(Const("🔄 Обновить"), id="update", state=SearchSG.details_kpi_window),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_kpi_getter,
-    state=Search.details_kpi_window,
+    state=SearchSG.details_kpi_window,
 )
 
 
 details_kpi_requirements_window = Window(
     Format("{requirements_text}"),
     Row(
-        SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
+        SwitchTo(Const("🌟 Показатели"), id="kpi", state=SearchSG.details_kpi_window),
         SwitchTo(
             Const("💰 Зарплата"),
             id="salary",
-            state=Search.details_kpi_salary_window,
+            state=SearchSG.details_kpi_salary_window,
         ),
     ),
     SwitchTo(
-        Const("🔄 Обновить"), id="update", state=Search.details_kpi_requirements_window
+        Const("🔄 Обновить"),
+        id="update",
+        state=SearchSG.details_kpi_requirements_window,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_kpi_requirements_getter,
-    state=Search.details_kpi_requirements_window,
+    state=SearchSG.details_kpi_requirements_window,
 )
 
 
 details_kpi_salary_window = Window(
     Format("{salary_text}"),
     Row(
-        SwitchTo(Const("🌟 Показатели"), id="kpi", state=Search.details_kpi_window),
+        SwitchTo(Const("🌟 Показатели"), id="kpi", state=SearchSG.details_kpi_window),
         SwitchTo(
             Const("🧮 Нормативы"),
             id="calculator",
-            state=Search.details_kpi_requirements_window,
+            state=SearchSG.details_kpi_requirements_window,
         ),
     ),
-    SwitchTo(Const("🔄 Обновить"), id="update", state=Search.details_kpi_salary_window),
+    SwitchTo(
+        Const("🔄 Обновить"), id="update", state=SearchSG.details_kpi_salary_window
+    ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_salary_getter,
-    state=Search.details_kpi_salary_window,
+    state=SearchSG.details_kpi_salary_window,
 )
 
 
@@ -571,11 +579,11 @@ details_achievements_window = Window(
         items="period_radio_data",
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_achievements_getter,
-    state=Search.details_game_achievements,
+    state=SearchSG.details_game_achievements,
 )
 
 
@@ -618,11 +626,11 @@ details_inventory_window = Window(
         ],
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back", state=Search.details_window),
+        SwitchTo(Const("↩️ Назад"), id="back", state=SearchSG.details_window),
         HOME_BTN,
     ),
     getter=search_inventory_getter,
-    state=Search.details_game_products,
+    state=SearchSG.details_game_products,
 )
 
 

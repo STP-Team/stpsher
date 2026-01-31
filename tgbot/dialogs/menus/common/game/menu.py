@@ -46,7 +46,7 @@ from tgbot.dialogs.menus.common.game.products import (
     products_success_window,
     products_window,
 )
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 game_window = Window(
@@ -66,35 +66,41 @@ game_window = Window(
 - Просматривать список предметов""",
         when=~F["is_user"],
     ),
-    SwitchTo(Const("💎 Магазин"), id="products", state=Game.products, when="is_user"),
+    SwitchTo(Const("💎 Магазин"), id="products", state=GameSG.products, when="is_user"),
     SwitchTo(
         Const("✍️ Активация предметов"),
         id="products_activation",
-        state=Game.activations,
+        state=GameSG.activations,
         when="activations_access",
     ),
     Row(
         SwitchTo(
-            Const("🎒 Инвентарь"), id="inventory", state=Game.inventory, when="is_user"
+            Const("🎒 Инвентарь"),
+            id="inventory",
+            state=GameSG.inventory,
+            when="is_user",
         ),
         SwitchTo(
-            Const("🎲 Казино"), id="casino", state=Game.casino, when="is_casino_allowed"
+            Const("🎲 Казино"),
+            id="casino",
+            state=GameSG.casino,
+            when="is_casino_allowed",
         ),
     ),
     SwitchTo(
         Const("🎯 Достижения"),
         id="achievements",
-        state=Game.achievements,
+        state=GameSG.achievements,
     ),
     SwitchTo(
-        Const("👏 Предметы"), id="products", state=Game.products, when=~F["is_user"]
+        Const("👏 Предметы"), id="products", state=GameSG.products, when=~F["is_user"]
     ),
     SwitchTo(
-        Const("📜 История баланса"), id="history", state=Game.history, when="is_user"
+        Const("📜 История баланса"), id="history", state=GameSG.history, when="is_user"
     ),
     HOME_BTN,
     getter=game_getter,
-    state=Game.menu,
+    state=GameSG.menu,
 )
 
 

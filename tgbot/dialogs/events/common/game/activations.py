@@ -10,7 +10,7 @@ from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 from stp_database.repo.STP.purchase import PurchaseDetailedParams
 
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.misc.helpers import format_fullname
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ async def on_activation_click(
     dialog_manager.dialog_data["purchase_id"] = item_id
 
     # Переходим к детальному просмотру
-    await dialog_manager.switch_to(Game.activation_details)
+    await dialog_manager.switch_to(GameSG.activation_details)
 
 
 async def on_activation_approve_comment_input(
@@ -102,7 +102,7 @@ async def on_activation_approve_comment_input(
         )
 
         # Возвращаемся к списку активаций
-        await dialog_manager.switch_to(Game.activations)
+        await dialog_manager.switch_to(GameSG.activations)
 
     except Exception as e:
         logger.error(
@@ -165,7 +165,7 @@ async def on_skip_approve_comment(
         )
 
         # Возвращаемся к списку активаций
-        await dialog_manager.switch_to(Game.activations)
+        await dialog_manager.switch_to(GameSG.activations)
 
     except Exception as e:
         logger.error(
@@ -228,7 +228,7 @@ async def on_activation_reject_comment_input(
         )
 
         # Возвращаемся к списку активаций
-        await dialog_manager.switch_to(Game.activations)
+        await dialog_manager.switch_to(GameSG.activations)
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
@@ -277,7 +277,7 @@ async def on_skip_reject_comment(
         )
 
         # Возвращаемся к списку активаций
-        await dialog_manager.switch_to(Game.activations)
+        await dialog_manager.switch_to(GameSG.activations)
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при отмене активации предмета: {e}")
@@ -298,4 +298,4 @@ async def on_activation_history_click(
     dialog_manager.dialog_data["history_purchase_id"] = item_id
 
     # Переходим к детальному просмотру истории
-    await dialog_manager.switch_to(Game.activations_history_details)
+    await dialog_manager.switch_to(GameSG.activations_history_details)

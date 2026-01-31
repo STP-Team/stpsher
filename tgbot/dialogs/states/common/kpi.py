@@ -3,7 +3,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class KPI(StatesGroup):
+class KpiSG(StatesGroup):
     """Группа состояний диалога KPI."""
 
     menu = State()

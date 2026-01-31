@@ -8,7 +8,7 @@ from aiogram_dialog.widgets.input import ManagedTextInput
 from aiogram_dialog.widgets.kbd import Button, ManagedCheckbox, ManagedRadio, Select
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.dialogs.states.common.search import Search
+from tgbot.dialogs.states.common.search import SearchSG
 from tgbot.misc.dicts import roles
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ async def start_search_dialog(
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.start(
-        Search.menu,
+        SearchSG.menu,
     )
 
 
@@ -48,16 +48,16 @@ async def on_back_to_menu(
     # Если есть сохраненное состояние, возвращаемся к нему
     if previous_state:
         if "specialists" in previous_state:
-            await dialog_manager.switch_to(Search.specialists)
+            await dialog_manager.switch_to(SearchSG.specialists)
         elif "heads" in previous_state:
-            await dialog_manager.switch_to(Search.heads)
+            await dialog_manager.switch_to(SearchSG.heads)
         elif "query_results" in previous_state:
-            await dialog_manager.switch_to(Search.query_results)
+            await dialog_manager.switch_to(SearchSG.query_results)
         else:
-            await dialog_manager.switch_to(Search.menu)
+            await dialog_manager.switch_to(SearchSG.menu)
     else:
         # Если предыдущее состояние не сохранено, возвращаемся в главное меню
-        await dialog_manager.switch_to(Search.menu)
+        await dialog_manager.switch_to(SearchSG.menu)
 
 
 async def on_user_select(
@@ -97,7 +97,7 @@ async def on_user_select(
     if exchanges_checkbox:
         await exchanges_checkbox.set_checked(not searched_user.is_exchange_banned)
 
-    await dialog_manager.switch_to(Search.details_window)
+    await dialog_manager.switch_to(SearchSG.details_window)
 
 
 async def on_search_query(
@@ -128,7 +128,7 @@ async def on_search_query(
             # Сохраняем поисковый запрос для отображения в окне "ничего не найдено"
             dialog_manager.dialog_data["search_query"] = search_query
             # Переходим к окну "ничего не найдено"
-            await dialog_manager.switch_to(Search.query_no_results)
+            await dialog_manager.switch_to(SearchSG.query_no_results)
             return
 
         # Сортировка результатов (сначала точные совпадения)
@@ -150,7 +150,7 @@ async def on_search_query(
         dialog_manager.dialog_data["total_found"] = len(sorted_users)
 
         # Переходим к результатам поиска
-        await dialog_manager.switch_to(Search.query_results)
+        await dialog_manager.switch_to(SearchSG.query_results)
 
     except Exception as e:
         logger.error(f"[Поиск] Ошибка при попытке поиска: {e}")
@@ -280,7 +280,7 @@ async def on_role_change(
         )
 
         # Остаемся на том же окне, чтобы показать обновленный список
-        await dialog_manager.switch_to(Search.details_access_level_window)
+        await dialog_manager.switch_to(SearchSG.details_access_level_window)
 
     except Exception as e:
         logger.error(f"[Смена роли] Ошибка при изменении роли: {e}")
@@ -303,4 +303,4 @@ async def on_schedule_mode_select(
         item_id: Идентификатор выбранного режима
     """
     dialog_manager.dialog_data["my_schedule_mode"] = item_id
-    await dialog_manager.switch_to(Search.details_schedule_window)
+    await dialog_manager.switch_to(SearchSG.details_schedule_window)

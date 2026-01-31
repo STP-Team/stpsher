@@ -28,7 +28,7 @@ from tgbot.dialogs.getters.common.game.activations import (
     activations_getter,
     activations_history_getter,
 )
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 activations_window = Window(
@@ -59,12 +59,12 @@ activations_window = Window(
         on_page_changed=sync_scroll("activations_list"),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
-        SwitchTo(Const("📜 История"), id="history", state=Game.activations_history),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.menu),
+        SwitchTo(Const("📜 История"), id="history", state=GameSG.activations_history),
     ),
     Row(HOME_BTN),
     getter=activations_getter,
-    state=Game.activations,
+    state=GameSG.activations,
 )
 
 activation_details_window = Window(
@@ -97,15 +97,15 @@ activation_details_window = Window(
 {selected_activation[bought_at]}{user_comment_text}"""),
     Row(
         SwitchTo(
-            Const("✅ Одобрить"), id="approve", state=Game.activation_approve_comment
+            Const("✅ Одобрить"), id="approve", state=GameSG.activation_approve_comment
         ),
         SwitchTo(
-            Const("❌ Отклонить"), id="reject", state=Game.activation_reject_comment
+            Const("❌ Отклонить"), id="reject", state=GameSG.activation_reject_comment
         ),
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="back", state=Game.activations), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="back", state=GameSG.activations), HOME_BTN),
     getter=activation_detail_getter,
-    state=Game.activation_details,
+    state=GameSG.activation_details,
 )
 
 activation_approve_comment_window = Window(
@@ -128,11 +128,13 @@ activation_approve_comment_window = Window(
         on_click=on_skip_approve_comment,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.activation_details),
+        SwitchTo(
+            Const("↩️ Назад"), id="back_to_details", state=GameSG.activation_details
+        ),
         HOME_BTN,
     ),
     getter=activation_detail_getter,
-    state=Game.activation_approve_comment,
+    state=GameSG.activation_approve_comment,
 )
 
 activation_reject_comment_window = Window(
@@ -155,19 +157,21 @@ activation_reject_comment_window = Window(
         on_click=on_skip_reject_comment,
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back_to_details", state=Game.activation_details),
+        SwitchTo(
+            Const("↩️ Назад"), id="back_to_details", state=GameSG.activation_details
+        ),
         HOME_BTN,
     ),
     getter=activation_detail_getter,
-    state=Game.activation_reject_comment,
+    state=GameSG.activation_reject_comment,
 )
 
 no_activations_window = Window(
     Format("""<b>✍️ Активация предметов</b>
 
 Нет предметов, ожидающих активации 😊"""),
-    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
-    state=Game.no_activations,
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.menu), HOME_BTN),
+    state=GameSG.no_activations,
 )
 
 activations_history_window = Window(
@@ -200,11 +204,11 @@ activations_history_window = Window(
         on_page_changed=sync_scroll("history_list"),
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back_to_activations", state=Game.activations),
+        SwitchTo(Const("↩️ Назад"), id="back_to_activations", state=GameSG.activations),
         HOME_BTN,
     ),
     getter=activations_history_getter,
-    state=Game.activations_history,
+    state=GameSG.activations_history,
 )
 
 activations_history_details_window = Window(
@@ -246,10 +250,10 @@ activations_history_details_window = Window(
 {user_comment_text}{manager_comment_text}"""),
     Row(
         SwitchTo(
-            Const("↩️ К истории"), id="back_to_history", state=Game.activations_history
+            Const("↩️ К истории"), id="back_to_history", state=GameSG.activations_history
         ),
         HOME_BTN,
     ),
     getter=activation_history_detail_getter,
-    state=Game.activations_history_details,
+    state=GameSG.activations_history_details,
 )

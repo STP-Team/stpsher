@@ -12,7 +12,7 @@ from tgbot.dialogs.getters.common.kpi import (
     kpi_requirements_getter,
     salary_getter,
 )
-from tgbot.dialogs.states.common.kpi import KPI
+from tgbot.dialogs.states.common.kpi import KpiSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 menu_window = Window(
@@ -38,18 +38,18 @@ menu_window = Window(
         SwitchTo(
             Const("🧮 Нормативы"),
             id="calculator",
-            state=KPI.requirements,
+            state=KpiSG.requirements,
         ),
         SwitchTo(
             Const("💰 Зарплата"),
             id="salary",
-            state=KPI.salary,
+            state=KpiSG.salary,
         ),
     ),
-    SwitchTo(Const("🔄 Обновить"), id="update", state=KPI.menu),
+    SwitchTo(Const("🔄 Обновить"), id="update", state=KpiSG.menu),
     HOME_BTN,
     getter=kpi_getter,
-    state=KPI.menu,
+    state=KpiSG.menu,
 )
 
 requirements_window = Window(
@@ -72,17 +72,17 @@ requirements_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("🌟 Показатели"), id="kpi", state=KPI.menu),
+        SwitchTo(Const("🌟 Показатели"), id="kpi", state=KpiSG.menu),
         SwitchTo(
             Const("💰 Зарплата"),
             id="salary",
-            state=KPI.salary,
+            state=KpiSG.salary,
         ),
     ),
-    SwitchTo(Const("🔄 Обновить"), id="update", state=KPI.requirements),
+    SwitchTo(Const("🔄 Обновить"), id="update", state=KpiSG.requirements),
     HOME_BTN,
     getter=kpi_requirements_getter,
-    state=KPI.requirements,
+    state=KpiSG.requirements,
 )
 
 salary_window = Window(
@@ -105,17 +105,17 @@ salary_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("🌟 Показатели"), id="kpi", state=KPI.menu),
+        SwitchTo(Const("🌟 Показатели"), id="kpi", state=KpiSG.menu),
         SwitchTo(
             Const("🧮 Нормативы"),
             id="calculator",
-            state=KPI.requirements,
+            state=KpiSG.requirements,
         ),
     ),
-    SwitchTo(Const("🔄 Обновить"), id="update", state=KPI.salary),
+    SwitchTo(Const("🔄 Обновить"), id="update", state=KpiSG.salary),
     HOME_BTN,
     getter=salary_getter,
-    state=KPI.salary,
+    state=KpiSG.salary,
 )
 
 

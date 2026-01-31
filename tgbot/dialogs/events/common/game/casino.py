@@ -10,7 +10,7 @@ from aiogram_dialog.widgets.kbd import Button
 from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 
 
 async def check_casino_access(
@@ -188,7 +188,7 @@ async def play_casino_game(
 
     # Переходим к окну результата с новым сообщением
     dialog_manager.show_mode = ShowMode.SEND
-    await dialog_manager.switch_to(Game.casino_result)
+    await dialog_manager.switch_to(GameSG.casino_result)
 
 
 def format_result(game_type: str, value: int, multiplier: float, net_win: int) -> Dict:

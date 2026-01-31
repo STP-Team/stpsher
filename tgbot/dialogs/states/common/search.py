@@ -3,7 +3,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class Search(StatesGroup):
+class SearchSG(StatesGroup):
     """Группа состояний поиска."""
 
     # Меню

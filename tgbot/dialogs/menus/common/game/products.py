@@ -30,7 +30,7 @@ from tgbot.dialogs.filters.common.game_filters import (
     product_filter_getter,
 )
 from tgbot.dialogs.getters.common.game.shop import confirmation_getter, success_getter
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 products_window = Window(
@@ -108,9 +108,9 @@ products_window = Window(
         ),
         when=~F["is_user"],
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.menu), HOME_BTN),
     getter=product_filter_getter,
-    state=Game.products,
+    state=GameSG.products,
 )
 
 
@@ -133,9 +133,9 @@ products_confirm_window = Window(
         id="confirm_buy",
         on_click=on_confirm_purchase,
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.products), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.products), HOME_BTN),
     getter=confirmation_getter,
-    state=Game.products_confirm,
+    state=GameSG.products_confirm,
 )
 
 products_success_window = Window(
@@ -165,9 +165,9 @@ products_success_window = Window(
         ),
     ),
     Row(
-        SwitchTo(Const("🎒 Инвентарь"), id="inventory", state=Game.inventory),
+        SwitchTo(Const("🎒 Инвентарь"), id="inventory", state=GameSG.inventory),
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="to_game", state=Game.menu), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="to_game", state=GameSG.menu), HOME_BTN),
     getter=success_getter,
-    state=Game.products_success,
+    state=GameSG.products_success,
 )

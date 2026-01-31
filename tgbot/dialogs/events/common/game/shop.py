@@ -7,7 +7,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ async def on_product_click(
     dialog_manager.dialog_data["user_balance"] = user_balance
 
     # Переходим к окну подтверждения
-    await dialog_manager.switch_to(Game.products_confirm)
+    await dialog_manager.switch_to(GameSG.products_confirm)
 
 
 async def on_confirm_purchase(
@@ -108,7 +108,7 @@ async def on_confirm_purchase(
         dialog_manager.dialog_data["new_balance"] = user_balance - product_info["cost"]
 
         # Переходим к окну успешной покупки
-        await dialog_manager.switch_to(Game.products_success)
+        await dialog_manager.switch_to(GameSG.products_success)
 
     except Exception as e:
         logger.error(
@@ -148,7 +148,7 @@ async def on_sell_product(
                 f"✅ Продано: {product_info['name']}.\nВозвращено: {product_info['cost']} баллов"
             )
             # Возвращаемся в магазин
-            await dialog_manager.switch_to(Game.products)
+            await dialog_manager.switch_to(GameSG.products)
         else:
             await event.answer("❌ Ошибка при продаже предмета", show_alert=True)
 

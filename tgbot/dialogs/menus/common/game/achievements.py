@@ -19,7 +19,7 @@ from aiogram_dialog.window import Window
 from tgbot.dialogs.filters.common.game_filters import (
     achievements_filter_getter,
 )
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 
 achievements_window = Window(
@@ -83,7 +83,7 @@ achievements_window = Window(
         item_id_getter=operator.itemgetter(0),
         items="period_radio_data",
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.menu), HOME_BTN),
     getter=achievements_filter_getter,
-    state=Game.achievements,
+    state=GameSG.achievements,
 )

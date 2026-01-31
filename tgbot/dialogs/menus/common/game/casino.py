@@ -17,7 +17,7 @@ from tgbot.dialogs.getters.common.game.casino import (
     casino_result_getter,
     casino_waiting_getter,
 )
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.widgets.buttons import CASINO_RATES, HOME_BTN
 
 casino_window = Window(
@@ -26,15 +26,15 @@ casino_window = Window(
 
 Выбери игру из списка ниже"""),
     Group(
-        SwitchTo(Const("🎰 Слоты"), id="slots", state=Game.casino_slots),
-        SwitchTo(Const("🎲 Кости"), id="dice", state=Game.casino_dice),
-        SwitchTo(Const("🎯 Дартс"), id="darts", state=Game.casino_darts),
-        SwitchTo(Const("🎳 Боулинг"), id="bowling", state=Game.casino_bowling),
+        SwitchTo(Const("🎰 Слоты"), id="slots", state=GameSG.casino_slots),
+        SwitchTo(Const("🎲 Кости"), id="dice", state=GameSG.casino_dice),
+        SwitchTo(Const("🎯 Дартс"), id="darts", state=GameSG.casino_darts),
+        SwitchTo(Const("🎳 Боулинг"), id="bowling", state=GameSG.casino_bowling),
         width=2,
     ),
-    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.menu), HOME_BTN),
     getter=balance_getter,
-    state=Game.casino,
+    state=GameSG.casino,
 )
 
 casino_slots_window = Window(
@@ -52,9 +52,9 @@ casino_slots_window = Window(
     Button(Format("💰 Ставка: {current_rate}"), id="current_rate"),
     Button(Const("🎰 Крутить 🎰"), id="spin_slots", on_click=start_slots),
     CASINO_RATES,
-    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=Game.casino), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=GameSG.casino), HOME_BTN),
     getter=casino_game_getter,
-    state=Game.casino_slots,
+    state=GameSG.casino_slots,
 )
 
 casino_dice_window = Window(
@@ -72,9 +72,9 @@ casino_dice_window = Window(
     Button(Format("💰 Ставка: {current_rate}"), id="current_rate"),
     Button(Const("🎲 Бросить кости 🎲"), id="spin_dice", on_click=start_dice),
     CASINO_RATES,
-    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=Game.casino), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=GameSG.casino), HOME_BTN),
     getter=casino_game_getter,
-    state=Game.casino_dice,
+    state=GameSG.casino_dice,
 )
 
 casino_darts_window = Window(
@@ -92,9 +92,9 @@ casino_darts_window = Window(
     Button(Format("💰 Ставка: {current_rate}"), id="current_rate"),
     Button(Const("🎯 Бросить дротик 🎯"), id="spin_darts", on_click=start_darts),
     CASINO_RATES,
-    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=Game.casino), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=GameSG.casino), HOME_BTN),
     getter=casino_game_getter,
-    state=Game.casino_darts,
+    state=GameSG.casino_darts,
 )
 
 casino_bowling_window = Window(
@@ -112,9 +112,9 @@ casino_bowling_window = Window(
     Button(Format("💰 Ставка: {current_rate}"), id="current_rate"),
     Button(Const("🎳 Бросить шар 🎳"), id="spin_bowling", on_click=start_bowling),
     CASINO_RATES,
-    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=Game.casino), HOME_BTN),
+    Row(SwitchTo(Const("↩️ Назад"), id="casino", state=GameSG.casino), HOME_BTN),
     getter=casino_game_getter,
-    state=Game.casino_bowling,
+    state=GameSG.casino_bowling,
 )
 
 casino_waiting_window = Window(
@@ -122,7 +122,7 @@ casino_waiting_window = Window(
     Format("""💰 <b>Ставка:</b> {current_rate} баллов
 ⏰ <b>Ждем результат...</b>"""),
     getter=casino_waiting_getter,
-    state=Game.casino_waiting,
+    state=GameSG.casino_waiting,
 )
 
 casino_result_window = Window(
@@ -133,7 +133,7 @@ casino_result_window = Window(
 {win_message}
 ✨ <b>Баланс:</b> {balance}"""),
     Button(Const("🔄 Играть еще"), id="play_again_btn", on_click=play_again),
-    Row(SwitchTo(Const("↩️ К играм"), id="casino_menu", state=Game.casino), HOME_BTN),
+    Row(SwitchTo(Const("↩️ К играм"), id="casino_menu", state=GameSG.casino), HOME_BTN),
     getter=casino_result_getter,
-    state=Game.casino_result,
+    state=GameSG.casino_result,
 )

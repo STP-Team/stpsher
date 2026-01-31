@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 
 
 async def start_game_dialog(
@@ -21,5 +21,5 @@ async def start_game_dialog(
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.start(
-        Game.menu,
+        GameSG.menu,
     )

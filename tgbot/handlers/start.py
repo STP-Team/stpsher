@@ -6,7 +6,6 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
-from aiogram_dialog.api.exceptions import NoContextError
 from stp_database.models.STP import Employee
 
 from tgbot.dialogs.states.admin import AdminSG
@@ -55,11 +54,6 @@ async def start(
 
     if event_logger:
         await event_logger.log_bot_start(user.user_id)
-
-    try:
-        await dialog_manager.done()
-    except NoContextError:
-        pass
 
     role_menu_mapping = {
         "1": UserSG.menu,

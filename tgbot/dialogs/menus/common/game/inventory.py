@@ -25,7 +25,7 @@ from tgbot.dialogs.events.common.game.inventory import (
 )
 from tgbot.dialogs.filters.user.game.inventory import inventory_filter_getter
 from tgbot.dialogs.getters.common.game.inventory import inventory_detail_getter
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.widgets.buttons import HOME_BTN
 from tgbot.misc.helpers import get_status_emoji
 
@@ -66,11 +66,11 @@ inventory_window = Window(
         ],
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="menu", state=Game.menu),
+        SwitchTo(Const("↩️ Назад"), id="menu", state=GameSG.menu),
         HOME_BTN,
     ),
     getter=inventory_filter_getter,
-    state=Game.inventory,
+    state=GameSG.inventory,
 )
 
 
@@ -112,11 +112,11 @@ inventory_details_window = Window(
         when="can_cancel",
     ),
     Row(
-        SwitchTo(Const("↩️ Назад"), id="back_to_inventory", state=Game.inventory),
+        SwitchTo(Const("↩️ Назад"), id="back_to_inventory", state=GameSG.inventory),
         HOME_BTN,
     ),
     getter=inventory_detail_getter,
-    state=Game.inventory_details,
+    state=GameSG.inventory_details,
 )
 
 inventory_activation_comment_window = Window(
@@ -141,17 +141,17 @@ inventory_activation_comment_window = Window(
         SwitchTo(
             Const("↩️ Назад"),
             id="back_to_details",
-            state=Game.inventory_details,
+            state=GameSG.inventory_details,
             when=~F["came_from_products"],
         ),
         SwitchTo(
             Const("↩️ Назад"),
             id="back_to_products",
-            state=Game.products_success,
+            state=GameSG.products_success,
             when="came_from_products",
         ),
         HOME_BTN,
     ),
     getter=inventory_detail_getter,
-    state=Game.inventory_activation_comment,
+    state=GameSG.inventory_activation_comment,
 )

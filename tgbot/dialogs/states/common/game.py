@@ -3,7 +3,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 
-class Game(StatesGroup):
+class GameSG(StatesGroup):
     """Группа состояний для управления игровым профилем."""
 
     # Меню

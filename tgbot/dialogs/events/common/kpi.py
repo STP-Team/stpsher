@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
-from tgbot.dialogs.states.common.kpi import KPI
+from tgbot.dialogs.states.common.kpi import KpiSG
 
 
 async def start_kpi_dialog(
@@ -21,5 +21,5 @@ async def start_kpi_dialog(
         dialog_manager: Менеджер диалога
     """
     await dialog_manager.start(
-        KPI.menu,
+        KpiSG.menu,
     )

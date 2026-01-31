@@ -17,7 +17,7 @@ from aiogram_dialog.widgets.kbd import Button, Select
 from stp_database.models.STP import Employee, Product, Purchase
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.misc.helpers import format_fullname, strftime_date, tz_perm
 from tgbot.services.broadcaster import broadcast
 from tgbot.services.files_processing.parsers.schedule import DutyScheduleParser
@@ -245,7 +245,7 @@ async def on_inventory_product_click(
     }
 
     # Переходим к окну детального просмотра предмета инвентаря
-    await dialog_manager.switch_to(Game.inventory_details)
+    await dialog_manager.switch_to(GameSG.inventory_details)
 
 
 async def use_product(
@@ -261,7 +261,7 @@ async def use_product(
         dialog_manager: Менеджер диалога
     """
     # Проверяем, откуда вызвана функция - из окна магазина или из инвентаря
-    if dialog_manager.current_context().state == Game.products_success:
+    if dialog_manager.current_context().state == GameSG.products_success:
         # Используем данные только что купленного предмета
         product_info = dialog_manager.dialog_data["selected_product"]
         product_name = product_info["name"]
@@ -288,7 +288,7 @@ async def use_product(
                 return
 
         # Если все проверки пройдены, переходим к окну комментария
-        if dialog_manager.current_context().state == Game.products_success:
+        if dialog_manager.current_context().state == GameSG.products_success:
             # Для магазина создаем унифицированную структуру данных для комментария
             new_purchase = dialog_manager.dialog_data["new_purchase"]
             user_product_id = new_purchase["id"]
@@ -315,7 +315,7 @@ async def use_product(
             dialog_manager.dialog_data["came_from_products"] = True
 
         # Для всех случаев переходим к окну ввода комментария
-        await dialog_manager.switch_to(Game.inventory_activation_comment)
+        await dialog_manager.switch_to(GameSG.inventory_activation_comment)
 
     except Exception as e:
         logger.error(
@@ -379,9 +379,9 @@ async def on_inventory_activation_comment_input(
 
         # Возвращаемся туда, откуда пришли
         if dialog_manager.dialog_data.get("came_from_products"):
-            await dialog_manager.switch_to(Game.products)
+            await dialog_manager.switch_to(GameSG.products)
         else:
-            await dialog_manager.switch_to(Game.inventory)
+            await dialog_manager.switch_to(GameSG.inventory)
 
     except Exception as e:
         logger.error(f"[Активация предметов] Ошибка при сохранении комментария: {e}")
@@ -436,9 +436,9 @@ async def on_skip_activation_comment(
 
             # Возвращаемся туда, откуда пришли
             if dialog_manager.dialog_data.get("came_from_products"):
-                await dialog_manager.switch_to(Game.products)
+                await dialog_manager.switch_to(GameSG.products)
             else:
-                await dialog_manager.switch_to(Game.inventory)
+                await dialog_manager.switch_to(GameSG.inventory)
         else:
             await event.answer("❌ Невозможно использовать предмет", show_alert=True)
 
@@ -480,7 +480,7 @@ async def on_inventory_sell_product(
                 f"✅ Продано: {product_info['product_name']}.\nВозвращено: {product_info['product_cost']} баллов"
             )
             # Возвращаемся к инвентарю
-            await dialog_manager.switch_to(Game.inventory)
+            await dialog_manager.switch_to(GameSG.inventory)
         else:
             await event.answer("❌ Ошибка при продаже предмета", show_alert=True)
 
@@ -534,7 +534,7 @@ async def on_inventory_cancel_activation(
                 f"✅ Активация предмета '{product_info['product_name']}' отменена!"
             )
             # Возвращаемся к инвентарю
-            await dialog_manager.switch_to(Game.inventory)
+            await dialog_manager.switch_to(GameSG.inventory)
         else:
             await event.answer("❌ Ошибка при отмене активации", show_alert=True)
 

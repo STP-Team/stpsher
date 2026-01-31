@@ -4,12 +4,11 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
-from aiogram_dialog.api.exceptions import NoContextError
 from stp_database.models.STP import Employee
 from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.dialogs.states.common.exchanges import Exchanges, ExchangesSub
-from tgbot.dialogs.states.common.game import Game
+from tgbot.dialogs.states.common.game import GameSG
 from tgbot.dialogs.states.user import UserSG
 from tgbot.handlers.inline.exchanges import handle_exchange_cancellation
 from tgbot.keyboards.auth import auth_kb
@@ -50,11 +49,6 @@ async def start_deeplink(
         return
 
     await event_logger.log_bot_start(user.user_id)
-
-    try:
-        await dialog_manager.done()
-    except NoContextError:
-        pass
 
     # Извлекаем payload из команды /start
     command_args = message.text.split(maxsplit=1)
@@ -181,7 +175,7 @@ async def start_deeplink(
 
             # Запускаем диалог активации
             await dialog_manager.start(
-                Game.activation_details,
+                GameSG.activation_details,
                 mode=StartMode.RESET_STACK,
                 data={"purchase_id": purchase_id},
             )
