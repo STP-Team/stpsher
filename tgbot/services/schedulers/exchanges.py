@@ -1,6 +1,7 @@
+"""Exchanges (shift marketplace) scheduler."""
+
 import logging
 from datetime import datetime, timedelta
-from typing import Tuple
 
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,347 +11,61 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database.models.STP import Exchange
 from stp_database.repo.STP import MainRequestsRepo
 
-from tgbot.dialogs.getters.common.exchanges.exchanges import (
-    get_exchange_text,
-)
+from tgbot.dialogs.getters.common.exchanges.exchanges import get_exchange_text
 from tgbot.misc.helpers import tz_perm
 from tgbot.services.broadcaster import send_message
 from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
 
-# Константы настроек планировщика
-SCHEDULER_CONFIG = {
-    "expired_offers": {
-        "interval_minutes": 1,
-        "misfire_grace_time": 300,
-        "id": "exchanges_check_expired_offers",
-        "name": "Проверка истекших предложений",
-    },
-    "upcoming_1hour": {
-        "interval_minutes": 10,
-        "misfire_grace_time": 300,
-        "id": "exchanges_notify_1hour",
-        "name": "Уведомления за 1 час до обмена",
-    },
-    "upcoming_1day": {
-        "interval_hours": 1,
-        "misfire_grace_time": 600,
-        "id": "exchanges_notify_1day",
-        "name": "Уведомления за 1 день до обмена",
-    },
-    "payment_notifications": {
-        "trigger": "cron",
-        "hour": 12,
-        "minute": 0,
-        "misfire_grace_time": 1800,  # 30 minutes
-        "id": "exchanges_payment_date_notifications",
-        "name": "Уведомления о датах оплаты в 12:00",
-    },
-    "daily_payment_reminder": {
-        "trigger": "cron",
-        "hour": 12,
-        "minute": 0,
-        "misfire_grace_time": 1800,  # 30 minutes
-        "id": "exchanges_daily_payment_reminder",
-        "name": "Ежедневное напоминание об оплате в 12:00",
-    },
+TIME_WINDOW = timedelta(minutes=5)
+MIN_RESCHEDULE = timedelta(minutes=30)
+
+MSG = {
+    "expired": "⏳ <b>Сделка истекла</b>\n\nУ сделки наступило время {time_type}\n\n{info}\n\n<i>Ты можешь отредактировать ее и опубликовать снова</i>",
+    "subscription_match": "🔔 <b>Новая сделка</b>\n\nНайдена сделка, соответствующая подписке <b>{subscription_name}</b>:\n\n{exchange_info}",
+    "upcoming_seller": "{emoji} <b>Напоминание о смене</b>\n\nПроданный промежуток смены начинается {time}\n\n{info}",
+    "upcoming_buyer": "{emoji} <b>Напоминание о смене</b>\n\nСмена, которую ты купил, начинается {time}\n\n{info}",
+    "payment_buyer": "💰 <b>Время оплаты</b>\n\nНаступила дата оплаты для купленной смены\n\n{info}\n\n<i>Пожалуйста, проверь получение оплаты и отметь это в сделке</i>",
+    "payment_seller": "📅 <b>Дата оплаты наступила</b>\n\nДля проданной смены наступила дата оплаты\n\n{info}\n\n<i>Пожалуйста, произведи оплату покупателю</i>",
+    "reminder_buyer": "🕐 <b>Ежедневное напоминание</b>\n\nУ тебя есть неоплаченные купленные сделки:\n\n{list}\n\n<i>Пожалуйста, проверь получение оплаты</i>",
+    "reminder_seller": "🕐 <b>Ежедневное напоминание</b>\n\nУ тебя есть неоплаченные проданные сделки:\n\n{list}\n\n<i>Пожалуйста, произведи оплату покупателям</i>",
 }
 
-# Заготовки сообщений для планировщиков
-MESSAGES = {
-    "expired_offer": """⏳ <b>Сделка истекла</b>
-
-У сделки наступило время {time_type}
-
-{exchange_info}
-
-<i>Ты можешь отредактировать ее и опубликовать снова</i>""",
-    "subscription_match": """🔔 <b>Новая сделка</b>
-
-Найдена сделка, соответствующая подписке <b>{subscription_name}</b>:
-
-{exchange_info}""",
-    "upcoming_seller": """{emoji} <b>Напоминание о смене</b>
-
-Проданный промежуток смены начинается {time_text}
-
-{exchange_info}""",
-    "upcoming_buyer": """{emoji} <b>Напоминание о смене</b>
-
-Смена, которую ты купил, начинается {time_text}
-
-{exchange_info}""",
-    "payment_date_buyer": """💰 <b>Время оплаты</b>
-
-Наступила дата оплаты для купленной смены
-
-{exchange_info}
-
-<i>Пожалуйста, проверь получение оплаты и отметь это в сделке</i>""",
-    "payment_date_seller": """📅 <b>Дата оплаты наступила</b>
-
-Для проданной смены наступила дата оплаты
-
-{exchange_info}
-
-<i>Пожалуйста, произведи оплату покупателю</i>""",
-    "daily_payment_reminder_buyer": """🕐 <b>Ежедневное напоминание об оплате</b>
-
-У тебя есть неоплаченные купленные сделки:
-
-{exchanges_info}
-
-<i>Пожалуйста, проверь получение оплаты и отметь это в соответствующих сделках</i>""",
-    "daily_payment_reminder_seller": """🕐 <b>Ежедневное напоминание об оплате</b>
-
-У тебя есть неоплаченные проданные сделки:
-
-{exchanges_info}
-
-<i>Пожалуйста, произведи оплату покупателям</i>""",
-}
-
-# Кнопки для сообщений
-BUTTONS = {
-    "open_exchange": "🎭 Открыть сделку",
-    "reschedule_auto": "⏰ Перенести автоматически",
-    "mark_payment": "💰 Отметить оплату",
-    "configure_subscription": "🔔 Настроить подписку",
-}
-
-# Настройки времени
-TIME_CONSTANTS = {
-    "upcoming_notification_window_minutes": 5,
-    "minimum_reschedule_minutes": 30,
-}
+# Export aliases for backward compatibility
+MESSAGES = MSG
 
 
 async def create_exchange_deeplink(bot: Bot, exchange_id: int) -> str:
-    """Создает deeplink для обмена.
-
-    Args:
-        bot: Экземпляр бота
-        exchange_id: ID обмена
-
-    Returns:
-        Deeplink для обмена
-    """
-    return await create_start_link(
-        bot=bot, payload=f"exchange_{exchange_id}", encode=True
-    )
+    """Create exchange deeplink."""
+    return await create_start_link(bot, f"exchange_{exchange_id}", encode=True)
 
 
 async def create_subscription_deeplink(bot: Bot, subscription_id: int) -> str:
-    """Создает deeplink для подписки.
-
-    Args:
-        bot: Экземпляр бота
-        subscription_id: ID подписки
-
-    Returns:
-        Deeplink для подписки
-    """
-    return await create_start_link(
-        bot=bot, payload=f"subscription_{subscription_id}", encode=True
-    )
-
-
-def create_basic_keyboard(
-    deeplink: str, button_text: str = None
-) -> InlineKeyboardMarkup:
-    """Создает базовую клавиатуру с одной кнопкой.
-
-    Args:
-        deeplink: Ссылка для кнопки
-        button_text: Текст кнопки (по умолчанию "Открыть сделку")
-
-    Returns:
-        Объект клавиатуры
-    """
-    if button_text is None:
-        button_text = BUTTONS["open_exchange"]
-
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=button_text, url=deeplink)]]
-    )
-
-
-def create_payment_keyboard(deeplink: str) -> InlineKeyboardMarkup:
-    """Создает клавиатуру для оплаты.
-
-    Args:
-        deeplink: Ссылка для кнопки
-
-    Returns:
-        Объект клавиатуры
-    """
-    return create_basic_keyboard(deeplink, BUTTONS["mark_payment"])
+    """Create subscription deeplink."""
+    return await create_start_link(bot, f"subscription_{subscription_id}", encode=True)
 
 
 def create_subscription_keyboard(
     exchange_deeplink: str, subscription_deeplink: str
 ) -> InlineKeyboardMarkup:
-    """Создает клавиатуру для уведомлений подписки.
-
-    Args:
-        exchange_deeplink: Ссылка на обмен
-        subscription_deeplink: Ссылка на подписку
-
-    Returns:
-        Объект клавиатуры
-    """
+    """Create subscription notification keyboard."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(text="🎭 Открыть сделку", url=exchange_deeplink)],
             [
                 InlineKeyboardButton(
-                    text=BUTTONS["open_exchange"], url=exchange_deeplink
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=BUTTONS["configure_subscription"], url=subscription_deeplink
+                    text="🔔 Настроить подписку", url=subscription_deeplink
                 )
             ],
         ]
     )
 
 
-def create_expire_keyboard(deeplink: str, exchange: Exchange) -> InlineKeyboardMarkup:
-    """Создает клавиатуру для истекших сделок.
-
-    Args:
-        deeplink: Ссылка на обмен
-        exchange: Экземпляр сделки с моделью Exchange
-
-    Returns:
-        Объект клавиатуры
-    """
-    inline_keyboard = [
-        [InlineKeyboardButton(text=BUTTONS["open_exchange"], url=deeplink)]
-    ]
-
-    # Для продаж добавляем кнопку автоматического переноса (если возможно)
-    if exchange.owner_intent == "sell" and can_reschedule_exchange(exchange):
-        inline_keyboard.append([
-            InlineKeyboardButton(
-                text=BUTTONS["reschedule_auto"],
-                callback_data=f"reschedule_{exchange.id}",
-            )
-        ])
-
-    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
-
-def get_time_text_and_emoji(hours_before: int) -> Tuple[str, str]:
-    """Получает текст времени и эмодзи для уведомлений.
-
-    Args:
-        hours_before: За сколько часов до события
-
-    Returns:
-        Кортеж (время_текст, эмодзи)
-    """
-    if hours_before == 1:
-        return "через 1 час", "⏰"
-    elif hours_before == 24:
-        return "завтра", "📅"
-    else:
-        return f"через {hours_before} часов", "⏰"
-
-
-def normalize_timezone(dt: datetime) -> datetime:
-    """Приводит datetime к локальной временной зоне.
-
-    Args:
-        dt: Объект datetime
-
-    Returns:
-        datetime в локальной временной зоне
-    """
-    if dt.tzinfo is None:
-        return tz_perm.localize(dt)
-    return dt
-
-
-def should_notify_payment_today(exchange: Exchange) -> bool:
-    """Проверяет, должна ли сделка уведомляться сегодня о платеже.
-
-    Args:
-        exchange: Экземпляр сделки с моделью Exchange
-
-    Returns:
-        bool: True если нужно уведомлять сегодня
-    """
-    # Если payment_type не "on_date", уведомляем сразу
-    if exchange.payment_type != "on_date":
-        return True
-
-    # Если payment_type == "on_date", но payment_date не установлена, уведомляем
-    if not exchange.payment_date:
-        return True
-
-    # Проверяем, наступила ли дата оплаты
-    current_local_time = datetime.now(tz_perm)
-    today = current_local_time.date()
-
-    # Приводим payment_date к локальной временной зоне для сравнения
-    payment_date = normalize_timezone(exchange.payment_date).date()
-
-    # Уведомляем только если дата оплаты наступила
-    return today >= payment_date
-
-
-def can_reschedule_exchange(exchange: Exchange) -> bool:
-    """Проверяет, можно ли автоматически перенести сделку.
-
-    Args:
-        exchange: Экземпляр сделки с моделью Exchange
-
-    Returns:
-        bool: True если сделка может быть перенесена автоматически
-    """
-    if not exchange.end_time:
-        return False
-
-    # Получаем текущее время в локальной зоне
-    current_local_time = datetime.now(tz_perm)
-
-    # Проверяем, что сделка сегодня
-    today = current_local_time.date()
-
-    # Убеждаемся, что end_time timezone-aware для сравнения
-    end_time = normalize_timezone(exchange.end_time)
-
-    # Проверяем, что конец сделки сегодня
-    if end_time.date() != today:
-        return False
-
-    # Проверяем, что конец сделки еще не прошел
-    if end_time <= current_local_time:
-        return False
-
-    # Вычисляем следующий доступный получасовой интервал
-    current_time = current_local_time.time()
-    if current_time.minute < 30:
-        next_slot_start = current_local_time.replace(minute=30, second=0, microsecond=0)
-    else:
-        next_slot_start = current_local_time.replace(
-            minute=0, second=0, microsecond=0
-        ) + timedelta(hours=1)
-
-    # Проверяем, что от следующего слота до конца сделки минимум указанное время
-    time_remaining = end_time - next_slot_start
-    return time_remaining >= timedelta(
-        minutes=TIME_CONSTANTS["minimum_reschedule_minutes"]
-    )
-
-
 class ExchangesScheduler(BaseScheduler):
-    """Планировщик биржи подмен."""
+    """Exchanges marketplace scheduler."""
 
     def __init__(self):
-        """Инициализация планировщика биржи подмен."""
         super().__init__("Биржа подмен")
 
     def setup_jobs(
@@ -358,607 +73,295 @@ class ExchangesScheduler(BaseScheduler):
         scheduler: AsyncIOScheduler,
         stp_session_pool: async_sessionmaker[AsyncSession],
         bot: Bot,
-    ) -> None:
-        """Настройка всех задач биржи.
-
-        Args:
-            scheduler: Экземпляр планировщика.
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-        """
-        self.logger.info("Настройка задач биржи...")
-
-        # Конфигурация задач с их функциями
-        job_configs = [
-            ("expired_offers", self._check_expired_offers),
-            ("upcoming_1hour", self._check_upcoming_exchanges_1hour),
-            ("upcoming_1day", self._check_upcoming_exchanges_1day),
-            ("payment_notifications", self._check_payment_date_notifications),
-            ("daily_payment_reminder", self._check_daily_payment_reminders),
+    ):
+        jobs = [
+            (
+                "interval",
+                1,
+                self._expired_job,
+                "exchanges_expired",
+                "Проверка истекших",
+            ),
+            (
+                "interval",
+                10,
+                self._upcoming_1h_job,
+                "exchanges_upcoming_1h",
+                "Уведомления за 1 час",
+            ),
+            (
+                "interval",
+                60,
+                self._upcoming_1d_job,
+                "exchanges_upcoming_1d",
+                "Уведомления за 1 день",
+            ),
+            (
+                "cron",
+                None,
+                self._payment_job,
+                "exchanges_payment",
+                "Уведомления об оплате",
+            ),
+            (
+                "cron",
+                None,
+                self._reminder_job,
+                "exchanges_reminder",
+                "Напоминания об оплате",
+            ),
         ]
 
-        for config_key, func in job_configs:
-            config = SCHEDULER_CONFIG[config_key]
-            job_kwargs = {
+        for trigger, interval, func, jid, name in jobs:
+            kwargs = {
                 "func": func,
                 "args": [stp_session_pool, bot],
-                "id": config["id"],
-                "name": config["name"],
+                "id": jid,
+                "name": name,
                 "coalesce": True,
-                "misfire_grace_time": config["misfire_grace_time"],
+                "misfire_grace_time": 300,
                 "replace_existing": True,
             }
-
-            # Настраиваем триггер в зависимости от типа
-            if config.get("trigger") == "cron":
-                job_kwargs["trigger"] = "cron"
-                job_kwargs["hour"] = config["hour"]
-                job_kwargs["minute"] = config["minute"]
-                job_kwargs["timezone"] = tz_perm  # Используем локальную временную зону
+            if trigger == "interval":
+                kwargs.update({"trigger": "interval", "minutes": interval})
             else:
-                job_kwargs["trigger"] = "interval"
-                # Добавляем интервал в зависимости от конфигурации
-                if "interval_minutes" in config:
-                    job_kwargs["minutes"] = config["interval_minutes"]
-                elif "interval_hours" in config:
-                    job_kwargs["hours"] = config["interval_hours"]
+                kwargs.update({
+                    "trigger": "cron",
+                    "hour": 12,
+                    "minute": 0,
+                    "timezone": tz_perm,
+                })
+            scheduler.add_job(**kwargs)
 
-            scheduler.add_job(**job_kwargs)
+    async def _expired_job(self, pool, bot):
+        await check_expired_offers(pool, bot)
 
-    async def _check_expired_offers(
-        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-    ) -> None:
-        """Проверка истекших сделок.
+    async def _upcoming_1h_job(self, pool, bot):
+        await check_upcoming(pool, bot, 1)
 
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-        """
-        await check_expired_offers(stp_session_pool, bot)
+    async def _upcoming_1d_job(self, pool, bot):
+        await check_upcoming(pool, bot, 24)
 
-    async def _check_upcoming_exchanges_1hour(
-        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-    ) -> None:
-        """Проверка обменов, начинающихся через 1 час.
+    async def _payment_job(self, pool, bot):
+        await check_payment_dates(pool, bot)
 
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-        """
-        await check_upcoming_exchanges(stp_session_pool, bot, hours_before=1)
-
-    async def _check_upcoming_exchanges_1day(
-        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-    ) -> None:
-        """Проверка обменов, начинающихся через 1 день.
-
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-        """
-        await check_upcoming_exchanges(stp_session_pool, bot, hours_before=24)
-
-    async def _check_payment_date_notifications(
-        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-    ) -> None:
-        """Проверка наступивших дат оплаты.
-
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-        """
-        await check_payment_date_notifications(stp_session_pool, bot)
-
-    async def _check_daily_payment_reminders(
-        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-    ) -> None:
-        """Ежедневная проверка неоплаченных обменов в 12:00.
-
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-        """
-        await check_daily_payment_reminders(stp_session_pool, bot)
+    async def _reminder_job(self, pool, bot):
+        await check_payment_reminders(pool, bot)
 
 
 async def check_expired_offers(
     stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-) -> None:
-    """Проверка и скрытие истекших сделок.
-
-    Args:
-        stp_session_pool: Пул сессий с базой STP
-        bot: Экземпляр бота
-    """
-    try:
-        async with stp_session_pool() as stp_session:
-            stp_repo = MainRequestsRepo(stp_session)
-
-            active_exchanges = await stp_repo.exchange.get_active_exchanges(
-                include_private=True, limit=200
-            )
-
-            if not active_exchanges:
-                return
-
-            current_local_time = datetime.now(tz_perm)
-            expired_count = 0
-
-            for exchange in active_exchanges:
-                try:
-                    # Определяем время истечения в зависимости от типа предложения
-                    if exchange.owner_intent == "sell":
-                        expiration_datetime = exchange.start_time
-                    elif exchange.owner_intent == "buy":
-                        expiration_datetime = exchange.end_time
-                    else:
-                        continue
-
-                    # Если время истечения не задано, пропускаем
-                    if expiration_datetime is None:
-                        continue
-
-                    # Приводим время истечения к локальной временной зоне
-                    expiration_datetime = normalize_timezone(expiration_datetime)
-
-                    # Проверяем истечение предложения
-                    if current_local_time >= expiration_datetime:
-                        await stp_repo.exchange.expire_exchange(exchange.id)
-                        await notify_expire_offer(bot, stp_repo, exchange)
-                        expired_count += 1
-
-                except Exception as e:
-                    logger.error(f"Ошибка обработки истекшей сделки {exchange.id}: {e}")
-
-            if expired_count > 0:
-                logger.info(f"Обработано {expired_count} истекших сделок")
-
-    except Exception as e:
-        logger.error(f"Ошибка проверки истекших предложений: {e}")
-
-
-async def notify_expire_offer(
-    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange
-) -> None:
-    """Уведомление об истекшей по времени сделке.
-
-    Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки с моделью Exchange
-    """
-    try:
-        # Определяем владельца сделки
-        owner_id = exchange.owner_id
-        if not owner_id:
-            logger.warning(f"Не найден владелец для сделки {exchange.id}")
-            return
-
-        owner = await stp_repo.employee.get_users(user_id=owner_id)
-        if not owner:
-            logger.warning(
-                f"Не найден пользователь {owner_id} для сделки {exchange.id}"
-            )
-            return
-
-        # Получаем информацию об обмене и создаем deeplink
-        exchange_info = await get_exchange_text(
-            stp_repo, exchange, user_id=owner.user_id
+):
+    """Check and hide expired offers."""
+    async with stp_session_pool() as session:
+        repo = MainRequestsRepo(session)
+        exchanges = await repo.exchange.get_active_exchanges(
+            include_private=True, limit=200
         )
-        deeplink = await create_exchange_deeplink(bot, exchange.id)
+        now = datetime.now(tz_perm)
 
-        # Формируем сообщение
-        time_type = "начала" if exchange.owner_intent == "sell" else "конца"
-        message_text = MESSAGES["expired_offer"].format(
-            time_type=time_type, exchange_info=exchange_info
-        )
-
-        # Создаем клавиатуру
-        reply_markup = create_expire_keyboard(deeplink, exchange)
-
-        # Отправляем уведомление
-        success = await send_message(
-            bot=bot, user_id=owner_id, text=message_text, reply_markup=reply_markup
-        )
-
-        if success:
-            logger.info(f"Отправлено уведомление об истекшей сделке {exchange.id}")
-
-    except Exception as e:
-        logger.error(
-            f"Ошибка отправки уведомления об истекшей сделке {exchange.id}: {e}"
-        )
-
-
-async def check_upcoming_exchanges(
-    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot, hours_before: int
-) -> None:
-    """Проверка и отправка уведомлений о приближающихся обменах.
-
-    Args:
-        stp_session_pool: Пул сессий с базой STP
-        bot: Экземпляр бота
-        hours_before: За сколько часов до начала отправлять уведомление
-    """
-    try:
-        async with stp_session_pool() as stp_session:
-            stp_repo = MainRequestsRepo(stp_session)
-
-            current_local_time = datetime.now(tz_perm)
-            target_time = current_local_time + timedelta(hours=hours_before)
-
-            # Определяем временное окно для уведомлений
-            time_window = timedelta(
-                minutes=TIME_CONSTANTS["upcoming_notification_window_minutes"]
-            )
-            target_start = target_time - time_window
-            target_end = target_time + time_window
-
-            # Получаем проданные обмены, которые еще не начались
-            upcoming_exchanges = await stp_repo.exchange.get_upcoming_sold_exchanges(
-                start_after=target_start, start_before=target_end, limit=500
-            )
-
-            if not upcoming_exchanges:
-                return
-
-            notifications_sent = 0
-
-            for exchange in upcoming_exchanges:
-                try:
-                    # Отправляем уведомления обеим сторонам
-                    await notify_upcoming_exchange(
-                        bot, stp_repo, exchange, hours_before
-                    )
-                    notifications_sent += 1
-
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка отправки уведомления для обмена {exchange.id}: {e}"
-                    )
-
-            if notifications_sent > 0:
-                logger.info(
-                    f"Отправлено уведомлений о приближающихся обменах ({hours_before}ч): {notifications_sent}"
+        for exc in exchanges:
+            try:
+                exp_time = (
+                    exc.start_time if exc.owner_intent == "sell" else exc.end_time
                 )
+                if not exp_time:
+                    continue
 
-    except Exception as e:
-        logger.error(f"Ошибка проверки приближающихся обменов ({hours_before}ч): {e}")
+                exp_time = _to_local(exp_time)
+                if now >= exp_time:
+                    await repo.exchange.expire_exchange(exc.id)
+                    await _notify_expired(bot, repo, exc)
+            except Exception as e:
+                logger.error(f"[Exchanges] Expired error {exc.id}: {e}")
 
 
-async def notify_upcoming_exchange(
-    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange, hours_before: int
-) -> None:
-    """Отправка уведомления о приближающемся обмене.
+async def _notify_expired(bot: Bot, repo: MainRequestsRepo, exc: Exchange):
+    if not exc.owner_id:
+        return
 
-    Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки с моделью Exchange
-        hours_before: За сколько часов отправляется уведомление
-    """
-    try:
-        # Создаем deeplink и получаем текст времени
-        deeplink = await create_exchange_deeplink(bot, exchange.id)
-        time_text, emoji = get_time_text_and_emoji(hours_before)
-        reply_markup = create_basic_keyboard(deeplink)
+    owner = await repo.employee.get_users(user_id=exc.owner_id)
+    if not owner:
+        return
 
-        notifications_sent = 0
+    info = await get_exchange_text(repo, exc, user_id=owner.user_id)
+    link = await create_start_link(bot, f"exchange_{exc.id}", encode=True)
+    msg = MSG["expired"].format(
+        time_type="начала" if exc.owner_intent == "sell" else "конца", info=info
+    )
 
-        # Уведомление продавцу (определяем на основе owner_intent)
-        seller_id = (
-            exchange.owner_id
-            if exchange.owner_intent == "sell"
-            else exchange.counterpart_id
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🎭 Открыть сделку", url=link)]]
+    )
+    if exc.owner_intent == "sell" and _can_reschedule(exc):
+        kb.inline_keyboard.append([
+            InlineKeyboardButton(
+                text="⏰ Перенести автоматически", callback_data=f"reschedule_{exc.id}"
+            )
+        ])
+
+    await send_message(bot, exc.owner_id, msg, reply_markup=kb)
+
+
+async def check_upcoming(
+    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot, hours: int
+):
+    """Check upcoming exchanges and notify."""
+    async with stp_session_pool() as session:
+        repo = MainRequestsRepo(session)
+        now = datetime.now(tz_perm)
+        target = now + timedelta(hours=hours)
+        start, end = target - TIME_WINDOW, target + TIME_WINDOW
+
+        exchanges = await repo.exchange.get_upcoming_sold_exchanges(
+            start_after=start, start_before=end, limit=500
         )
 
-        # Уведомление покупателю (определяем на основе owner_intent)
-        buyer_id = (
-            exchange.counterpart_id
-            if exchange.owner_intent == "sell"
-            else exchange.owner_id
+        for exc in exchanges:
+            try:
+                await _notify_upcoming(bot, repo, exc, hours)
+            except Exception as e:
+                logger.error(f"[Exchanges] Upcoming error {exc.id}: {e}")
+
+
+async def _notify_upcoming(bot: Bot, repo: MainRequestsRepo, exc: Exchange, hours: int):
+    link = await create_start_link(bot, f"exchange_{exc.id}", encode=True)
+    emoji, time_text = ("⏰", "через 1 час") if hours == 1 else ("📅", "завтра")
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🎭 Открыть сделку", url=link)]]
+    )
+
+    seller_id = exc.owner_id if exc.owner_intent == "sell" else exc.counterpart_id
+    buyer_id = exc.counterpart_id if exc.owner_intent == "sell" else exc.owner_id
+
+    if seller_id:
+        info = await get_exchange_text(repo, exc, user_id=seller_id)
+        await send_message(
+            bot,
+            seller_id,
+            MSG["upcoming_seller"].format(emoji=emoji, time=time_text, info=info),
+            reply_markup=kb,
         )
-        if seller_id:
-            seller_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=seller_id
-            )
 
-            seller_message = MESSAGES["upcoming_seller"].format(
-                emoji=emoji, time_text=time_text, exchange_info=seller_exchange_info
-            )
-
-            success = await send_message(
-                bot=bot,
-                user_id=seller_id,
-                text=seller_message,
-                reply_markup=reply_markup,
-            )
-            if success:
-                notifications_sent += 1
-
-        # Уведомление покупателю
-        if buyer_id:
-            buyer_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=buyer_id
-            )
-
-            buyer_message = MESSAGES["upcoming_buyer"].format(
-                emoji=emoji, time_text=time_text, exchange_info=buyer_exchange_info
-            )
-
-            success = await send_message(
-                bot=bot,
-                user_id=buyer_id,
-                text=buyer_message,
-                reply_markup=reply_markup,
-            )
-            if success:
-                notifications_sent += 1
-
-        if notifications_sent > 0:
-            logger.info(
-                f"Отправлено {notifications_sent} уведомлений о приближающемся обмене {exchange.id} "
-                f"(за {hours_before}ч)"
-            )
-
-    except Exception as e:
-        logger.error(
-            f"Ошибка отправки уведомления о приближающемся обмене {exchange.id}: {e}"
+    if buyer_id:
+        info = await get_exchange_text(repo, exc, user_id=buyer_id)
+        await send_message(
+            bot,
+            buyer_id,
+            MSG["upcoming_buyer"].format(emoji=emoji, time=time_text, info=info),
+            reply_markup=kb,
         )
 
 
-async def check_payment_date_notifications(
+async def check_payment_dates(
     stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-) -> None:
-    """Проверка и отправка уведомлений о наступивших датах оплаты.
+):
+    """Check payment date notifications."""
+    async with stp_session_pool() as session:
+        repo = MainRequestsRepo(session)
+        today = datetime.now(tz_perm).date()
+        exchanges = await repo.exchange.get_exchanges_by_payment_date(
+            payment_date=today, status="sold", is_paid=False
+        )
 
-    Args:
-        stp_session_pool: Пул сессий с базой STP
-        bot: Экземпляр бота
-    """
-    try:
-        async with stp_session_pool() as stp_session:
-            stp_repo = MainRequestsRepo(stp_session)
-
-            current_local_time = datetime.now(tz_perm)
-            today = current_local_time.date()
-
-            # Получаем проданные неоплаченные обмены с наступившей датой оплаты
-            exchanges_to_notify = await stp_repo.exchange.get_exchanges_by_payment_date(
-                payment_date=today, status="sold", is_paid=False
-            )
-
-            if not exchanges_to_notify:
-                return
-
-            notifications_sent = 0
-
-            for exchange in exchanges_to_notify:
-                try:
-                    await notify_payment_date_reached(bot, stp_repo, exchange)
-                    notifications_sent += 1
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка отправки уведомления об оплате для обмена {exchange.id}: {e}"
-                    )
-
-            if notifications_sent > 0:
-                logger.info(
-                    f"Отправлено {notifications_sent} уведомлений о наступивших датах оплаты"
-                )
-
-    except Exception as e:
-        logger.error(f"Ошибка проверки уведомлений о датах оплаты: {e}")
+        for exc in exchanges:
+            await _notify_payment(bot, repo, exc)
 
 
-async def notify_payment_date_reached(
-    bot: Bot, stp_repo: MainRequestsRepo, exchange: Exchange
-) -> None:
-    """Отправка уведомления о наступившей дате оплаты.
+async def _notify_payment(bot: Bot, repo: MainRequestsRepo, exc: Exchange):
+    link = await create_start_link(bot, f"exchange_{exc.id}", encode=True)
+    seller_id = exc.owner_id if exc.owner_intent == "sell" else exc.counterpart_id
+    buyer_id = exc.counterpart_id if exc.owner_intent == "sell" else exc.owner_id
 
-    Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий операций с базой STP
-        exchange: Экземпляр сделки с моделью Exchange
-    """
-    try:
-        deeplink = await create_exchange_deeplink(bot, exchange.id)
-        notifications_sent = 0
+    if buyer_id:
+        info = await get_exchange_text(repo, exc, user_id=buyer_id)
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="💰 Отметить оплату", url=link)]
+            ]
+        )
+        await send_message(
+            bot, buyer_id, MSG["payment_buyer"].format(info=info), reply_markup=kb
+        )
 
-        # Определяем правильно, кто продавец, а кто покупатель
-        if exchange.owner_intent == "sell":
-            # В sell: owner_id = продавец, counterpart_id = покупатель
-            seller_id = exchange.owner_id
-            buyer_id = exchange.counterpart_id
-        else:  # exchange.owner_intent == "buy"
-            # В buy: owner_id = покупатель, counterpart_id = продавец
-            seller_id = exchange.counterpart_id
-            buyer_id = exchange.owner_id
-
-        # Уведомляем покупателя о необходимости проверить получение оплаты
-        if buyer_id:
-            buyer_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=buyer_id
-            )
-
-            buyer_message = MESSAGES["payment_date_buyer"].format(
-                exchange_info=buyer_exchange_info
-            )
-
-            success = await send_message(
-                bot=bot,
-                user_id=buyer_id,
-                text=buyer_message,
-                reply_markup=create_payment_keyboard(deeplink),
-            )
-            if success:
-                notifications_sent += 1
-
-        # Уведомляем продавца о необходимости произвести оплату
-        if seller_id:
-            seller_exchange_info = await get_exchange_text(
-                stp_repo, exchange, user_id=seller_id
-            )
-
-            seller_message = MESSAGES["payment_date_seller"].format(
-                exchange_info=seller_exchange_info
-            )
-
-            success = await send_message(
-                bot=bot,
-                user_id=seller_id,
-                text=seller_message,
-                reply_markup=create_basic_keyboard(deeplink),
-            )
-            if success:
-                notifications_sent += 1
-
-        if notifications_sent > 0:
-            logger.info(
-                f"Отправлено {notifications_sent} уведомлений о дате оплаты для обмена {exchange.id}"
-            )
-
-    except Exception as e:
-        logger.error(f"Ошибка отправки уведомления о дате оплаты {exchange.id}: {e}")
+    if seller_id:
+        info = await get_exchange_text(repo, exc, user_id=seller_id)
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🎭 Открыть сделку", url=link)]]
+        )
+        await send_message(
+            bot, seller_id, MSG["payment_seller"].format(info=info), reply_markup=kb
+        )
 
 
-async def check_daily_payment_reminders(
+async def check_payment_reminders(
     stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-) -> None:
-    """Ежедневная проверка и отправка напоминаний об оплате в 12:00.
+):
+    """Daily payment reminders."""
+    async with stp_session_pool() as session:
+        repo = MainRequestsRepo(session)
+        users_data = await repo.exchange.get_users_with_unpaid_exchanges(
+            status="sold", is_paid=False
+        )
 
-    Args:
-        stp_session_pool: Пул сессий с базой STP
-        bot: Экземпляр бота
-    """
-    try:
-        async with stp_session_pool() as stp_session:
-            stp_repo = MainRequestsRepo(stp_session)
-
-            # Получаем всех пользователей с неоплаченными проданными обменами
-            users_with_unpaid_exchanges = (
-                await stp_repo.exchange.get_users_with_unpaid_exchanges(
-                    status="sold", is_paid=False
-                )
-            )
-
-            if not users_with_unpaid_exchanges:
-                return
-
-            notifications_sent = 0
-
-            for user_data in users_with_unpaid_exchanges:
-                try:
-                    await notify_daily_payment_reminder(bot, stp_repo, user_data)
-                    notifications_sent += 1
-                except Exception as e:
-                    logger.error(
-                        f"Ошибка отправки ежедневного напоминания пользователю {user_data.get('user_id')}: {e}"
-                    )
-
-            if notifications_sent > 0:
-                logger.info(
-                    f"Отправлено {notifications_sent} ежедневных напоминаний об оплате"
-                )
-
-    except Exception as e:
-        logger.error(f"Ошибка проверки ежедневных напоминаний об оплате: {e}")
+        for data in users_data:
+            await _send_reminder(bot, repo, data)
 
 
-async def notify_daily_payment_reminder(
-    bot: Bot, stp_repo: MainRequestsRepo, user_data: dict
-) -> None:
-    """Отправка ежедневного напоминания об оплате пользователю.
+async def _send_reminder(bot: Bot, repo: MainRequestsRepo, data: dict):
+    user_id, exchanges = data["user_id"], data["exchanges"]
+    if not exchanges:
+        return
 
-    Args:
-        bot: Экземпляр бота
-        stp_repo: Репозиторий операций с базой STP
-        user_data: Данные пользователя с его неоплаченными обменами
-    """
-    try:
-        user_id = user_data["user_id"]
-        exchanges = user_data["exchanges"]
+    today = datetime.now(tz_perm).date()
+    buyer, seller = [], []
 
-        if not exchanges:
-            return
-
-        # Разделяем сделки по ролям пользователя
-        buyer_exchanges = []
-        seller_exchanges = []
-
-        for exchange in exchanges:
-            # Проверяем, должна ли сделка уведомляться сегодня
-            if not should_notify_payment_today(exchange):
+    for exc in exchanges:
+        if exc.payment_type == "on_date" and exc.payment_date:
+            if _to_local(exc.payment_date).date() > today:
                 continue
 
-            # Определяем роль пользователя на основе owner_intent
-            if exchange.owner_intent == "sell":
-                # В sell: owner_id = продавец, counterpart_id = покупатель
-                if exchange.counterpart_id == user_id:
-                    buyer_exchanges.append(exchange)
-                elif exchange.owner_id == user_id:
-                    seller_exchanges.append(exchange)
-            elif exchange.owner_intent == "buy":
-                # В buy: owner_id = покупатель, counterpart_id = продавец
-                if exchange.owner_id == user_id:
-                    buyer_exchanges.append(exchange)
-                elif exchange.counterpart_id == user_id:
-                    seller_exchanges.append(exchange)
+        if exc.owner_intent == "sell":
+            if exc.counterpart_id == user_id:
+                buyer.append(exc)
+            elif exc.owner_id == user_id:
+                seller.append(exc)
+        else:
+            if exc.owner_id == user_id:
+                buyer.append(exc)
+            elif exc.counterpart_id == user_id:
+                seller.append(exc)
 
-        messages_sent = 0
-
-        # Отправляем напоминание о купленных сделках (пользователь должен заплатить)
-        if buyer_exchanges:
-            buyer_exchanges_info_list = []
-            for exchange in buyer_exchanges:
-                exchange_info = await get_exchange_text(
-                    stp_repo, exchange, user_id=user_id
-                )
-                buyer_exchanges_info_list.append(f"• {exchange_info}")
-
-            buyer_exchanges_info = "\n\n".join(buyer_exchanges_info_list)
-
-            buyer_message = MESSAGES["daily_payment_reminder_buyer"].format(
-                exchanges_info=buyer_exchanges_info
-            )
-
-            success = await send_message(
-                bot=bot, user_id=user_id, text=buyer_message, disable_notification=False
-            )
-            if success:
-                messages_sent += 1
-
-        # Отправляем напоминание о проданных сделках (пользователь должен проверить получение оплаты)
-        if seller_exchanges:
-            seller_exchanges_info_list = []
-            for exchange in seller_exchanges:
-                exchange_info = await get_exchange_text(
-                    stp_repo, exchange, user_id=user_id
-                )
-                seller_exchanges_info_list.append(f"• {exchange_info}")
-
-            seller_exchanges_info = "\n\n".join(seller_exchanges_info_list)
-
-            seller_message = MESSAGES["daily_payment_reminder_seller"].format(
-                exchanges_info=seller_exchanges_info
-            )
-
-            success = await send_message(
-                bot=bot,
-                user_id=user_id,
-                text=seller_message,
-                disable_notification=False,
-            )
-            if success:
-                messages_sent += 1
-
-        if messages_sent > 0:
-            logger.info(
-                f"Отправлено {messages_sent} ежедневных напоминаний пользователю {user_id} "
-                f"(покупатель: {len(buyer_exchanges)}, продавец: {len(seller_exchanges)})"
-            )
-
-    except Exception as e:
-        logger.error(
-            f"Ошибка отправки ежедневного напоминания пользователю {user_data.get('user_id')}: {e}"
+    if buyer:
+        infos = [f"• {await get_exchange_text(repo, exc, user_id)}" for exc in buyer]
+        await send_message(
+            bot, user_id, MSG["reminder_buyer"].format(list="\n\n".join(infos))
         )
+
+    if seller:
+        infos = [f"• {await get_exchange_text(repo, exc, user_id)}" for exc in seller]
+        await send_message(
+            bot, user_id, MSG["reminder_seller"].format(list="\n\n".join(infos))
+        )
+
+
+def _to_local(dt: datetime) -> datetime:
+    return tz_perm.localize(dt) if dt.tzinfo is None else dt
+
+
+def _can_reschedule(exc: Exchange) -> bool:
+    if not exc.end_time:
+        return False
+
+    now = datetime.now(tz_perm)
+    end = _to_local(exc.end_time)
+
+    if end.date() != now.date() or end <= now:
+        return False
+
+    next_slot = (
+        now.replace(minute=30, second=0, microsecond=0)
+        if now.minute < 30
+        else (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
+    )
+    return end - next_slot >= MIN_RESCHEDULE

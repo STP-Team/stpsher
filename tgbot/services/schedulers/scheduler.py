@@ -1,16 +1,14 @@
-"""Сервис отложенных задач."""
+"""Scheduler service manager."""
 
 import logging
-from typing import Dict
 
 from aiogram import Bot
-from apscheduler.jobstores.base import BaseJobStore
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from tgbot.config import IS_DEVELOPMENT, load_config
+from tgbot.config import load_config
 from tgbot.misc.helpers import tz_perm
 from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.exchanges import ExchangesScheduler
@@ -23,54 +21,34 @@ logger = logging.getLogger(__name__)
 
 
 class SchedulerManager:
-    """Менеджер планировщика."""
+    """Scheduler manager."""
 
     def __init__(self):
-        """Инициализация менеджера планировщика.
-
-        Создает экземпляр AsyncIOScheduler, настраивает его параметры
-        и инициализирует все специализированные планировщики (HR, достижения, обучения, наставничество).
-
-        Attributes:
-            self.scheduler: Асинхронный планировщик задач APScheduler
-            self.hr: Планировщик задач по HR
-            self.achievements: Планировщик задач по достижениям
-            self.studies: Планировщик задач по обучениям
-            self.tutors: Планировщик задач по наставничеству
-        """
         self.scheduler = AsyncIOScheduler()
-        self._configure_scheduler()
-
-        # Инициализация планировщиков
+        self._configure()
         self.hr = HRScheduler()
         self.achievements = AchievementScheduler()
         self.studies = StudiesScheduler()
         self.exchanges = ExchangesScheduler()
         self.tutors = TutorsScheduler()
 
-    def _configure_scheduler(self):
-        job_defaults = {
-            "coalesce": True,
-            "misfire_grace_time": 300,
-            "replace_existing": True,
-        }
-
-        jobstores: Dict[str, BaseJobStore] = {"default": MemoryJobStore()}
-
+    def _configure(self):
+        jobstores = {"default": MemoryJobStore()}
         if config.tg_bot.use_redis:
-            redis = {
-                "host": config.redis.redis_host,
-                "port": config.redis.redis_port,
-                "password": config.redis.redis_pass,
-                "db": 1,
-                "ssl": False,
-                "decode_responses": False,
-            }
-            jobstores["redis"] = RedisJobStore(**redis)
+            jobstores["redis"] = RedisJobStore(
+                host=config.redis.redis_host,
+                port=config.redis.redis_port,
+                password=config.redis.redis_pass,
+                db=1,
+            )
 
         self.scheduler.configure(
             jobstores=jobstores,
-            job_defaults=job_defaults,
+            job_defaults={
+                "coalesce": True,
+                "misfire_grace_time": 300,
+                "replace_existing": True,
+            },
             timezone=tz_perm,
         )
 
@@ -80,48 +58,29 @@ class SchedulerManager:
         stats_session_pool: async_sessionmaker[AsyncSession],
         bot: Bot,
     ) -> None:
-        """Настройка всех запланированных задач.
+        """Setup all scheduled tasks."""
+        logger.info("[Scheduler] Setting up tasks...")
 
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            stats_session_pool: Пул сессий с базой KPI
-            bot: Экземпляр бота
-        """
-        logger.info("[Планировщик] Настройка запланированных задач...")
-
-        if not IS_DEVELOPMENT:
-            # HR задачи
-            self.hr.setup_jobs(self.scheduler, stp_session_pool, bot)
-
-            # Задачи достижений
-            self.achievements.setup_jobs(
-                self.scheduler,
-                stp_session_pool,
-                stats_session_pool,
-                bot,
-            )
-
-        # Задачи обучений
+        self.hr.setup_jobs(self.scheduler, stp_session_pool, bot)
+        self.achievements.setup_jobs(
+            self.scheduler, stp_session_pool, stats_session_pool, bot
+        )
         self.studies.setup_jobs(self.scheduler, stp_session_pool, bot)
-
-        # Задачи биржи
-        self.exchanges.setup_jobs(self.scheduler, stp_session_pool, bot=bot)
-
-        # Задачи наставничества
+        self.exchanges.setup_jobs(self.scheduler, stp_session_pool, bot)
         self.tutors.setup_jobs(
             self.scheduler, stp_session_pool, stats_session_pool, bot
         )
 
-        logger.info("[Планировщик] Все задачи настроены")
+        logger.info("[Scheduler] All tasks configured")
 
     def start(self):
-        """Запуск планировщика."""
+        """Start scheduler."""
         if not self.scheduler.running:
             self.scheduler.start()
-            logger.info("[Планировщик] Планировщик запущен")
+            logger.info("[Scheduler] Started")
 
     def shutdown(self):
-        """Остановка планировщика."""
+        """Stop scheduler."""
         if self.scheduler.running:
             self.scheduler.shutdown()
-            logger.info("[Планировщик] Планировщик остановлен")
+            logger.info("[Scheduler] Stopped")

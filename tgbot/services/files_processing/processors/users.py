@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from stp_database.models.STP import Employee
 from stp_database.repo.STP.employee import EmployeeRepo
 
-from tgbot.services.schedulers.hr import get_fired_users_from_excel
+from tgbot.services.schedulers.hr import get_fired_users
 
 from ..parsers.base import BaseParser
 from ..utils.files import find_header_columns
@@ -182,7 +182,7 @@ async def process_fired_users_with_stats(
          Список фио уволенных специалистов
     """
     try:
-        fired_users = get_fired_users_from_excel(files_list)
+        fired_users = get_fired_users(files_list)
 
         if not fired_users:
             logger.info("[Увольнения] Нет сотрудников для увольнения на сегодня")
@@ -246,7 +246,7 @@ async def process_user_changes(
             logger.info("[Изменения] Пользователи не найдены в файле")
             return [], []
 
-        fired_users = get_fired_users_from_excel([file_name])
+        fired_users = get_fired_users([file_name])
 
         async with stp_session_pool() as session:
             user_repo = EmployeeRepo(session)

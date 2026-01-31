@@ -1,4 +1,4 @@
-"""Планировщик уведомлений о занятиях наставничества."""
+"""Tutors notification scheduler."""
 
 import logging
 from datetime import datetime, timedelta
@@ -11,232 +11,91 @@ from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname, tz_perm
 from tgbot.services.broadcaster import send_message
-
-from .base import BaseScheduler
+from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
+TIME_WINDOW = timedelta(minutes=2)
+NOTIFY_BEFORE = timedelta(hours=1)
 
 
 class TutorsScheduler(BaseScheduler):
-    """Планировщик уведомлений о предстоящих занятиях наставничества.
-
-    Отправляет уведомления наставникам и стажерам за час до начала занятия.
-    """
+    """Tutoring session notification scheduler."""
 
     def __init__(self):
-        """Инициализация планировщика наставничества."""
         super().__init__("tutors")
-        self._sent_notifications = set()  # Отслеживание отправленных уведомлений
-        self._last_reset_date = None  # Дата последнего сброса
+        self._sent = set()
+        self._last_reset = None
 
-    def setup_jobs(
-        self,
-        scheduler: AsyncIOScheduler,
-        stp_session_pool: async_sessionmaker,
-        stats_session_pool: async_sessionmaker,
-        bot: Bot,
-    ):
-        """Настройка задач планировщика наставничества.
-
-        Args:
-            scheduler: Экземпляр AsyncIOScheduler
-            stp_session_pool: Пул сессий с базой STP
-            stats_session_pool: Пул сессий с базой Stats
-            bot: Экземпляр бота
-        """
-        # Проверка предстоящих занятий каждую минуту
+    def setup_jobs(self, scheduler: AsyncIOScheduler, stp_session_pool: async_sessionmaker,
+                   stats_session_pool: async_sessionmaker, bot: Bot):
         self._add_job(
             scheduler=scheduler,
-            func=self._check_upcoming_training_job,
+            func=self._check_job,
             trigger="interval",
-            job_id="check_upcoming_training",
-            name="Проверка предстоящих занятий наставничества",
+            job_id="check_upcoming",
+            name="Проверка предстоящих занятий",
             minutes=1,
             args=[stp_session_pool, stats_session_pool, bot],
         )
 
-    async def _check_upcoming_training_job(
-        self,
-        stp_session_pool: async_sessionmaker,
-        stats_session_pool: async_sessionmaker,
-        bot: Bot,
-    ):
-        """Обертка для проверки предстоящих занятий с логированием."""
-        self._log_job_execution_start("Проверка предстоящих занятий")
+    async def _check_job(self, stp_session_pool, stats_session_pool, bot):
+        self._log_job_execution("Проверка занятий", True)
         try:
-            await self._check_upcoming_training(
-                stp_session_pool, stats_session_pool, bot
-            )
-            self._log_job_execution_end("Проверка предстоящих занятий", success=True)
+            await self._check_training(stp_session_pool, stats_session_pool, bot)
+            self._log_job_execution("Проверка занятий", True)
         except Exception as e:
-            self._log_job_execution_end(
-                "Проверка предстоящих занятий", success=False, error=str(e)
-            )
+            self._log_job_execution("Проверка занятий", False, str(e))
 
-    def _reset_notifications_tracking_if_needed(self, current_date):
-        """Сбрасывает отслеживание уведомлений в начале нового дня.
+    def _reset_if_needed(self, today):
+        if self._last_reset != today:
+            self._sent.clear()
+            self._last_reset = today
+            logger.info("Reset notification tracking")
 
-        Args:
-            current_date: Текущая дата
-        """
-        if self._last_reset_date != current_date:
-            self._sent_notifications.clear()
-            self._last_reset_date = current_date
-            self.logger.info("Сброшен список отправленных уведомлений для нового дня")
-
-    def _get_notification_key(self, training):
-        """Создает уникальный ключ для отслеживания отправленных уведомлений.
-
-        Args:
-            training: Объект с данными о занятии
-
-        Returns:
-            str: Уникальный ключ уведомления
-        """
+    def _key(self, training):
         return f"{training.tutor_fullname}|{training.trainee_fullname}|{training.training_start_time.strftime('%H:%M')}"
 
-    async def _check_upcoming_training(
-        self,
-        stp_session_pool: async_sessionmaker,
-        stats_session_pool: async_sessionmaker,
-        bot: Bot,
-    ):
-        """Проверяет предстоящие занятия и отправляет уведомления за час до начала.
-
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            stats_session_pool: Пул сессий с базой Stats
-            bot: Экземпляр бота
-        """
+    async def _check_training(self, stp_session_pool, stats_session_pool, bot):
         now = datetime.now(tz_perm)
-        current_date = now.date()
+        self._reset_if_needed(now.date())
 
-        # Сбрасываем отслеживание уведомлений для нового дня
-        self._reset_notifications_tracking_if_needed(current_date)
+        target = now + NOTIFY_BEFORE
+        start, end = target - TIME_WINDOW, target + TIME_WINDOW
 
-        notification_time = now + timedelta(hours=1)
-
-        # Окно для поиска занятий (±2 минуты от целевого времени уведомления)
-        time_window_start = notification_time - timedelta(minutes=2)
-        time_window_end = notification_time + timedelta(minutes=2)
-
-        # Получаем занятия на текущий день
         async with stats_session_pool() as stats_session:
-            async with stats_session.begin():
-                stats_repo = StatsRequestsRepo(stats_session)
+            repo = StatsRequestsRepo(stats_session)
+            trainings = await repo.tutors_schedule.get_tutor_trainees_by_date(training_date=now.date())
 
-                # Получаем все занятия на сегодня
-                trainings = await stats_repo.tutors_schedule.get_tutor_trainees_by_date(
-                    training_date=current_date
-                )
+        upcoming = [
+            t for t in trainings
+            if t.training_start_time
+            and start <= tz_perm.localize(t.training_start_time) <= end
+            and self._key(t) not in self._sent
+        ]
 
-        if not trainings:
+        if not upcoming:
             return
 
-        # Ищем занятия, которые начинаются в интервале уведомления
-        upcoming_trainings = []
-        for training in trainings:
-            if not training.training_start_time:
-                continue
+        logger.info(f"Found {len(upcoming)} upcoming sessions")
 
-            # Применяем timezone к naive datetime
-            training_start_aware = tz_perm.localize(training.training_start_time)
-
-            if time_window_start <= training_start_aware <= time_window_end:
-                # Проверяем, не отправлялось ли уже уведомление для этого занятия
-                notification_key = self._get_notification_key(training)
-                if notification_key not in self._sent_notifications:
-                    upcoming_trainings.append(training)
-                else:
-                    self.logger.debug(
-                        f"Уведомление уже отправлено для занятия: {notification_key}"
-                    )
-
-        if not upcoming_trainings:
-            return
-
-        self.logger.info(
-            f"Найдено {len(upcoming_trainings)} новых предстоящих занятий для уведомления"
-        )
-
-        # Отправляем уведомления
         async with stp_session_pool() as main_session:
-            async with main_session.begin():
-                main_repo = MainRequestsRepo(main_session)
+            repo = MainRequestsRepo(main_session)
+            for t in upcoming:
+                await self._notify(repo, bot, t)
+                self._sent.add(self._key(t))
 
-                for training in upcoming_trainings:
-                    notification_key = self._get_notification_key(training)
-                    await self._send_training_notifications(main_repo, bot, training)
-                    # Помечаем уведомление как отправленное
-                    self._sent_notifications.add(notification_key)
+    async def _notify(self, repo: MainRequestsRepo, bot: Bot, training):
+        times = f"{training.training_start_time.strftime('%H:%M')}-{training.training_end_time.strftime('%H:%M')} ПРМ"
 
-    async def _send_training_notifications(
-        self, main_repo: MainRequestsRepo, bot: Bot, training
-    ):
-        """Отправляет уведомления наставнику и стажеру о предстоящем занятии.
+        tutor = await repo.employee.get_users(fullname=training.tutor_fullname) if training.tutor_fullname else None
+        trainee = await repo.employee.get_users(fullname=training.trainee_fullname) if training.trainee_fullname else None
 
-        Args:
-            main_repo: Репозиторий для работы с основной базой
-            bot: Экземпляр бота
-            training: Объект с данными о занятии
-        """
-        training_start_time = training.training_start_time.strftime("%H:%M")
-        training_end_time = training.training_end_time.strftime("%H:%M")
+        if tutor and tutor.user_id:
+            msg = f"🎓 <b>Наставничество</b>\n\n<b>Время:</b> {times}\n<b>Стажер:</b> {format_fullname(trainee, True, True) or 'Не указан'}\n\nЗанятие начнется через час"
+            await send_message(bot, tutor.user_id, msg)
 
-        # Получаем user_id наставника
-        tutor_user = None
-        if training.tutor_fullname:
-            tutor_user = await main_repo.employee.get_users(
-                fullname=training.tutor_fullname
-            )
+        if trainee and trainee.user_id:
+            msg = f"📚 <b>Стажировка</b>\n\n<b>Время:</b> {times}\n<b>Наставник:</b> {format_fullname(tutor, True, True) or 'Не указан'}\n\nЗанятие начнется через час"
+            await send_message(bot, trainee.user_id, msg)
 
-        # Получаем user_id стажера
-        trainee_user = None
-        if training.trainee_fullname:
-            trainee_user = await main_repo.employee.get_users(
-                fullname=training.trainee_fullname
-            )
-
-        # Уведомление наставнику
-        if tutor_user and tutor_user.user_id:
-            tutor_message = (
-                f"🎓 <b>Наставничество</b>\n\n"
-                f"<b>Время стажировки:</b> {training_start_time}-{training_end_time} ПРМ\n"
-                f"<b>Стажер:</b> {format_fullname(trainee_user, True, True) or 'Не указан'}\n\n"
-                f"Занятие начнется через час"
-            )
-
-            success = await send_message(bot, tutor_user.user_id, tutor_message)
-            if success:
-                self.logger.info(
-                    f"Уведомление отправлено наставнику {training.tutor_fullname}"
-                )
-            else:
-                self.logger.warning(
-                    f"Не удалось отправить уведомление наставнику {tutor_user.user_id}"
-                )
-
-        # Уведомление стажеру
-        if trainee_user and trainee_user.user_id:
-            trainee_message = (
-                f"📚 Стажировка\n\n"
-                f"<b>Время стажировки:</b> {training_start_time}-{training_end_time} ПРМ\n"
-                f"<b>Наставник:</b> {format_fullname(tutor_user, True, True) or 'Не указан'}\n\n"
-                f"Занятие начнется через час"
-            )
-
-            success = await send_message(bot, trainee_user.user_id, trainee_message)
-            if success:
-                self.logger.info(
-                    f"Уведомление отправлено стажеру {training.trainee_fullname}"
-                )
-            else:
-                self.logger.warning(
-                    f"Не удалось отправить уведомление стажеру {trainee_user.user_id}"
-                )
-
-        # Логируем успешную отправку уведомления о занятии
-        self.logger.info(
-            f"Обработано занятие: {training.tutor_fullname} -> {training.trainee_fullname} "
-            f"в {training_start_time}"
-        )
+        logger.info(f"Notified: {training.tutor_fullname} -> {training.trainee_fullname}")

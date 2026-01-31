@@ -9,7 +9,7 @@ import pandas as pd
 
 from tgbot.services.files_processing.utils.excel_helpers import get_cell_value
 from tgbot.services.files_processing.utils.validators import is_valid_fullname
-from tgbot.services.schedulers.hr import get_fired_users_from_excel
+from tgbot.services.schedulers.hr import get_fired_users
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ class FileStatsExtractor:
 
             # Считаем уволенных сотрудников (только для обычных файлов, кроме временных)
             if not file_path.name.startswith("temp_old_"):
-                fired_users = get_fired_users_from_excel([str(file_path)])
+                fired_users = get_fired_users([str(file_path)])
                 stats["fired_people"] = len(fired_users)
 
         except Exception as e:

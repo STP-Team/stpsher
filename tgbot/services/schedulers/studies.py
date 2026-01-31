@@ -1,25 +1,9 @@
-"""Планировщик уведомлений об обучениях.
-
-Модуль отвечает за управление уведомлениями участников обучений.
-Автоматически отправляет напоминания за 2 часа и за 1 час до начала обучения.
-
-Основная функциональность:
-    - Парсинг Excel-файла с расписанием обучений
-    - Отслеживание приближающихся обучений
-    - Автоматическая рассылка уведомлений участникам
-    - Логирование результатов отправки
-
-Компоненты:
-    - StudiesScheduler: Основной класс планировщика
-    - check_upcoming_studies: Проверка приближающихся обучений
-    - send_study_notifications: Рассылка уведомлений участникам
-    - create_study_notification_message: Формирование текста уведомления
-"""
+"""Studies notification scheduler."""
 
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Set
+from typing import Set
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -28,401 +12,129 @@ from stp_database.repo.STP import MainRequestsRepo
 
 from tgbot.misc.helpers import format_fullname
 from tgbot.services.broadcaster import send_message
-from tgbot.services.files_processing.parsers.studies import (
-    StudiesScheduleParser,
-    StudySession,
-)
+from tgbot.services.files_processing.parsers.studies import StudiesScheduleParser
 from tgbot.services.schedulers.base import BaseScheduler
 
 logger = logging.getLogger(__name__)
+STUDIES_FILE = Path("uploads/Обучения.xlsx")
+CHECK_WINDOW = timedelta(minutes=10)
 
 
 class StudiesScheduler(BaseScheduler):
-    """Планировщик уведомлений об обучениях.
-
-    Управляет автоматической отправкой уведомлений участникам обучений
-    за определенное время до начала сессии. Наследует базовый функционал
-    от BaseScheduler и добавляет специфическую логику для работы с обучениями.
-
-    Основные возможности:
-        - Автоматическая проверка приближающихся обучений каждые 30 минут
-        - Отправка уведомлений за 2 часа и за 1 час до начала обучения
-        - Парсинг данных об обучениях из Excel-файла
-        - Поиск участников в базе данных и отправка персональных уведомлений
-        - Логирование всех операций с детализацией по участникам
-
-    Attributes:
-        studies_parser: Экземпляр StudiesScheduleParser для обработки файла обучений
-
-    Note:
-        Класс автоматически запускается при инициализации планировщика
-        и работает в фоновом режиме, проверяя наличие файла uploads/Обучения.xlsx
-    """
+    """Studies notification scheduler."""
 
     def __init__(self):
-        """Инициализация планировщика обучений."""
         super().__init__("Обучения")
-        self.studies_parser = StudiesScheduleParser()
 
-    def setup_jobs(
-        self,
-        scheduler: AsyncIOScheduler,
-        stp_session_pool: async_sessionmaker[AsyncSession],
-        bot: Bot,
-    ):
-        """Настраивает задачи планировщика для уведомлений об обучениях.
-
-        Регистрирует в планировщике задачу автоматической проверки
-        приближающихся обучений. Задача выполняется каждые 30 минут
-        и проверяет необходимость отправки уведомлений.
-
-        Args:
-            scheduler: Планировщик задач APScheduler для регистрации заданий
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-
-        Note:
-            Метод переопределяет базовую реализацию BaseScheduler
-            и добавляет специфичную для обучений логику планирования.
-        """
-        self.logger.info("Настройка задач уведомлений об обучениях...")
-
+    def setup_jobs(self, scheduler: AsyncIOScheduler, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot):
         scheduler.add_job(
-            func=self._check_upcoming_studies_job,
+            func=self._check_job,
             args=[stp_session_pool, bot],
             trigger="interval",
-            id=f"{self.category_name}_check_upcoming_studies",
+            id=f"{self.category_name}_check",
             name="Проверка предстоящих обучений",
             minutes=30,
         )
 
-    async def _check_upcoming_studies_job(
-        self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-    ):
-        """Обертка для проверки приближающихся обучений.
-
-        Выполняет проверку приближающихся обучений с логированием начала
-        и завершения работы. Обрабатывает исключения и записывает результаты
-        выполнения задачи.
-
-        Args:
-            stp_session_pool: Пул сессий с базой STP
-            bot: Экземпляр бота
-
-        Returns:
-            dict: Результат выполнения проверки или None при ошибке
-
-        Note:
-            Метод является оберткой вокруг основной функции check_upcoming_studies
-            и добавляет логирование согласно стандартам BaseScheduler.
-        """
-        self._log_job_execution_start("Проверка предстоящих обучений")
+    async def _check_job(self, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot):
+        self._log_job_execution("Проверка обучений", True)
         try:
-            result = await check_upcoming_studies(stp_session_pool, bot)
-            self._log_job_execution_end("Проверка предстоящих обучений", success=True)
-            return result
+            await check_upcoming_studies(stp_session_pool, bot)
+            self._log_job_execution("Проверка обучений", True)
         except Exception as e:
-            self._log_job_execution_end(
-                "Проверка предстоящих обучений", success=False, error=str(e)
-            )
+            self._log_job_execution("Проверка обучений", False, str(e))
 
 
-async def check_upcoming_studies(
-    stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot
-):
-    """Проверяет приближающиеся обучения и отправляет уведомления участникам.
+async def check_upcoming_studies(stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot):
+    """Check upcoming studies and send notifications."""
+    if not STUDIES_FILE.exists():
+        logger.warning("[Studies] File not found")
+        return {"status": "error", "message": "File not found"}
 
-    Основная функция для проверки обучений из Excel-файла и отправки
-    уведомлений участникам за 2 часа и за 1 час до начала обучения.
-    Работает с окном в 10 минут для каждого типа уведомления.
+    parser = StudiesScheduleParser()
+    all_sessions = parser.parse_studies_file(STUDIES_FILE)
+    if not all_sessions:
+        return {"status": "success", "message": "No sessions"}
 
-    Args:
-        stp_session_pool: Пул сессий с базой STP
-        bot: Экземпляр бота
+    now = datetime.now()
+    upcoming = [
+        s for s in all_sessions
+        if abs((s.date - now) - timedelta(hours=2)) <= CHECK_WINDOW
+        or abs((s.date - now) - timedelta(hours=1)) <= CHECK_WINDOW
+    ]
 
-    Returns:
-        dict: Словарь с результатами выполнения:
-            - status: "success" или "error"
-            - message: Сообщение о результате (при ошибке)
-            - sessions: Количество обнаруженных обучений (при успехе)
-            - notifications: Общее количество отправленных уведомлений
-            - results: Детализация по сессиям
+    if not upcoming:
+        return {"status": "success", "message": "No upcoming sessions"}
 
-    Raises:
-        Exception: При критических ошибках парсинга файла или отправки уведомлений
+    results = await send_study_notifications(upcoming, stp_session_pool, bot)
+    total = sum(results.values())
+    logger.info(f"[Studies] Sent {total} notifications for {len(upcoming)} sessions")
 
-    Note:
-        - Ожидает файл по пути uploads/Обучения.xlsx
-        - Отправляет уведомления в окне ±10 минут от целевого времени
-        - Логирует все операции для мониторинга работы системы
-    """
-    try:
-        studies_parser = StudiesScheduleParser()
-        file_path = Path("uploads/Обучения.xlsx")
-
-        if not file_path.exists():
-            logger.warning("[Обучения] Файл обучений не найден: Обучения.xlsx")
-            return {"status": "error", "message": "Файл обучений не найден"}
-
-        all_sessions = studies_parser.parse_studies_file(file_path)
-
-        if not all_sessions:
-            logger.info("[Обучения] No study sessions found in file")
-            return {"status": "success", "message": "No study sessions found"}
-
-        now = datetime.now()
-
-        upcoming_sessions = []
-        for session in all_sessions:
-            time_diff = session.date - now
-
-            two_hours_before = timedelta(hours=2)
-            if abs(time_diff - two_hours_before) <= timedelta(minutes=10):
-                upcoming_sessions.append(session)
-                continue
-
-            one_hour_before = timedelta(hours=1)
-            if abs(time_diff - one_hour_before) <= timedelta(minutes=10):
-                upcoming_sessions.append(session)
-
-        if not upcoming_sessions:
-            logger.debug(
-                "[Обучения] Нет обучений, требуемых уведомления (за 2 часа или 1 час)"
-            )
-            return {"status": "success", "message": "No studies requiring notification"}
-
-        logger.info(
-            f"[Обучения] Найдено {len(upcoming_sessions)} приближающихся обучений"
-        )
-
-        notification_results = await send_study_notifications(
-            upcoming_sessions, stp_session_pool, bot
-        )
-
-        total_notifications = sum(notification_results.values())
-        logger.info(
-            f"[Обучения] Отправлено {total_notifications} уведомлений для {len(upcoming_sessions)} обучений"
-        )
-
-        return {
-            "status": "success",
-            "sessions": len(upcoming_sessions),
-            "notifications": total_notifications,
-            "results": notification_results,
-        }
-
-    except Exception as e:
-        logger.error(f"[Обучения] Critical error checking upcoming studies: {e}")
-        return {"status": "error", "message": str(e)}
+    return {"status": "success", "sessions": len(upcoming), "notifications": total, "results": results}
 
 
-async def send_study_notifications(
-    sessions: List[StudySession],
-    stp_session_pool: async_sessionmaker[AsyncSession],
-    bot: Bot,
-) -> dict:
-    """Отправляет уведомления участникам обучений.
-
-    Обрабатывает список сессий обучений и отправляет персональные
-    уведомления всем участникам, найденным в базе данных.
-    Избегает дублирования участников и отправляет уведомления
-    только реальным участникам (не руководителям).
-
-    Args:
-        sessions: Список сессий обучений для обработки
-        stp_session_pool: Пул сессий с базой STP
-        bot: Экземпляр бота Telegram для отправки сообщений
-
-    Returns:
-        dict: Словарь с результатами отправки по каждой сессии,
-            где ключ - уникальный идентификатор сессии (дата_название),
-            значение - количество успешно отправленных уведомлений
-
-    Note:
-        - Извлекает участников только из поля ФИО (исключая руководителей из РГ)
-        - Использует set для исключения дублирования участников
-        - Логирует подробную информацию о каждом этапе отправки
-        - Пропускает участников без user_id в базе данных
-    """
-    notification_results = {}
+async def send_study_notifications(sessions, stp_session_pool: async_sessionmaker[AsyncSession], bot: Bot) -> dict:
+    """Send notifications to study participants."""
+    results = {}
 
     async with stp_session_pool() as session:
-        stp_repo = MainRequestsRepo(session)
+        repo = MainRequestsRepo(session)
 
         for session_obj in sessions:
-            session_key = f"{session_obj.date.strftime('%d.%m.%Y')}_{session_obj.title}"
-            notifications_sent = 0
+            key = f"{session_obj.date.strftime('%d.%m.%Y')}_{session_obj.title}"
+            sent = 0
 
-            participant_names: Set[str] = set()
-            for area, name, rg, attendance, reason in session_obj.participants:
-                if name and name.strip():
-                    participant_names.add(name.strip())
+            participants: Set[str] = {
+                name.strip() for _, name, _, _, _ in session_obj.participants if name and name.strip()
+            }
 
-            logger.debug(
-                f"[Обучения] Проверяем обучение: {session_obj.title} на {session_obj.date.strftime('%d.%m.%Y')}"
-            )
-            logger.debug(
-                f"[Обучения] Найдено {len(participant_names)} уникальных участников: {list(participant_names)}"
-            )
-
-            for participant_name in participant_names:
+            for name in participants:
                 try:
-                    participant = await stp_repo.employee.get_users(
-                        fullname=participant_name
-                    )
-
-                    if not participant:
-                        logger.warning(
-                            f"[Обучения] Участник '{participant_name}' не найден в БД"
-                        )
+                    user = await repo.employee.get_users(fullname=name)
+                    if not user or not user.user_id:
                         continue
 
-                    if not participant.user_id:
-                        logger.warning(
-                            f"[Обучения] Участник '{participant_name}' найден в БД, но не имеет user_id"
-                        )
-                        continue
-
-                    time_diff = session_obj.date - datetime.now()
-
-                    message = await create_study_notification_message(
-                        session_obj, stp_repo, time_diff
-                    )
-
-                    success = await send_message(bot, participant.user_id, message)
-
-                    if success:
-                        notifications_sent += 1
-                        logger.debug(
-                            f"[Обучения] {participant_name} уведомлен о скором обучении"
-                        )
-                    else:
-                        logger.warning(
-                            f"[Обучения] Ошибка уведомления {participant_name}"
-                        )
-
+                    msg = await _create_notification_message(session_obj, repo, user)
+                    if await send_message(bot, user.user_id, msg):
+                        sent += 1
                 except Exception as e:
-                    logger.error(
-                        f"[Обучения] Error notifying participant {participant_name}: {e}"
-                    )
-                    continue
+                    logger.error(f"[Studies] Error notifying {name}: {e}")
 
-            notification_results[session_key] = notifications_sent
-            logger.info(
-                f"[Обучения] Обучение {session_key}: отправлено {notifications_sent} уведомлений"
-            )
+            results[key] = sent
+            logger.info(f"[Studies] {key}: {sent} notifications sent")
 
-    return notification_results
+    return results
 
 
-async def create_study_notification_message(
-    session: StudySession, stp_repo, time_diff: timedelta
-) -> str:
-    """Формирует текст уведомления об обучении для участника.
+async def _create_notification_message(session, repo, user) -> str:
+    """Create study notification message."""
+    time_diff = session.date - datetime.now()
 
-    Создает персонализированное сообщение с информацией об обучении,
-    включая динамический текст времени, ссылку на тренера (если доступна)
-    и правила посещения обучений.
-
-    Args:
-        session: Объект сессии обучения с данными о дате, теме, тренере
-        stp_repo: Репозиторий операций с базой STP
-        time_diff: Разница во времени до начала обучения
-
-    Returns:
-        str: Отформатированное HTML-сообщение для отправки в Telegram
-
-    Note:
-        - Автоматически определяет тип уведомления (2 часа/1 час/другое)
-        - Пытается создать ссылку на профиль тренера в Telegram
-        - Включает блок с правилами посещения обучений
-        - Использует HTML-разметку для красивого отображения
-
-    Examples:
-        Для обучения через 2 часа:
-        "Напоминаем, что через 2 часа у тебя запланировано обучение..."
-
-        Для обучения через 1 час:
-        "Напоминаем, что через 1 час у тебя запланировано обучение..."
-    """
     if abs(time_diff - timedelta(hours=2)) <= timedelta(minutes=10):
         time_text = "через 2 часа"
     elif abs(time_diff - timedelta(hours=1)) <= timedelta(minutes=10):
         time_text = "через 1 час"
     else:
-        days_until = (session.date.date() - datetime.now().date()).days
-        if days_until == 0:
-            time_text = "сегодня"
-        elif days_until == 1:
-            time_text = "завтра"
-        else:
-            time_text = f"через {days_until} дн."
+        days = (session.date.date() - datetime.now().date()).days
+        time_text = "сегодня" if days == 0 else "завтра" if days == 1 else f"через {days} дн."
 
-    trainer_text = session.trainer
-    if session.trainer:
+    trainer = session.trainer
+    if trainer:
         try:
-            trainer_user = await stp_repo.employee.get_users(fullname=session.trainer)
-            trainer_text = format_fullname(trainer_user)
-        except Exception as e:
-            logger.warning(
-                f"[Обучения] Could not get trainer info for {session.trainer}: {e}"
-            )
+            trainer_user = await repo.employee.get_users(fullname=trainer)
+            trainer = format_fullname(trainer_user) if trainer_user else trainer
+        except Exception:
+            pass
 
-    message_parts = [
-        "📚 <b>Напоминание об обучении</b>\n",
-        f"Напоминаем, что <b>{time_text}</b> у тебя запланировано обучение:\n",
-        f"📖 <b>Тема:</b> {session.title}",
-        f"🎓 <b>Тренер:</b> {trainer_text}",
-        f"\n📅 <b>Дата:</b> {session.date.strftime('%d.%m.%Y')} {session.time} {f'({session.duration})' if session.duration else ''}",
-    ]
-
-    message_parts.extend([
-        "\n<blockquote expandable>💡 <b>Правила посещения обучений</b>",
-        "• Подтверди или отклони явку в письме об обучении на почте",
-        "• Крайний срок предупреждения о неявке - за 2 часа до начала обучения с линии",
-        "• Обязательно наличие камеры</blockquote>",
-    ])
-
-    return "\n".join(message_parts)
-
-
-def format_studies_notification_summary(sessions: List[StudySession]) -> str:
-    """Форматирует краткую сводку предстоящих обучений для логов.
-
-    Создает компактное описание списка обучений, группируя их по датам
-    для удобного анализа в логах системы. Используется для мониторинга
-    и отладки работы планировщика уведомлений.
-
-    Args:
-        sessions: Список предстоящих сессий обучений
-
-    Returns:
-        str: Краткая строка-сводка с количеством обучений по датам
-
-    Examples:
-        Пустой список:
-        "No upcoming studies found"
-
-        Несколько обучений:
-        "Upcoming studies: 3, • 15.11.2025: 2 session(s), • 16.11.2025: 1 session(s)"
-
-    Note:
-        Функция не отправляет уведомления, а только формирует текст для логирования.
-        Используется для получения быстрого обзора предстоящих обучений.
-    """
-    if not sessions:
-        return "No upcoming studies found"
-
-    summary_parts = [f"Upcoming studies: {len(sessions)}"]
-
-    dates = {}
-    for session in sessions:
-        date_str = session.date.strftime("%d.%m.%Y")
-        if date_str not in dates:
-            dates[date_str] = 0
-        dates[date_str] += 1
-
-    for date_str, count in dates.items():
-        summary_parts.append(f"• {date_str}: {count} session(s)")
-
-    return ", ".join(summary_parts)
+    return (
+        f"📚 <b>Напоминание об обучении</b>\n"
+        f"Напоминаем, что <b>{time_text}</b> у тебя запланировано обучение:\n"
+        f"📖 <b>Тема:</b> {session.title}\n"
+        f"🎓 <b>Тренер:</b> {trainer}\n"
+        f"📅 <b>Дата:</b> {session.date.strftime('%d.%m.%Y')} {session.time} "
+        f"{'(' + session.duration + ')' if session.duration else ''}\n"
+        "\n<blockquote expandable>💡 <b>Правила посещения</b>"
+        "• Подтверди или отклони явку в письме на почте"
+        "• Крайний срок предупреждения - за 2 часа до начала"
+        "• Обязательно наличие камеры</blockquote>"
+    )
