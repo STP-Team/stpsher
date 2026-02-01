@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tgbot.config import load_config
 from tgbot.misc.helpers import tz_perm
-from tgbot.services.schedulers.achievements import AchievementScheduler
 from tgbot.services.schedulers.exchanges import ExchangesScheduler
 from tgbot.services.schedulers.hr import HRScheduler
 from tgbot.services.schedulers.studies import StudiesScheduler
@@ -27,7 +26,6 @@ class SchedulerManager:
         self.scheduler = AsyncIOScheduler()
         self._configure()
         self.hr = HRScheduler()
-        self.achievements = AchievementScheduler()
         self.studies = StudiesScheduler()
         self.exchanges = ExchangesScheduler()
         self.tutors = TutorsScheduler()
@@ -62,9 +60,6 @@ class SchedulerManager:
         logger.info("[Scheduler] Setting up tasks...")
 
         self.hr.setup_jobs(self.scheduler, stp_session_pool, bot)
-        self.achievements.setup_jobs(
-            self.scheduler, stp_session_pool, stats_session_pool, bot
-        )
         self.studies.setup_jobs(self.scheduler, stp_session_pool, bot)
         self.exchanges.setup_jobs(self.scheduler, stp_session_pool, bot)
         self.tutors.setup_jobs(
